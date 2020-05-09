@@ -1,0 +1,4 @@
+/bazel-bin
+/bazel-gitlab-agent
+/bazel-out
+/bazel-testlogs

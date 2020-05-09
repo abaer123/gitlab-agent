@@ -3,6 +3,13 @@ fmt-bazel:
 	bazel run //:buildozer
 	bazel run //:buildifier
 
+.PHONY: regenerate-grpc-internal
+regenerate-grpc-internal:
+	bazel run //proto/agentrpc:extract_agent_grpc
+
+.PHONY: regenerate-grpc
+regenerate-grpc: regenerate-grpc-internal update-bazel
+
 .PHONY: update-repos
 update-repos:
 	bazel run \

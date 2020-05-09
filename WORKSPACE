@@ -35,17 +35,27 @@ http_archive(
 )
 
 http_archive(
-    name = "com_google_protobuf",
-    sha256 = "a79d19dcdf9139fa4b81206e318e33d245c4c9da1ffed21c87288ed4380426f9",
-    strip_prefix = "protobuf-3.11.4",
-    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.11.4.tar.gz"],
-)
-
-http_archive(
     name = "com_github_atlassian_bazel_tools",
     sha256 = "0e556f6d537df818dce1caadc825936f43a555773040e35c8b131067a85f11cd",
     strip_prefix = "bazel-tools-936325de16966d259eee3f309f8578b761cfc874",
     urls = ["https://github.com/atlassian/bazel-tools/archive/936325de16966d259eee3f309f8578b761cfc874.tar.gz"],
+)
+
+http_archive(
+    name = "rules_proto",
+    sha256 = "602e7161d9195e50246177e7c55b2f39950a9cf7366f74ed5f22fd45750cd208",
+    strip_prefix = "rules_proto-97d8af4dc474595af3900dd85cb3a29ad28cc313",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_proto/archive/97d8af4dc474595af3900dd85cb3a29ad28cc313.tar.gz",
+        "https://github.com/bazelbuild/rules_proto/archive/97d8af4dc474595af3900dd85cb3a29ad28cc313.tar.gz",
+    ],
+)
+
+http_archive(
+    name = "rules_proto_grpc",
+    sha256 = "5f0f2fc0199810c65a2de148a52ba0aff14d631d4e8202f41aff6a9d590a471b",
+    strip_prefix = "rules_proto_grpc-1.0.2",
+    urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/archive/1.0.2.tar.gz"],
 )
 
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
@@ -56,9 +66,7 @@ go_register_toolchains(nogo = "@//:nogo")
 
 load("@com_github_bazelbuild_buildtools//buildifier:deps.bzl", "buildifier_dependencies")
 load("@com_github_atlassian_bazel_tools//buildozer:deps.bzl", "buildozer_dependencies")
-load("@com_github_atlassian_bazel_tools//goimports:deps.bzl", "goimports_dependencies")
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies")
-load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
 load(
     "@io_bazel_rules_docker//repositories:repositories.bzl",
     container_repositories = "repositories",
@@ -67,10 +75,11 @@ load(
     "@io_bazel_rules_docker//go:image.bzl",
     go_image_repositories = "repositories",
 )
+load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
+load("@rules_proto_grpc//:repositories.bzl", "rules_proto_grpc_toolchains", "rules_proto_grpc_repos")
+load("@rules_proto_grpc//go:repositories.bzl", rules_proto_grpc_go_repos = "go_repos")
 
 gazelle_dependencies()
-
-goimports_dependencies()
 
 container_repositories()
 
@@ -80,9 +89,17 @@ buildifier_dependencies()
 
 buildozer_dependencies()
 
-protobuf_deps()
+rules_proto_dependencies()
 
-load("//:build/repositories.bzl", "go_repositories")
+rules_proto_toolchains()
+
+rules_proto_grpc_toolchains()
+
+rules_proto_grpc_repos()
+
+rules_proto_grpc_go_repos()
+
+load("//build:repositories.bzl", "go_repositories")
 
 # gazelle:repository_macro build/repositories.bzl%go_repositories
 go_repositories()
