@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 
 	"gitlab.com/ash2k/gitlab-agent/cmd"
-	"gitlab.com/ash2k/gitlab-agent/pkg/agentgapp"
+	"gitlab.com/ash2k/gitlab-agent/cmd/agentg/agentgapp"
 )
 
 func main() {
@@ -25,8 +26,9 @@ func run() error {
 }
 
 func runWithContext(ctx context.Context) error {
-	a := agentgapp.App{
-		// Configuration
+	app, err := agentgapp.NewFromFlags(flag.CommandLine, os.Args[1:])
+	if err != nil {
+		return err
 	}
-	return a.Run(ctx)
+	return app.Run(ctx)
 }

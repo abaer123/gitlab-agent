@@ -5,7 +5,7 @@ fmt-bazel:
 
 .PHONY: regenerate-grpc-internal
 regenerate-grpc-internal:
-	bazel run //proto/agentrpc:extract_agent_grpc
+	bazel run //agentrpc:extract_agent_grpc
 
 .PHONY: regenerate-grpc
 regenerate-grpc: regenerate-grpc-internal update-bazel
@@ -24,7 +24,7 @@ update-bazel:
 
 .PHONY: fmt
 fmt:
-	go run golang.org/x/tools/cmd/goimports
+	go run golang.org/x/tools/cmd/goimports -w cmd pkg *.go
 
 .PHONY: test
 test: fmt update-bazel test-ci

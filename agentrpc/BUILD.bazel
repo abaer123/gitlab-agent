@@ -1,22 +1,29 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@rules_proto_grpc//go:defs.bzl", "go_grpc_compile")
 load("//build:build.bzl", "extract_generated")
 
+proto_library(
+    name = "agentrpc_proto",
+    srcs = ["agentrpc.proto"],
+    visibility = ["//visibility:public"],
+)
+
 go_grpc_compile(
     name = "agent_grpc",
-    deps = ["//proto:agent_proto"],
+    deps = [":agentrpc_proto"],
 )
 
 extract_generated(
     name = "extract_agent_grpc",
     label = ":agent_grpc",
-    root_relative_directory = "proto/agentrpc/",
+    root_relative_directory = "agentrpc/",
 )
 
 go_library(
     name = "go_default_library",
-    srcs = ["agent.pb.go"],
-    importpath = "gitlab.com/ash2k/gitlab-agent/proto/agentrpc",
+    srcs = ["agentrpc.pb.go"],
+    importpath = "gitlab.com/ash2k/gitlab-agent/agentrpc",
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_golang_protobuf//proto:go_default_library",

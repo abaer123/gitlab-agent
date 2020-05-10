@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"gitlab.com/ash2k/gitlab-agent/cmd"
-	"gitlab.com/ash2k/gitlab-agent/pkg/agentkapp"
+	"gitlab.com/ash2k/gitlab-agent/cmd/agentk/agentkapp"
 )
 
 func main() {

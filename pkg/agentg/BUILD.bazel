@@ -2,7 +2,8 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = ["app.go"],
-    importpath = "gitlab.com/ash2k/gitlab-agent/pkg/agentkapp",
+    srcs = ["agentg.go"],
+    importpath = "gitlab.com/ash2k/gitlab-agent/pkg/agentg",
     visibility = ["//visibility:public"],
+    deps = ["//agentrpc:go_default_library"],
 )

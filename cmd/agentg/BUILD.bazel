@@ -7,7 +7,7 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//cmd:go_default_library",
-        "//pkg/agentgapp:go_default_library",
+        "//cmd/agentg/agentgapp:go_default_library",
     ],
 )
 

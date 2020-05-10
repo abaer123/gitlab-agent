@@ -1,0 +1,13 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["app.go"],
+    importpath = "gitlab.com/ash2k/gitlab-agent/cmd/agentg/agentgapp",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//agentrpc:go_default_library",
+        "//pkg/agentg:go_default_library",
+        "@org_golang_google_grpc//:go_default_library",
+    ],
+)

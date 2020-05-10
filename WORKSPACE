@@ -64,9 +64,17 @@ go_rules_dependencies()
 
 go_register_toolchains(nogo = "@//:nogo")
 
+load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies")
+
+gazelle_dependencies()
+
+load("//build:repositories.bzl", "go_repositories")
+
+# gazelle:repository_macro build/repositories.bzl%go_repositories
+go_repositories()
+
 load("@com_github_bazelbuild_buildtools//buildifier:deps.bzl", "buildifier_dependencies")
 load("@com_github_atlassian_bazel_tools//buildozer:deps.bzl", "buildozer_dependencies")
-load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies")
 load(
     "@io_bazel_rules_docker//repositories:repositories.bzl",
     container_repositories = "repositories",
@@ -76,10 +84,8 @@ load(
     go_image_repositories = "repositories",
 )
 load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
-load("@rules_proto_grpc//:repositories.bzl", "rules_proto_grpc_toolchains", "rules_proto_grpc_repos")
+load("@rules_proto_grpc//:repositories.bzl", "rules_proto_grpc_toolchains")
 load("@rules_proto_grpc//go:repositories.bzl", rules_proto_grpc_go_repos = "go_repos")
-
-gazelle_dependencies()
 
 container_repositories()
 
@@ -95,11 +101,4 @@ rules_proto_toolchains()
 
 rules_proto_grpc_toolchains()
 
-rules_proto_grpc_repos()
-
 rules_proto_grpc_go_repos()
-
-load("//build:repositories.bzl", "go_repositories")
-
-# gazelle:repository_macro build/repositories.bzl%go_repositories
-go_repositories()

@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+// If you make any changes make sure you run: make regenerate-grpc
+
 package agentrpc;
 
 message KubernetesRequestMeta {
