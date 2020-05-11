@@ -5,4 +5,9 @@ go_library(
     srcs = ["app.go"],
     importpath = "gitlab.com/ash2k/gitlab-agent/cmd/agentk/agentkapp",
     visibility = ["//visibility:public"],
+    deps = [
+        "//agentrpc:go_default_library",
+        "//pkg/agentk:go_default_library",
+        "@org_golang_google_grpc//:go_default_library",
+    ],
 )

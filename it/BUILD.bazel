@@ -1,0 +1,17 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_test")
+
+go_test(
+    name = "go_default_test",
+    size = "small",
+    srcs = [
+        "it_test.go",
+        "main_test.go",
+    ],
+    race = "on",
+    deps = [
+        "//cmd/agentg/agentgapp:go_default_library",
+        "//cmd/agentk/agentkapp:go_default_library",
+        "@com_github_stretchr_testify//assert:go_default_library",
+        "@org_golang_x_sync//errgroup:go_default_library",
+    ],
+)

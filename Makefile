@@ -12,10 +12,12 @@ regenerate-grpc: regenerate-grpc-internal update-bazel
 
 .PHONY: update-repos
 update-repos:
+	go mod tidy
 	bazel run \
 		//:gazelle -- \
 		update-repos \
 		-from_file=go.mod \
+		-build_file_proto_mode=disable_global \
 		-to_macro=build/repositories.bzl%go_repositories
 
 .PHONY: update-bazel
@@ -24,7 +26,7 @@ update-bazel:
 
 .PHONY: fmt
 fmt:
-	go run golang.org/x/tools/cmd/goimports -w cmd pkg *.go
+	go run golang.org/x/tools/cmd/goimports -w cmd it pkg *.go
 
 .PHONY: test
 test: fmt update-bazel test-ci
