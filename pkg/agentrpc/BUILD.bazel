@@ -17,13 +17,13 @@ go_grpc_compile(
 extract_generated(
     name = "extract_agent_grpc",
     label = ":agent_grpc",
-    root_relative_directory = "agentrpc/",
+    root_relative_directory = "pkg/agentrpc/",
 )
 
 go_library(
     name = "go_default_library",
     srcs = ["agentrpc.pb.go"],
-    importpath = "gitlab.com/ash2k/gitlab-agent/agentrpc",
+    importpath = "gitlab.com/ash2k/gitlab-agent/pkg/agentrpc",
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_golang_protobuf//proto:go_default_library",

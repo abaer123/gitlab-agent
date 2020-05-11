@@ -5,5 +5,5 @@ go_library(
     srcs = ["agentg.go"],
     importpath = "gitlab.com/ash2k/gitlab-agent/pkg/agentg",
     visibility = ["//visibility:public"],
-    deps = ["//agentrpc:go_default_library"],
+    deps = ["//pkg/agentrpc:go_default_library"],
 )

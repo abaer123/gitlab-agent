@@ -1,6 +1,6 @@
 package agentg
 
-import "gitlab.com/ash2k/gitlab-agent/agentrpc"
+import "gitlab.com/ash2k/gitlab-agent/pkg/agentrpc"
 
 type Agent struct {
 }

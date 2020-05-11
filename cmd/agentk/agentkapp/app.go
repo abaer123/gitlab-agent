@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"gitlab.com/ash2k/gitlab-agent/agentrpc"
 	"gitlab.com/ash2k/gitlab-agent/pkg/agentk"
+	"gitlab.com/ash2k/gitlab-agent/pkg/agentrpc"
 	"google.golang.org/grpc"
 )
 

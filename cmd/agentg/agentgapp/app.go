@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net"
 
-	"gitlab.com/ash2k/gitlab-agent/agentrpc"
 	"gitlab.com/ash2k/gitlab-agent/pkg/agentg"
+	"gitlab.com/ash2k/gitlab-agent/pkg/agentrpc"
 	"google.golang.org/grpc"
 )
 

@@ -5,10 +5,10 @@ fmt-bazel:
 
 .PHONY: regenerate-grpc-internal
 regenerate-grpc-internal:
-	bazel run //agentrpc:extract_agent_grpc
+	bazel run //pkg/agentrpc:extract_agent_grpc
 
 .PHONY: regenerate-grpc
-regenerate-grpc: regenerate-grpc-internal update-bazel
+regenerate-grpc: regenerate-grpc-internal fmt update-bazel
 
 .PHONY: update-repos
 update-repos:

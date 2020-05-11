@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/ash2k/stager/wait"
-	"gitlab.com/ash2k/gitlab-agent/agentrpc"
+	"gitlab.com/ash2k/gitlab-agent/pkg/agentrpc"
 	"k8s.io/client-go/rest"
 )
 
