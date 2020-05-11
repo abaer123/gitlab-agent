@@ -26,7 +26,7 @@ update-bazel:
 
 .PHONY: fmt
 fmt:
-	go run golang.org/x/tools/cmd/goimports -w cmd it pkg *.go
+	go run golang.org/x/tools/cmd/goimports -w cmd it pkg
 
 .PHONY: test
 test: fmt update-bazel test-ci
