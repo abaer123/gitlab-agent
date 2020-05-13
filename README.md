@@ -111,6 +111,27 @@ Each `agentk` copy also gets its own `ServiceAccount` with minimum required perm
 
 Each cluster has an identity too. The agent learns the identifier from the configuration it fetches. 
 
+### Permissions within the cluster
+
+Currently customers are rightly concerned with us asking cluster-admin access. For GitOps and similar functionality something still has to have permissions to CRUD Kubernetes objects. The solution here is to give cluster operator (our customer) exclusive control of the permissions. Then they can only allow the agent to do what they want it to be able to do. Where RBAC is not flexible enough (e.g. namespaces - don't want to allow CRUD for arbitrary namespaces), we can provide an admission webhook that enforces some rules for a agent's ServiceAccount in addition to RBAC.
+
+### Environments
+
+How to map GitLab's [environments](https://gitlab.com/help/ci/environments) onto clusters/agents/namespaces? This link states the following:
+
+> It's important to know that:
+>   
+> * Environments are like tags for your CI jobs, describing where code gets deployed.
+
+We can follow this model and mark each agent as belonging to a one or more environments. It's a many to many relationship:
+- Multiple agents can be part of an environment. Example: X prod clusters with some number of agents each
+- An agent can be part of multiple environments. Example: a cluster-wide agent where the cluster is used for both production and non-production deployments
+
+Note that cluster-environment is a many to many relationship too:
+
+- A cluster may be part of multiple environments
+- An environment can include several clusters 
+
 ### Other items?
 
 Please add more here.
