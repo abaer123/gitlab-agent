@@ -25,9 +25,8 @@ func (a *App) Run(ctx context.Context) error {
 		return fmt.Errorf("gRPC.dial: %v", err)
 	}
 	defer conn.Close()
-	client := agentrpc.NewReverseProxyServiceClient(conn)
 	agent := agentk.Agent{
-		Client: client,
+		Client: agentrpc.NewGitLabServiceClient(conn),
 	}
 	return agent.Run(ctx)
 }

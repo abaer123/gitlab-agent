@@ -24,10 +24,7 @@ import (
 func TestIntegration(t *testing.T) {
 	socketAddr := filepath.Join(os.TempDir(), fmt.Sprintf("%d.sock", rand.Uint64()))
 	t.Cleanup(func() {
-		err := os.Remove(socketAddr)
-		if err != nil {
-			t.Log(err)
-		}
+		os.Remove(socketAddr)
 	})
 	ag := agentgapp.App{
 		ListenNetwork: "unix",
@@ -38,7 +35,7 @@ func TestIntegration(t *testing.T) {
 		Insecure:      true,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	g, ctx := errgroup.WithContext(ctx)

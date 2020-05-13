@@ -2,15 +2,8 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = [
-        "agentk.go",
-        "reverse_handler.go",
-    ],
+    srcs = ["agentk.go"],
     importpath = "gitlab.com/ash2k/gitlab-agent/pkg/agentk",
     visibility = ["//visibility:public"],
-    deps = [
-        "//pkg/agentrpc:go_default_library",
-        "@com_github_ash2k_stager//wait:go_default_library",
-        "@io_k8s_client_go//rest:go_default_library",
-    ],
+    deps = ["//pkg/agentrpc:go_default_library"],
 )
