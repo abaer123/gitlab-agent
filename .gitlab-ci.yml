@@ -1,5 +1,8 @@
 test:
   stage: test
-  image: l.gcr.io/google/bazel:3.1.0
+  image:
+    name: l.gcr.io/google/bazel:3.1.0
+    entrypoint: /bin/bash
   script:
+    - apt-get install -y make
     - make test-ci
