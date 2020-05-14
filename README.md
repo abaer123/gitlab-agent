@@ -2,6 +2,8 @@
 
 GitLab Kubernetes Agent is an active in-cluster component for solving any GitLab<->Kubernetes integration tasks.
 
+**This is a work in progress, it's not used anywhere yet.**
+
 ## Use cases and ideas
 
 Below are some ideas that can be built using the agent.
