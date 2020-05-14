@@ -26,7 +26,7 @@ func (a *App) Run(ctx context.Context) error {
 	srv := &agentg.Agent{
 		// Configuration
 	}
-	agentrpc.RegisterReverseProxyServiceServer(grpcServer, srv)
+	agentrpc.RegisterGitLabServiceServer(grpcServer, srv)
 	serveDone := make(chan struct{})
 	defer close(serveDone)
 	go func() {

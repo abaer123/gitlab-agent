@@ -25,219 +25,86 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-type HttpHeader struct {
-	Key                  string   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
-	Value                []string `protobuf:"bytes,2,rep,name=value,proto3" json:"value,omitempty"`
+type ConfigurationRequest struct {
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *HttpHeader) Reset()         { *m = HttpHeader{} }
-func (m *HttpHeader) String() string { return proto.CompactTextString(m) }
-func (*HttpHeader) ProtoMessage()    {}
-func (*HttpHeader) Descriptor() ([]byte, []int) {
+func (m *ConfigurationRequest) Reset()         { *m = ConfigurationRequest{} }
+func (m *ConfigurationRequest) String() string { return proto.CompactTextString(m) }
+func (*ConfigurationRequest) ProtoMessage()    {}
+func (*ConfigurationRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_213b842ecf18ef32, []int{0}
 }
 
-func (m *HttpHeader) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_HttpHeader.Unmarshal(m, b)
+func (m *ConfigurationRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ConfigurationRequest.Unmarshal(m, b)
 }
-func (m *HttpHeader) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_HttpHeader.Marshal(b, m, deterministic)
+func (m *ConfigurationRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ConfigurationRequest.Marshal(b, m, deterministic)
 }
-func (m *HttpHeader) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_HttpHeader.Merge(m, src)
+func (m *ConfigurationRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ConfigurationRequest.Merge(m, src)
 }
-func (m *HttpHeader) XXX_Size() int {
-	return xxx_messageInfo_HttpHeader.Size(m)
+func (m *ConfigurationRequest) XXX_Size() int {
+	return xxx_messageInfo_ConfigurationRequest.Size(m)
 }
-func (m *HttpHeader) XXX_DiscardUnknown() {
-	xxx_messageInfo_HttpHeader.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_HttpHeader proto.InternalMessageInfo
-
-func (m *HttpHeader) GetKey() string {
-	if m != nil {
-		return m.Key
-	}
-	return ""
+func (m *ConfigurationRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ConfigurationRequest.DiscardUnknown(m)
 }
 
-func (m *HttpHeader) GetValue() []string {
-	if m != nil {
-		return m.Value
-	}
-	return nil
+var xxx_messageInfo_ConfigurationRequest proto.InternalMessageInfo
+
+type ConfigurationResponse struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-type KubernetesRequest struct {
-	ClusterId            string        `protobuf:"bytes,1,opt,name=cluster_id,json=clusterId,proto3" json:"cluster_id,omitempty"`
-	Verb                 string        `protobuf:"bytes,2,opt,name=verb,proto3" json:"verb,omitempty"`
-	UriPathAndQuery      string        `protobuf:"bytes,3,opt,name=uri_path_and_query,json=uriPathAndQuery,proto3" json:"uri_path_and_query,omitempty"`
-	Headers              []*HttpHeader `protobuf:"bytes,4,rep,name=headers,proto3" json:"headers,omitempty"`
-	Body                 []byte        `protobuf:"bytes,5,opt,name=body,proto3" json:"body,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
-	XXX_unrecognized     []byte        `json:"-"`
-	XXX_sizecache        int32         `json:"-"`
-}
-
-func (m *KubernetesRequest) Reset()         { *m = KubernetesRequest{} }
-func (m *KubernetesRequest) String() string { return proto.CompactTextString(m) }
-func (*KubernetesRequest) ProtoMessage()    {}
-func (*KubernetesRequest) Descriptor() ([]byte, []int) {
+func (m *ConfigurationResponse) Reset()         { *m = ConfigurationResponse{} }
+func (m *ConfigurationResponse) String() string { return proto.CompactTextString(m) }
+func (*ConfigurationResponse) ProtoMessage()    {}
+func (*ConfigurationResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_213b842ecf18ef32, []int{1}
 }
 
-func (m *KubernetesRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_KubernetesRequest.Unmarshal(m, b)
+func (m *ConfigurationResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ConfigurationResponse.Unmarshal(m, b)
 }
-func (m *KubernetesRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_KubernetesRequest.Marshal(b, m, deterministic)
+func (m *ConfigurationResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ConfigurationResponse.Marshal(b, m, deterministic)
 }
-func (m *KubernetesRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_KubernetesRequest.Merge(m, src)
+func (m *ConfigurationResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ConfigurationResponse.Merge(m, src)
 }
-func (m *KubernetesRequest) XXX_Size() int {
-	return xxx_messageInfo_KubernetesRequest.Size(m)
+func (m *ConfigurationResponse) XXX_Size() int {
+	return xxx_messageInfo_ConfigurationResponse.Size(m)
 }
-func (m *KubernetesRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_KubernetesRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_KubernetesRequest proto.InternalMessageInfo
-
-func (m *KubernetesRequest) GetClusterId() string {
-	if m != nil {
-		return m.ClusterId
-	}
-	return ""
+func (m *ConfigurationResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ConfigurationResponse.DiscardUnknown(m)
 }
 
-func (m *KubernetesRequest) GetVerb() string {
-	if m != nil {
-		return m.Verb
-	}
-	return ""
-}
-
-func (m *KubernetesRequest) GetUriPathAndQuery() string {
-	if m != nil {
-		return m.UriPathAndQuery
-	}
-	return ""
-}
-
-func (m *KubernetesRequest) GetHeaders() []*HttpHeader {
-	if m != nil {
-		return m.Headers
-	}
-	return nil
-}
-
-func (m *KubernetesRequest) GetBody() []byte {
-	if m != nil {
-		return m.Body
-	}
-	return nil
-}
-
-type KubernetesResponse struct {
-	StatusCode           uint32        `protobuf:"varint,1,opt,name=status_code,json=statusCode,proto3" json:"status_code,omitempty"`
-	StatusMessage        string        `protobuf:"bytes,2,opt,name=status_message,json=statusMessage,proto3" json:"status_message,omitempty"`
-	Headers              []*HttpHeader `protobuf:"bytes,3,rep,name=headers,proto3" json:"headers,omitempty"`
-	Body                 []byte        `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
-	XXX_unrecognized     []byte        `json:"-"`
-	XXX_sizecache        int32         `json:"-"`
-}
-
-func (m *KubernetesResponse) Reset()         { *m = KubernetesResponse{} }
-func (m *KubernetesResponse) String() string { return proto.CompactTextString(m) }
-func (*KubernetesResponse) ProtoMessage()    {}
-func (*KubernetesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_213b842ecf18ef32, []int{2}
-}
-
-func (m *KubernetesResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_KubernetesResponse.Unmarshal(m, b)
-}
-func (m *KubernetesResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_KubernetesResponse.Marshal(b, m, deterministic)
-}
-func (m *KubernetesResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_KubernetesResponse.Merge(m, src)
-}
-func (m *KubernetesResponse) XXX_Size() int {
-	return xxx_messageInfo_KubernetesResponse.Size(m)
-}
-func (m *KubernetesResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_KubernetesResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_KubernetesResponse proto.InternalMessageInfo
-
-func (m *KubernetesResponse) GetStatusCode() uint32 {
-	if m != nil {
-		return m.StatusCode
-	}
-	return 0
-}
-
-func (m *KubernetesResponse) GetStatusMessage() string {
-	if m != nil {
-		return m.StatusMessage
-	}
-	return ""
-}
-
-func (m *KubernetesResponse) GetHeaders() []*HttpHeader {
-	if m != nil {
-		return m.Headers
-	}
-	return nil
-}
-
-func (m *KubernetesResponse) GetBody() []byte {
-	if m != nil {
-		return m.Body
-	}
-	return nil
-}
+var xxx_messageInfo_ConfigurationResponse proto.InternalMessageInfo
 
 func init() {
-	proto.RegisterType((*HttpHeader)(nil), "agentrpc.HttpHeader")
-	proto.RegisterType((*KubernetesRequest)(nil), "agentrpc.KubernetesRequest")
-	proto.RegisterType((*KubernetesResponse)(nil), "agentrpc.KubernetesResponse")
+	proto.RegisterType((*ConfigurationRequest)(nil), "agentrpc.ConfigurationRequest")
+	proto.RegisterType((*ConfigurationResponse)(nil), "agentrpc.ConfigurationResponse")
 }
 
 func init() { proto.RegisterFile("pkg/agentrpc/agentrpc.proto", fileDescriptor_213b842ecf18ef32) }
 
 var fileDescriptor_213b842ecf18ef32 = []byte{
-	// 338 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x92, 0xdb, 0x4a, 0xfb, 0x40,
-	0x10, 0xc6, 0xff, 0x69, 0xda, 0xbf, 0x76, 0x6a, 0x3d, 0x8c, 0xbd, 0x08, 0x56, 0x31, 0x04, 0x84,
-	0x80, 0x50, 0xa5, 0xfa, 0x02, 0xe2, 0x85, 0x15, 0x51, 0x6a, 0x7c, 0x80, 0xb0, 0xc9, 0x0e, 0x6d,
-	0x68, 0x4d, 0xd2, 0x3d, 0x04, 0xf3, 0x36, 0xbe, 0x85, 0xaf, 0x27, 0xdd, 0xa4, 0x07, 0xd0, 0x1b,
-	0xef, 0xbe, 0xf9, 0x66, 0x76, 0xf6, 0xf7, 0x2d, 0x0b, 0xfd, 0x7c, 0x36, 0xb9, 0x62, 0x13, 0x4a,
-	0x95, 0xc8, 0xe3, 0xb5, 0x18, 0xe4, 0x22, 0x53, 0x19, 0xee, 0xae, 0x6a, 0xef, 0x16, 0x60, 0xa4,
-	0x54, 0x3e, 0x22, 0xc6, 0x49, 0xe0, 0x21, 0xd8, 0x33, 0x2a, 0x1d, 0xcb, 0xb5, 0xfc, 0x76, 0xb0,
-	0x94, 0xd8, 0x83, 0x56, 0xc1, 0xe6, 0x9a, 0x9c, 0x86, 0x6b, 0xfb, 0xed, 0xa0, 0x2a, 0xbc, 0x2f,
-	0x0b, 0x8e, 0x9e, 0x74, 0x44, 0x22, 0x25, 0x45, 0x32, 0xa0, 0x85, 0x26, 0xa9, 0xf0, 0x0c, 0x20,
-	0x9e, 0x6b, 0xa9, 0x48, 0x84, 0x09, 0xaf, 0x97, 0xb4, 0x6b, 0xe7, 0x91, 0x23, 0x42, 0xb3, 0x20,
-	0x11, 0x39, 0x0d, 0xd3, 0x30, 0x1a, 0x2f, 0x01, 0xb5, 0x48, 0xc2, 0x9c, 0xa9, 0x69, 0xc8, 0x52,
-	0x1e, 0x2e, 0x34, 0x89, 0xd2, 0xb1, 0xcd, 0xc4, 0x81, 0x16, 0xc9, 0x98, 0xa9, 0xe9, 0x5d, 0xca,
-	0x5f, 0x97, 0x36, 0x0e, 0x60, 0x67, 0x6a, 0x38, 0xa5, 0xd3, 0x74, 0x6d, 0xbf, 0x33, 0xec, 0x0d,
-	0xd6, 0xb9, 0x36, 0x21, 0x82, 0xd5, 0xd0, 0xf2, 0xc2, 0x28, 0xe3, 0xa5, 0xd3, 0x72, 0x2d, 0x7f,
-	0x2f, 0x30, 0xda, 0xfb, 0xb4, 0x00, 0xb7, 0xc9, 0x65, 0x9e, 0xa5, 0x92, 0xf0, 0x1c, 0x3a, 0x52,
-	0x31, 0xa5, 0x65, 0x18, 0x67, 0x9c, 0x0c, 0x7b, 0x37, 0x80, 0xca, 0xba, 0xcf, 0x38, 0xe1, 0x05,
-	0xec, 0xd7, 0x03, 0xef, 0x24, 0x25, 0x9b, 0x50, 0x1d, 0xa3, 0x5b, 0xb9, 0xcf, 0x95, 0xb9, 0x8d,
-	0x68, 0xff, 0x05, 0xb1, 0xb9, 0x41, 0x1c, 0x12, 0x1c, 0x07, 0x54, 0x90, 0x90, 0x34, 0x16, 0xd9,
-	0x47, 0xf9, 0x46, 0xa2, 0x48, 0x62, 0xc2, 0x17, 0xe8, 0x3c, 0x90, 0xaa, 0xdf, 0x5a, 0xe2, 0xe9,
-	0x66, 0xf1, 0xcf, 0x3c, 0x27, 0xfd, 0xdf, 0xbb, 0xe6, 0xac, 0xf7, 0xcf, 0xb7, 0xae, 0xad, 0xe8,
-	0xbf, 0xf9, 0x0a, 0x37, 0xdf, 0x01, 0x00, 0x00, 0xff, 0xff, 0x2d, 0x6f, 0x19, 0x7d, 0x29, 0x02,
-	0x00, 0x00,
+	// 137 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x92, 0x2e, 0xc8, 0x4e, 0xd7,
+	0x4f, 0x4c, 0x4f, 0xcd, 0x2b, 0x29, 0x2a, 0x48, 0x86, 0x33, 0xf4, 0x0a, 0x8a, 0xf2, 0x4b, 0xf2,
+	0x85, 0x38, 0x60, 0x7c, 0x25, 0x31, 0x2e, 0x11, 0xe7, 0xfc, 0xbc, 0xb4, 0xcc, 0xf4, 0xd2, 0xa2,
+	0xc4, 0x92, 0xcc, 0xfc, 0xbc, 0xa0, 0xd4, 0xc2, 0xd2, 0xd4, 0xe2, 0x12, 0x25, 0x71, 0x2e, 0x51,
+	0x34, 0xf1, 0xe2, 0x82, 0xfc, 0xbc, 0xe2, 0x54, 0xa3, 0x34, 0x2e, 0x5e, 0xf7, 0xcc, 0x12, 0x9f,
+	0xc4, 0xa4, 0xe0, 0xd4, 0xa2, 0xb2, 0xcc, 0xe4, 0x54, 0xa1, 0x50, 0x2e, 0x01, 0xf7, 0xd4, 0x12,
+	0xb8, 0xe2, 0xcc, 0x92, 0xfc, 0x3c, 0x21, 0x39, 0x3d, 0xb8, 0x85, 0xd8, 0x4c, 0x97, 0x92, 0xc7,
+	0x29, 0x0f, 0xb1, 0x45, 0x89, 0x21, 0x89, 0x0d, 0xec, 0x52, 0x63, 0x40, 0x00, 0x00, 0x00, 0xff,
+	0xff, 0xf6, 0x83, 0xa3, 0x9a, 0xc8, 0x00, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -248,106 +115,74 @@ var _ grpc.ClientConnInterface
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion6
 
-// ReverseProxyServiceClient is the client API for ReverseProxyService service.
+// GitLabServiceClient is the client API for GitLabService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type ReverseProxyServiceClient interface {
-	GetRequests(ctx context.Context, opts ...grpc.CallOption) (ReverseProxyService_GetRequestsClient, error)
+type GitLabServiceClient interface {
+	GetConfiguraiton(ctx context.Context, in *ConfigurationRequest, opts ...grpc.CallOption) (*ConfigurationResponse, error)
 }
 
-type reverseProxyServiceClient struct {
+type gitLabServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewReverseProxyServiceClient(cc grpc.ClientConnInterface) ReverseProxyServiceClient {
-	return &reverseProxyServiceClient{cc}
+func NewGitLabServiceClient(cc grpc.ClientConnInterface) GitLabServiceClient {
+	return &gitLabServiceClient{cc}
 }
 
-func (c *reverseProxyServiceClient) GetRequests(ctx context.Context, opts ...grpc.CallOption) (ReverseProxyService_GetRequestsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_ReverseProxyService_serviceDesc.Streams[0], "/agentrpc.ReverseProxyService/GetRequests", opts...)
+func (c *gitLabServiceClient) GetConfiguraiton(ctx context.Context, in *ConfigurationRequest, opts ...grpc.CallOption) (*ConfigurationResponse, error) {
+	out := new(ConfigurationResponse)
+	err := c.cc.Invoke(ctx, "/agentrpc.GitLabService/GetConfiguraiton", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &reverseProxyServiceGetRequestsClient{stream}
-	return x, nil
+	return out, nil
 }
 
-type ReverseProxyService_GetRequestsClient interface {
-	Send(*KubernetesResponse) error
-	Recv() (*KubernetesRequest, error)
-	grpc.ClientStream
+// GitLabServiceServer is the server API for GitLabService service.
+type GitLabServiceServer interface {
+	GetConfiguraiton(context.Context, *ConfigurationRequest) (*ConfigurationResponse, error)
 }
 
-type reverseProxyServiceGetRequestsClient struct {
-	grpc.ClientStream
+// UnimplementedGitLabServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedGitLabServiceServer struct {
 }
 
-func (x *reverseProxyServiceGetRequestsClient) Send(m *KubernetesResponse) error {
-	return x.ClientStream.SendMsg(m)
+func (*UnimplementedGitLabServiceServer) GetConfiguraiton(ctx context.Context, req *ConfigurationRequest) (*ConfigurationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetConfiguraiton not implemented")
 }
 
-func (x *reverseProxyServiceGetRequestsClient) Recv() (*KubernetesRequest, error) {
-	m := new(KubernetesRequest)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
+func RegisterGitLabServiceServer(s *grpc.Server, srv GitLabServiceServer) {
+	s.RegisterService(&_GitLabService_serviceDesc, srv)
+}
+
+func _GitLabService_GetConfiguraiton_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConfigurationRequest)
+	if err := dec(in); err != nil {
 		return nil, err
 	}
-	return m, nil
-}
-
-// ReverseProxyServiceServer is the server API for ReverseProxyService service.
-type ReverseProxyServiceServer interface {
-	GetRequests(ReverseProxyService_GetRequestsServer) error
-}
-
-// UnimplementedReverseProxyServiceServer can be embedded to have forward compatible implementations.
-type UnimplementedReverseProxyServiceServer struct {
-}
-
-func (*UnimplementedReverseProxyServiceServer) GetRequests(srv ReverseProxyService_GetRequestsServer) error {
-	return status.Errorf(codes.Unimplemented, "method GetRequests not implemented")
-}
-
-func RegisterReverseProxyServiceServer(s *grpc.Server, srv ReverseProxyServiceServer) {
-	s.RegisterService(&_ReverseProxyService_serviceDesc, srv)
-}
-
-func _ReverseProxyService_GetRequests_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ReverseProxyServiceServer).GetRequests(&reverseProxyServiceGetRequestsServer{stream})
-}
-
-type ReverseProxyService_GetRequestsServer interface {
-	Send(*KubernetesRequest) error
-	Recv() (*KubernetesResponse, error)
-	grpc.ServerStream
-}
-
-type reverseProxyServiceGetRequestsServer struct {
-	grpc.ServerStream
-}
-
-func (x *reverseProxyServiceGetRequestsServer) Send(m *KubernetesRequest) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *reverseProxyServiceGetRequestsServer) Recv() (*KubernetesResponse, error) {
-	m := new(KubernetesResponse)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
+	if interceptor == nil {
+		return srv.(GitLabServiceServer).GetConfiguraiton(ctx, in)
 	}
-	return m, nil
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/agentrpc.GitLabService/GetConfiguraiton",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GitLabServiceServer).GetConfiguraiton(ctx, req.(*ConfigurationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
-var _ReverseProxyService_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "agentrpc.ReverseProxyService",
-	HandlerType: (*ReverseProxyServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams: []grpc.StreamDesc{
+var _GitLabService_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "agentrpc.GitLabService",
+	HandlerType: (*GitLabServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
 		{
-			StreamName:    "GetRequests",
-			Handler:       _ReverseProxyService_GetRequests_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
+			MethodName: "GetConfiguraiton",
+			Handler:    _GitLabService_GetConfiguraiton_Handler,
 		},
 	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "pkg/agentrpc/agentrpc.proto",
 }
