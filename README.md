@@ -121,7 +121,7 @@ Each cluster has an identity too. The agent learns the identifier from the confi
 
 ### Permissions within the cluster
 
-Currently customers are rightly concerned with us asking cluster-admin access. For GitOps and similar functionality something still has to have permissions to CRUD Kubernetes objects. The solution here is to give cluster operator (our customer) exclusive control of the permissions. Then they can only allow the agent to do what they want it to be able to do. Where RBAC is not flexible enough (e.g. namespaces - don't want to allow CRUD for arbitrary namespaces), we can provide an admission webhook that enforces some rules for a agent's ServiceAccount in addition to RBAC.
+Currently customers are rightly concerned with us asking cluster-admin access. For GitOps and similar functionality something still has to have permissions to CRUD Kubernetes objects. The solution here is to give cluster operator (our customer) exclusive control of the permissions. Then they can allow the agent do only what they want it to be able to do. Where RBAC is not flexible enough (e.g. namespaces - don't want to allow CRUD for arbitrary namespaces but only some, based on some logic), we can provide an admission webhook that enforces some rules for the agent's `ServiceAccount` in addition to RBAC.
 
 ### Environments
 
