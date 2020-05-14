@@ -6,11 +6,13 @@ load("//build:build.bzl", "extract_generated")
 proto_library(
     name = "agentrpc_proto",
     srcs = ["agentrpc.proto"],
+    tags = ["manual"],
     visibility = ["//visibility:public"],
 )
 
 go_grpc_compile(
     name = "agent_grpc",
+    tags = ["manual"],
     deps = [":agentrpc_proto"],
 )
 
