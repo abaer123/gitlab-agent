@@ -75,6 +75,8 @@ Using gRPC with CloudFlare CDN may or may not be an issue. [This comment](https:
 
 Another potential issue is HAProxy that we use as our front door after CDN. We currently run 1.8 but HTTP/2-to-the-backend and hence gRPC-to-the-backend support [was added only in 1.9](https://www.haproxy.com/blog/haproxy-1-9-2-adds-grpc-support/). We'd need to upgrade to use this functionality.
 
+If there are technical blockers, we can **trivially** tunnel gRPC through web sockets, which only need HTTP/1.1 and hence work everywhere (but see https://gitlab.com/groups/gitlab-com/gl-infra/-/epics/228). A code example: https://github.com/glerchundi/grpc-boomerang.
+
 ### High availability and scalability
 
 #### `agentk` - agent on the Kubernetes side
