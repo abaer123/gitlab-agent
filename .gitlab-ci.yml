@@ -1,5 +1,5 @@
 test:
   stage: test
-  image: golang:1.14
+  image: l.gcr.io/google/bazel:3.1.0
   script:
-    - make test
+    - make test-ci
