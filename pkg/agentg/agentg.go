@@ -9,6 +9,6 @@ import (
 type Agent struct {
 }
 
-func (a *Agent) GetConfiguraiton(context.Context, *agentrpc.ConfigurationRequest) (*agentrpc.ConfigurationResponse, error) {
+func (a *Agent) GetConfiguration(context.Context, *agentrpc.ConfigurationRequest) (*agentrpc.ConfigurationResponse, error) {
 	return &agentrpc.ConfigurationResponse{}, nil
 }

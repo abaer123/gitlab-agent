@@ -13,7 +13,7 @@ type Agent struct {
 
 func (a *Agent) Run(ctx context.Context) error {
 	req := &agentrpc.ConfigurationRequest{}
-	res, err := a.Client.GetConfiguraiton(ctx, req)
+	res, err := a.Client.GetConfiguration(ctx, req)
 	if err != nil {
 		// TODO maybe retry?
 		return err

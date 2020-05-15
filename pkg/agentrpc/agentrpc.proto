@@ -12,5 +12,5 @@ message ConfigurationResponse {
 
 service GitLabService {
   // Fetch agentk configuration from the server.
-  rpc GetConfiguraiton (ConfigurationRequest) returns (ConfigurationResponse) {}
+  rpc GetConfiguration (ConfigurationRequest) returns (ConfigurationResponse) {}
 }
