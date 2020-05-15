@@ -4,6 +4,32 @@ GitLab Kubernetes Agent is an active in-cluster component for solving any GitLab
 
 **This is a work in progress, it's not used anywhere yet.**
 
+## Inverted request/response
+
+Today GitLab cannot integrate with clusters behind a firewall. If we put an agent into such clusters and another agent next to GitLab, we can overcome this limitation. See the scheme below.
+
+```mermaid
+graph TB
+  agentk -- gRPC bidirectional streaming --> agentg
+  
+  subgraph "GitLab"
+  agentg[agentg]
+  GitLabRoR[GitLab RoR] -- gRPC --> agentg
+  end
+
+  subgraph "Kubernetes cluster"
+  agentk[agentk]
+  end  
+```
+
+* `agentk` is our agent. It keeps a connection established to a GitLab instance. It waits for requests from it to process.
+
+* `agentg` is what accepts requests from `agentk`. It also listens for requests from `GitLab RoR`. The job of `agentg` is to match incoming requests from `GitLab RoR` with existing connections from `agentk`, forward the request to it and forward responses back.
+
+* `GitLab RoR` is the main GitLab application. It uses gRPC to talk to `agentg`. We could also support Kubernetes API to simplify migration of existing code onto this architecture. Could support both, depending on the need.
+
+[Bidirectional streaming](https://grpc.io/docs/guides/concepts/#bidirectional-streaming-rpc) is used between `agentk` and `agentg` to allow forwarding multiple concurrent requests though a single connection. This allows the connection acceptor i.e. gRPC server (`agentg`) to act as a client, sending requests as gRPC replies. Inverting client-server relationship is needed because the connection has to be initiated from the inside of the Kubernetes cluster i.e. from behind the firewall.
+
 ## Use cases and ideas
 
 Below are some ideas that can be built using the agent.
@@ -35,29 +61,7 @@ Below are some ideas that can be built using the agent.
   * In repo browser detect resource specs with the defined annotations and show the relevant meta information bits
   * Have a panel showing live list of installed applications based on the annotations from the specification
 
-* Kubernetes API proxying. Today GitLab cannot integrate with clusters behind a firewall. If we put an agent into such clusters and another agent next to GitLab, we can emulate Kubernetes API and proxy it into the actual cluster via the agents. The same approach can be used to build other features from this list. See the scheme below.
-    
-    ```mermaid
-    graph TB
-      agentk -- gRPC bidirectional streaming --> agentg
-      
-      subgraph "GitLab"
-      agentg[agentg]
-      GitLabRoR[GitLab RoR] -- gRPC --> agentg
-      end
-    
-      subgraph "Kubernetes cluster"
-      agentk[agentk]
-      end  
-    ```
-    
-    * `agentk` is our agent. It keeps a connection established to a GitLab instance. It waits for requests from it to process.
-    
-    * `agentg` is what accepts requests from `agentk`. It also listens for requests from `GitLab RoR`. The job of `agentg` is to match incoming requests from `GitLab RoR` with existing connections from `agentk`, forward the request to it and forward responses back.
-    
-    * `GitLab RoR` is the main GitLab application. It uses gRPC to talk to `agentg`. We could also support Kubernetes API to simplify migration of existing code onto this architecture. Could support both, depending on the need.
-    
-    [Bidirectional streaming](https://grpc.io/docs/guides/concepts/#bidirectional-streaming-rpc) is used between `agentk` and `agentg` to allow forwarding multiple concurrent requests though a single connection. This allows the connection acceptor i.e. gRPC server (`agentg`) to act as a client, sending requests as gRPC replies. Inverting client-server relationship is needed because the connection has to be initiated from the inside of the Kubernetes cluster i.e. from behind the firewall.
+* Emulate Kubernetes API and proxy it into the actual cluster via the agents (to overcome the firewall). Do we even need this?
 
 ## Open questions and things to consider
 
@@ -70,6 +74,8 @@ We have CloudFlare CDN in front of GitLab.com. The connections that `agentk` est
 Using gRPC with CloudFlare CDN may or may not be an issue. [This comment](https://community.cloudflare.com/t/grpc-support/127798) suggests it is supported by [CloudFlare Spectrum](https://www.cloudflare.com/products/cloudflare-spectrum/) but [this tweet](https://twitter.com/prdonahue/status/1252886427475611650) says they are working on it.
 
 Another potential issue is HAProxy that we use as our front door after CDN. We currently run 1.8 but HTTP/2-to-the-backend and hence gRPC-to-the-backend support [was added only in 1.9](https://www.haproxy.com/blog/haproxy-1-9-2-adds-grpc-support/). We'd need to upgrade to use this functionality.
+
+If there are technical blockers, we can **trivially** tunnel gRPC through web sockets, which only need HTTP/1.1 and hence work everywhere (but see https://gitlab.com/groups/gitlab-com/gl-infra/-/epics/228). A code example: https://github.com/glerchundi/grpc-boomerang.
 
 ### High availability and scalability
 
@@ -90,6 +96,25 @@ The difficulty of having multiple copies of the program is that only one of the 
 - We could have `nginx` ask one (any) of `agentg` where the right copy (the one that has the connection) running. `agentg` can do a lookup in Redis where each cluster connection is registered and return the address to `nginx` via [X-Accel-Redirect](https://www.nginx.com/resources/wiki/start/topics/examples/x-accel/#x-accel-redirect) header.
 
 - We could teach `agentg` to gossip with its copies so that they tell each other where a connection for each cluster is. Each copy will know about all the connections and either proxy the request or use `X-Accel-Redirect` to redirect the traffic. This is [Cassandra's gossip](https://docs.datastax.com/en/cassandra-oss/3.x/cassandra/architecture/archGossipAbout.html) + Cassandra's coordinator node-based request routing ideas but it's much easier to build on Kubernetes because we can just use the API to find other copies of the program.
+
+### Workhorse
+
+It may make sense to make `agentg` part of [GitLab Workhorse](https://gitlab.com/gitlab-org/gitlab-workhorse/).
+
+Pros:
+
+- It handles (or will be handling?) long running WebSocket connections and is likely a good architectural fit
+- It already has access to Redis, GitLab, Gitaly
+- It already is part of all the installation packages that we provide
+- ?
+
+Cons:
+
+- Depending on another team(s) for reviews and merging code may slow us down
+  - Mitigation: should just become maintainers too
+- ?
+
+This needs more thought and investigation.
 
 ### What to build first?
 
@@ -115,7 +140,7 @@ Each cluster has an identity too. The agent learns the identifier from the confi
 
 ### Permissions within the cluster
 
-Currently customers are rightly concerned with us asking cluster-admin access. For GitOps and similar functionality something still has to have permissions to CRUD Kubernetes objects. The solution here is to give cluster operator (our customer) exclusive control of the permissions. Then they can only allow the agent to do what they want it to be able to do. Where RBAC is not flexible enough (e.g. namespaces - don't want to allow CRUD for arbitrary namespaces), we can provide an admission webhook that enforces some rules for a agent's ServiceAccount in addition to RBAC.
+Currently customers are rightly concerned with us asking cluster-admin access. For GitOps and similar functionality something still has to have permissions to CRUD Kubernetes objects. The solution here is to give cluster operator (our customer) exclusive control of the permissions. Then they can allow the agent do only what they want it to be able to do. Where RBAC is not flexible enough (e.g. namespaces - don't want to allow CRUD for arbitrary namespaces but only some, based on some logic), we can provide an admission webhook that enforces some rules for the agent's `ServiceAccount` in addition to RBAC.
 
 ### Environments
 
@@ -125,7 +150,7 @@ How to map GitLab's [environments](https://gitlab.com/help/ci/environments) onto
 >   
 > * Environments are like tags for your CI jobs, describing where code gets deployed.
 
-We can follow this model and mark each agent as belonging to a one or more environments. It's a many to many relationship:
+We can follow this model and mark each agent as belonging to one or more environments. It's a many to many relationship:
 - Multiple agents can be part of an environment. Example: X prod clusters with some number of agents each
 - An agent can be part of multiple environments. Example: a cluster-wide agent where the cluster is used for both production and non-production deployments
 
