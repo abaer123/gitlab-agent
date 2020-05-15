@@ -75,7 +75,7 @@ Using gRPC with CloudFlare CDN may or may not be an issue. [This comment](https:
 
 Another potential issue is HAProxy that we use as our front door after CDN. We currently run 1.8 but HTTP/2-to-the-backend and hence gRPC-to-the-backend support [was added only in 1.9](https://www.haproxy.com/blog/haproxy-1-9-2-adds-grpc-support/). We'd need to upgrade to use this functionality.
 
-If there are technical blockers, we can **trivially** tunnel gRPC through web sockets, which only need HTTP/1.1 and hence work everywhere (but see https://gitlab.com/groups/gitlab-com/gl-infra/-/epics/228). A code example: https://github.com/glerchundi/grpc-boomerang.
+If there are technical blockers, we can **trivially** tunnel gRPC through WebSockets, which only need HTTP/1.1 and hence work everywhere (but see https://gitlab.com/groups/gitlab-com/gl-infra/-/epics/228). A code example: https://github.com/glerchundi/grpc-boomerang.
 
 ### High availability and scalability
 
@@ -103,15 +103,16 @@ It may make sense to make `agentg` part of [GitLab Workhorse](https://gitlab.com
 
 Pros:
 
-- It handles (or will be handling?) long running WebSocket connections and is likely a good architectural fit
+- It's built to handle long-running WebSocket connections and is likely a good architectural fit
 - It already has access to Redis, GitLab, Gitaly
-- It already is part of all the installation packages that we provide
+- It's already part of all the installation packages that we provide
 - ?
 
 Cons:
 
 - Depending on another team(s) for reviews and merging code may slow us down
   - Mitigation: should just become maintainers too
+- It may not be a good fit if `agentg` needs to have some significant amount of business logic in it. Mixing unrelated concerns in a single program is not great
 - ?
 
 This needs more thought and investigation.
