@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 
+	"gitlab.com/ash2k/gitlab-agent/cmd"
 	"gitlab.com/ash2k/gitlab-agent/pkg/agentg"
 	"gitlab.com/ash2k/gitlab-agent/pkg/agentrpc"
 	"google.golang.org/grpc"
@@ -41,13 +42,12 @@ func (a *App) Run(ctx context.Context) error {
 	return grpcServer.Serve(lis)
 }
 
-func NewFromFlags(flagset *flag.FlagSet, arguments []string) (*App, error) {
+func NewFromFlags(flagset *flag.FlagSet, arguments []string) (cmd.Runnable, error) {
+	app := &App{}
+	flagset.StringVar(&app.ListenNetwork, "listen-network", "", "Network type to listen on")
+	flagset.StringVar(&app.ListenAddress, "listen-address", "", "Address to listen on")
 	if err := flagset.Parse(arguments); err != nil {
 		return nil, err
-	}
-	app := &App{
-
-		// Configuration
 	}
 	return app, nil
 }

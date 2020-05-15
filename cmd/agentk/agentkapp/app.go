@@ -2,18 +2,13 @@ package agentkapp
 
 import (
 	"context"
+	"flag"
 	"fmt"
-	"os"
-	"strconv"
 
+	"gitlab.com/ash2k/gitlab-agent/cmd"
 	"gitlab.com/ash2k/gitlab-agent/pkg/agentk"
 	"gitlab.com/ash2k/gitlab-agent/pkg/agentrpc"
 	"google.golang.org/grpc"
-)
-
-const (
-	agentgAddressEnv         = "AGENTK_AGENTG_ADDRESS"
-	agentgAddressInsecureEnv = "AGENTK_AGENTG_ADDRESS_INSECURE"
 )
 
 type App struct {
@@ -42,19 +37,12 @@ func (a *App) Run(ctx context.Context) error {
 	return agent.Run(ctx)
 }
 
-func New() (*App, error) {
-	insecure := false
-	insecureStr := os.Getenv(agentgAddressInsecureEnv)
-	if insecureStr != "" {
-		var err error
-		insecure, err = strconv.ParseBool(insecureStr)
-		if err != nil {
-			return nil, err
-		}
-	}
-	app := &App{
-		AgentgAddress: os.Getenv(agentgAddressEnv),
-		Insecure:      insecure,
+func NewFromFlags(flagset *flag.FlagSet, arguments []string) (cmd.Runnable, error) {
+	app := &App{}
+	flagset.BoolVar(&app.Insecure, "agentg-insecure", false, "Disable transport security for agentg connection")
+	flagset.StringVar(&app.AgentgAddress, "agentg-address", "", "Agentg address. Syntax is described at https://github.com/grpc/grpc/blob/master/doc/naming.md")
+	if err := flagset.Parse(arguments); err != nil {
+		return nil, err
 	}
 	return app, nil
 }
