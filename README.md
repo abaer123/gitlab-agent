@@ -97,6 +97,25 @@ The difficulty of having multiple copies of the program is that only one of the 
 
 - We could teach `agentg` to gossip with its copies so that they tell each other where a connection for each cluster is. Each copy will know about all the connections and either proxy the request or use `X-Accel-Redirect` to redirect the traffic. This is [Cassandra's gossip](https://docs.datastax.com/en/cassandra-oss/3.x/cassandra/architecture/archGossipAbout.html) + Cassandra's coordinator node-based request routing ideas but it's much easier to build on Kubernetes because we can just use the API to find other copies of the program.
 
+### Workhorse
+
+It may make sense to make `agentg` part of [GitLab Workhorse](https://gitlab.com/gitlab-org/gitlab-workhorse/).
+
+Pros:
+
+- It handles (or will be handling?) long running WebSocket connections and is likely a good architectural fit
+- It already has access to Redis, GitLab, Gitaly
+- It already is part of all the installation packages that we provide
+- ?
+
+Cons:
+
+- Depending on another team(s) for reviews and merging code may slow us down
+  - Mitigation: should just become maintainers too
+- ?
+
+This needs more thought and investigation.
+
 ### What to build first?
 
 What is the feature to prioritize first?
