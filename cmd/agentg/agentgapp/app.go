@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/ash2k/stager"
 	"gitlab.com/ash2k/gitlab-agent/cmd"
 	"gitlab.com/ash2k/gitlab-agent/pkg/agentg"
 	"gitlab.com/ash2k/gitlab-agent/pkg/agentrpc"
@@ -28,17 +29,13 @@ func (a *App) Run(ctx context.Context) error {
 		// Configuration
 	}
 	agentrpc.RegisterGitLabServiceServer(grpcServer, srv)
-	serveDone := make(chan struct{})
-	defer close(serveDone)
-	go func() {
-		select {
-		case <-ctx.Done():
-			grpcServer.GracefulStop()
-		case <-serveDone:
-			// grpcServer.Serve returned earlier than ctx was done.
-			// Unblock this goroutine.
-		}
-	}()
+	st := stager.New()
+	defer st.Shutdown()
+	stage := st.NextStageWithContext(ctx)
+	stage.StartWithContext(func(ctx context.Context) {
+		<-ctx.Done() // can be cancelled because Server() failed or because main ctx was cancelled
+		grpcServer.GracefulStop()
+	})
 	return grpcServer.Serve(lis)
 }
 
