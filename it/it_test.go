@@ -27,8 +27,9 @@ func TestIntegration(t *testing.T) {
 		os.Remove(socketAddr)
 	})
 	ag := agentgapp.App{
-		ListenNetwork: "unix",
-		ListenAddress: socketAddr,
+		ListenNetwork:             "unix",
+		ListenAddress:             socketAddr,
+		ReloadConfigurationPeriod: 10 * time.Minute,
 	}
 	ak := agentkapp.App{
 		AgentgAddress: fmt.Sprintf("unix:%s", socketAddr),

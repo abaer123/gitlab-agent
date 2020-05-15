@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/ash2k/stager"
 	"gitlab.com/ash2k/gitlab-agent/cmd"
@@ -13,9 +14,14 @@ import (
 	"google.golang.org/grpc"
 )
 
+const (
+	defaultReloadConfigurationPeriod = 5 * time.Minute
+)
+
 type App struct {
-	ListenNetwork string
-	ListenAddress string
+	ListenNetwork             string
+	ListenAddress             string
+	ReloadConfigurationPeriod time.Duration
 }
 
 func (a *App) Run(ctx context.Context) error {
@@ -26,7 +32,7 @@ func (a *App) Run(ctx context.Context) error {
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
 	srv := &agentg.Agent{
-		// Configuration
+		ReloadConfigurationPeriod: a.ReloadConfigurationPeriod,
 	}
 	agentrpc.RegisterGitLabServiceServer(grpcServer, srv)
 	st := stager.New()
@@ -43,6 +49,7 @@ func NewFromFlags(flagset *flag.FlagSet, arguments []string) (cmd.Runnable, erro
 	app := &App{}
 	flagset.StringVar(&app.ListenNetwork, "listen-network", "", "Network type to listen on")
 	flagset.StringVar(&app.ListenAddress, "listen-address", "", "Address to listen on")
+	flagset.DurationVar(&app.ReloadConfigurationPeriod, "reload-configuration-period", defaultReloadConfigurationPeriod, "How often to reload agentk configuration")
 	if err := flagset.Parse(arguments); err != nil {
 		return nil, err
 	}
