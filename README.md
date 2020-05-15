@@ -131,7 +131,7 @@ How to map GitLab's [environments](https://gitlab.com/help/ci/environments) onto
 >   
 > * Environments are like tags for your CI jobs, describing where code gets deployed.
 
-We can follow this model and mark each agent as belonging to a one or more environments. It's a many to many relationship:
+We can follow this model and mark each agent as belonging to one or more environments. It's a many to many relationship:
 - Multiple agents can be part of an environment. Example: X prod clusters with some number of agents each
 - An agent can be part of multiple environments. Example: a cluster-wide agent where the cluster is used for both production and non-production deployments
 
