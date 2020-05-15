@@ -95,16 +95,16 @@ func init() {
 func init() { proto.RegisterFile("pkg/agentrpc/agentrpc.proto", fileDescriptor_213b842ecf18ef32) }
 
 var fileDescriptor_213b842ecf18ef32 = []byte{
-	// 133 bytes of a gzipped FileDescriptorProto
+	// 135 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x92, 0x2e, 0xc8, 0x4e, 0xd7,
 	0x4f, 0x4c, 0x4f, 0xcd, 0x2b, 0x29, 0x2a, 0x48, 0x86, 0x33, 0xf4, 0x0a, 0x8a, 0xf2, 0x4b, 0xf2,
 	0x85, 0x38, 0x60, 0x7c, 0x25, 0x31, 0x2e, 0x11, 0xe7, 0xfc, 0xbc, 0xb4, 0xcc, 0xf4, 0xd2, 0xa2,
 	0xc4, 0x92, 0xcc, 0xfc, 0xbc, 0xa0, 0xd4, 0xc2, 0xd2, 0xd4, 0xe2, 0x12, 0x25, 0x71, 0x2e, 0x51,
-	0x34, 0xf1, 0xe2, 0x82, 0xfc, 0xbc, 0xe2, 0x54, 0xa3, 0x34, 0x2e, 0x5e, 0xf7, 0xcc, 0x12, 0x9f,
-	0xc4, 0xa4, 0xe0, 0xd4, 0xa2, 0xb2, 0xcc, 0xe4, 0x54, 0xa1, 0x50, 0x2e, 0x01, 0xf7, 0xd4, 0x12,
+	0x34, 0xf1, 0xe2, 0x82, 0xfc, 0xbc, 0xe2, 0x54, 0xa3, 0x0c, 0x2e, 0x5e, 0xf7, 0xcc, 0x12, 0x9f,
+	0xc4, 0xa4, 0xe0, 0xd4, 0xa2, 0xb2, 0xcc, 0xe4, 0x54, 0xa1, 0x70, 0x2e, 0x01, 0xf7, 0xd4, 0x12,
 	0x14, 0xc5, 0x42, 0x72, 0x7a, 0x70, 0x0b, 0xb1, 0x99, 0x2e, 0x25, 0x8f, 0x53, 0x1e, 0x62, 0x8b,
-	0x12, 0x43, 0x12, 0x1b, 0xd8, 0xa5, 0xc6, 0x80, 0x00, 0x00, 0x00, 0xff, 0xff, 0x79, 0x43, 0xfe,
-	0x94, 0xc8, 0x00, 0x00, 0x00,
+	0x12, 0x83, 0x01, 0x63, 0x12, 0x1b, 0xd8, 0xad, 0xc6, 0x80, 0x00, 0x00, 0x00, 0xff, 0xff, 0x55,
+	0x31, 0xef, 0x2e, 0xca, 0x00, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -119,7 +119,7 @@ const _ = grpc.SupportPackageIsVersion6
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type GitLabServiceClient interface {
-	GetConfiguration(ctx context.Context, in *ConfigurationRequest, opts ...grpc.CallOption) (*ConfigurationResponse, error)
+	GetConfiguration(ctx context.Context, in *ConfigurationRequest, opts ...grpc.CallOption) (GitLabService_GetConfigurationClient, error)
 }
 
 type gitLabServiceClient struct {
@@ -130,59 +130,86 @@ func NewGitLabServiceClient(cc grpc.ClientConnInterface) GitLabServiceClient {
 	return &gitLabServiceClient{cc}
 }
 
-func (c *gitLabServiceClient) GetConfiguration(ctx context.Context, in *ConfigurationRequest, opts ...grpc.CallOption) (*ConfigurationResponse, error) {
-	out := new(ConfigurationResponse)
-	err := c.cc.Invoke(ctx, "/agentrpc.GitLabService/GetConfiguration", in, out, opts...)
+func (c *gitLabServiceClient) GetConfiguration(ctx context.Context, in *ConfigurationRequest, opts ...grpc.CallOption) (GitLabService_GetConfigurationClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_GitLabService_serviceDesc.Streams[0], "/agentrpc.GitLabService/GetConfiguration", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &gitLabServiceGetConfigurationClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type GitLabService_GetConfigurationClient interface {
+	Recv() (*ConfigurationResponse, error)
+	grpc.ClientStream
+}
+
+type gitLabServiceGetConfigurationClient struct {
+	grpc.ClientStream
+}
+
+func (x *gitLabServiceGetConfigurationClient) Recv() (*ConfigurationResponse, error) {
+	m := new(ConfigurationResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // GitLabServiceServer is the server API for GitLabService service.
 type GitLabServiceServer interface {
-	GetConfiguration(context.Context, *ConfigurationRequest) (*ConfigurationResponse, error)
+	GetConfiguration(*ConfigurationRequest, GitLabService_GetConfigurationServer) error
 }
 
 // UnimplementedGitLabServiceServer can be embedded to have forward compatible implementations.
 type UnimplementedGitLabServiceServer struct {
 }
 
-func (*UnimplementedGitLabServiceServer) GetConfiguration(ctx context.Context, req *ConfigurationRequest) (*ConfigurationResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetConfiguration not implemented")
+func (*UnimplementedGitLabServiceServer) GetConfiguration(req *ConfigurationRequest, srv GitLabService_GetConfigurationServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetConfiguration not implemented")
 }
 
 func RegisterGitLabServiceServer(s *grpc.Server, srv GitLabServiceServer) {
 	s.RegisterService(&_GitLabService_serviceDesc, srv)
 }
 
-func _GitLabService_GetConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ConfigurationRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+func _GitLabService_GetConfiguration_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ConfigurationRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(GitLabServiceServer).GetConfiguration(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/agentrpc.GitLabService/GetConfiguration",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GitLabServiceServer).GetConfiguration(ctx, req.(*ConfigurationRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(GitLabServiceServer).GetConfiguration(m, &gitLabServiceGetConfigurationServer{stream})
+}
+
+type GitLabService_GetConfigurationServer interface {
+	Send(*ConfigurationResponse) error
+	grpc.ServerStream
+}
+
+type gitLabServiceGetConfigurationServer struct {
+	grpc.ServerStream
+}
+
+func (x *gitLabServiceGetConfigurationServer) Send(m *ConfigurationResponse) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 var _GitLabService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "agentrpc.GitLabService",
 	HandlerType: (*GitLabServiceServer)(nil),
-	Methods: []grpc.MethodDesc{
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "GetConfiguration",
-			Handler:    _GitLabService_GetConfiguration_Handler,
+			StreamName:    "GetConfiguration",
+			Handler:       _GitLabService_GetConfiguration_Handler,
+			ServerStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "pkg/agentrpc/agentrpc.proto",
 }
