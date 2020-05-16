@@ -1,11 +1,25 @@
 default:
   tags:
     - gitlab-org
+  before_script:
+    - echo "build --disk_cache=$CI_PROJECT_DIR/.cache" >> .bazelrc
+    - echo "build --verbose_failures" >> .bazelrc
+    - echo "build --curses=no" >> .bazelrc
+    - echo "build --show_timestamps" >> .bazelrc
+
+variables:
+  # must use image digest to invalidate cache if image is updated. Equivalent of tag "3.1.0" is used below.
+  BUILD_IMAGE: "l.gcr.io/google/bazel@sha256:371b9156677a5e3828cf81b967de4527b89adb0bcdfbc12fbba1a329f07eb2e1"
+
+cache:
+  key: "$BUILD_IMAGE"
+  paths:
+    - .cache/
 
 test:
   stage: test
   image:
-    name: "l.gcr.io/google/bazel:3.1.0"
+    name: "$BUILD_IMAGE"
     entrypoint: [""]
   script:
     - apt-get install -y make
