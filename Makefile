@@ -17,6 +17,7 @@ update-repos:
 		//:gazelle -- \
 		update-repos \
 		-from_file=go.mod \
+		-prune=true \
 		-build_file_proto_mode=disable_global \
 		-to_macro=build/repositories.bzl%go_repositories
 
