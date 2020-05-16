@@ -12,5 +12,6 @@ require (
 	golang.org/x/tools v0.0.0-20200507205054-480da3ebd79c
 	google.golang.org/genproto v0.0.0-20200507105951-43844f6eee31 // indirect
 	google.golang.org/grpc v1.29.1
+	google.golang.org/protobuf v1.22.0
 	k8s.io/apimachinery v0.18.2
 )
