@@ -6,7 +6,7 @@ default:
     - echo "build --verbose_failures" >> .bazelrc
     - echo "build --curses=no" >> .bazelrc
     - echo "build --show_timestamps" >> .bazelrc
-    - echo "build --sandbox_base=/dev/shm" >> .bazelrc
+#    - echo "build --sandbox_base=/dev/shm" >> .bazelrc # disabled because it's not big enough
 
 variables:
   # must use image digest to invalidate cache if image is updated. Equivalent of tag "3.1.0" is used below.
