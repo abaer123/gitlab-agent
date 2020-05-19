@@ -137,7 +137,10 @@ Each `agentk` copy also gets its own `ServiceAccount` with minimum required perm
 
 `agentk` authenticates to GitLab using a token. That token also encodes agent's identity. It must be possible to rotate the token but keep the identity of the agent.
 
-Each cluster has an identity too. The agent learns the identifier from the configuration it fetches. 
+We use the agent's name to fetch the configuration for the agent.
+For example, a folder called `agentk/AGENT_NAME` holds the configuration for the agent `AGENT_NAME`.
+
+Each cluster has an identity too. Identity of the cluster is also encoded in the token. 
 
 ### Permissions within the cluster
 
