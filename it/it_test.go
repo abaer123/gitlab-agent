@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.com/ash2k/gitlab-agent/cmd/agentg/agentgapp"
-	"gitlab.com/ash2k/gitlab-agent/cmd/agentk/agentkapp"
+	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/cmd/agentg/agentgapp"
+	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/cmd/agentk/agentkapp"
 	"golang.org/x/sync/errgroup"
 )
 

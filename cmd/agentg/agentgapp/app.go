@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/ash2k/stager"
-	"gitlab.com/ash2k/gitlab-agent/cmd"
-	"gitlab.com/ash2k/gitlab-agent/pkg/agentg"
-	"gitlab.com/ash2k/gitlab-agent/pkg/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/cmd"
+	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/agentg"
+	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/agentrpc"
 	"google.golang.org/grpc"
 )
 
