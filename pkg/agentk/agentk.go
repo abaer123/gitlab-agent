@@ -5,7 +5,7 @@ import (
 	"io"
 	"time"
 
-	"gitlab.com/ash2k/gitlab-agent/pkg/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/agentrpc"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 

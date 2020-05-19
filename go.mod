@@ -1,4 +1,4 @@
-module gitlab.com/ash2k/gitlab-agent
+module gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent
 
 go 1.14
 

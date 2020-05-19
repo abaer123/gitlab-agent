@@ -25,7 +25,7 @@ extract_generated(
 go_library(
     name = "go_default_library",
     srcs = ["agentrpc.pb.go"],
-    importpath = "gitlab.com/ash2k/gitlab-agent/pkg/agentrpc",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/agentrpc",
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_golang_protobuf//proto:go_default_library",

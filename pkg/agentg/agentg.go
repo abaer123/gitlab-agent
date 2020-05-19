@@ -3,7 +3,7 @@ package agentg
 import (
 	"time"
 
-	"gitlab.com/ash2k/gitlab-agent/pkg/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/agentrpc"
 )
 
 type Agent struct {

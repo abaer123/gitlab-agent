@@ -4,7 +4,7 @@ syntax = "proto3";
 
 package agentrpc;
 
-option go_package = "gitlab.com/ash2k/gitlab-agent/pkg/agentrpc";
+option go_package = "gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/agentrpc";
 
 message ConfigurationRequest {
 }

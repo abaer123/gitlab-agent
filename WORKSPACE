@@ -1,4 +1,4 @@
-workspace(name = "com_gitlab_ash2k_agent")
+workspace(name = "gitlab_k8s_agent")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
