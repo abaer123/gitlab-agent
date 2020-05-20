@@ -1,6 +1,25 @@
-# Layout of configuration repository
+# Configuration repository
 
 GitLab Kubernetes integration supports hosting configuration for multiple GitLab Kubernetes Agents in a single repository. These agents may be running in the same or in multiple clusters, with potentially more than one agent per cluster.
+
+## Why configuration repository?
+
+Agent is bootstrapped with two pieces of information:
+
+- GitLab installation URL
+- Authentication token
+
+There are two alternative approaches to provide the rest of configuration:
+
+- As a `ConfigMap` or as part of some other Kubernetes object (e.g. environment variables in a `Deployment`)
+- In a Git repository
+
+We have chosen the Git repository approach because:
+
+- Infrastructure as Code is a best practice and the user would have put the Kubernetes object with configuration under version control anyway
+- Automatically pulling and applying configuraiton from the repository saves a hassle for the user
+
+## Layout
 
 Minimal repository layout looks like this:
 
