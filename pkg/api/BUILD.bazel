@@ -2,7 +2,10 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "go_default_library",
-    srcs = ["types.go"],
+    srcs = [
+        "log.go",
+        "types.go",
+    ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/api",
     visibility = ["//visibility:public"],
     deps = ["@org_golang_google_grpc//:go_default_library"],

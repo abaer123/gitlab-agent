@@ -3,10 +3,11 @@ package cmd
 import (
 	"context"
 	"flag"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"gitlab.com/gitlab-org/labkit/log"
 )
 
 // CancelOnInterrupt calls f when os.Interrupt or SIGTERM is received.
@@ -31,7 +32,7 @@ type RunnableFactory func(flagset *flag.FlagSet, arguments []string) (Runnable, 
 
 func Run(factory RunnableFactory) {
 	if err := run(factory); err != nil && err != context.Canceled && err != context.DeadlineExceeded {
-		fmt.Fprintf(os.Stderr, "%#v\n", err)
+		log.WithError(err).Error("Program aborted")
 		os.Exit(1)
 	}
 }
