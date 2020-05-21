@@ -29,6 +29,7 @@ func TestIntegration(t *testing.T) {
 	ag := agentgapp.App{
 		ListenNetwork:             "unix",
 		ListenAddress:             socketAddr,
+		GitalyAddress:             "unix:/Users/mikhail/src/gitlab-development-kit/praefect.socket",
 		ReloadConfigurationPeriod: 10 * time.Minute,
 	}
 	ak := agentkapp.App{
@@ -41,13 +42,14 @@ func TestIntegration(t *testing.T) {
 
 	g, ctx := errgroup.WithContext(ctx)
 	defer func() {
-		//assert.NoError(t, g.Wait()) // TODO put this bank once the test is in place
-		assert.NoError(t, nil) // to keep the dependency
-		g.Wait()
+		assert.NoError(t, g.Wait()) // TODO put this bank once the test is in place
+		//assert.NoError(t, nil) // to keep the dependency
+		//g.Wait()
 	}()
 	g.Go(func() error {
 		return ag.Run(ctx)
 	})
+	time.Sleep(1 * time.Second) // let agentg start listening
 	g.Go(func() error {
 		return ak.Run(ctx)
 	})

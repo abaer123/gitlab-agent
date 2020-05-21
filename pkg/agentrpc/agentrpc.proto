@@ -6,10 +6,23 @@ package agentrpc;
 
 option go_package = "gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/agentrpc";
 
+// ConfigurationFile represents user-facing configuration file.
+message ConfigurationFile {
+  bool some_feature_enabled = 1;
+}
+
+// AgentConfiguration represents configuration for agentk.
+// Note that agentk configuration is not exactly the whole file as the file may contain bits that are not
+// relevant for the agent. For example some additional config for agentg.
+message AgentConfiguration {
+  bool some_feature_enabled = 1;
+}
+
 message ConfigurationRequest {
 }
 
 message ConfigurationResponse {
+  AgentConfiguration configuration = 1;
 }
 
 service GitLabService {
