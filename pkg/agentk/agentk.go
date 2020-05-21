@@ -2,12 +2,11 @@ package agentk
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"os"
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/agentrpc"
+	"gitlab.com/gitlab-org/labkit/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -30,8 +29,7 @@ func (a *Agent) refreshConfiguration(ctx context.Context) wait.ConditionFunc {
 		req := &agentrpc.ConfigurationRequest{}
 		res, err := a.Client.GetConfiguration(ctx, req)
 		if err != nil {
-			// TODO log
-			fmt.Fprintf(os.Stderr, "GetConfiguration: %v\n", err)
+			log.WithError(err).Warn("GetConfiguration failed")
 			return false, nil // nil error to keep polling
 		}
 		for {
@@ -42,8 +40,7 @@ func (a *Agent) refreshConfiguration(ctx context.Context) wait.ConditionFunc {
 				case status.Code(err) == codes.DeadlineExceeded:
 				case status.Code(err) == codes.Canceled:
 				default:
-					// TODO log
-					fmt.Fprintf(os.Stderr, "GetConfiguration.Recv: %v\n", err)
+					log.WithError(err).Warn("GetConfiguration.Recv failed")
 				}
 				return false, nil // nil error to keep polling
 			}
@@ -53,6 +50,5 @@ func (a *Agent) refreshConfiguration(ctx context.Context) wait.ConditionFunc {
 }
 
 func (a *Agent) applyConfiguration(config *agentrpc.AgentConfiguration) {
-	// TODO
-	fmt.Fprintf(os.Stderr, "Some feature status: %t\n", config.SomeFeatureEnabled)
+
 }

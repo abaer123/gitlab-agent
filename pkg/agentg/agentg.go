@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/api"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
+	"gitlab.com/gitlab-org/labkit/log"
 	"google.golang.org/protobuf/encoding/protojson"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/yaml"
@@ -37,8 +37,11 @@ func (a *Agent) sendConfiguration(agentInfo *api.AgentInfo, configStream agentrp
 	return func() (bool /*done*/, error) {
 		config, err := a.fetchConfiguration(configStream.Context(), agentInfo)
 		if err != nil {
-			// TODO log
-			fmt.Fprintf(os.Stderr, "Error fetching configuration: %v\n", err)
+			log.WithError(err).WithFields(log.Fields{
+				api.ProjectId: agentInfo.ProjectId,
+				api.ClusterId: agentInfo.ClusterId,
+				api.AgentId:   agentInfo.Id,
+			}).Warn("Failed to fetch configuration")
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		return false, configStream.Send(config)

@@ -1505,8 +1505,8 @@ def go_repositories():
         name = "com_gitlab_gitlab_org_labkit",
         build_file_proto_mode = "disable_global",
         importpath = "gitlab.com/gitlab-org/labkit",
-        sum = "h1:Q5yZi+AelheHuvq/OK6DiaBzLU1AHrm7eWh88uE8Tsk=",
-        version = "v0.0.0-20200507062444-0149780c759d",
+        sum = "h1:WiCGS5C0B0h+/dh5O7kUJoEZt34O/tbsis9QghNB3gE=",
+        version = "v0.0.0-20200520155818-96e583c57891",
     )
     go_repository(
         name = "in_gopkg_alecthomas_kingpin_v2",

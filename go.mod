@@ -7,6 +7,7 @@ require (
 	github.com/golang/protobuf v1.4.1
 	github.com/stretchr/testify v1.5.1
 	gitlab.com/gitlab-org/gitaly v1.87.1-0.20200519214319-382ead9c7ef3
+	gitlab.com/gitlab-org/labkit v0.0.0-20200520155818-96e583c57891
 	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f // indirect
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/sys v0.0.0-20200509044756-6aff5f38e54f // indirect

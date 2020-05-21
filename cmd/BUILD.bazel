@@ -5,4 +5,5 @@ go_library(
     srcs = ["utils.go"],
     importpath = "gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/cmd",
     visibility = ["//visibility:public"],
+    deps = ["@com_gitlab_gitlab_org_labkit//log:go_default_library"],
 )

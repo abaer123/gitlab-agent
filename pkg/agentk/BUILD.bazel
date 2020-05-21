@@ -7,6 +7,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/agentrpc:go_default_library",
+        "@com_gitlab_gitlab_org_labkit//log:go_default_library",
         "@io_k8s_apimachinery//pkg/util/wait:go_default_library",
         "@org_golang_google_grpc//codes:go_default_library",
         "@org_golang_google_grpc//status:go_default_library",
