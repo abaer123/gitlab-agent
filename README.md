@@ -133,17 +133,6 @@ Because of the above, each `agentk` copy must have its own identity for GitLab t
 
 Each `agentk` copy also gets its own `ServiceAccount` with minimum required permissions.
 
-### Identity and authentication
-
-`agentk` authenticates to GitLab using a token. Each cluster has an identity too. It must be possible to rotate the token but keep the identity of the agent. That token encodes:
-
-- The agent's identity. 
-- The project_id of the agent's configuration
-- The cluster's identity
-
-We use the agent's name to fetch the configuration for the agent.
-For example, a folder called `agentk/AGENT_NAME` holds the configuration for the agent `AGENT_NAME`.
-
 ### Permissions within the cluster
 
 Currently customers are rightly concerned with us asking cluster-admin access. For GitOps and similar functionality something still has to have permissions to CRUD Kubernetes objects. The solution here is to give cluster operator (our customer) exclusive control of the permissions. Then they can allow the agent do only what they want it to be able to do. Where RBAC is not flexible enough (e.g. namespaces - don't want to allow CRUD for arbitrary namespaces but only some, based on some logic), we can provide an admission webhook that enforces some rules for the agent's `ServiceAccount` in addition to RBAC.
