@@ -9,6 +9,7 @@ go_library(
         "//cmd:go_default_library",
         "//pkg/agentg:go_default_library",
         "//pkg/agentrpc:go_default_library",
+        "//pkg/wstunnel:go_default_library",
         "@com_github_ash2k_stager//:go_default_library",
         "@com_gitlab_gitlab_org_gitaly//auth:go_default_library",
         "@com_gitlab_gitlab_org_gitaly//client:go_default_library",
