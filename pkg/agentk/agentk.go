@@ -2,7 +2,9 @@ package agentk
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/agentrpc"
@@ -50,5 +52,6 @@ func (a *Agent) refreshConfiguration(ctx context.Context) wait.ConditionFunc {
 }
 
 func (a *Agent) applyConfiguration(config *agentrpc.AgentConfiguration) {
+	fmt.Fprintf(os.Stderr, "%v\n", config)
 
 }

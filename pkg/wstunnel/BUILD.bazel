@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "api.go",
+        "client.go",
+        "server.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/wstunnel",
+    visibility = ["//visibility:public"],
+    deps = ["@io_nhooyr_websocket//:go_default_library"],
+)
+
+go_test(
+    name = "go_default_test",
+    size = "small",
+    srcs = [
+        "main_test.go",
+        "ws_test.go",
+    ],
+    embed = [":go_default_library"],
+    race = "on",
+    deps = [
+        "@com_github_stretchr_testify//assert:go_default_library",
+        "@com_github_stretchr_testify//require:go_default_library",
+        "@io_nhooyr_websocket//:go_default_library",
+    ],
+)

@@ -2,10 +2,6 @@ package it
 
 import (
 	"context"
-	"fmt"
-	"math/rand"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -21,19 +17,29 @@ import (
 // - agentk should connect to agentg
 // - agentg should accept connection from the test
 // - test should be able to make a request to agentg and get a response from Kubernetes API mock server.
-func TestIntegration(t *testing.T) {
-	socketAddr := filepath.Join(os.TempDir(), fmt.Sprintf("%d.sock", rand.Uint64()))
-	t.Cleanup(func() {
-		os.Remove(socketAddr)
+func Test(t *testing.T) {
+	t.Run("Plain gRPC", func(t *testing.T) {
+		testFetchConfiguration(t, false)
 	})
+	t.Run("gRPC->WebSocket", func(t *testing.T) {
+		testFetchConfiguration(t, true)
+	})
+}
+
+func testFetchConfiguration(t *testing.T, websocket bool) {
+	address := "localhost:12323"
 	ag := agentgapp.App{
-		ListenNetwork:             "unix",
-		ListenAddress:             socketAddr,
+		ListenNetwork:             "tcp",
+		ListenAddress:             address,
+		ListenWebSocket:           websocket,
 		GitalyAddress:             "unix:/Users/mikhail/src/gitlab-development-kit/praefect.socket",
 		ReloadConfigurationPeriod: 10 * time.Minute,
 	}
+	if websocket {
+		address = "ws://" + address
+	}
 	ak := agentkapp.App{
-		AgentgAddress: fmt.Sprintf("unix:%s", socketAddr),
+		AgentgAddress: address,
 		Insecure:      true,
 	}
 
@@ -42,9 +48,7 @@ func TestIntegration(t *testing.T) {
 
 	g, ctx := errgroup.WithContext(ctx)
 	defer func() {
-		assert.NoError(t, g.Wait()) // TODO put this bank once the test is in place
-		//assert.NoError(t, nil) // to keep the dependency
-		//g.Wait()
+		assert.NoError(t, g.Wait())
 	}()
 	g.Go(func() error {
 		return ag.Run(ctx)

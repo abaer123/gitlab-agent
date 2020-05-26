@@ -5,6 +5,7 @@ go 1.14
 require (
 	github.com/ash2k/stager v0.1.0
 	github.com/golang/protobuf v1.4.1
+	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/stretchr/testify v1.5.1
 	gitlab.com/gitlab-org/gitaly v1.87.1-0.20200519214319-382ead9c7ef3
 	gitlab.com/gitlab-org/labkit v0.0.0-20200520155818-96e583c57891
@@ -17,5 +18,6 @@ require (
 	google.golang.org/protobuf v1.22.0
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 	k8s.io/apimachinery v0.18.2
+	nhooyr.io/websocket v1.8.6
 	sigs.k8s.io/yaml v1.2.0
 )

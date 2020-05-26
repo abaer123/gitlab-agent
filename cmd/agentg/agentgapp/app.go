@@ -11,6 +11,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/agentg"
 	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/wstunnel"
 	gitalyauth "gitlab.com/gitlab-org/gitaly/auth"
 	"gitlab.com/gitlab-org/gitaly/client"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
@@ -19,11 +20,13 @@ import (
 
 const (
 	defaultReloadConfigurationPeriod = 5 * time.Minute
+	defaultMaxMessageSize            = 10 * 1024 * 1024
 )
 
 type App struct {
 	ListenNetwork             string
 	ListenAddress             string
+	ListenWebSocket           bool
 	GitalyAddress             string
 	GitalyToken               string
 	ReloadConfigurationPeriod time.Duration
@@ -52,6 +55,15 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("listen: %v", err)
 	}
+
+	if a.ListenWebSocket {
+		wsWrapper := wstunnel.ListenerWrapper{
+			// TODO set timeouts
+			ReadLimit: defaultMaxMessageSize,
+		}
+		lis = wsWrapper.Wrap(lis)
+	}
+
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
 	agentrpc.RegisterGitLabServiceServer(grpcServer, srv)
@@ -71,6 +83,7 @@ func NewFromFlags(flagset *flag.FlagSet, arguments []string) (cmd.Runnable, erro
 	app := &App{}
 	flagset.StringVar(&app.ListenNetwork, "listen-network", "", "Network type to listen on")
 	flagset.StringVar(&app.ListenAddress, "listen-address", "", "Address to listen on")
+	flagset.BoolVar(&app.ListenWebSocket, "listen-websocket", false, "Enable \"gRPC through WebSocket\" listening mode. Rather than expecting gRPC directly, expect a WebSocket connection, from which a gRPC stream is then unpacked")
 	flagset.StringVar(&app.GitalyAddress, "gitaly-address", "", "Gitaly address")
 	flagset.StringVar(&app.GitalyToken, "gitaly-token", "", "Gitaly authentication token")
 	flagset.DurationVar(&app.ReloadConfigurationPeriod, "reload-configuration-period", defaultReloadConfigurationPeriod, "How often to reload agentk configuration")
