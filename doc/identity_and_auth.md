@@ -26,3 +26,11 @@ Each agent may have 0 or more tokens in GitLab's database. Ability to have sever
 For each request from an agent GitLab checks if the token is valid - exists in the database and has not been revoked. This information may be cached for some time to reduce load on the database.
 
 Tokens can be managed by users with `maintainer` and higher level of permissions.
+
+## Authorization
+
+GitLab will provide the following information as part of the response for a given Agent access token:
+
+- Agent config git repository (Note: we don't have per-folder authorization)
+- Agent name
+- Manifest projects: TBD on how agentg and agentk deploys manifest
