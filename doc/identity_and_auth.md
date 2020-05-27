@@ -33,4 +33,4 @@ GitLab will provide the following information as part of the response for a give
 
 - Agent config git repository (Note: we don't have per-folder authorization)
 - Agent name
-- Manifest projects: TBD on how agentg and agentk deploys manifest
+- Manifest projects: TBD on how kgb and agentk deploys manifest

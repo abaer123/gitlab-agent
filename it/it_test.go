@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/agentg/agentgapp"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/agentk/agentkapp"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kgb/kgbapp"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -28,7 +28,7 @@ func Test(t *testing.T) {
 
 func testFetchConfiguration(t *testing.T, websocket bool) {
 	address := "localhost:12323"
-	ag := agentgapp.App{
+	ag := kgbapp.App{
 		ListenNetwork:             "tcp",
 		ListenAddress:             address,
 		ListenWebSocket:           websocket,
@@ -39,8 +39,8 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 		address = "ws://" + address
 	}
 	ak := agentkapp.App{
-		AgentgAddress: address,
-		Insecure:      true,
+		KgbAddress: address,
+		Insecure:   true,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -53,7 +53,7 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 	g.Go(func() error {
 		return ag.Run(ctx)
 	})
-	time.Sleep(1 * time.Second) // let agentg start listening
+	time.Sleep(1 * time.Second) // let kgb start listening
 	g.Go(func() error {
 		return ak.Run(ctx)
 	})

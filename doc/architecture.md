@@ -4,13 +4,13 @@ Today GitLab cannot integrate with clusters behind a firewall. If we put an agen
 
 ```mermaid
 graph TB
-  agentk -- gRPC bidirectional streaming --> agentg
+  agentk -- gRPC bidirectional streaming --> kgb
   
   subgraph "GitLab"
-  agentg[agentg]
-  GitLabRoR[GitLab RoR] -- gRPC --> agentg
-  agentg -- gRPC --> Gitaly[Gitaly]
-  agentg -- REST API --> GitLabRoR
+  kgb[kgb]
+  GitLabRoR[GitLab RoR] -- gRPC --> kgb
+  kgb -- gRPC --> Gitaly[Gitaly]
+  kgb -- REST API --> GitLabRoR
   end
 
   subgraph "Kubernetes cluster"
@@ -18,15 +18,15 @@ graph TB
   end  
 ```
 
-* `agentk` is our agent. It keeps a connection established to a `agentg` instance. It waits for requests to process. It may also actively send information about things happening in the cluster.
+* `agentk` is our agent. It keeps a connection established to a `kgb` instance. It waits for requests to process. It may also actively send information about things happening in the cluster.
 
-* `agentg` is responsible for:
+* `kgb` stands for Kubernetes-GitLab Broker. It's responsible for:
   * Accepting requests from `agentk`.
   * [Authentication of requests](identity_and_auth.md) from `agentk` by querying `GitLab RoR`.
   * Fetching agent's configuration from a corresponding Git repository by querying Gitaly.
   * Matching incoming requests from `GitLab RoR` with existing connections from the right `agentk`, forwarding requests to it and forwarding responses back.
   * (potentially) Sending notifications via ActionCable for events received from `agentk`.
 
-* `GitLab RoR` is the main GitLab application. It uses gRPC to talk to `agentg`. We could also support Kubernetes API to simplify migration of existing code onto this architecture. Could support both, depending on the need.
+* `GitLab RoR` is the main GitLab application. It uses gRPC to talk to `kgb`. We could also support Kubernetes API to simplify migration of existing code onto this architecture. Could support both, depending on the need.
 
-[Bidirectional streaming](https://grpc.io/docs/guides/concepts/#bidirectional-streaming-rpc) is used between `agentk` and `agentg`. This allows the connection acceptor i.e. gRPC server `agentg` to act as a client, sending requests as gRPC replies. Inverting client-server relationship is needed because the connection has to be initiated from the inside of the Kubernetes cluster to bypass a firewall the cluster may be behind. See https://gitlab.com/gitlab-org/gitlab/-/issues/212810.
+[Bidirectional streaming](https://grpc.io/docs/guides/concepts/#bidirectional-streaming-rpc) is used between `agentk` and `kgb`. This allows the connection acceptor i.e. gRPC server `kgb` to act as a client, sending requests as gRPC replies. Inverting client-server relationship is needed because the connection has to be initiated from the inside of the Kubernetes cluster to bypass a firewall the cluster may be behind. See https://gitlab.com/gitlab-org/gitlab/-/issues/212810.

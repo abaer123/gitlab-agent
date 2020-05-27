@@ -19,14 +19,14 @@ const (
 )
 
 type App struct {
-	// AgentgAddress specifies the address of agentg.
-	AgentgAddress string
+	// KgbAddress specifies the address of kgb.
+	KgbAddress string
 	// Insecure disables transport security.
 	Insecure bool
 }
 
 func (a *App) Run(ctx context.Context) error {
-	conn, err := a.agentgConnection()
+	conn, err := a.kgbConnection()
 	if err != nil {
 		return err
 	}
@@ -37,21 +37,21 @@ func (a *App) Run(ctx context.Context) error {
 	return agent.Run(ctx)
 }
 
-func (a *App) agentgConnection() (*grpc.ClientConn, error) {
+func (a *App) kgbConnection() (*grpc.ClientConn, error) {
 	var opts []grpc.DialOption
 	if a.Insecure {
 		opts = append(opts, grpc.WithInsecure())
 	}
-	u, err := url.Parse(a.AgentgAddress)
+	u, err := url.Parse(a.KgbAddress)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Agentg address: %v", err)
+		return nil, fmt.Errorf("invalid kgb address: %v", err)
 	}
 	if u.Scheme == "ws" || u.Scheme == "wss" {
 		opts = append(opts, grpc.WithContextDialer(wstunnel.DialerForGRPC(defaultMaxMessageSize, &websocket.DialOptions{
 			// TODO
 		})))
 	}
-	conn, err := grpc.Dial(a.AgentgAddress, opts...)
+	conn, err := grpc.Dial(a.KgbAddress, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("gRPC.dial: %v", err)
 	}
@@ -60,8 +60,8 @@ func (a *App) agentgConnection() (*grpc.ClientConn, error) {
 
 func NewFromFlags(flagset *flag.FlagSet, arguments []string) (cmd.Runnable, error) {
 	app := &App{}
-	flagset.StringVar(&app.AgentgAddress, "agentg-address", "", "Agentg address. Syntax is described at https://github.com/grpc/grpc/blob/master/doc/naming.md")
-	flagset.BoolVar(&app.Insecure, "agentg-insecure", false, "Disable transport security for agentg connection")
+	flagset.StringVar(&app.KgbAddress, "kgb-address", "", "Kgb address")
+	flagset.BoolVar(&app.Insecure, "kgb-insecure", false, "Disable transport security for kgb connection")
 	if err := flagset.Parse(arguments); err != nil {
 		return nil, err
 	}
