@@ -13,7 +13,7 @@ message ConfigurationFile {
 
 // AgentConfiguration represents configuration for agentk.
 // Note that agentk configuration is not exactly the whole file as the file may contain bits that are not
-// relevant for the agent. For example some additional config for agentg.
+// relevant for the agent. For example some additional config for kgb.
 message AgentConfiguration {
   bool some_feature_enabled = 1;
 }

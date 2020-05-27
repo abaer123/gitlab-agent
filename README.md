@@ -59,23 +59,23 @@ If there are technical blockers, we can **trivially** tunnel gRPC through WebSoc
 
 Multiple `Pod`s per deployment would be needed to have a highly available deployment. This might be trivial but might require doing [leader election](https://pkg.go.dev/k8s.io/client-go/tools/leaderelection?tab=doc), depending on the feature the agent will need to support. 
 
-#### `agentg` - agent on the GitLab side
+#### `kgb` - agent on the GitLab side
 
 The difficulty of having multiple copies of the program is that only one of the copies has an active connection from a particular Kubernetes cluster. So to serve a request from GitLab targeted at that cluster some sort of request routing would be needed. There are options (off the top of my head):
 
 - [Consistent hashing](https://en.wikipedia.org/wiki/Consistent_hashing) could be used to:
-  - Minimize disruptions if a copy of `agentg` goes missing
+  - Minimize disruptions if a copy of `kgb` goes missing
   - Route traffic to the correct copy
   
   We use [`nginx` as our ingress controller](https://docs.gitlab.com/charts/charts/nginx/index.html) and it does [support consistent hashing](https://www.nginx.com/resources/wiki/modules/consistent_hash/).
 
-- We could have `nginx` ask one (any) of `agentg` where the right copy (the one that has the connection) running. `agentg` can do a lookup in Redis where each cluster connection is registered and return the address to `nginx` via [X-Accel-Redirect](https://www.nginx.com/resources/wiki/start/topics/examples/x-accel/#x-accel-redirect) header.
+- We could have `nginx` ask one (any) of `kgb` where the right copy (the one that has the connection) running. `kgb` can do a lookup in Redis where each cluster connection is registered and return the address to `nginx` via [X-Accel-Redirect](https://www.nginx.com/resources/wiki/start/topics/examples/x-accel/#x-accel-redirect) header.
 
-- We could teach `agentg` to gossip with its copies so that they tell each other where a connection for each cluster is. Each copy will know about all the connections and either proxy the request or use `X-Accel-Redirect` to redirect the traffic. This is [Cassandra's gossip](https://docs.datastax.com/en/cassandra-oss/3.x/cassandra/architecture/archGossipAbout.html) + Cassandra's coordinator node-based request routing ideas but it's much easier to build on Kubernetes because we can just use the API to find other copies of the program.
+- We could teach `kgb` to gossip with its copies so that they tell each other where a connection for each cluster is. Each copy will know about all the connections and either proxy the request or use `X-Accel-Redirect` to redirect the traffic. This is [Cassandra's gossip](https://docs.datastax.com/en/cassandra-oss/3.x/cassandra/architecture/archGossipAbout.html) + Cassandra's coordinator node-based request routing ideas but it's much easier to build on Kubernetes because we can just use the API to find other copies of the program.
 
 ### Workhorse
 
-It may make sense to make `agentg` part of [GitLab Workhorse](https://gitlab.com/gitlab-org/gitlab-workhorse/).
+It may make sense to make `kgb` part of [GitLab Workhorse](https://gitlab.com/gitlab-org/gitlab-workhorse/).
 
 Pros:
 
@@ -88,7 +88,7 @@ Cons:
 
 - Depending on another team(s) for reviews and merging code may slow us down
   - Mitigation: should just become maintainers too
-- It may not be a good fit if `agentg` needs to have some significant amount of business logic in it. Mixing unrelated concerns in a single program is not great
+- It may not be a good fit if `kgb` needs to have some significant amount of business logic in it. Mixing unrelated concerns in a single program is not great
 - ?
 
 This needs more thought and investigation.
@@ -105,7 +105,7 @@ In a cluster `agentk` can be deployed:
 - One or more per-namespace deployments, each concerned only with what is happening in a particular namespace. Note that namespace where `agentk` is deployed, and the namespace it's managing might be different namespaces.
 - Both of the above at the same time.
 
-Because of the above, each `agentk` copy must have its own identity for GitLab to be able to tell one from the other e.g. for troubleshooting reasons. Each copy should get a URL of `agentg` and fetch the configuration from it. In that configuration the agent should see if it's per-namespace or cluster-wide. Configuration is stored in a Git repo on GitLab to promote IaC approach.
+Because of the above, each `agentk` copy must have its own identity for GitLab to be able to tell one from the other e.g. for troubleshooting reasons. Each copy should get a URL of `kgb` and fetch the configuration from it. In that configuration the agent should see if it's per-namespace or cluster-wide. Configuration is stored in a Git repo on GitLab to promote IaC approach.
 
 Each `agentk` copy also gets its own `ServiceAccount` with minimum required permissions.
 

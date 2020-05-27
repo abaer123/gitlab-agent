@@ -1,4 +1,4 @@
-package agentgapp
+package kgbapp
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 
 	"github.com/ash2k/stager"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentg"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kgb"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/wstunnel"
 	gitalyauth "gitlab.com/gitlab-org/gitaly/auth"
 	"gitlab.com/gitlab-org/gitaly/client"
@@ -44,8 +44,8 @@ func (a *App) Run(ctx context.Context) error {
 	}
 	defer gitalyConn.Close()
 
-	// Main logic of Agentg
-	srv := &agentg.Agent{
+	// Main logic of kgb
+	srv := &kgb.Agent{
 		ReloadConfigurationPeriod: a.ReloadConfigurationPeriod,
 		CommitServiceClient:       gitalypb.NewCommitServiceClient(gitalyConn),
 	}

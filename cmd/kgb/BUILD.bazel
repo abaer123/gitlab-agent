@@ -3,11 +3,11 @@ load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 go_library(
     name = "go_default_library",
     srcs = ["main.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/agentg",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kgb",
     visibility = ["//visibility:private"],
     deps = [
         "//cmd:go_default_library",
-        "//cmd/agentg/agentgapp:go_default_library",
+        "//cmd/kgb/kgbapp:go_default_library",
     ],
 )
 
