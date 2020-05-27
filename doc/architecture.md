@@ -2,6 +2,7 @@
 
 ## Issues the agent is trying to address
 
+- In general makes it possible to integrate a cluster behind a firewall or NAT with GitLab. See https://gitlab.com/gitlab-org/gitlab/-/issues/212810.
 - Allows for real-time access to API endpoints within a cluster. See https://gitlab.com/gitlab-org/gitlab/-/issues/218220#note_348729266 for an example use case.
 - Enables real-time features by pushing information about events happening in a cluster. For example, we could build a cluster view dashboard that visualizes changes happening in a cluster immediately, providing a delightful user experience. We already have some effort happening in this area, see [Real-Time Working Group](https://about.gitlab.com/company/team/structure/working-groups/real-time/).
 - Makes it possible to have a cache of Kubernetes objects (via [informers](https://github.com/kubernetes/client-go/blob/ccd5becdffb7fd8006e31341baaaacd14db2dcb7/tools/cache/shared_informer.go#L34-L183)) that is kept up to date with very low latency. Having such a cache would be beneficial to:
@@ -12,8 +13,6 @@
   - Simplify backend code by replacing polling code with cache access (another API call, but no polling needed).
 
   For example, https://gitlab.com/gitlab-org/gitlab/-/issues/217792#note_348582537. Instead of fetching data via Kubernetes API we could fetch it from the cache synchronously from the front end.
-
-- In general makes it possible to integrate a cluster behind a firewall or NAT with GitLab. See https://gitlab.com/gitlab-org/gitlab/-/issues/212810.
 
 ## High-level architecture
 
