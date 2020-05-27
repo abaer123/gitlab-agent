@@ -3,7 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "go_default_library",
     srcs = ["app.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/cmd/agentg/agentgapp",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/agentg/agentgapp",
     visibility = ["//visibility:public"],
     deps = [
         "//cmd:go_default_library",
