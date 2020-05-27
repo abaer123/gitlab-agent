@@ -6,8 +6,8 @@ import (
 	"io"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/agentrpc"
-	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/api"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"gitlab.com/gitlab-org/labkit/log"
 	"google.golang.org/protobuf/encoding/protojson"

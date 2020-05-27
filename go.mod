@@ -1,4 +1,4 @@
-module gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent
+module gitlab.com/gitlab-org/cluster-integration/gitlab-agent
 
 go 1.14
 

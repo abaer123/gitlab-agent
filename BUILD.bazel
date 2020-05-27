@@ -8,13 +8,13 @@ load("@io_bazel_rules_go//go:def.bzl", "nogo")
 
 gazelle(
     name = "gazelle",
-    prefix = "gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent",
+    prefix = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent",
 )
 
 gazelle(
     name = "gazelle_fix",
     command = "fix",
-    prefix = "gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent",
+    prefix = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent",
 )
 
 buildifier(

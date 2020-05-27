@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"net/url"
 
-	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/cmd"
-	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/agentk"
-	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/agentrpc"
-	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/wstunnel"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentk"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/wstunnel"
 	"google.golang.org/grpc"
 	"nhooyr.io/websocket"
 )

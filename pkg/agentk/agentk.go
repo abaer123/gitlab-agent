@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/kubernetes-management-ng/gitlab-agent/pkg/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc"
 	"gitlab.com/gitlab-org/labkit/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
