@@ -9,6 +9,7 @@ go_library(
         "//cmd:go_default_library",
         "//pkg/agentk:go_default_library",
         "//pkg/agentrpc:go_default_library",
+        "//pkg/api/apiutil:go_default_library",
         "//pkg/wstunnel:go_default_library",
         "@io_nhooyr_websocket//:go_default_library",
         "@org_golang_google_grpc//:go_default_library",

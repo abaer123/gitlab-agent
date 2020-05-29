@@ -8,10 +8,12 @@ go_test(
         "main_test.go",
     ],
     race = "on",
+    tags = ["manual"],
     deps = [
         "//cmd/agentk/agentkapp:go_default_library",
         "//cmd/kgb/kgbapp:go_default_library",
         "@com_github_stretchr_testify//assert:go_default_library",
+        "@com_github_stretchr_testify//require:go_default_library",
         "@org_golang_x_sync//errgroup:go_default_library",
     ],
 )

@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "go_default_library",
+    srcs = [
+        "roundtripper.go",
+        "transport.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/gitlab/fromworkhorse/roundtripper",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_gitlab_gitlab_org_labkit//correlation:go_default_library",
+        "@com_gitlab_gitlab_org_labkit//tracing:go_default_library",
+    ],
+)

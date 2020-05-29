@@ -8,5 +8,4 @@ go_library(
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/api",
     visibility = ["//visibility:public"],
-    deps = ["@org_golang_google_grpc//:go_default_library"],
 )

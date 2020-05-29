@@ -5,11 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"net/url"
 	"time"
 
 	"github.com/ash2k/stager"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kgb"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/wstunnel"
 	gitalyauth "gitlab.com/gitlab-org/gitaly/auth"
@@ -29,6 +31,8 @@ type App struct {
 	ListenWebSocket           bool
 	GitalyAddress             string
 	GitalyToken               string
+	GitLabAddress             string
+	GitLabSocket              string
 	ReloadConfigurationPeriod time.Duration
 }
 
@@ -45,9 +49,14 @@ func (a *App) Run(ctx context.Context) error {
 	defer gitalyConn.Close()
 
 	// Main logic of kgb
+	gitLabUrl, err := url.Parse(a.GitLabAddress)
+	if err != nil {
+		return err
+	}
 	srv := &kgb.Agent{
 		ReloadConfigurationPeriod: a.ReloadConfigurationPeriod,
 		CommitServiceClient:       gitalypb.NewCommitServiceClient(gitalyConn),
+		GitLabClient:              gitlab.NewClient(gitLabUrl, a.GitLabSocket),
 	}
 
 	// gRPC server
@@ -86,6 +95,8 @@ func NewFromFlags(flagset *flag.FlagSet, arguments []string) (cmd.Runnable, erro
 	flagset.BoolVar(&app.ListenWebSocket, "listen-websocket", false, "Enable \"gRPC through WebSocket\" listening mode. Rather than expecting gRPC directly, expect a WebSocket connection, from which a gRPC stream is then unpacked")
 	flagset.StringVar(&app.GitalyAddress, "gitaly-address", "", "Gitaly address")
 	flagset.StringVar(&app.GitalyToken, "gitaly-token", "", "Gitaly authentication token")
+	flagset.StringVar(&app.GitLabAddress, "gitlab-address", "http://localhost:8080", "GitLab address")
+	flagset.StringVar(&app.GitLabSocket, "gitlab-socket", "", "Optional: Unix domain socket to dial GitLab at")
 	flagset.DurationVar(&app.ReloadConfigurationPeriod, "reload-configuration-period", defaultReloadConfigurationPeriod, "How often to reload agentk configuration")
 	if err := flagset.Parse(arguments); err != nil {
 		return nil, err

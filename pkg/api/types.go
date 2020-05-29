@@ -1,29 +1,33 @@
 package api
 
-import (
-	"context"
-
-	"google.golang.org/grpc"
+const (
+	MetadataAuthorization = "authorization"
+	MetadataAgentkVersion = "agentk-version"
 )
 
-// AgentInfo describes information encoded in the agent token.
+// AgentToken is agentk's bearer access token.
+type AgentToken string
+
+// AgentMeta contains information received from agentk with a request.
+// It's passed as gRPC metadata.
+type AgentMeta struct {
+	Token   AgentToken
+	Version string
+}
+
+// AgentInfo contains information about an agentk.
 type AgentInfo struct {
-	// Id is agent's identity.
+	Meta AgentMeta
+	// Name is agent's name.
 	// Can contain only /a-z\d-/
-	Id        string
-	ClusterId int32
-	ProjectId int32
-	Token     string
+	Name       string
+	Repository AgentConfigRepository
 }
 
-func AgentInfoFromStream(stream grpc.ServerStream) (*AgentInfo, error) {
-	return AgentInfoFromContext(stream.Context())
-}
-
-func AgentInfoFromContext(ctx context.Context) (*AgentInfo, error) {
-	//md, ok := metadata.FromIncomingContext(ctx)
-	// TODO decode token
-	return &AgentInfo{
-		Id: "agent-ash2k",
-	}, nil
+// AgentConfigRepository represents agentk's configuration repository.
+type AgentConfigRepository struct {
+	StorageName   string
+	RelativePath  string
+	GlRepository  string
+	GlProjectPath string
 }

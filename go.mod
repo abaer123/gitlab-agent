@@ -6,6 +6,7 @@ require (
 	github.com/ash2k/stager v0.1.0
 	github.com/golang/protobuf v1.4.1
 	github.com/gorilla/websocket v1.4.2 // indirect
+	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/stretchr/testify v1.5.1
 	gitlab.com/gitlab-org/gitaly v1.87.1-0.20200519214319-382ead9c7ef3
 	gitlab.com/gitlab-org/labkit v0.0.0-20200520155818-96e583c57891
