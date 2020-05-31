@@ -1,14 +1,3 @@
-ifdef GITALY_ADDRESS
-	GITALY_ADDRESS_ARG := --test_env=GITALY_ADDRESS=$(GITALY_ADDRESS)
-else
-	GITALY_ADDRESS_ARG :=
-endif
-ifdef GITLAB_ADDRESS
-	GITLAB_ADDRESS_ARG := --test_env=GITLAB_ADDRESS=$(GITLAB_ADDRESS)
-else
-	GITLAB_ADDRESS_ARG :=
-endif
-
 .PHONY: fmt-bazel
 fmt-bazel:
 	bazel run //:buildozer
@@ -52,7 +41,9 @@ test-ci:
 
 .PHONY: test-it
 test-it: fmt update-bazel
-	bazel test $(GITALY_ADDRESS_ARG) $(GITLAB_ADDRESS_ARG) \
+	bazel test \
+		--test_env=GITALY_ADDRESS=$(GITALY_ADDRESS) \
+		--test_env=GITLAB_ADDRESS=$(GITLAB_ADDRESS) \
 		--test_env=KUBE_PATCH_CONVERSION_DETECTOR=true \
 		--test_env=KUBE_CACHE_MUTATION_DETECTOR=true \
 		--test_output=all \
