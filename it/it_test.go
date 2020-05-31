@@ -20,7 +20,7 @@ import (
 
 // TestFetchConfiguration tests agentk's ability to fetch configuration from a repository.
 // Flow:
-// 1. agentk connections to kgb and asks for configuration, providing an access token
+// 1. agentk connects to kgb and asks for configuration, providing an access token
 // 2. kgb makes a request to GitLab using that access token to verify the token and fetch information about the agent
 // 3. kgb makes a request to Gitaly to fetch configuration, parses it and sends it back to agentk.
 func TestFetchConfiguration(t *testing.T) {
