@@ -39,6 +39,17 @@ test-ci:
 		--test_env=KUBE_CACHE_MUTATION_DETECTOR=true \
 		-- //...
 
+.PHONY: test-it
+test-it: fmt update-bazel
+	bazel test \
+		--test_env=GITALY_ADDRESS=$(GITALY_ADDRESS) \
+		--test_env=GITLAB_ADDRESS=$(GITLAB_ADDRESS) \
+		--test_env=KUBE_PATCH_CONVERSION_DETECTOR=true \
+		--test_env=KUBE_CACHE_MUTATION_DETECTOR=true \
+		--test_output=all \
+		--test_arg=-test.v \
+		-- $$(bazel query 'attr(tags, manual, kind(test, //it/...))')
+
 .PHONY: quick-test
 quick-test:
 	bazel test \

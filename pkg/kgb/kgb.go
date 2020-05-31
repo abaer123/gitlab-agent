@@ -8,6 +8,8 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/api/apiutil"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/gitlab"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"gitlab.com/gitlab-org/labkit/log"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -18,11 +20,16 @@ import (
 type Agent struct {
 	ReloadConfigurationPeriod time.Duration
 	CommitServiceClient       gitalypb.CommitServiceClient
+	GitLabClient              *gitlab.Client
 }
 
 func (a *Agent) GetConfiguration(req *agentrpc.ConfigurationRequest, configStream agentrpc.GitLabService_GetConfigurationServer) error {
 	ctx := configStream.Context()
-	agentInfo, err := api.AgentInfoFromContext(ctx)
+	agentMeta, err := apiutil.AgentMetaFromContext(ctx)
+	if err != nil {
+		return err
+	}
+	agentInfo, err := a.GitLabClient.FetchAgentInfo(ctx, agentMeta)
 	if err != nil {
 		return err
 	}
@@ -38,9 +45,9 @@ func (a *Agent) sendConfiguration(agentInfo *api.AgentInfo, configStream agentrp
 		config, err := a.fetchConfiguration(configStream.Context(), agentInfo)
 		if err != nil {
 			log.WithError(err).WithFields(log.Fields{
-				api.ProjectId: agentInfo.ProjectId,
-				api.ClusterId: agentInfo.ClusterId,
-				api.AgentId:   agentInfo.Id,
+				//api.ProjectId: agentInfo.ProjectId,
+				//api.ClusterId: agentInfo.ClusterId,
+				api.AgentId: agentInfo.Name,
 			}).Warn("Failed to fetch configuration")
 			return false, nil // don't want to close the response stream, so report no error
 		}
@@ -51,32 +58,18 @@ func (a *Agent) sendConfiguration(agentInfo *api.AgentInfo, configStream agentrp
 // fetchConfiguration fetches agent's configuration from a corresponding repository.
 // Assumes configuration is stored in "agents/<agent id>/config.yaml" file.
 func (a *Agent) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInfo) (*agentrpc.ConfigurationResponse, error) {
-	// TODO make an API call to GitLab RoR. Send agentInfo.Id, agentInfo.ProjectId, agentInfo.Token
-
-	repo := &gitalypb.Repository{
-		StorageName:  "default",                                                                            // TODO fetch from GitLab RoR via API call
-		RelativePath: "@hashed/19/58/19581e27de7ced00ff1ce50b2047e7a567c76b1cbaebabe5ef03f7c3017bb5b7.git", // TODO fetch from GitLab RoR via API call
-		//GitObjectDirectory:            "",
-		//GitAlternateObjectDirectories: nil,
-		GlRepository:  "",               // TODO fetch from GitLab RoR via API call
-		GlProjectPath: "root/test-proj", // TODO fetch from GitLab RoR via API call
-	}
-
-	//findCommitReq := &gitalypb.FindCommitRequest{
-	//	Repository: repo,
-	//	Revision:   []byte("master"), // TODO handle different default branch
-	//}
-	//fcResp, err := a.CommitServiceClient.FindCommit(ctx, findCommitReq)
-	//if err != nil {
-	//	return nil, err
-	//}
-
 	// mimicking lib/gitlab/gitaly_client/commit_service.rb#tree_entry
+	fileName := fmt.Sprintf("agents/%s/config.yaml", agentInfo.Name)
 	treeEntryReq := &gitalypb.TreeEntryRequest{
-		Repository: repo,
-		Revision:   []byte("master"), //fcResp.Commit.Id
-		Path:       []byte(fmt.Sprintf("agents/%s/config.yaml", agentInfo.Id)),
-		Limit:      1024 * 1024,
+		Repository: &gitalypb.Repository{
+			StorageName:   agentInfo.Repository.StorageName,
+			RelativePath:  agentInfo.Repository.RelativePath,
+			GlRepository:  agentInfo.Repository.GlRepository,
+			GlProjectPath: agentInfo.Repository.GlProjectPath,
+		},
+		Revision: []byte("master"),
+		Path:     []byte(fileName),
+		Limit:    1024 * 1024,
 	}
 	teResp, err := a.CommitServiceClient.TreeEntry(ctx, treeEntryReq)
 	if err != nil {
@@ -92,6 +85,9 @@ func (a *Agent) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInfo
 			return nil, fmt.Errorf("TreeEntry.Recv: %v", err)
 		}
 		configYaml = append(configYaml, entry.Data...)
+	}
+	if configYaml == nil {
+		return nil, fmt.Errorf("configuration file not found: %q", fileName)
 	}
 	configJson, err := yaml.YAMLToJSON(configYaml)
 	if err != nil {

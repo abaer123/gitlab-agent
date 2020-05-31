@@ -16,6 +16,7 @@ import (
 
 type Agent struct {
 	Client agentrpc.GitLabServiceClient
+	Token  string
 }
 
 func (a *Agent) Run(ctx context.Context) error {
