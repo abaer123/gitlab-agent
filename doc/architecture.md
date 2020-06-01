@@ -70,3 +70,7 @@ graph TB
   **A**: Technically yes. However, that would mean `kgb` would get an update for each event for object kinds `kgb` runs informers for. An event contains the whole changed object. Number of events in active clusters may be significant. So, multiplied by the number of clusters, that means we'd have a lot of traffic between `kgb` and `agentk`. There is no practical benefit for building it this way, only the downside of having a lot of useless traffic.
   
   Instead of the above we could have an up to date precomputed view on top of the cache in `kgb`. `agentk` could make the calculations locally and push an update immediately to `kgb` (which could push an event via ActionCable). For example, `agentk` could maintain a cache with [`Node`](https://kubernetes.io/docs/concepts/architecture/nodes/) objects and push the current number of nodes to `kgb` each time there is a change. The UI then can fetch the number of nodes from `kgb` via an API (via the main application or bypassing it).
+
+- **Q**: Why use gRPC for `GitLab RoR` -> `kgb` access? Why not REST API?
+
+  **A**: To benefit from all the [good things gRPC provides or enables](https://grpc.io/faq/) and avoid any pitfalls of a hand-rolled client implementation. GitLab already uses gRPC to talk to Gitaly, it's an existing dependency.
