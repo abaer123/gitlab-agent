@@ -57,3 +57,56 @@ quick-test:
 		--test_env=KUBE_CACHE_MUTATION_DETECTOR=true \
 		--build_tests_only \
 		-- //...
+
+.PHONY: docker
+docker: update-bazel
+	bazel build \
+		//cmd/agentk:container \
+		//cmd/kgb:container
+
+# This only works from a linux machine
+.PHONY: docker-race
+docker-race: update-bazel
+	bazel build \
+		//cmd/agentk:container_race \
+		//cmd/kgb:container_race
+
+# Export docker image into local Docker
+.PHONY: docker-export
+docker-export: update-bazel
+	bazel run \
+		//cmd/agentk:container \
+		-- \
+		--norun
+	bazel run \
+		//cmd/kgb:container \
+		-- \
+		--norun
+
+# Export docker image into local Docker
+# This only works on a linux machine
+.PHONY: docker-export-race
+docker-export-race: update-bazel
+	bazel run \
+		//cmd/agentk:container_race \
+		-- \
+		--norun
+	bazel run \
+		//cmd/kgb:container_race \
+		-- \
+		--norun
+
+.PHONY: release
+release: update-bazel
+	bazel run \
+		//cmd/agentk:push_docker
+	bazel run \
+		//cmd/kgb:push_docker
+
+# This only works on a linux machine
+.PHONY: release-race
+release-race: update-bazel
+	bazel run \
+		//cmd/agentk:push_docker_race
+	bazel run \
+		//cmd/kgb:push_docker_race
