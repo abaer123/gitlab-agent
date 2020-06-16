@@ -8,5 +8,6 @@ go_library(
     deps = [
         "//pkg/api:go_default_library",
         "//pkg/gitlab/fromworkhorse/roundtripper:go_default_library",
+        "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb:go_default_library",
     ],
 )

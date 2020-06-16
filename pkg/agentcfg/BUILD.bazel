@@ -1,0 +1,51 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@rules_proto_grpc//go:defs.bzl", "go_proto_compile")
+load("//build:build.bzl", "extract_generated")
+
+proto_library(
+    name = "agentcfg_proto",
+    srcs = ["agentcfg.proto"],
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
+)
+
+go_proto_compile(
+    name = "agent_cfg",
+    tags = ["manual"],
+    deps = [":agentcfg_proto"],
+)
+
+extract_generated(
+    name = "extract_proto",
+    file_to_copy = "agentcfg.pb.go",
+    label = ":agent_cfg",
+    root_relative_directory = "pkg/agentcfg/",
+)
+
+go_library(
+    name = "go_default_library",
+    srcs = ["agentcfg.pb.go"],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_golang_protobuf//proto:go_default_library",
+        "@org_golang_google_protobuf//reflect/protoreflect:go_default_library",
+        "@org_golang_google_protobuf//runtime/protoimpl:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    size = "small",
+    srcs = ["roundtrip_test.go"],
+    embed = [":go_default_library"],
+    race = "on",
+    deps = [
+        "@com_github_google_go_cmp//cmp:go_default_library",
+        "@com_github_stretchr_testify//assert:go_default_library",
+        "@com_github_stretchr_testify//require:go_default_library",
+        "@org_golang_google_protobuf//encoding/protojson:go_default_library",
+        "@org_golang_google_protobuf//testing/protocmp:go_default_library",
+    ],
+)

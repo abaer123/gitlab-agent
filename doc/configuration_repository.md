@@ -33,7 +33,7 @@ Minimal repository layout looks like this:
 
 ## `config.yaml` syntax
 
-### `include`
+### `include` directive
 
 Agents likely have different configuration, but some of it may be identical. `config.yaml` supports inclusion syntax similar to `.gitlab-ci.yml` [`include` directive](https://docs.gitlab.com/ee/ci/yaml/#include). Only `include: 'some_file_name.yml'` syntax is supported at the moment.
 
@@ -50,3 +50,17 @@ Example repository layout:
 ```
 
 `config.yaml` for both agents can include the `../../base/config.yaml` file in such layout.
+
+### `deployments` section
+
+#### `manifest_projects` section
+
+`manifest_projects` is a list of manifest projects, each of which is a Git repository with Kubernetes resource definitions in YAML or JSON format. Project can be specified using the `id` field.
+
+```yaml
+deployments:
+  # Manifest projects are watched by the agent. Whenever a project changes, GitLab deploys the changes using the agent.
+  manifest_projects:
+    # No authentication mechanisms are currently supported.
+  - id: gitlab-org/cluster-integration/gitlab-agent
+```

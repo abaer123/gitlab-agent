@@ -2,13 +2,13 @@ package kgbapp
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"net"
 	"net/url"
 	"time"
 
 	"github.com/ash2k/stager"
+	"github.com/spf13/pflag"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/gitlab"
@@ -88,7 +88,7 @@ func (a *App) Run(ctx context.Context) error {
 	return grpcServer.Serve(lis)
 }
 
-func NewFromFlags(flagset *flag.FlagSet, arguments []string) (cmd.Runnable, error) {
+func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, error) {
 	app := &App{}
 	flagset.StringVar(&app.ListenNetwork, "listen-network", "", "Network type to listen on")
 	flagset.StringVar(&app.ListenAddress, "listen-address", "", "Address to listen on")

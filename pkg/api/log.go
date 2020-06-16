@@ -5,4 +5,7 @@ const (
 	ProjectId = "project_id"
 	ClusterId = "cluster_id"
 	AgentId   = "agent_id"
+
+	ResourceKey = "resource_key"
+	SyncResult  = "sync_result"
 )

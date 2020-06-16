@@ -1,5 +1,7 @@
 package api
 
+import "gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
+
 const (
 	MetadataAuthorization = "authorization"
 	MetadataAgentkVersion = "agentk-version"
@@ -18,16 +20,16 @@ type AgentMeta struct {
 // AgentInfo contains information about an agentk.
 type AgentInfo struct {
 	Meta AgentMeta
-	// Name is agent's name.
+	// Id is the agent's id in the database.
+	Id int64
+
+	// Name is the agent's name.
 	// Can contain only /a-z\d-/
 	Name       string
-	Repository AgentConfigRepository
+	Repository gitalypb.Repository
 }
 
-// AgentConfigRepository represents agentk's configuration repository.
-type AgentConfigRepository struct {
-	StorageName   string
-	RelativePath  string
-	GlRepository  string
-	GlProjectPath string
+type ProjectInfo struct {
+	ProjectId  int64
+	Repository gitalypb.Repository
 }
