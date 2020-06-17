@@ -44,6 +44,6 @@ As a Platform Engineer, I want to define the infrastructure by code, so that I c
 
 As a Platform Engineer, I want to define various policies that applications should follow, so that I can fulfill my SLAs.
 
-As a Platform Engineer, I want approved tooling around log management and persistent storages, so that I can scale, secure and manage them as needed.
+As a Platform Engineer, I want approved tooling around log management and persistent storage, so that I can scale, secure and manage them as needed.
 
-As a Platform Engineer, I want to be alerted when my infrasrtucture differs from its definition, so I can make sure that everything is set up as expected.
+As a Platform Engineer, I want to be alerted when my infrastructure differs from its definition, so I can make sure that everything is set up as expected.
