@@ -38,6 +38,7 @@ test-ci:
 		--test_env=KUBE_PATCH_CONVERSION_DETECTOR=true \
 		--test_env=KUBE_CACHE_MUTATION_DETECTOR=true \
 		-- //...
+	bazel build $$(bazel query 'attr(tags, manual, kind(test, //it/...))')
 
 .PHONY: test-it
 test-it: fmt update-bazel

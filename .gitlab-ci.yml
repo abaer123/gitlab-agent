@@ -9,8 +9,8 @@ default:
 #    - echo "build --sandbox_base=/dev/shm" >> .bazelrc # disabled because it's not big enough
 
 variables:
-  # must use image digest to invalidate cache if image is updated. Equivalent of tag "3.1.0" is used below.
-  BUILD_IMAGE: "l.gcr.io/google/bazel@sha256:371b9156677a5e3828cf81b967de4527b89adb0bcdfbc12fbba1a329f07eb2e1"
+  # must use image digest to invalidate cache if image is updated. Equivalent of tag "3.3.0" is used below.
+  BUILD_IMAGE: "l.gcr.io/google/bazel@sha256:6877aad5229abb38c73973378ed8bf8642061cdf71a62d15ba507a4f7a4cc13a"
 
 cache:
   key: "$BUILD_IMAGE"
