@@ -19,7 +19,7 @@
 ```mermaid
 graph TB
   agentk -- gRPC bidirectional streaming --> kgb
-  
+
   subgraph "GitLab"
   kgb[kgb]
   GitLabRoR[GitLab RoR] -- gRPC --> kgb
@@ -29,7 +29,7 @@ graph TB
 
   subgraph "Kubernetes cluster"
   agentk[agentk]
-  end  
+  end
 ```
 
 * `agentk` is our agent. It keeps a connection established to a `kgb` instance, waiting for requests to process. It may also actively send information about things happening in the cluster.
@@ -40,6 +40,7 @@ graph TB
   * Fetching agent's configuration from a corresponding Git repository by querying Gitaly.
   * Matching incoming requests from `GitLab RoR` with existing connections from the right `agentk`, forwarding requests to it and forwarding responses back.
   * (potentially) Sending notifications via ActionCable for events received from `agentk`.
+  * Polling manifest repositories for [GitOps support](gitops.md) by talking to Gitaly.
 
 * `GitLab RoR` is the main GitLab application. It uses gRPC to talk to `kgb`. We could also support Kubernetes API to simplify migration of existing code onto this architecture. Could support both, depending on the need.
 
@@ -68,9 +69,29 @@ graph TB
 - **Q**: Can we put the cache into `kgb` rather than into `agentk` to make it "dumber" / simpler per the principle above?
 
   **A**: Technically yes. However, that would mean `kgb` would get an update for each event for object kinds `kgb` runs informers for. An event contains the whole changed object. Number of events in active clusters may be significant. So, multiplied by the number of clusters, that means we'd have a lot of traffic between `kgb` and `agentk`. There is no practical benefit for building it this way, only the downside of having a lot of useless traffic.
-  
+
   Instead of the above we could have an up to date precomputed view on top of the cache in `kgb`. `agentk` could make the calculations locally and push an update immediately to `kgb` (which could push an event via ActionCable). For example, `agentk` could maintain a cache with [`Node`](https://kubernetes.io/docs/concepts/architecture/nodes/) objects and push the current number of nodes to `kgb` each time there is a change. The UI then can fetch the number of nodes from `kgb` via an API (via the main application or bypassing it).
 
 - **Q**: Why use gRPC for `GitLab RoR` -> `kgb` access? Why not REST API?
 
   **A**: To benefit from all the [good things gRPC provides or enables](https://grpc.io/faq/) and avoid any pitfalls of a hand-rolled client implementation. GitLab already uses gRPC to talk to Gitaly, it's an existing dependency.
+
+- **Q**: Why use Gitaly directly to fetch data from repositories instead of the usual "front door" (HTTPS or SSH)?
+
+  **A**: There are several reasons:
+
+  - Polling cost is higher for the "front door". For GitLab.com, HTTPS traffic access via the "front door" goes via CloudFlare, HAProxy, and Workhorse. For SSH traffic - CloudFlare and GitLab Shell. Only then a request reaches Gitaly. Using the "front door" would mean more traffic for the infrastructure to handle. More load means higher running cost because more hardware/VMs and bandwidth is needed.
+
+  - Accessing Gitaly via gRPC is a better development experience vs invoking Git for repository access. It's essentially the difference between calling a function vs invoking a binary. Better development experience means faster iterations.
+
+  - Somewhat related: In the future we may support "internal web hooks" or pub-sub to notify `kgb` of changes in repositories of interest. This would be transparent to `agentk` - `kgb` would poll less often and send new data to `agentk` once it receives a notification of a change. This is similar to how informers work in Kubernetes. We cannot send webhooks to `agentk` directly as it may be behind a firewall or NAT.
+
+  - Putting polling into `kgb` follows the "smart `kgb`, dumb `agentk`" principle described above.
+
+- **Q**: If there is no middlemen between `kgb` and Gitaly, how do we prevent `kgb` overloading Gitaly?
+
+  **A**: `kgb` should rate limit itself. The following not mutually exclusive approaches are possible:
+
+  - Per-`kgb` instance rate limiting can be put in place using gRPC's rate limiting mechanisms.
+  - Per-`agentk` rate limiting within `kgb` can be implemented using some external state storage. E.g. [using Redis](https://redislabs.com/redis-best-practices/basic-rate-limiting/). Or, alternatively, each `kgb` instance can enforce per-`agentk` limit just for itself - not as good, but much simpler to implement (no Redis needed).
+  - Global rate limiting for all `kgb` instances can also be implemented using Redis.
