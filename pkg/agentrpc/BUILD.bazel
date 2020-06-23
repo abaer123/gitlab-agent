@@ -8,6 +8,7 @@ proto_library(
     srcs = ["agentrpc.proto"],
     tags = ["manual"],
     visibility = ["//visibility:public"],
+    deps = ["//pkg/agentcfg:agentcfg_proto"],
 )
 
 go_grpc_compile(
@@ -18,6 +19,7 @@ go_grpc_compile(
 
 extract_generated(
     name = "extract_agent_grpc",
+    file_to_copy = "agentrpc.pb.go",
     label = ":agent_grpc",
     root_relative_directory = "pkg/agentrpc/",
 )
@@ -28,6 +30,7 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc",
     visibility = ["//visibility:public"],
     deps = [
+        "//pkg/agentcfg:go_default_library",
         "@com_github_golang_protobuf//proto:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
         "@org_golang_google_grpc//codes:go_default_library",

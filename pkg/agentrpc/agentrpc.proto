@@ -1,31 +1,47 @@
 syntax = "proto3";
 
-// If you make any changes make sure you run: make regenerate-grpc
+// If you make any changes make sure you run: make regenerate-proto
 
 package agentrpc;
 
 option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc";
 
-// ConfigurationFile represents user-facing configuration file.
-message ConfigurationFile {
-  bool some_feature_enabled = 1;
+import "pkg/agentcfg/agentcfg.proto";
+
+message ConfigurationRequest {
 }
 
 // AgentConfiguration represents configuration for agentk.
 // Note that agentk configuration is not exactly the whole file as the file may contain bits that are not
 // relevant for the agent. For example some additional config for kgb.
 message AgentConfiguration {
-  bool some_feature_enabled = 1;
-}
-
-message ConfigurationRequest {
+    agentcfg.DeploymentsCF deployments = 1;
 }
 
 message ConfigurationResponse {
-  AgentConfiguration configuration = 1;
+    AgentConfiguration configuration = 1;
+}
+
+message ObjectsToSynchronizeRequest {
+    // Project to fetch Kubernetes object manifests from.
+    // e.g. gitlab-org/cluster-integration/gitlab-agent
+    string project_id = 1;
+}
+
+message ObjectToSynchronize {
+    // YAML object manifest.
+    bytes object = 1;
+}
+
+message ObjectsToSynchronizeResponse {
+    string revision = 1;
+    repeated ObjectToSynchronize objects = 2;
 }
 
 service GitLabService {
-  // Fetch agentk configuration from the server.
-  rpc GetConfiguration (ConfigurationRequest) returns (stream ConfigurationResponse) {}
+    // Fetch agentk configuration from the server.
+    rpc GetConfiguration (ConfigurationRequest) returns (stream ConfigurationResponse) {
+    }
+    rpc GetObjectsToSynchronize (ObjectsToSynchronizeRequest) returns (stream ObjectsToSynchronizeResponse) {
+    }
 }

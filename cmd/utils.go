@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"context"
-	"flag"
+	"math/rand"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/spf13/pflag"
 	"gitlab.com/gitlab-org/labkit/log"
 )
 
@@ -28,10 +30,11 @@ type Runnable interface {
 	Run(context.Context) error
 }
 
-type RunnableFactory func(flagset *flag.FlagSet, arguments []string) (Runnable, error)
+type RunnableFactory func(flagset *pflag.FlagSet, arguments []string) (Runnable, error)
 
 func Run(factory RunnableFactory) {
-	if err := run(factory); err != nil && err != context.Canceled && err != context.DeadlineExceeded {
+	rand.Seed(time.Now().UnixNano())
+	if err := run(factory); err != nil && err != context.Canceled && err != context.DeadlineExceeded && err != pflag.ErrHelp {
 		log.WithError(err).Error("Program aborted")
 		os.Exit(1)
 	}
@@ -46,7 +49,8 @@ func run(factory RunnableFactory) error {
 }
 
 func runWithContext(ctx context.Context, factory RunnableFactory) error {
-	app, err := factory(flag.CommandLine, os.Args[1:])
+	flagset := pflag.NewFlagSet(os.Args[0], pflag.ContinueOnError)
+	app, err := factory(flagset, os.Args[1:])
 	if err != nil {
 		return err
 	}

@@ -61,10 +61,10 @@ graph TB
   end
 ```
 
-`agentk` periodically fetches configuration from `kgb`. For each configured GitOps repository it spawns a goroutine. Each goroutine makes a streaming `FetchGitOpsManifests()` gRPC call. `kgb` accepts these requests and checks with GitLab if this particular agent is authorized to access this repository.
+`agentk` periodically fetches configuration from `kgb`. For each configured GitOps repository it spawns a goroutine. Each goroutine makes a streaming `GetObjectsToSynchronize()` gRPC call. `kgb` accepts these requests and checks with GitLab if this particular agent is authorized to access this repository.
 If it is, `kgb` starts polling Gitaly for repository updates and sends the latest manifests to the agent. Before each poll, `kgb` verifies with GitLab that the agent's token is still valid. When `agentk` receives an updated manifest, it performs a synchronization using [`gitops-engine`](https://github.com/argoproj/gitops-engine).
 
-For repositories no longer in the list, `agentk` stops corresponding `FetchGitOpsManifests()` calls.
+For repositories no longer in the list, `agentk` stops corresponding `GetObjectsToSynchronize()` calls.
 
 ## Design 1 vs design 2
 

@@ -7,13 +7,23 @@ go_test(
         "it_test.go",
         "main_test.go",
     ],
-    race = "on",
-    tags = ["manual"],
+    # turn race off as a workaround for https://github.com/argoproj/gitops-engine/issues/50
+    race = "off",
+    tags = [
+        "external",
+        "manual",
+        "no-cache",
+        "no-remote",
+        "requires-network",
+    ],
     deps = [
         "//cmd/agentk/agentkapp:go_default_library",
         "//cmd/kgb/kgbapp:go_default_library",
         "@com_github_stretchr_testify//assert:go_default_library",
         "@com_github_stretchr_testify//require:go_default_library",
+        "@com_gitlab_gitlab_org_labkit//log:go_default_library",
+        "@io_k8s_client_go//rest:go_default_library",
+        "@io_k8s_client_go//tools/clientcmd:go_default_library",
         "@org_golang_x_sync//errgroup:go_default_library",
     ],
 )

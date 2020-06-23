@@ -63,9 +63,21 @@ go_rules_dependencies()
 
 go_register_toolchains(nogo = "@//:nogo")
 
-load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies")
+load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 
 gazelle_dependencies()
+
+# Workaround for https://github.com/argoproj/gitops-engine/issues/56
+go_repository(
+    name = "io_k8s_kubernetes",
+    # Kubernetes uses "BUILD" files, we use "BUILD.bazel" to ignore them.
+    build_file_name = "BUILD.bazel",
+    build_file_proto_mode = "disable_global",
+    importpath = "k8s.io/kubernetes",
+    replace = "k8s.io/kubernetes",
+    sum = "h1:tkIRyxVvzOn8f4dA7kah0TBMALcn8T/boJpHu+B8pkc=",
+    version = "v1.17.6",
+)
 
 load("//build:repositories.bzl", "go_repositories")
 
