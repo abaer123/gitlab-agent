@@ -79,18 +79,11 @@ def go_repositories():
         version = "v0.0.0-20161002113705-648efa622239",
     )
     go_repository(
-        name = "com_github_antihax_optional",
-        build_file_proto_mode = "disable_global",
-        importpath = "github.com/antihax/optional",
-        sum = "h1:xK2lYat7ZLaVVcIuj82J8kIro4V6kDe0AUDFboUCwcg=",
-        version = "v1.0.0",
-    )
-    go_repository(
         name = "com_github_argoproj_gitops_engine",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/argoproj/gitops-engine",
-        sum = "h1:8mwkmpgk7LTG7rel3sWNmJvtuhbzJ5bb+yk3yM4yI0k=",
-        version = "v0.1.3-0.20200611043203-16598d514898",
+        sum = "h1:T6eyxBDcesZt8LoM15ut947zFs8V/ek6w//hsv5e2gc=",
+        version = "v0.1.3-0.20200623172753-7d3da9f16e35",
     )
     go_repository(
         name = "com_github_argoproj_pkg",
@@ -1510,8 +1503,8 @@ def go_repositories():
         name = "com_github_grpc_ecosystem_grpc_gateway",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/grpc-ecosystem/grpc-gateway",
-        sum = "h1:8ERzHx8aj1Sc47mu9n/AksaKCSWrMchFtkdrS4BIj5o=",
-        version = "v1.14.6",
+        sum = "h1:UImYN5qQ8tuGpGE16ZmjvcTtTw24zw1QAp/SlnNrZhI=",
+        version = "v1.9.5",
     )
     go_repository(
         name = "com_github_hashicorp_errwrap",
@@ -2511,8 +2504,8 @@ def go_repositories():
         name = "com_github_rogpeppe_fastuuid",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/rogpeppe/fastuuid",
-        sum = "h1:Ppwyp6VYCF1nvBTXL3trRso7mXMlRrw9ooo375wvi2s=",
-        version = "v1.2.0",
+        sum = "h1:gu+uRPtBe88sKxUCEXRoeCvVG90TJmwhiqRpvdhQFng=",
+        version = "v0.0.0-20150106093220-6724a57986af",
     )
     go_repository(
         name = "com_github_rogpeppe_go_internal",

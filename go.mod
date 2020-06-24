@@ -3,13 +3,12 @@ module gitlab.com/gitlab-org/cluster-integration/gitlab-agent
 go 1.14
 
 require (
-	github.com/argoproj/gitops-engine v0.1.3-0.20200611043203-16598d514898
+	github.com/argoproj/gitops-engine v0.1.3-0.20200623172753-7d3da9f16e35
 	github.com/ash2k/stager v0.1.0
 	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.4.1
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.1-0.20190118093823-f849b5445de4
-	github.com/grpc-ecosystem/grpc-gateway v1.14.6 // indirect
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
