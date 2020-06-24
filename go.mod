@@ -8,17 +8,17 @@ require (
 	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.4.1
 	github.com/gorilla/websocket v1.4.2 // indirect
-	github.com/grpc-ecosystem/go-grpc-middleware v1.0.1-0.20190118093823-f849b5445de4
+	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
 	gitlab.com/gitlab-org/gitaly v1.87.1-0.20200519214319-382ead9c7ef3
-	gitlab.com/gitlab-org/labkit v0.0.0-20200520155818-96e583c57891
+	gitlab.com/gitlab-org/labkit v0.0.0-20200622172558-49c073024c24
 	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f // indirect
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
+	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	golang.org/x/sys v0.0.0-20200509044756-6aff5f38e54f // indirect
-	golang.org/x/tools v0.0.0-20200507205054-480da3ebd79c
-	google.golang.org/grpc v1.29.1
+	golang.org/x/tools v0.0.0-20200623204733-f8e0ea3a3a8f
+	google.golang.org/grpc v1.30.0
 	google.golang.org/protobuf v1.24.0
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 	k8s.io/apiextensions-apiserver v0.17.6 // indirect

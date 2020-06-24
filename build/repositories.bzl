@@ -859,8 +859,8 @@ def go_repositories():
         name = "com_github_go_kit_kit",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/go-kit/kit",
-        sum = "h1:Wz+5lgoB0kkuqLEc6NVmwRknTKP6dTGbSqvhZtBI/j0=",
-        version = "v0.8.0",
+        sum = "h1:wDJmvq38kDhkVxi50ni9ykkdUr1PKgqKOoi01fa0Mdk=",
+        version = "v0.9.0",
     )
     go_repository(
         name = "com_github_go_lintpack_lintpack",
@@ -873,8 +873,8 @@ def go_repositories():
         name = "com_github_go_logfmt_logfmt",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/go-logfmt/logfmt",
-        sum = "h1:8HUsc87TaSWLKwrnumgC8/YconD2fJQsRJAsWaPg2ic=",
-        version = "v0.3.0",
+        sum = "h1:MP4Eh7ZCb31lleYCFuwm0oe4/YGak+5l1vA2NOE80nA=",
+        version = "v0.4.0",
     )
     go_repository(
         name = "com_github_go_logr_logr",
@@ -1489,8 +1489,8 @@ def go_repositories():
         name = "com_github_grpc_ecosystem_go_grpc_middleware",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/grpc-ecosystem/go-grpc-middleware",
-        sum = "h1:z53tR0945TRRQO/fLEVPI6SMv7ZflF0TEaTAoU7tOzg=",
-        version = "v1.0.1-0.20190118093823-f849b5445de4",
+        sum = "h1:0IKlLyQ3Hs9nDaiK5cSHAGmcQEIC8l2Ts1u6x5Dfrqg=",
+        version = "v1.2.0",
     )
     go_repository(
         name = "com_github_grpc_ecosystem_go_grpc_prometheus",
@@ -2329,8 +2329,8 @@ def go_repositories():
         name = "com_github_opentracing_opentracing_go",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/opentracing/opentracing-go",
-        sum = "h1:3jA2P6O1F9UOrWVpwrIo17pu01KWvNWg4X946/Y5Zwg=",
-        version = "v1.0.2",
+        sum = "h1:pWlfV3Bxv7k65HYwkikxat0+s3pV4bsqf19k25Ur8rU=",
+        version = "v1.1.0",
     )
     go_repository(
         name = "com_github_otiai10_copy",
@@ -2994,8 +2994,8 @@ def go_repositories():
         name = "com_gitlab_gitlab_org_labkit",
         build_file_proto_mode = "disable_global",
         importpath = "gitlab.com/gitlab-org/labkit",
-        sum = "h1:WiCGS5C0B0h+/dh5O7kUJoEZt34O/tbsis9QghNB3gE=",
-        version = "v0.0.0-20200520155818-96e583c57891",
+        sum = "h1:n+T6k/if38udpXNyX6zNVoNxGyoYSncFJEIvjG5Kor0=",
+        version = "v0.0.0-20200622172558-49c073024c24",
     )
     go_repository(
         name = "com_google_cloud_go",
@@ -3526,8 +3526,8 @@ def go_repositories():
         name = "org_golang_google_grpc",
         build_file_proto_mode = "disable_global",
         importpath = "google.golang.org/grpc",
-        sum = "h1:EC2SB8S04d2r73uptxphDSUG+kTKVgjRPF+N3xpxRB4=",
-        version = "v1.29.1",
+        sum = "h1:M5a8xTlYTxwMn5ZFkwhRabsygDY5G8TYLyQDBxJNAxE=",
+        version = "v1.30.0",
     )
     go_repository(
         name = "org_golang_google_protobuf",
@@ -3610,8 +3610,8 @@ def go_repositories():
         name = "org_golang_x_sync",
         build_file_proto_mode = "disable_global",
         importpath = "golang.org/x/sync",
-        sum = "h1:vcxGaoTs7kV8m5Np9uUNQin4BrLOthgV7252N8V+FwY=",
-        version = "v0.0.0-20190911185100-cd5d95a43a6e",
+        sum = "h1:WXEvlFVvvGxCJLG6REjsT03iWnKLEWinaScsxF2Vm2o=",
+        version = "v0.0.0-20200317015054-43a5402ce75a",
     )
     go_repository(
         name = "org_golang_x_sys",
@@ -3638,8 +3638,8 @@ def go_repositories():
         name = "org_golang_x_tools",
         build_file_proto_mode = "disable_global",
         importpath = "golang.org/x/tools",
-        sum = "h1:TDspWmUQsjdWzrHnd5imfaJSfhR4AO/R7kG++T2cONw=",
-        version = "v0.0.0-20200507205054-480da3ebd79c",
+        sum = "h1:YEIftClo4BKh5aFw0WNXGDU/uTfmS9yIUAvX77+O2zg=",
+        version = "v0.0.0-20200623204733-f8e0ea3a3a8f",
     )
     go_repository(
         name = "org_golang_x_xerrors",
@@ -3708,8 +3708,8 @@ def go_repositories():
         name = "org_uber_go_atomic",
         build_file_proto_mode = "disable_global",
         importpath = "go.uber.org/atomic",
-        sum = "h1:2Oa65PReHzfn29GpvgsYwloV9AVFHPDk8tYxt2c2tr4=",
-        version = "v1.3.2",
+        sum = "h1:cxzIVoETapQEqDhQu3QfnvXAV4AlzcvUCxkVUFw3+EU=",
+        version = "v1.4.0",
     )
     go_repository(
         name = "org_uber_go_multierr",
