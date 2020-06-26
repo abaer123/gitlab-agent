@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@rules_proto_grpc//go:defs.bzl", "go_grpc_compile")
-load("//build:build.bzl", "extract_generated")
+load("//build:build.bzl", "copy_to_workspace")
 
 proto_library(
     name = "agentrpc_proto",
@@ -17,11 +17,11 @@ go_grpc_compile(
     deps = [":agentrpc_proto"],
 )
 
-extract_generated(
-    name = "extract_agent_grpc",
+copy_to_workspace(
+    name = "extract_generated",
     file_to_copy = "agentrpc.pb.go",
     label = ":agent_grpc",
-    root_relative_directory = "pkg/agentrpc/",
+    workspace_relative_target_directory = "pkg/agentrpc",
 )
 
 go_library(

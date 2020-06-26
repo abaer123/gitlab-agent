@@ -62,7 +62,7 @@ func (a *App) Run(ctx context.Context) error {
 	// gRPC server
 	lis, err := net.Listen(a.ListenNetwork, a.ListenAddress)
 	if err != nil {
-		return fmt.Errorf("listen: %v", err)
+		return err
 	}
 
 	if a.ListenWebSocket {
@@ -90,8 +90,8 @@ func (a *App) Run(ctx context.Context) error {
 
 func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, error) {
 	app := &App{}
-	flagset.StringVar(&app.ListenNetwork, "listen-network", "", "Network type to listen on")
-	flagset.StringVar(&app.ListenAddress, "listen-address", "", "Address to listen on")
+	flagset.StringVar(&app.ListenNetwork, "listen-network", "tcp", "Network type to listen on. Supported values: tcp, tcp4, tcp6, unix")
+	flagset.StringVar(&app.ListenAddress, "listen-address", "127.0.0.1:0", "Address to listen on")
 	flagset.BoolVar(&app.ListenWebSocket, "listen-websocket", false, "Enable \"gRPC through WebSocket\" listening mode. Rather than expecting gRPC directly, expect a WebSocket connection, from which a gRPC stream is then unpacked")
 	flagset.StringVar(&app.GitalyAddress, "gitaly-address", "", "Gitaly address")
 	flagset.StringVar(&app.GitalyToken, "gitaly-token", "", "Gitaly authentication token")

@@ -5,8 +5,7 @@ fmt-bazel:
 
 .PHONY: internal-regenerate-proto
 internal-regenerate-proto:
-	bazel run //pkg/agentcfg:extract_proto
-	bazel run //pkg/agentrpc:extract_agent_grpc
+	bazel run //build:extract_generated_proto
 
 .PHONY: regenerate-proto
 regenerate-proto: internal-regenerate-proto fmt update-bazel
@@ -126,3 +125,8 @@ release-race: update-bazel
 		//cmd/agentk:push_docker_race
 	bazel run \
 		//cmd/kgb:push_docker_race
+
+# Set TARGET_DIRECTORY variable to the target directory before running this target
+.PHONY: gdk-install
+gdk-install:
+	bazel run //build:extract_race_binaries_for_gdk -- "$(TARGET_DIRECTORY)"

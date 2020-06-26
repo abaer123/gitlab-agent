@@ -73,7 +73,7 @@ func (c *Client) GetAgentInfo(ctx context.Context, meta *api.AgentMeta) (*api.Ag
 		Name: response.AgentName,
 		Repository: gitalypb.Repository{
 			StorageName:   response.StorageName,
-			RelativePath:  response.RelativePath + ".git",
+			RelativePath:  response.RelativePath,
 			GlRepository:  response.GlRepository,
 			GlProjectPath: response.GlProjectPath,
 		},
@@ -95,7 +95,7 @@ func (c *Client) GetProjectInfo(ctx context.Context, meta *api.AgentMeta, projec
 		ProjectId: response.ProjectId,
 		Repository: gitalypb.Repository{
 			StorageName:   response.StorageName,
-			RelativePath:  response.RelativePath + ".git",
+			RelativePath:  response.RelativePath,
 			GlRepository:  response.GlRepository,
 			GlProjectPath: response.GlProjectPath,
 		},

@@ -1,4 +1,39 @@
+load("@com_github_atlassian_bazel_tools//multirun:def.bzl", "multirun")
+
 exports_files([
     "buildozer_commands.txt",
-    "copy.sh",
 ])
+
+sh_binary(
+    name = "copy_absolute",
+    srcs = ["copy_absolute.sh"],
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "copy_to_workspace",
+    srcs = ["copy_to_workspace.sh"],
+    visibility = ["//visibility:public"],
+)
+
+multirun(
+    name = "extract_generated_proto",
+    commands = [
+        "//pkg/agentcfg:extract_generated",
+        "//pkg/agentrpc:extract_generated",
+    ],
+)
+
+multirun(
+    name = "extract_binaries_for_gdk",
+    commands = [
+        "//cmd/kgb:extract_kgb",
+    ],
+)
+
+multirun(
+    name = "extract_race_binaries_for_gdk",
+    commands = [
+        "//cmd/kgb:extract_kgb_race",
+    ],
+)
