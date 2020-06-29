@@ -8,7 +8,7 @@ The GiLab Kubernetes Agent allows an Infrastructure as Code, GitOps approach to 
 
 ### Store the registration token inside the cluster
 
-Installing the agent requires a secret token to be available in your cluster that the agent has access to. This token will be used to register the agent with GitLab.
+Installing the agent requires a secret token to be available in your cluster that the agent has access to. The agent will use this token to authenticate with GitLab.
 
 | Registration token | Kubernetes manifest |
 | -- | -- |
