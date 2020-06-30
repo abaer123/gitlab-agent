@@ -1174,8 +1174,8 @@ def go_repositories():
         name = "com_github_golang_mock",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/golang/mock",
-        sum = "h1:qGJ6qTW+x6xX/my+8YUVl4WNpX9B7+/l2tRsHGZ7f2s=",
-        version = "v1.3.1",
+        sum = "h1:gqAlfQik6YMhR+QH+jx8NuWbmMG62K6SaDdFGIu6QYQ=",
+        version = "v1.4.4-0.20200612212805-d9ac6780152f",
     )
     go_repository(
         name = "com_github_golang_protobuf",
@@ -3467,6 +3467,20 @@ def go_repositories():
         version = "v0.2.0",
     )
     go_repository(
+        name = "io_rsc_quote_v3",
+        build_file_proto_mode = "disable_global",
+        importpath = "rsc.io/quote/v3",
+        sum = "h1:9JKUTTIUgS6kzR9mK1YuGKv6Nl+DijDNIc0ghT58FaY=",
+        version = "v3.1.0",
+    )
+    go_repository(
+        name = "io_rsc_sampler",
+        build_file_proto_mode = "disable_global",
+        importpath = "rsc.io/sampler",
+        sum = "h1:7uVkIFmeBqHfdjD+gZwtXXI+RODJ2Wc4O7MPEh/QiW4=",
+        version = "v1.3.0",
+    )
+    go_repository(
         name = "ke_bou_monkey",
         build_file_proto_mode = "disable_global",
         importpath = "bou.ke/monkey",
@@ -3582,8 +3596,8 @@ def go_repositories():
         name = "org_golang_x_mod",
         build_file_proto_mode = "disable_global",
         importpath = "golang.org/x/mod",
-        sum = "h1:KU7oHjnv3XNWfa5COkzUifxZmxp1TyI7ImMXqFxLwvQ=",
-        version = "v0.2.0",
+        sum = "h1:RM4zey1++hCTbCVQfnWeKs9/IEsaBLA8vTkd0WVtmH4=",
+        version = "v0.3.0",
     )
     go_repository(
         name = "org_golang_x_net",

@@ -134,12 +134,12 @@ func (a *Agent) startNewWorkerLocked(project *agentcfg.ManifestProjectCF) {
 	logger := log.WithField(api.ProjectId, project.Id)
 	logger.Info("Starting synchronization worker")
 	worker := &deploymentWorker{
-		deploymentWorkerConfig: deploymentWorkerConfig{
+		kubeClientConfig: a.kubeClientConfig,
+		synchronizerConfig: synchronizerConfig{
 			log:       logger,
 			projectId: project.Id,
 			//namespace:
-			client:           a.client,
-			kubeClientConfig: a.kubeClientConfig,
+			client: a.client,
 		},
 	}
 	ctx, cancel := context.WithCancel(context.Background())
