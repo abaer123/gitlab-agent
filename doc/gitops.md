@@ -40,7 +40,7 @@ graph TB
 
 For repositories no longer in the list, `agentk` stops corresponding goroutines and `git-sync` copies, also deleting their cloned repositories from disk.
 
-## GitOps architecture - design 2
+## GitOps architecture - design 2 (implemented)
 
 ```mermaid
 graph TB
