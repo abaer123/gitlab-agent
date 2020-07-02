@@ -37,7 +37,7 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("token file: %v", err)
 	}
-	conn, err := a.kgbConnection(string(tokenData))
+	conn, err := a.kgbConnection(ctx, string(tokenData))
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (a *App) Run(ctx context.Context) error {
 	return agent.Run(ctx)
 }
 
-func (a *App) kgbConnection(token string) (*grpc.ClientConn, error) {
+func (a *App) kgbConnection(ctx context.Context, token string) (*grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
 		grpc.WithPerRPCCredentials(apiutil.NewTokenCredentials(token, a.Insecure)),
 	}
@@ -64,7 +64,7 @@ func (a *App) kgbConnection(token string) (*grpc.ClientConn, error) {
 			// TODO
 		})))
 	}
-	conn, err := grpc.Dial(addressToDial, opts...)
+	conn, err := grpc.DialContext(ctx, addressToDial, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("gRPC.dial: %v", err)
 	}
