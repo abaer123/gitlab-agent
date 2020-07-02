@@ -3,13 +3,22 @@ fmt-bazel:
 	bazel run //:buildozer
 	bazel run //:buildifier
 
-.PHONY: regenerate-proto-internal
-regenerate-proto-internal:
+.PHONY: internal-regenerate-proto
+internal-regenerate-proto:
 	bazel run //pkg/agentcfg:extract_proto
 	bazel run //pkg/agentrpc:extract_agent_grpc
 
 .PHONY: regenerate-proto
-regenerate-proto: regenerate-proto-internal fmt update-bazel
+regenerate-proto: internal-regenerate-proto fmt update-bazel
+
+.PHONY: internal-regenerate-mocks
+internal-regenerate-mocks:
+	go generate -x -v \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc/mock_agentrpc" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/testing/mock_engine"
+
+.PHONY: regenerate-mocks
+regenerate-mocks: internal-regenerate-mocks fmt update-bazel
 
 .PHONY: update-repos
 update-repos:
