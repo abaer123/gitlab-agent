@@ -19,11 +19,17 @@ When adding a new agent the user gets a bearer access token for it from the UI w
 Each agent may have 0 or more tokens in GitLab's database. Ability to have several valid tokens helps facilitate token rotation without having to re-register an agent. Each token record in the database has:
 
 - Agent identity it belongs to
-- Creation time
-- Who created it
-- Revocation flag to mark tokens as revoked
-- Revocation time
-- A text field to store any comments the administrator may want to make about the token for future self
+- Token value. Encrypted at rest.
+- Creation time.
+- Who created it.
+- Revocation flag to mark token as revoked.
+- Revocation time.
+- A text field to store any comments the administrator may want to make about the token for future self.
+
+Tokens are immutable. Only the following fields can be updated:
+- Revocation flag. Can only be updated to `true` once. Immutable after that.
+- Revocation time. Set automatically to the current time when revocation flag is set. Immutable after that.
+- Comments field. Can be updated any number of times, including after the token has been revoked.
 
 For each request from an agent GitLab checks if the token is valid - exists in the database and has not been revoked. This information may be cached for some time to reduce load on the database.
 
