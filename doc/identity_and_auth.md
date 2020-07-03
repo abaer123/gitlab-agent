@@ -1,5 +1,7 @@
 # Identity and authentication
 
+This document uses the word `agent` to mean GitLab Kubernetes Agent on the conceptual level. The program that is the implementation of it is actually called `agentk`. See the [architecture page](architecture.md).
+
 ## Cluster identity
 
 Each cluster has an identity that is unique within a GitLab installation.
