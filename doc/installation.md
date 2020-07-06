@@ -6,7 +6,7 @@ The GiLab Kubernetes Agent allows an Infrastructure as Code, GitOps approach to 
 
 The agent configuration is stored in a repository, that the agent pulls automatically to configure itself. The agent configuration project needs minimal configuration to work, for detailed examples and features, see the documentation.
 
-1. [Fork the repo button](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/forks/new)
+1. [Create a new project using the GitLab Kubernetes Agent Configuration project template](https://gitlab.com/projects/new#create_from_template) - should be simpler as it is now
 2. Provide the project slug of your forked project (input box)
 
 ## Step 2: Install the agent
