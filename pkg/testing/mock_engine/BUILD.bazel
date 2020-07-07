@@ -5,11 +5,14 @@ go_library(
     srcs = [
         "doc.go",
         "engine.go",
+        "engine_factory.go",
+        "threadsafe.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/testing/mock_engine",
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_argoproj_gitops_engine//pkg/cache:go_default_library",
+        "@com_github_argoproj_gitops_engine//pkg/engine:go_default_library",
         "@com_github_argoproj_gitops_engine//pkg/sync:go_default_library",
         "@com_github_argoproj_gitops_engine//pkg/sync/common:go_default_library",
         "@com_github_golang_mock//gomock:go_default_library",

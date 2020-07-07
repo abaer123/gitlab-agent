@@ -6,11 +6,7 @@ import (
 	"time"
 
 	"github.com/argoproj/gitops-engine/pkg/cache"
-	"github.com/argoproj/gitops-engine/pkg/engine"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured/unstructuredscheme"
-	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/rest"
 )
 
 const (
@@ -18,23 +14,13 @@ const (
 	getObjectsToSynchronizeRetryPeriod = 10 * time.Second
 )
 
-var (
-	yamlSerializer = json.NewSerializerWithOptions(
-		json.DefaultMetaFactory,
-		unstructuredscheme.NewUnstructuredCreator(),
-		unstructuredscheme.NewUnstructuredObjectTyper(),
-		json.SerializerOptions{Yaml: true})
-)
-
 type deploymentWorker struct {
-	kubeClientConfig *rest.Config
+	engineFactory GitOpsEngineFactory
 	synchronizerConfig
 }
 
 func (d *deploymentWorker) Run(ctx context.Context) {
-	clusterCache := cache.NewClusterCache(d.kubeClientConfig,
-		cache.SetPopulateResourceInfoHandler(populateResourceInfoHandler))
-	eng := engine.NewEngine(d.kubeClientConfig, clusterCache)
+	eng := d.engineFactory.New(cache.SetPopulateResourceInfoHandler(populateResourceInfoHandler))
 	var stopEngine io.Closer
 	err := wait.PollImmediateUntil(engineRunRetryPeriod, func() (bool /*done*/, error) {
 		var err error
