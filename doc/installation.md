@@ -18,7 +18,6 @@ Installing the agent requires a secret token to be available in your cluster tha
 | Registration token | Kubernetes manifest |
 | -- | -- |
 
-Token expires: 2020-06-23 19:18:00 (i) - information button says that every token is valid for 24 hours, if unused.
 Button: Refresh token
 
 #### Registration token
