@@ -68,7 +68,7 @@ helm repo add gitlab https://charts.gitlab.io/
 helm install gitlab/gitlab-kubernetes agent --version 0.1.0
 ```
 
-**Question:** _How to add a customized installation? What should we document about it here?_
+At the moment our Helm based installation lacks customization options. Please, [provide feedback on this issue](#) about what you'd like to be able to configure in a `values.yml`.
 
 #### Infrastructure as Code repo
 
