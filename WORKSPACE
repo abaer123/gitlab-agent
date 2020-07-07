@@ -88,8 +88,8 @@ go_repository(
     build_file_proto_mode = "disable_global",
     importpath = "k8s.io/kubernetes",
     replace = "k8s.io/kubernetes",
-    sum = "h1:tkIRyxVvzOn8f4dA7kah0TBMALcn8T/boJpHu+B8pkc=",
-    version = "v1.17.6",
+    sum = "h1:VKkgXDo0PzBeoVABOWc4/ozDOzoouHbNxljqXC8TRIg=",
+    version = "v1.17.8",
 )
 
 load("//build:repositories.bzl", "go_repositories")
