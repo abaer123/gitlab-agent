@@ -33,7 +33,7 @@ Minimal repository layout looks like this:
 
 ## `config.yaml` syntax
 
-### `include` directive
+### `include` directive (not implemented)
 
 Agents likely have different configuration, but some of it may be identical. `config.yaml` supports inclusion syntax similar to `.gitlab-ci.yml` [`include` directive](https://docs.gitlab.com/ee/ci/yaml/#include). Only `include: 'some_file_name.yml'` syntax is supported at the moment.
 
