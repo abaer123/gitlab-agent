@@ -16,12 +16,22 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured/unstructuredscheme"
+	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 const (
 	managedObjectAnnotationName = "k8s-agent.gitlab.com/managed-object"
+)
+
+var (
+	yamlSerializer = json.NewSerializerWithOptions(
+		json.DefaultMetaFactory,
+		unstructuredscheme.NewUnstructuredCreator(),
+		unstructuredscheme.NewUnstructuredObjectTyper(),
+		json.SerializerOptions{Yaml: true})
 )
 
 // synchronizerConfig holds configuration for a synchronizer.

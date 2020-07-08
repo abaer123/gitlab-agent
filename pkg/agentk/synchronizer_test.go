@@ -48,7 +48,7 @@ data:
 )
 
 func TestRunReturnsNoErrorWhenGetObjectsToSynchronizeFails(t *testing.T) {
-	s, _, client, _ := setup(t, false)
+	s, _, client, _ := setupSynchronizer(t, false)
 	client.EXPECT().
 		GetObjectsToSynchronize(gomock.Any(), projectIdMatcher{projectId: projectId}, gomock.Any()).
 		Return(nil, errors.New("bla"))
@@ -57,7 +57,7 @@ func TestRunReturnsNoErrorWhenGetObjectsToSynchronizeFails(t *testing.T) {
 }
 
 func TestRunReturnsNoErrorWhenGetObjectsToSynchronizeRecvFails(t *testing.T) {
-	s, _, _, stream := setup(t, true)
+	s, _, _, stream := setupSynchronizer(t, true)
 	stream.EXPECT().
 		Recv().
 		Return(nil, errors.New("bla"))
@@ -66,7 +66,7 @@ func TestRunReturnsNoErrorWhenGetObjectsToSynchronizeRecvFails(t *testing.T) {
 }
 
 func TestRunHappyPathNoObjects(t *testing.T) {
-	s, engine, _, stream := setup(t, true)
+	s, engine, _, stream := setupSynchronizer(t, true)
 
 	resp := &agentrpc.ObjectsToSynchronizeResponse{
 		Revision: revision,
@@ -87,7 +87,7 @@ func TestRunHappyPathNoObjects(t *testing.T) {
 }
 
 func TestRunHappyPath(t *testing.T) {
-	s, engine, _, stream := setup(t, true)
+	s, engine, _, stream := setupSynchronizer(t, true)
 
 	resp := &agentrpc.ObjectsToSynchronizeResponse{
 		Revision: revision,
@@ -117,7 +117,7 @@ func TestRunHappyPath(t *testing.T) {
 	s.run()
 }
 
-func setup(t *testing.T, returnStream bool) (*synchronizer, *mock_engine.MockGitOpsEngine, *mock_agentrpc.MockGitLabServiceClient, *mock_agentrpc.MockGitLabService_GetObjectsToSynchronizeClient) {
+func setupSynchronizer(t *testing.T, returnStream bool) (*synchronizer, *mock_engine.MockGitOpsEngine, *mock_agentrpc.MockGitLabServiceClient, *mock_agentrpc.MockGitLabService_GetObjectsToSynchronizeClient) {
 	mockCtrl := gomock.NewController(t)
 	engine := mock_engine.NewMockGitOpsEngine(mockCtrl)
 	client := mock_agentrpc.NewMockGitLabServiceClient(mockCtrl)

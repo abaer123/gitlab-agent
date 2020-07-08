@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/argoproj/gitops-engine/pkg/cache"
+	"github.com/argoproj/gitops-engine/pkg/engine"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/api"
@@ -21,9 +23,13 @@ const (
 	refreshConfigurationRetryPeriod = 10 * time.Second
 )
 
+type GitOpsEngineFactory interface {
+	New(...cache.UpdateSettingsFunc) engine.GitOpsEngine
+}
+
 type Agent struct {
-	client           agentrpc.GitLabServiceClient
-	kubeClientConfig *rest.Config
+	client        agentrpc.GitLabServiceClient
+	engineFactory GitOpsEngineFactory
 
 	workers     map[string]*deploymentWorkerHolder // project id -> worker holder instance
 	workersLock sync.RWMutex
@@ -35,11 +41,11 @@ type deploymentWorkerHolder struct {
 	stop   context.CancelFunc
 }
 
-func New(client agentrpc.GitLabServiceClient, kubeClientConfig *rest.Config) *Agent {
+func New(client agentrpc.GitLabServiceClient, engineFactory GitOpsEngineFactory) *Agent {
 	return &Agent{
-		client:           client,
-		kubeClientConfig: kubeClientConfig,
-		workers:          make(map[string]*deploymentWorkerHolder),
+		client:        client,
+		engineFactory: engineFactory,
+		workers:       make(map[string]*deploymentWorkerHolder),
 	}
 }
 
@@ -134,7 +140,7 @@ func (a *Agent) startNewWorkerLocked(project *agentcfg.ManifestProjectCF) {
 	logger := log.WithField(api.ProjectId, project.Id)
 	logger.Info("Starting synchronization worker")
 	worker := &deploymentWorker{
-		kubeClientConfig: a.kubeClientConfig,
+		engineFactory: a.engineFactory,
 		synchronizerConfig: synchronizerConfig{
 			log:       logger,
 			projectId: project.Id,
@@ -148,4 +154,12 @@ func (a *Agent) startNewWorkerLocked(project *agentcfg.ManifestProjectCF) {
 		worker: worker,
 		stop:   cancel,
 	}
+}
+
+type DefaultGitOpsEngineFactory struct {
+	KubeClientConfig *rest.Config
+}
+
+func (f *DefaultGitOpsEngineFactory) New(opts ...cache.UpdateSettingsFunc) engine.GitOpsEngine {
+	return engine.NewEngine(f.KubeClientConfig, cache.NewClusterCache(f.KubeClientConfig, opts...))
 }
