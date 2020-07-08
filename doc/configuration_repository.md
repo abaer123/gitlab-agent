@@ -23,13 +23,13 @@ We have chosen the Git repository approach because:
 
 Minimal repository layout looks like this:
 
-```
+```plaintext
 |- agents
    |- my_agent_1
       |- config.yaml
 ```
 
-`my_agent_1` is the name (identity) of the agent. It's unique in this project. Names are immutable strings, provided by the user. Agent names can only contain `a-z0-9-_` characters and be up to 64 characters long.
+`my_agent_1` is the name (identity) of the agent. See [Agent identity and name](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc/identity_and_auth.md#agent-identity-and-name) to find out more about names.
 
 ## `config.yaml` syntax
 
@@ -39,7 +39,7 @@ Agents likely have different configuration, but some of it may be identical. `co
 
 Example repository layout:
 
-```
+```plaintext
 |- base
 |  |- config.yaml
 |- agents
