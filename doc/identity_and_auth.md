@@ -8,7 +8,7 @@ Each cluster has an identity that is unique within a GitLab installation.
 
 ## Agent identity and name
 
-Each agent has an identity that is unique within a GitLab installation. Each agent has a name that is unique within the project it is attached to. Agent's name is used to find agent's configuration in the project's [configuration repository](configuration_repository.md).
+Each agent has an identity that is unique within a GitLab installation. Each agent has an immutable name that is unique within the project the agent is attached to. Agent names can only contain `a-z0-9-_` characters and be up to 64 characters long.
 
 Each agent belongs to a single Kubernetes cluster. A Kubernetes cluster may have 0 or more agents registered for it.
 
@@ -24,6 +24,7 @@ Each agent may have 0 or more tokens in GitLab's database. Ability to have sever
 - Who created it.
 - Revocation flag to mark token as revoked.
 - Revocation time.
+- Who revoked it.
 - A text field to store any comments the administrator may want to make about the token for future self.
 
 Tokens are immutable. Only the following fields can be updated:
