@@ -24,6 +24,7 @@ Each agent may have 0 or more tokens in GitLab's database. Ability to have sever
 - Who created it.
 - Revocation flag to mark token as revoked.
 - Revocation time.
+- Who revoked it.
 - A text field to store any comments the administrator may want to make about the token for future self.
 
 Tokens are immutable. Only the following fields can be updated:
