@@ -17,7 +17,7 @@ There are two alternative approaches to provide the rest of configuration:
 We have chosen the Git repository approach because:
 
 - Infrastructure as Code is a best practice and the user would have put the Kubernetes object with configuration under version control anyway
-- Automatically pulling and applying configuraiton from the repository saves a hassle for the user
+- Automatically pulling and applying configuration from the repository saves a hassle for the user
 
 ## Layout
 
