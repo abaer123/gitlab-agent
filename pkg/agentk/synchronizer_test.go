@@ -80,7 +80,7 @@ func TestRunHappyPathNoObjects(t *testing.T) {
 			Return(nil, io.EOF),
 	)
 	engine.EXPECT().
-		Sync(gomock.Any(), gomock.Len(0), gomock.Any(), gomock.Eq(revision), gomock.Eq(namespace)).
+		Sync(gomock.Any(), gomock.Len(0), gomock.Any(), revision, namespace).
 		Return([]common.ResourceSyncResult{}, nil)
 
 	s.run()
@@ -111,7 +111,7 @@ func TestRunHappyPath(t *testing.T) {
 			Return(nil, io.EOF),
 	)
 	engine.EXPECT().
-		Sync(gomock.Any(), gomock.Len(3), gomock.Any(), gomock.Eq(revision), gomock.Eq(namespace)).
+		Sync(gomock.Any(), gomock.Len(3), gomock.Any(), revision, namespace).
 		Return([]common.ResourceSyncResult{}, nil)
 
 	s.run()

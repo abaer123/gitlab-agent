@@ -193,7 +193,7 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 			return nil
 		})
 	gitlabClient.EXPECT().
-		GetProjectInfo(gomock.Any(), gomock.Eq(&agentInfo.Meta), gomock.Eq(projectId)).
+		GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
 		Return(projectInfo, nil)
 
 	gitalyClient.EXPECT().
@@ -290,7 +290,7 @@ func setupKgb(t *testing.T) (*Agent, *api.AgentInfo, *gomock.Controller, *mock_g
 	gitalyClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
 	gitlabClient := mock_gitlab.NewMockGitLabClient(mockCtrl)
 	gitlabClient.EXPECT().
-		GetAgentInfo(gomock.Any(), gomock.Eq(&agentMeta)).
+		GetAgentInfo(gomock.Any(), &agentMeta).
 		Return(agentInfo, nil)
 
 	a := &Agent{
