@@ -22,6 +22,7 @@ require (
 	google.golang.org/grpc v1.30.0
 	google.golang.org/protobuf v1.24.0
 	gopkg.in/yaml.v2 v2.3.0 // indirect
+	k8s.io/api v1.17.8
 	k8s.io/apimachinery v1.17.8
 	k8s.io/client-go v11.0.1-0.20190816222228-6d55c1b1f1ca+incompatible
 	nhooyr.io/websocket v1.8.6
