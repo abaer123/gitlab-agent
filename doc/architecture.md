@@ -100,20 +100,20 @@ graph TB
 
   **A**: This has been considered.
 
-      Pros:
+  Pros:
 
-      - It's built to handle long-running WebSocket connections.
-      - It already has access to Redis, GitLab, Gitaly.
-      - It's already part of all the installation packages that we provide.
+  - It's built to handle long-running WebSocket connections.
+  - It already has access to Redis, GitLab, Gitaly.
+  - It's already part of all the installation packages that we provide.
 
-      Cons:
+  Cons:
 
-      - Depending on another team(s) for reviews and merging code will likely slow down the development.
-      - It may not be a good fit if `kgb` needs to have some significant amount of business logic in it. Mixing unrelated concerns in a single program is not great.
+  - Depending on another team(s) for reviews and merging code will likely slow down the development.
+  - It may not be a good fit if `kgb` needs to have some significant amount of business logic in it. Mixing unrelated concerns in a single program is not great.
 
-      This has been discussed and the conclusion is:
+  This has been discussed and the conclusion is:
 
-      - We want to build `kgb` as a separate component.
-      - We want to get it deployed to GitLab.com behind a feature flag.
-      - We want to experiment with it for a couple of releases, to see how it behaves and what is the cost of running persistent connections to make a better informed decision about next iterations.
-      - We can later decide to merge `kgb` into the GitLab Workhorse, or leave it as a separate component.
+  - We want to build `kgb` as a separate component.
+  - We want to get it deployed to GitLab.com behind a feature flag.
+  - We want to experiment with it for a couple of releases, to see how it behaves and what is the cost of running persistent connections to make a better informed decision about next iterations.
+  - We can later decide to merge `kgb` into the GitLab Workhorse, or leave it as a separate component.
