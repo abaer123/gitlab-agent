@@ -80,7 +80,7 @@ graph TB
 
   **A**: There are several reasons:
 
-  - Polling cost is higher for the "front door". For GitLab.com, HTTPS traffic access via the "front door" goes via CloudFlare, HAProxy, and Workhorse. For SSH traffic - CloudFlare and GitLab Shell. Only then a request reaches Gitaly. Using the "front door" would mean more traffic for the infrastructure to handle. More load means higher running cost because more hardware/VMs and bandwidth is needed.
+  - Polling cost is higher for the "front door". For GitLab.com, HTTPS traffic access via the "front door" goes via CloudFlare, HAProxy, and [GitLab Workhorse](https://gitlab.com/gitlab-org/gitlab-workhorse/). For SSH traffic - CloudFlare and GitLab Shell. Only then a request reaches Gitaly. Using the "front door" would mean more traffic for the infrastructure to handle. More load means higher running cost because more hardware/VMs and bandwidth is needed.
 
   - Accessing Gitaly via gRPC is a better development experience vs invoking Git for repository access. It's essentially the difference between calling a function vs invoking a binary. Better development experience means faster iterations.
 
@@ -95,3 +95,25 @@ graph TB
   - Per-`kgb` instance rate limiting can be put in place using gRPC's rate limiting mechanisms.
   - Per-`agentk` rate limiting within `kgb` can be implemented using some external state storage. E.g. [using Redis](https://redislabs.com/redis-best-practices/basic-rate-limiting/). Or, alternatively, each `kgb` instance can enforce per-`agentk` limit just for itself - not as good, but much simpler to implement (no Redis needed).
   - Global rate limiting for all `kgb` instances can also be implemented using Redis.
+
+- **Q**: Should `kgb` be part of GitLab Workhorse?
+
+  **A**: This has been considered.
+
+      Pros:
+
+      - It's built to handle long-running WebSocket connections.
+      - It already has access to Redis, GitLab, Gitaly.
+      - It's already part of all the installation packages that we provide.
+
+      Cons:
+
+      - Depending on another team(s) for reviews and merging code will likely slow down the development.
+      - It may not be a good fit if `kgb` needs to have some significant amount of business logic in it. Mixing unrelated concerns in a single program is not great.
+
+      This has been discussed and the conclusion is:
+
+      - We want to build `kgb` as a separate component.
+      - We want to get it deployed to GitLab.com behind a feature flag.
+      - We want to experiment with it for a couple of releases, to see how it behaves and what is the cost of running persistent connections to make a better informed decision about next iterations.
+      - We can later decide to merge `kgb` into the GitLab Workhorse, or leave it as a separate component.
