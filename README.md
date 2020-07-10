@@ -16,7 +16,7 @@ Below are some ideas that can be built using the agent.
 
   * Update a Kubernetes object with a new state. It can be a GitLab-specific object with some concrete schema about a git repository. Then we can have third-parties integrate with us via this object-based API. It can also be some integration-specific object.
 
-* “Real-time” data access. Agent can stream requested data back to GitLab. See https://gitlab.com/gitlab-org/gitlab/-/issues/212810. 
+* “Real-time” data access. Agent can stream requested data back to GitLab. See https://gitlab.com/gitlab-org/gitlab/-/issues/212810.
 
 * Feature/component discovery. GitLab may need a third-party component to be installed in a cluster for a particular feature to work. Agent can do that component discovery. E.g. we need Prometheus for metrics and we probably can find it in the cluster (is this a bad example? it illustrates the idea though).
 
@@ -45,19 +45,11 @@ Below are some ideas that can be built using the agent.
 
 We have CloudFlare CDN in front of GitLab.com. The connections that `agentk` establishes are long-running by design. It may or may not be an issue. See https://gitlab.com/groups/gitlab-com/gl-infra/-/epics/228
 
-### HTTP/2 / gRPC to the backend
-
-Using gRPC with CloudFlare CDN may or may not be an issue. [This comment](https://community.cloudflare.com/t/grpc-support/127798) suggests it is supported by [CloudFlare Spectrum](https://www.cloudflare.com/products/cloudflare-spectrum/) but [this tweet](https://twitter.com/prdonahue/status/1252886427475611650) says they are working on it.
-
-Another potential issue is HAProxy that we use as our front door after CDN. We currently run 1.8 but HTTP/2-to-the-backend and hence gRPC-to-the-backend support [was added only in 1.9](https://www.haproxy.com/blog/haproxy-1-9-2-adds-grpc-support/). We'd need to upgrade to use this functionality.
-
-If there are technical blockers, we can **trivially** tunnel gRPC through WebSockets, which only need HTTP/1.1 and hence work everywhere (but see https://gitlab.com/groups/gitlab-com/gl-infra/-/epics/228). A code example: https://github.com/glerchundi/grpc-boomerang.
-
 ### High availability and scalability
 
 #### `agentk` - agent on the Kubernetes side
 
-Multiple `Pod`s per deployment would be needed to have a highly available deployment. This might be trivial but might require doing [leader election](https://pkg.go.dev/k8s.io/client-go/tools/leaderelection?tab=doc), depending on the feature the agent will need to support. 
+Multiple `Pod`s per deployment would be needed to have a highly available deployment. This might be trivial but might require doing [leader election](https://pkg.go.dev/k8s.io/client-go/tools/leaderelection?tab=doc), depending on the functionality the agent will provide.
 
 #### `kgb` - agent on the GitLab side
 
@@ -66,42 +58,18 @@ The difficulty of having multiple copies of the program is that only one of the 
 - [Consistent hashing](https://en.wikipedia.org/wiki/Consistent_hashing) could be used to:
   - Minimize disruptions if a copy of `kgb` goes missing
   - Route traffic to the correct copy
-  
+
   We use [`nginx` as our ingress controller](https://docs.gitlab.com/charts/charts/nginx/index.html) and it does [support consistent hashing](https://www.nginx.com/resources/wiki/modules/consistent_hash/).
 
 - We could have `nginx` ask one (any) of `kgb` where the right copy (the one that has the connection) running. `kgb` can do a lookup in Redis where each cluster connection is registered and return the address to `nginx` via [X-Accel-Redirect](https://www.nginx.com/resources/wiki/start/topics/examples/x-accel/#x-accel-redirect) header.
 
 - We could teach `kgb` to gossip with its copies so that they tell each other where a connection for each cluster is. Each copy will know about all the connections and either proxy the request or use `X-Accel-Redirect` to redirect the traffic. This is [Cassandra's gossip](https://docs.datastax.com/en/cassandra-oss/3.x/cassandra/architecture/archGossipAbout.html) + Cassandra's coordinator node-based request routing ideas but it's much easier to build on Kubernetes because we can just use the API to find other copies of the program.
 
-### Workhorse
-
-It may make sense to make `kgb` part of [GitLab Workhorse](https://gitlab.com/gitlab-org/gitlab-workhorse/).
-
-Pros:
-
-- It's built to handle long-running WebSocket connections and is likely a good architectural fit
-- It already has access to Redis, GitLab, Gitaly
-- It's already part of all the installation packages that we provide
-- ?
-
-Cons:
-
-- Depending on another team(s) for reviews and merging code may slow us down
-  - Mitigation: should just become maintainers too
-- It may not be a good fit if `kgb` needs to have some significant amount of business logic in it. Mixing unrelated concerns in a single program is not great
-- ?
-
-This needs more thought and investigation.
-
-### What to build first?
-
-What is the feature to prioritize first?
-
 ### `agentk` topologies
 
 In a cluster `agentk` can be deployed:
 
-- Cluster-wide deployment that works across all namespaces. Useful to manage cluster-wide state if we support GitOps.
+- One or more cluster-wide deployment that works across all namespaces. Useful to manage cluster-wide state using GitOps. As long as deployments are configured to avoid any conflicts, this can work and be beneficial to allow separate deployments for separate tasks.
 - One or more per-namespace deployments, each concerned only with what is happening in a particular namespace. Note that namespace where `agentk` is deployed, and the namespace it's managing might be different namespaces.
 - Both of the above at the same time.
 
@@ -118,7 +86,7 @@ Currently customers are rightly concerned with us asking cluster-admin access. F
 How to map GitLab's [environments](https://gitlab.com/help/ci/environments) onto clusters/agents/namespaces? This link states the following:
 
 > It's important to know that:
->   
+>
 > * Environments are like tags for your CI jobs, describing where code gets deployed.
 
 We can follow this model and mark each agent as belonging to one or more environments. It's a many to many relationship:
@@ -128,8 +96,4 @@ We can follow this model and mark each agent as belonging to one or more environ
 Note that cluster-environment is a many to many relationship too:
 
 - A cluster may be part of multiple environments
-- An environment can include several clusters 
-
-### Other items?
-
-Please add more here.
+- An environment can include several clusters
