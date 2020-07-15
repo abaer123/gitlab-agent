@@ -8,7 +8,8 @@ set -o nounset
 set -o pipefail
 
 GIT_COMMIT=$(git rev-parse --short HEAD)
-GIT_TAG=$(git describe --abbrev=0 --tags 2>/dev/null || echo "v0.0.0")
+GIT_TAG=$(git tag --points-at HEAD 2>/dev/null || true)
+GIT_TAG="${GIT_TAG:=v0.0.0}"
 
 # Prefix with STABLE_ so that these values are saved to stable-status.txt
 # instead of volatile-status.txt.
