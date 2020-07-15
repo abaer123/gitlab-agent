@@ -1,6 +1,29 @@
+# https://docs.gitlab.com/ee/ci/yaml/README.html#workflowrules-templates
+include:
+  - template: 'Workflows/MergeRequest-Pipelines.gitlab-ci.yml'
+
 default:
   tags:
     - gitlab-org
+
+variables:
+  # must use image digest to invalidate cache if image is updated.
+  # Image built using https://github.com/ash2k/container-definitions/compare/master...ash2k:bazel-and-clang-only
+  BUILD_IMAGE: "registry.gitlab.com/gitlab-org/cluster-integration/gitlab-agent/ci@sha256:61c6e83ee7dc425369c1bf221a1a237508cbe78490386930c1082906a5592777"
+
+stages:
+  - test
+  - push_image
+  - create_release
+
+.bazel_build:
+  cache:
+    key: "$BUILD_IMAGE"
+    paths:
+      - .cache/
+  image:
+    name: "$BUILD_IMAGE"
+    entrypoint: [""]
   before_script:
     - echo "build --disk_cache=$CI_PROJECT_DIR/.cache" >> .bazelrc
     - echo "build --verbose_failures" >> .bazelrc
@@ -8,22 +31,59 @@ default:
     - echo "build --show_timestamps" >> .bazelrc
     - echo "test --test_output=all" >> .bazelrc
     - echo "test --test_arg=-test.v" >> .bazelrc
-#    - echo "build --sandbox_base=/dev/shm" >> .bazelrc # disabled because it's not big enough
+  #    - echo "build --sandbox_base=/dev/shm" >> .bazelrc # disabled because it's not big enough
 
-variables:
-  # must use image digest to invalidate cache if image is updated. Equivalent of tag "3.3.0" is used below.
-  BUILD_IMAGE: "l.gcr.io/google/bazel@sha256:6877aad5229abb38c73973378ed8bf8642061cdf71a62d15ba507a4f7a4cc13a"
-
-cache:
-  key: "$BUILD_IMAGE"
-  paths:
-    - .cache/
+.registry_creds: &registry_creds
+  - mkdir -p "$HOME/.docker"
+  - |
+    credentials=$(echo -n "$CI_REGISTRY_USER:$CI_REGISTRY_PASSWORD" | base64)
+    cat << EOF > "$HOME/.docker/config.json"
+    {
+      "auths": {
+          "$CI_REGISTRY": {
+            "auth": "$credentials"
+          }
+      }
+    }
+    EOF
 
 test:
   stage: test
-  image:
-    name: "$BUILD_IMAGE"
-    entrypoint: [""]
+  extends: .bazel_build
   script:
-    - apt-get install -y make
     - make test-ci
+
+push_commit_image:
+  stage: push_image
+  extends: .bazel_build
+  rules:
+    # Allow creating releases manually for any branch or tag.
+    - when: manual
+      allow_failure: true
+  script:
+    - *registry_creds
+    - make release-commit-all
+
+push_tag_image:
+  stage: push_image
+  extends: .bazel_build
+  rules:
+    # Run this job when the default branch changes and a tag is created manually.
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TAG'
+  script:
+    - *registry_creds
+    - make release-tag-all
+
+create_release:
+  stage: create_release
+  rules:
+    # Run this job when the default branch changes and a tag is created manually.
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TAG'
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  script:
+    - release-cli create --name "$CI_COMMIT_TAG" --tag-name "$CI_COMMIT_TAG" --ref "$CI_COMMIT_TAG"
+# DON'T MERGE DOCS BEFORE TURNING THINGS ON https://gitlab.com/gitlab-org/gitlab/-/issues/207842
+#  release:
+#    name: '$CI_COMMIT_TAG'
+#    tag_name: '$CI_COMMIT_TAG'
+#    ref: '$CI_COMMIT_TAG'

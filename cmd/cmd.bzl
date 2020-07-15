@@ -66,21 +66,41 @@ def define_command_targets(name, binary_embed):
     )
 
     container_push(
-        name = "push_docker",
+        name = "push_docker_tag",
         format = "Docker",
         image = ":container",
         registry = "registry.gitlab.com",
         repository = "gitlab-org/cluster-integration/gitlab-agent/%s" % name,
-        tag = "{STABLE_BUILD_GIT_TAG}-{STABLE_BUILD_GIT_COMMIT}",
+        tag = "{STABLE_BUILD_GIT_TAG}",
         tags = ["manual"],
     )
 
     container_push(
-        name = "push_docker_race",
+        name = "push_docker_tag_race",
         format = "Docker",
         image = ":container_race",
         registry = "registry.gitlab.com",
         repository = "gitlab-org/cluster-integration/gitlab-agent/%s" % name,
-        tag = "{STABLE_BUILD_GIT_TAG}-{STABLE_BUILD_GIT_COMMIT}-race",
+        tag = "{STABLE_BUILD_GIT_TAG}-race",
+        tags = ["manual"],
+    )
+
+    container_push(
+        name = "push_docker_commit",
+        format = "Docker",
+        image = ":container",
+        registry = "registry.gitlab.com",
+        repository = "gitlab-org/cluster-integration/gitlab-agent/%s" % name,
+        tag = "{STABLE_BUILD_GIT_COMMIT}",
+        tags = ["manual"],
+    )
+
+    container_push(
+        name = "push_docker_commit_race",
+        format = "Docker",
+        image = ":container_race",
+        registry = "registry.gitlab.com",
+        repository = "gitlab-org/cluster-integration/gitlab-agent/%s" % name,
+        tag = "{STABLE_BUILD_GIT_COMMIT}-race",
         tags = ["manual"],
     )

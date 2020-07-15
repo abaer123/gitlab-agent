@@ -24,7 +24,7 @@ regenerate-mocks: internal-regenerate-mocks fmt update-bazel
 .PHONY: update-repos
 update-repos:
 	go mod tidy
-	./build/update-repos.sh
+	./build/update_repos.sh
 	bazel run \
 		//:gazelle -- \
 		update-repos \
@@ -113,20 +113,60 @@ docker-export-race: update-bazel
 		-- \
 		--norun
 
-.PHONY: release
-release: update-bazel
+# Build and push all docker images tagged with the tag on the current commit.
+# This only works on a linux machine
+.PHONY: release-tag-all
+release-tag-all: update-bazel
+	# Build all targets in a single invocation for maximum parallelism
+	bazel build \
+		//cmd/agentk:push_docker_tag \
+		//cmd/agentk:push_docker_tag_race \
+		//cmd/kgb:push_docker_tag \
+		//cmd/kgb:push_docker_tag_race
+	# Actually push built images one by one
 	bazel run \
-		//cmd/agentk:push_docker
+		//cmd/agentk:push_docker_tag
 	bazel run \
-		//cmd/kgb:push_docker
+		//cmd/agentk:push_docker_tag_race
+	bazel run \
+		//cmd/kgb:push_docker_tag
+	bazel run \
+		//cmd/kgb:push_docker_tag_race
+
+# Build and push all docker images tagged with the current commit sha.
+# This only works on a linux machine
+.PHONY: release-commit-all
+release-commit-all: update-bazel
+	# Build all targets in a single invocation for maximum parallelism
+	bazel build \
+		//cmd/agentk:push_docker_commit \
+		//cmd/agentk:push_docker_commit_race \
+		//cmd/kgb:push_docker_commit \
+		//cmd/kgb:push_docker_commit_race
+	# Actually push built images one by one
+	bazel run \
+		//cmd/agentk:push_docker_commit
+	bazel run \
+		//cmd/agentk:push_docker_commit_race
+	bazel run \
+		//cmd/kgb:push_docker_commit
+	bazel run \
+		//cmd/kgb:push_docker_commit_race
+
+.PHONY: release-commit-normal
+release-commit-normal: update-bazel
+	bazel run \
+		//cmd/agentk:push_docker_commit
+	bazel run \
+		//cmd/kgb:push_docker_commit
 
 # This only works on a linux machine
-.PHONY: release-race
-release-race: update-bazel
+.PHONY: release-commit-race
+release-commit-race: update-bazel
 	bazel run \
-		//cmd/agentk:push_docker_race
+		//cmd/agentk:push_docker_commit_race
 	bazel run \
-		//cmd/kgb:push_docker_race
+		//cmd/kgb:push_docker_commit_race
 
 # Set TARGET_DIRECTORY variable to the target directory before running this target
 .PHONY: gdk-install
