@@ -1,6 +1,6 @@
 # https://docs.gitlab.com/ee/ci/yaml/README.html#workflowrules-templates
 include:
-  - template: 'Workflows/MergeRequest-Pipelines.gitlab-ci.yml'
+  - template: 'Workflows/Branch-Pipelines.gitlab-ci.yml'
 
 default:
   tags:
