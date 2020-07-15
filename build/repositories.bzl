@@ -82,8 +82,8 @@ def go_repositories():
         name = "com_github_argoproj_gitops_engine",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/argoproj/gitops-engine",
-        sum = "h1:GSWbg53S6kPrQ1T3zCJCQb2NKdFm4NOR9EhH3v32paI=",
-        version = "v0.1.3-0.20200706234313-97d4a75189b1",
+        sum = "h1:c7WI9+BKM8n2q1hEf3oaBU/aSxxI5eVr81i3vfnKpis=",
+        version = "v0.1.3-0.20200714163249-ee1db0902c5a",
     )
     go_repository(
         name = "com_github_argoproj_pkg",
@@ -2574,8 +2574,8 @@ def go_repositories():
         name = "com_github_sergi_go_diff",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/sergi/go-diff",
-        sum = "h1:we8PVUC3FE2uYfodKH/nBHMSetSfHDR6scGdBi+erh0=",
-        version = "v1.1.0",
+        sum = "h1:Kpca3qRNrduNnOQeazBd0ysaKrUJiIuISHxogkT9RPQ=",
+        version = "v1.0.0",
     )
     go_repository(
         name = "com_github_shirou_gopsutil",
@@ -2945,8 +2945,8 @@ def go_repositories():
         name = "com_github_yudai_gojsondiff",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/yudai/gojsondiff",
-        sum = "h1:vGHScYm0uhmaxwGX38tj1TB1u1zVdO0vlgcz1fEVxc8=",
-        version = "v1.0.1-0.20180504020246-0525c875b75c",
+        sum = "h1:27cbfqXLVEJ1o8I6v3y9lg8Ydm53EKqHXAOMxEGlCOA=",
+        version = "v1.0.0",
     )
     go_repository(
         name = "com_github_yudai_golcs",

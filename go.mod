@@ -3,7 +3,7 @@ module gitlab.com/gitlab-org/cluster-integration/gitlab-agent
 go 1.14
 
 require (
-	github.com/argoproj/gitops-engine v0.1.3-0.20200706234313-97d4a75189b1
+	github.com/argoproj/gitops-engine v0.1.3-0.20200714163249-ee1db0902c5a
 	github.com/ash2k/stager v0.1.0
 	github.com/golang/mock v1.4.4-0.20200612212805-d9ac6780152f
 	github.com/golang/protobuf v1.4.2
