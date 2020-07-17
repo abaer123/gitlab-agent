@@ -84,8 +84,6 @@ graph TB
 
   - Accessing Gitaly via gRPC is a better development experience vs invoking Git for repository access. It's essentially the difference between calling a function vs invoking a binary. Better development experience means faster iterations.
 
-  - Somewhat related: In the future we may support "internal web hooks" or pub-sub to notify `kgb` of changes in repositories of interest. This would be transparent to `agentk` - `kgb` would poll less often and send new data to `agentk` once it receives a notification of a change. This is similar to how informers work in Kubernetes. We cannot send webhooks to `agentk` directly as it may be behind a firewall or NAT.
-
   - Putting polling into `kgb` follows the "smart `kgb`, dumb `agentk`" principle described above.
 
 - **Q**: If there is no middlemen between `kgb` and Gitaly, how do we prevent `kgb` overloading Gitaly?
