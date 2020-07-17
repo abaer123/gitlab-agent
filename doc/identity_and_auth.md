@@ -2,15 +2,15 @@
 
 This document uses the word `agent` to mean GitLab Kubernetes Agent on the conceptual level. The program that is the implementation of it is actually called `agentk`. See the [architecture page](architecture.md).
 
-## Cluster identity
-
-Each cluster has an identity that is unique within a GitLab installation.
-
 ## Agent identity and name
 
 Each agent has an identity that is unique within a GitLab installation. Each agent has an immutable name that is unique within the project the agent is attached to. Agent names can only contain `a-z0-9-_` characters and be up to 64 characters long.
 
-Each agent belongs to a single Kubernetes cluster. A Kubernetes cluster may have 0 or more agents registered for it.
+## Multiple agents in a cluster
+
+A Kubernetes cluster may have 0 or more agents running in it. Each of these agents likely has a different configuration. Some may have features A and B turned on and some - B and C. This flexibility is desirable to allow potentially different groups of people to use different features of the agent in the same cluster. For example, [Priyanka (Platform Engineer)](https://about.gitlab.com/handbook/marketing/product-marketing/roles-personas/#priyanka-platform-engineer) may want to use cluster-wide features of the agent while [Sasha (Software Developer)](https://about.gitlab.com/handbook/marketing/product-marketing/roles-personas/#sasha-software-developer) uses the agent that has access to a particular namespace only.
+
+Each agent is likely running using a distinct Kubernetes identity - [`ServiceAccount`](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/). Each `ServiceAccount` may have a distinct set of permissions attached to it. This allows the agent administrator to minimize the permissions for each particular agent depending on the configured features to follow the [principle of least privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege).
 
 ## Authentication
 
@@ -42,4 +42,3 @@ GitLab will provide the following information as part of the response for a give
 
 - Agent config git repository (Note: we don't have per-folder authorization)
 - Agent name
-- Manifest projects: TBD on how kgb and agentk deploys manifest
