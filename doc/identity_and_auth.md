@@ -32,7 +32,7 @@ Tokens are immutable. Only the following fields can be updated:
 - Revocation time. Set automatically to the current time when revocation flag is set. Immutable after that.
 - Comments field. Can be updated any number of times, including after the token has been revoked.
 
-For each request from an agent GitLab checks if the token is valid - exists in the database and has not been revoked. This information may be cached for some time to reduce load on the database.
+The agent sends its token along with each request to GitLab to authenticate itself. For each request GitLab checks if the token is valid - exists in the database and has not been revoked. This information may be cached for some time to reduce load on the database.
 
 Tokens can be managed by users with `maintainer` and higher level of permissions.
 
