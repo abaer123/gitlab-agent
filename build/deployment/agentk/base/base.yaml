@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agentk
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agentk
+  template:
+    metadata:
+      labels:
+        app: agentk
+    spec:
+      serviceAccountName: agentk
+      containers:
+      - name: agentk
+        image: "registry.gitlab.com/gitlab-org/cluster-integration/gitlab-agent/agentk:v0.0.1"
+        args:
+        - --token-file=/config/token
+        - --kgb-address=tcp://host.docker.internal:5005
+        - --kgb-insecure
+        volumeMounts:
+        - name: token-volume
+          mountPath: /config
+      volumes:
+      - name: token-volume
+        secret:
+          secretName: agentk-token
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1

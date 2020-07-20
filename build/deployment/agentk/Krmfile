@@ -1,0 +1,13 @@
+apiVersion: config.k8s.io/v1alpha1
+kind: Krmfile
+openAPI:
+  definitions:
+    io.k8s.cli.setters.namespace:
+      description: Namespace to install agentk into
+      type: string
+      x-k8s-cli:
+        setter:
+          name: namespace
+          value: agentk
+          setBy: package-default
+          count: 1
