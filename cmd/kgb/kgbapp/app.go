@@ -13,7 +13,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kgb"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/wstunnel"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/tools/wstunnel"
 	gitalyauth "gitlab.com/gitlab-org/gitaly/auth"
 	"gitlab.com/gitlab-org/gitaly/client"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
