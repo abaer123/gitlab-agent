@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc/mock_agentrpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/testing/mock_engine"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/tools/testing/mock_engine"
 )
 
 const (
