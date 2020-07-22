@@ -10,7 +10,7 @@ go_library(
         "//pkg/agentk:go_default_library",
         "//pkg/agentrpc:go_default_library",
         "//pkg/api/apiutil:go_default_library",
-        "//pkg/wstunnel:go_default_library",
+        "//pkg/tools/wstunnel:go_default_library",
         "@com_github_spf13_pflag//:go_default_library",
         "@io_k8s_client_go//rest:go_default_library",
         "@io_k8s_client_go//tools/clientcmd:go_default_library",
