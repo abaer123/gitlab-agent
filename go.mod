@@ -7,18 +7,18 @@ require (
 	github.com/ash2k/stager v0.1.0
 	github.com/golang/mock v1.4.4-0.20200612212805-d9ac6780152f
 	github.com/golang/protobuf v1.4.2
-	github.com/google/go-cmp v0.4.1
+	github.com/google/go-cmp v0.5.0
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
 	gitlab.com/gitlab-org/gitaly v1.87.1-0.20200519214319-382ead9c7ef3
-	gitlab.com/gitlab-org/labkit v0.0.0-20200622172558-49c073024c24
+	gitlab.com/gitlab-org/labkit v0.0.0-20200625061037-a48be4c5e1cc
 	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f // indirect
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	golang.org/x/sys v0.0.0-20200509044756-6aff5f38e54f // indirect
-	golang.org/x/tools v0.0.0-20200623204733-f8e0ea3a3a8f
+	golang.org/x/tools v0.0.0-20200512131952-2bc93b1c0c88
 	google.golang.org/grpc v1.30.0
 	google.golang.org/protobuf v1.24.0
 	gopkg.in/yaml.v2 v2.3.0 // indirect
@@ -30,6 +30,9 @@ require (
 )
 
 replace (
+	// same version as used by rules_go to maintain compatibility with patches - see the WORKSPACE file
+	golang.org/x/tools => golang.org/x/tools v0.0.0-20200512131952-2bc93b1c0c88
+
 	// https://github.com/kubernetes/kubernetes/issues/79384#issuecomment-505627280
 	k8s.io/api => k8s.io/api v0.17.8
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.17.8
