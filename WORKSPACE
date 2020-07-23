@@ -2,6 +2,9 @@ workspace(name = "gitlab_k8s_agent")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
+# When updating rules_go make sure to update org_golang_x_tools dependency below by copying it from
+# https://github.com/bazelbuild/rules_go/blob/master/go/private/repositories.bzl
+# Also update to the same version/commit in go.mod.
 http_archive(
     name = "io_bazel_rules_go",
     sha256 = "0c10738a488239750dbf35336be13252bad7c74348f867d30c3c3e0001906096",
@@ -66,19 +69,8 @@ http_archive(
     ],
 )
 
-load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
-
-bazel_skylib_workspace()
-
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
-
-go_rules_dependencies()
-
-go_register_toolchains(nogo = "@//:nogo")
-
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
-
-gazelle_dependencies()
 
 # Workaround for https://github.com/argoproj/gitops-engine/issues/56
 go_repository(
@@ -92,10 +84,44 @@ go_repository(
     version = "v1.17.8",
 )
 
+# Copied from rules_go to keep patches in place
+http_archive(
+    name = "org_golang_x_tools",
+    patch_args = ["-p1"],
+    patches = [
+        # deletegopls removes the gopls subdirectory. It contains a nested
+        # module with additional dependencies. It's not needed by rules_go.
+        "@io_bazel_rules_go//third_party:org_golang_x_tools-deletegopls.patch",
+        # gazelle args: -repo_root . -go_prefix golang.org/x/tools
+        "@io_bazel_rules_go//third_party:org_golang_x_tools-gazelle.patch",
+        # extras adds go_tool_library rules for packages under
+        # go/analysis/passes and their dependencies. These are needed by
+        # nogo.
+        "@io_bazel_rules_go//third_party:org_golang_x_tools-extras.patch",
+    ],
+    sha256 = "b05c5b5b9091a35ecb433227ea30aa75cb6b9d9409b308bc75d0975d4a291912",
+    strip_prefix = "tools-2bc93b1c0c88b2406b967fcd19a623d1ff9ea0cd",
+    # master, as of 2020-05-12
+    urls = [
+        "https://mirror.bazel.build/github.com/golang/tools/archive/2bc93b1c0c88b2406b967fcd19a623d1ff9ea0cd.zip",
+        "https://github.com/golang/tools/archive/2bc93b1c0c88b2406b967fcd19a623d1ff9ea0cd.zip",
+    ],
+)
+
 load("//build:repositories.bzl", "go_repositories")
 
 # gazelle:repository_macro build/repositories.bzl%go_repositories
 go_repositories()
+
+load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
+
+bazel_skylib_workspace()
+
+go_rules_dependencies()
+
+go_register_toolchains(nogo = "@//:nogo")
+
+gazelle_dependencies()
 
 load("@com_github_bazelbuild_buildtools//buildifier:deps.bzl", "buildifier_dependencies")
 load("@com_github_atlassian_bazel_tools//buildozer:deps.bzl", "buildozer_dependencies")

@@ -1384,8 +1384,8 @@ def go_repositories():
         name = "com_github_google_go_cmp",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/google/go-cmp",
-        sum = "h1:/exdXoGamhu5ONeUJH0deniYLWYvQwW66yvlfiiKTu0=",
-        version = "v0.4.1",
+        sum = "h1:/QaMHBdZ26BB3SSst0Iwl10Epc+xhTquomWX0oZEB6w=",
+        version = "v0.5.0",
     )
     go_repository(
         name = "com_github_google_go_github",
@@ -3057,8 +3057,8 @@ def go_repositories():
         name = "com_gitlab_gitlab_org_labkit",
         build_file_proto_mode = "disable_global",
         importpath = "gitlab.com/gitlab-org/labkit",
-        sum = "h1:n+T6k/if38udpXNyX6zNVoNxGyoYSncFJEIvjG5Kor0=",
-        version = "v0.0.0-20200622172558-49c073024c24",
+        sum = "h1:b9y8bRa2F4qEkb4pXhhQmU44WfDytpcgaEoEzz0a5AI=",
+        version = "v0.0.0-20200625061037-a48be4c5e1cc",
     )
     go_repository(
         name = "com_google_cloud_go",
@@ -3710,13 +3710,6 @@ def go_repositories():
         importpath = "golang.org/x/time",
         sum = "h1:/5xXl8Y5W96D+TtHSlonuFqGHIWVuyCkGJLwGh9JJFs=",
         version = "v0.0.0-20191024005414-555d28b269f0",
-    )
-    go_repository(
-        name = "org_golang_x_tools",
-        build_file_proto_mode = "disable_global",
-        importpath = "golang.org/x/tools",
-        sum = "h1:YEIftClo4BKh5aFw0WNXGDU/uTfmS9yIUAvX77+O2zg=",
-        version = "v0.0.0-20200623204733-f8e0ea3a3a8f",
     )
     go_repository(
         name = "org_golang_x_xerrors",
