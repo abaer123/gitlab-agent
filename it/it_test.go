@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/agentk/agentkapp"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kgb/kgbapp"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kas/kasapp"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -22,9 +22,9 @@ import (
 
 // TestFetchConfiguration tests agentk's ability to fetch configuration from a project.
 // Flow:
-// 1. agentk connects to kgb and asks for configuration, providing an access token
-// 2. kgb makes a request to GitLab using that access token to verify the token and fetch information about the agent
-// 3. kgb makes a request to Gitaly to fetch configuration, parses it and sends it back to agentk.
+// 1. agentk connects to kas and asks for configuration, providing an access token
+// 2. kas makes a request to GitLab using that access token to verify the token and fetch information about the agent
+// 3. kas makes a request to Gitaly to fetch configuration, parses it and sends it back to agentk.
 func TestFetchConfiguration(t *testing.T) {
 	t.Run("Plain gRPC", func(t *testing.T) {
 		testFetchConfiguration(t, false)
@@ -37,9 +37,9 @@ func TestFetchConfiguration(t *testing.T) {
 func testFetchConfiguration(t *testing.T, websocket bool) {
 	gitalyAddress := getGitalyAddress(t)
 	gitlabAddress := getGitLabAddress(t)
-	kgbToken := getKgbToken(t)
+	kasToken := getKasToken(t)
 	address := getRandomLocalAddress(t)
-	ag := kgbapp.App{
+	ag := kasapp.App{
 		ListenNetwork:             "tcp",
 		ListenAddress:             address,
 		ListenWebSocket:           websocket,
@@ -56,10 +56,10 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 	t.Cleanup(func() {
 		os.Remove(tokenFile)
 	})
-	require.NoError(t, ioutil.WriteFile(tokenFile, []byte(kgbToken), 0o644))
+	require.NoError(t, ioutil.WriteFile(tokenFile, []byte(kasToken), 0o644))
 	ak := agentkapp.App{
-		KgbAddress:       address,
-		Insecure:         true,
+		KasAddress:       address,
+		KasInsecure:      true,
 		TokenFile:        tokenFile,
 		KubeClientConfig: getKubeConfig(t),
 	}
@@ -74,7 +74,7 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 	g.Go(func() error {
 		return ag.Run(ctx)
 	})
-	time.Sleep(1 * time.Second) // let kgb start listening
+	time.Sleep(1 * time.Second) // let kas start listening
 	g.Go(func() error {
 		return ak.Run(ctx)
 	})
@@ -90,8 +90,8 @@ func getGitLabAddress(t *testing.T) string {
 	return getEnvString(t, "GITLAB_ADDRESS")
 }
 
-func getKgbToken(t *testing.T) string {
-	return getEnvString(t, "KGB_TOKEN")
+func getKasToken(t *testing.T) string {
+	return getEnvString(t, "KAS_TOKEN")
 }
 
 func getKubeConfig(t *testing.T) *rest.Config {

@@ -4,15 +4,15 @@ load("//cmd:cmd.bzl", "define_command_targets")
 go_library(
     name = "go_default_library",
     srcs = ["main.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kgb",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kas",
     visibility = ["//visibility:private"],
     deps = [
         "//cmd:go_default_library",
-        "//cmd/kgb/kgbapp:go_default_library",
+        "//cmd/kas/kasapp:go_default_library",
     ],
 )
 
 define_command_targets(
-    name = "kgb",
+    name = "kas",
     binary_embed = [":go_default_library"],
 )

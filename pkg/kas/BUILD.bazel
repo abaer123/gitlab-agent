@@ -2,8 +2,8 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "go_default_library",
-    srcs = ["kgb.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kgb",
+    srcs = ["kas.go"],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kas",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/agentcfg:go_default_library",
@@ -21,7 +21,7 @@ go_library(
 go_test(
     name = "go_default_test",
     size = "small",
-    srcs = ["kgb_test.go"],
+    srcs = ["kas_test.go"],
     embed = [":go_default_library"],
     race = "on",
     deps = [

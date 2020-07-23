@@ -24,10 +24,10 @@ const (
 )
 
 type App struct {
-	// KgbAddress specifies the address of kgb.
-	KgbAddress string
-	// Insecure disables transport security.
-	Insecure         bool
+	// KasAddress specifies the address of kas.
+	KasAddress string
+	// KasInsecure disables transport security for connections to kas.
+	KasInsecure      bool
 	TokenFile        string
 	KubeClientConfig *rest.Config
 }
@@ -37,7 +37,7 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("token file: %v", err)
 	}
-	conn, err := a.kgbConnection(ctx, string(tokenData))
+	conn, err := a.kasConnection(ctx, string(tokenData))
 	if err != nil {
 		return err
 	}
@@ -48,20 +48,20 @@ func (a *App) Run(ctx context.Context) error {
 	return agent.Run(ctx)
 }
 
-func (a *App) kgbConnection(ctx context.Context, token string) (*grpc.ClientConn, error) {
+func (a *App) kasConnection(ctx context.Context, token string) (*grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
-		grpc.WithPerRPCCredentials(apiutil.NewTokenCredentials(token, a.Insecure)),
+		grpc.WithPerRPCCredentials(apiutil.NewTokenCredentials(token, a.KasInsecure)),
 	}
-	if a.Insecure {
+	if a.KasInsecure {
 		opts = append(opts, grpc.WithInsecure())
 	}
-	u, err := url.Parse(a.KgbAddress)
+	u, err := url.Parse(a.KasAddress)
 	if err != nil {
-		return nil, fmt.Errorf("invalid kgb address: %v", err)
+		return nil, fmt.Errorf("invalid kas address: %v", err)
 	}
 	addressToDial := u.Host
 	if u.Scheme == "ws" || u.Scheme == "wss" {
-		addressToDial = a.KgbAddress
+		addressToDial = a.KasAddress
 		opts = append(opts, grpc.WithContextDialer(wstunnel.DialerForGRPC(defaultMaxMessageSize, &websocket.DialOptions{
 			// TODO
 		})))
@@ -75,8 +75,8 @@ func (a *App) kgbConnection(ctx context.Context, token string) (*grpc.ClientConn
 
 func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, error) {
 	app := &App{}
-	flagset.StringVar(&app.KgbAddress, "kgb-address", "", "Kgb address")
-	flagset.BoolVar(&app.Insecure, "kgb-insecure", false, "Disable transport security for kgb connection")
+	flagset.StringVar(&app.KasAddress, "kas-address", "", "kas address")
+	flagset.BoolVar(&app.KasInsecure, "kas-insecure", false, "Disable transport security for kas connection")
 	flagset.StringVar(&app.TokenFile, "token-file", "", "File with access token")
 	clientConf := addKubeFlags(flagset)
 	if err := flagset.Parse(arguments); err != nil {

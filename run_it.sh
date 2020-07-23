@@ -7,7 +7,7 @@
 
 export GITALY_ADDRESS="unix:/Users/mikhail/src/gitlab-development-kit/praefect.socket"
 export GITLAB_ADDRESS="http://127.0.0.1:3000"
-export KGB_TOKEN="5cJvh6M9652dsYQeZz7H"
+export KAS_TOKEN="5cJvh6M9652dsYQeZz7H"
 export KUBECONFIG=/Users/mikhail/.kube/config
 export KUBECONTEXT=kind-kind
 export TEST_LOG_FORMATTER=color

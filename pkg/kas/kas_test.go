@@ -1,4 +1,4 @@
-package kgb
+package kas
 
 import (
 	"bytes"
@@ -86,7 +86,7 @@ func TestYAMLToConfigurationAndBack(t *testing.T) {
 }
 
 func TestGetConfiguration(t *testing.T) {
-	a, agentInfo, mockCtrl, gitalyClient, _ := setupKgb(t)
+	a, agentInfo, mockCtrl, gitalyClient, _ := setupKas(t)
 	treeEntryReq := &gitalypb.TreeEntryRequest{
 		Repository: &agentInfo.Repository,
 		Revision:   []byte("master"),
@@ -118,7 +118,7 @@ func TestGetConfiguration(t *testing.T) {
 }
 
 func TestGetObjectsToSynchronize(t *testing.T) {
-	a, agentInfo, mockCtrl, gitalyClient, gitlabClient := setupKgb(t)
+	a, agentInfo, mockCtrl, gitalyClient, gitlabClient := setupKas(t)
 
 	objects := []runtime.Object{
 		&corev1.ConfigMap{
@@ -268,7 +268,7 @@ func sampleConfig() *agentcfg.ConfigurationFile {
 	}
 }
 
-func setupKgb(t *testing.T) (*Agent, *api.AgentInfo, *gomock.Controller, *mock_gitaly.MockCommitServiceClient, *mock_gitlab.MockGitLabClient) {
+func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_gitaly.MockCommitServiceClient, *mock_gitlab.MockGitLabClient) {
 	agentMeta := api.AgentMeta{
 		Token:   token,
 		Version: "",
@@ -293,7 +293,7 @@ func setupKgb(t *testing.T) (*Agent, *api.AgentInfo, *gomock.Controller, *mock_g
 		GetAgentInfo(gomock.Any(), &agentMeta).
 		Return(agentInfo, nil)
 
-	a := &Agent{
+	a := &Server{
 		ReloadConfigurationPeriod: 10 * time.Minute,
 		CommitServiceClient:       gitalyClient,
 		GitLabClient:              gitlabClient,

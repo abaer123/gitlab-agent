@@ -47,23 +47,27 @@ We have CloudFlare CDN in front of GitLab.com. The connections that `agentk` est
 
 ### High availability and scalability
 
-#### `agentk` - agent on the Kubernetes side
+#### GitLab Kubernetes Agent (`agentk`)
+
+`agentk` is the agent on the Kubernetes side.
 
 Multiple `Pod`s per deployment would be needed to have a highly available deployment. This might be trivial but might require doing [leader election](https://pkg.go.dev/k8s.io/client-go/tools/leaderelection?tab=doc), depending on the functionality the agent will provide.
 
-#### `kgb` - agent on the GitLab side
+#### GitLab Kubernetes Agent Server (`kas`)
+
+`kas` is the server-side counterpart of `agentk`.
 
 The difficulty of having multiple copies of the program is that only one of the copies has an active connection from a particular Kubernetes cluster. So to serve a request from GitLab targeted at that cluster some sort of request routing would be needed. There are options (off the top of my head):
 
 - [Consistent hashing](https://en.wikipedia.org/wiki/Consistent_hashing) could be used to:
-  - Minimize disruptions if a copy of `kgb` goes missing
+  - Minimize disruptions if a copy of `kas` goes missing
   - Route traffic to the correct copy
 
   We use [`nginx` as our ingress controller](https://docs.gitlab.com/charts/charts/nginx/index.html) and it does [support consistent hashing](https://www.nginx.com/resources/wiki/modules/consistent_hash/).
 
-- We could have `nginx` ask one (any) of `kgb` where the right copy (the one that has the connection) running. `kgb` can do a lookup in Redis where each cluster connection is registered and return the address to `nginx` via [X-Accel-Redirect](https://www.nginx.com/resources/wiki/start/topics/examples/x-accel/#x-accel-redirect) header.
+- We could have `nginx` ask one (any) of `kas` where the right copy (the one that has the connection) running. `kas` can do a lookup in Redis where each cluster connection is registered and return the address to `nginx` via [X-Accel-Redirect](https://www.nginx.com/resources/wiki/start/topics/examples/x-accel/#x-accel-redirect) header.
 
-- We could teach `kgb` to gossip with its copies so that they tell each other where a connection for each cluster is. Each copy will know about all the connections and either proxy the request or use `X-Accel-Redirect` to redirect the traffic. This is [Cassandra's gossip](https://docs.datastax.com/en/cassandra-oss/3.x/cassandra/architecture/archGossipAbout.html) + Cassandra's coordinator node-based request routing ideas but it's much easier to build on Kubernetes because we can just use the API to find other copies of the program.
+- We could teach `kas` to gossip with its copies so that they tell each other where a connection for each cluster is. Each copy will know about all the connections and either proxy the request or use `X-Accel-Redirect` to redirect the traffic. This is [Cassandra's gossip](https://docs.datastax.com/en/cassandra-oss/3.x/cassandra/architecture/archGossipAbout.html) + Cassandra's coordinator node-based request routing ideas but it's much easier to build on Kubernetes because we can just use the API to find other copies of the program.
 
 ### `agentk` topologies
 
@@ -73,7 +77,7 @@ In a cluster `agentk` can be deployed:
 - One or more per-namespace deployments, each concerned only with what is happening in a particular namespace. Note that namespace where `agentk` is deployed, and the namespace it's managing might be different namespaces.
 - Both of the above at the same time.
 
-Because of the above, each `agentk` copy must have its own identity for GitLab to be able to tell one from the other e.g. for troubleshooting reasons. Each copy should get a URL of `kgb` and fetch the configuration from it. In that configuration the agent should see if it's per-namespace or cluster-wide. Configuration is stored in a Git repo on GitLab to promote IaC approach.
+Because of the above, each `agentk` copy must have its own identity for GitLab to be able to tell one from the other e.g. for troubleshooting reasons. Each copy should get a URL of `kas` and fetch the configuration from it. In that configuration the agent should see if it's per-namespace or cluster-wide. Configuration is stored in a Git repo on GitLab to promote IaC approach.
 
 Each `agentk` copy also gets its own `ServiceAccount` with minimum required permissions.
 

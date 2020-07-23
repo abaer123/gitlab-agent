@@ -120,7 +120,7 @@ func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta,
 		return fmt.Errorf("NewRequestWithContext: %v", err)
 	}
 	r.Header.Set("Authorization", "Bearer "+string(meta.Token))
-	r.Header.Set("User-Agent", "kgb")
+	r.Header.Set("User-Agent", "kas")
 	r.Header.Set("Accept", "application/json")
 	if bodyReader != nil {
 		r.Header.Set("Content-Type", "application/json")

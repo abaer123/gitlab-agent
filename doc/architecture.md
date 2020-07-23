@@ -18,13 +18,13 @@
 
 ```mermaid
 graph TB
-  agentk -- gRPC bidirectional streaming --> kgb
+  agentk -- gRPC bidirectional streaming --> kas
 
   subgraph "GitLab"
-  kgb[kgb]
-  GitLabRoR[GitLab RoR] -- gRPC --> kgb
-  kgb -- gRPC --> Gitaly[Gitaly]
-  kgb -- REST API --> GitLabRoR
+  kas[kas]
+  GitLabRoR[GitLab RoR] -- gRPC --> kas
+  kas -- gRPC --> Gitaly[Gitaly]
+  kas -- REST API --> GitLabRoR
   end
 
   subgraph "Kubernetes cluster"
@@ -32,9 +32,9 @@ graph TB
   end
 ```
 
-* `agentk` is our agent. It keeps a connection established to a `kgb` instance, waiting for requests to process. It may also actively send information about things happening in the cluster.
+* `agentk` is the GitLab Kubernetes Agent. It keeps a connection established to a `kas` instance, waiting for requests to process. It may also actively send information about things happening in the cluster.
 
-* `kgb` stands for Kubernetes-GitLab Broker. It's responsible for:
+* `kas` is the GitLab Kubernetes Agent Server. It's responsible for:
   * Accepting requests from `agentk`.
   * [Authentication of requests](identity_and_auth.md) from `agentk` by querying `GitLab RoR`.
   * Fetching agent's configuration from a corresponding Git repository by querying Gitaly.
@@ -42,13 +42,13 @@ graph TB
   * (potentially) Sending notifications via ActionCable for events received from `agentk`.
   * Polling manifest repositories for [GitOps support](gitops.md) by talking to Gitaly.
 
-* `GitLab RoR` is the main GitLab application. It uses gRPC to talk to `kgb`. We could also support Kubernetes API to simplify migration of existing code onto this architecture. Could support both, depending on the need.
+* `GitLab RoR` is the main GitLab application. It uses gRPC to talk to `kas`. We could also support Kubernetes API to simplify migration of existing code onto this architecture. Could support both, depending on the need.
 
-[Bidirectional streaming](https://grpc.io/docs/guides/concepts/#bidirectional-streaming-rpc) is used between `agentk` and `kgb`. This allows the connection acceptor i.e. gRPC server `kgb` to act as a client, sending requests as gRPC replies. Inverting client-server relationship is needed because the connection has to be initiated from the inside of the Kubernetes cluster to bypass a firewall or NAT the cluster may be behind. See https://gitlab.com/gitlab-org/gitlab/-/issues/212810.
+[Bidirectional streaming](https://grpc.io/docs/guides/concepts/#bidirectional-streaming-rpc) is used between `agentk` and `kas`. This allows the connection acceptor i.e. gRPC server `kas` to act as a client, sending requests as gRPC replies. Inverting client-server relationship is needed because the connection has to be initiated from the inside of the Kubernetes cluster to bypass a firewall or NAT the cluster may be behind. See https://gitlab.com/gitlab-org/gitlab/-/issues/212810.
 
 ## Guiding principles
 
-- Prefer putting logic into `kgb` rather than into `agentk`. `agentk` should be kept as simple as possible. On GitLab.com `kgb` is under our control, so we'll be able to upgrade it regularly to add new features without requiring users of the integration to upgrade `agentk` running in their clusters.
+- Prefer putting logic into `kas` rather than into `agentk`. `agentk` should be kept as simple as possible. On GitLab.com `kas` is under our control, so we'll be able to upgrade it regularly to add new features without requiring users of the integration to upgrade `agentk` running in their clusters.
 
   `agentk` still cannot be viewed as a dumb reverse proxy because it will likely have functionality on top of the cache ([via informers](https://github.com/kubernetes/client-go/blob/ccd5becdffb7fd8006e31341baaaacd14db2dcb7/tools/cache/shared_informer.go#L34-L183)).
 
@@ -66,13 +66,13 @@ graph TB
 
   **A**: Yes, we could use REST API and push the data. But since we already need long-running connections (see above), why not utilize them? `agentk` uses gRPC which [multiplexes multiple logical channels](https://www.cncf.io/blog/2018/08/31/grpc-on-http-2-engineering-a-robust-high-performance-protocol/) onto a usually smaller number of TCP connections. There will be a smaller number of TCP connections if all communications are consolidated and happen over gRPC. See the link for technical details.
 
-- **Q**: Can we put the cache into `kgb` rather than into `agentk` to make it "dumber" / simpler per the principle above?
+- **Q**: Can we put the cache into `kas` rather than into `agentk` to make it "dumber" / simpler per the principle above?
 
-  **A**: Technically yes. However, that would mean `kgb` would get an update for each event for object kinds `kgb` runs informers for. An event contains the whole changed object. Number of events in active clusters may be significant. So, multiplied by the number of clusters, that means we'd have a lot of traffic between `kgb` and `agentk`. There is no practical benefit for building it this way, only the downside of having a lot of useless traffic.
+  **A**: Technically yes. However, that would mean `kas` would get an update for each event for object kinds `kas` runs informers for. An event contains the whole changed object. Number of events in active clusters may be significant. So, multiplied by the number of clusters, that means we'd have a lot of traffic between `kas` and `agentk`. There is no practical benefit for building it this way, only the downside of having a lot of useless traffic.
 
-  Instead of the above we could have an up to date precomputed view on top of the cache in `kgb`. `agentk` could make the calculations locally and push an update immediately to `kgb` (which could push an event via ActionCable). For example, `agentk` could maintain a cache with [`Node`](https://kubernetes.io/docs/concepts/architecture/nodes/) objects and push the current number of nodes to `kgb` each time there is a change. The UI then can fetch the number of nodes from `kgb` via an API (via the main application or bypassing it).
+  Instead of the above we could have an up to date precomputed view on top of the cache in `kas`. `agentk` could make the calculations locally and push an update immediately to `kas` (which could push an event via ActionCable). For example, `agentk` could maintain a cache with [`Node`](https://kubernetes.io/docs/concepts/architecture/nodes/) objects and push the current number of nodes to `kas` each time there is a change. The UI then can fetch the number of nodes from `kas` via an API (via the main application or bypassing it).
 
-- **Q**: Why use gRPC for `GitLab RoR` -> `kgb` access? Why not REST API?
+- **Q**: Why use gRPC for `GitLab RoR` -> `kas` access? Why not REST API?
 
   **A**: To benefit from all the [good things gRPC provides or enables](https://grpc.io/faq/) and avoid any pitfalls of a hand-rolled client implementation. GitLab already uses gRPC to talk to Gitaly, it's an existing dependency.
 
@@ -84,17 +84,17 @@ graph TB
 
   - Accessing Gitaly via gRPC is a better development experience vs invoking Git for repository access. It's essentially the difference between calling a function vs invoking a binary. Better development experience means faster iterations.
 
-  - Putting polling into `kgb` follows the "smart `kgb`, dumb `agentk`" principle described above.
+  - Putting polling into `kas` follows the "smart `kas`, dumb `agentk`" principle described above.
 
-- **Q**: If there is no middlemen between `kgb` and Gitaly, how do we prevent `kgb` overloading Gitaly?
+- **Q**: If there is no middlemen between `kas` and Gitaly, how do we prevent `kas` overloading Gitaly?
 
-  **A**: `kgb` should rate limit itself. The following not mutually exclusive approaches are possible:
+  **A**: `kas` should rate limit itself. The following not mutually exclusive approaches are possible:
 
-  - Per-`kgb` instance rate limiting can be put in place using gRPC's rate limiting mechanisms.
-  - Per-`agentk` rate limiting within `kgb` can be implemented using some external state storage. E.g. [using Redis](https://redislabs.com/redis-best-practices/basic-rate-limiting/). Or, alternatively, each `kgb` instance can enforce per-`agentk` limit just for itself - not as good, but much simpler to implement (no Redis needed).
-  - Global rate limiting for all `kgb` instances can also be implemented using Redis.
+  - Per-`kas` instance rate limiting can be put in place using gRPC's rate limiting mechanisms.
+  - Per-`agentk` rate limiting within `kas` can be implemented using some external state storage. E.g. [using Redis](https://redislabs.com/redis-best-practices/basic-rate-limiting/). Or, alternatively, each `kas` instance can enforce per-`agentk` limit just for itself - not as good, but much simpler to implement (no Redis needed).
+  - Global rate limiting for all `kas` instances can also be implemented using Redis.
 
-- **Q**: Should `kgb` be part of GitLab Workhorse?
+- **Q**: Should `kas` be part of GitLab Workhorse?
 
   **A**: This has been considered.
 
@@ -107,11 +107,11 @@ graph TB
   Cons:
 
   - Depending on another team(s) for reviews and merging code will likely slow down the development.
-  - It may not be a good fit if `kgb` needs to have some significant amount of business logic in it. Mixing unrelated concerns in a single program is not great.
+  - It may not be a good fit if `kas` needs to have some significant amount of business logic in it. Mixing unrelated concerns in a single program is not great.
 
   This has been discussed and the conclusion is:
 
-  - We want to build `kgb` as a separate component.
+  - We want to build `kas` as a separate component.
   - We want to get it deployed to GitLab.com behind a feature flag.
   - We want to experiment with it for a couple of releases, to see how it behaves and what is the cost of running persistent connections to make a better informed decision about next iterations.
-  - We can later decide to merge `kgb` into the GitLab Workhorse, or leave it as a separate component.
+  - We can later decide to merge `kas` into the GitLab Workhorse, or leave it as a separate component.
