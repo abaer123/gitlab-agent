@@ -4,7 +4,16 @@ This document uses the word `agent` to mean GitLab Kubernetes Agent on the conce
 
 ## Agent identity and name
 
-Each agent has an identity that is unique within a GitLab installation. Each agent has an immutable name that is unique within the project the agent is attached to. Agent names can only contain `a-z0-9-_` characters and be up to 64 characters long.
+Each agent has an identity that is unique within a GitLab installation. Each agent has an immutable name that is unique within the project the agent is attached to. Agent names follow the DNS label standard as defined in [RFC 1123](https://tools.ietf.org/html/rfc1123). This means the name must:
+
+- contain at most 63 characters.
+- contain only lowercase alphanumeric characters or `-`.
+- start with an alphanumeric character.
+- end with an alphanumeric character.
+
+Kubernetes uses the [same naming restriction](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names) for some names.
+
+The regex for names is: `/\A[a-z0-9]([-a-z0-9]*[a-z0-9])?\z/`.
 
 ## Multiple agents in a cluster
 
