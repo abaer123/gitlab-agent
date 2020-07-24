@@ -1,4 +1,4 @@
-package kgbapp
+package kasapp
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/gitlab"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kgb"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kas"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/tools/wstunnel"
 	gitalyauth "gitlab.com/gitlab-org/gitaly/auth"
 	"gitlab.com/gitlab-org/gitaly/client"
@@ -48,12 +48,12 @@ func (a *App) Run(ctx context.Context) error {
 	}
 	defer gitalyConn.Close()
 
-	// Main logic of kgb
+	// Main logic of kas
 	gitLabUrl, err := url.Parse(a.GitLabAddress)
 	if err != nil {
 		return err
 	}
-	srv := &kgb.Agent{
+	srv := &kas.Server{
 		ReloadConfigurationPeriod: a.ReloadConfigurationPeriod,
 		CommitServiceClient:       gitalypb.NewCommitServiceClient(gitalyConn),
 		GitLabClient:              gitlab.NewClient(gitLabUrl, a.GitLabSocket),

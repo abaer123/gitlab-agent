@@ -13,7 +13,7 @@ message ConfigurationRequest {
 
 // AgentConfiguration represents configuration for agentk.
 // Note that agentk configuration is not exactly the whole file as the file may contain bits that are not
-// relevant for the agent. For example some additional config for kgb.
+// relevant for the agent. For example, some additional config for kas.
 message AgentConfiguration {
     agentcfg.DeploymentsCF deployments = 1;
 }

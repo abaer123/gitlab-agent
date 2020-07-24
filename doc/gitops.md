@@ -18,14 +18,14 @@ GitLab Kubernetes Agent offers [GitOps](https://www.gitops.tech/) support. More 
 
 ```mermaid
 graph TB
-  agentk -- fetch configuration --> kgb
+  agentk -- fetch configuration --> kas
   git-sync -- poll GitOps repositories --> GitLabRoR
 
   subgraph "GitLab"
-  kgb[kgb]
+  kas[kas]
   GitLabRoR[GitLab RoR]
-  kgb -- authZ for agentk --> GitLabRoR
-  kgb -- fetch configuration --> Gitaly[Gitaly]
+  kas -- authZ for agentk --> GitLabRoR
+  kas -- fetch configuration --> Gitaly[Gitaly]
   end
 
   subgraph "Kubernetes cluster"
@@ -36,7 +36,7 @@ graph TB
   end
 ```
 
-`agentk` periodically fetches configuration from `kgb`. For each configured GitOps repository it spawns a goroutine. Each goroutine spawns a copy of [`git-sync`](https://github.com/kubernetes/git-sync). It polls a particular repository and invokes a corresponding webhook on `agentk` when it changes. When that happens, `agentk` performs a synchronization using [`gitops-engine`](https://github.com/argoproj/gitops-engine).
+`agentk` periodically fetches configuration from `kas`. For each configured GitOps repository it spawns a goroutine. Each goroutine spawns a copy of [`git-sync`](https://github.com/kubernetes/git-sync). It polls a particular repository and invokes a corresponding webhook on `agentk` when it changes. When that happens, `agentk` performs a synchronization using [`gitops-engine`](https://github.com/argoproj/gitops-engine).
 
 For repositories no longer in the list, `agentk` stops corresponding goroutines and `git-sync` copies, also deleting their cloned repositories from disk.
 
@@ -44,16 +44,16 @@ For repositories no longer in the list, `agentk` stops corresponding goroutines 
 
 ```mermaid
 graph TB
-  agentk -- fetch configuration --> kgb
-  agentk -- fetch GitOps manifests --> kgb
+  agentk -- fetch configuration --> kas
+  agentk -- fetch GitOps manifests --> kas
 
   subgraph "GitLab"
-  kgb[kgb]
+  kas[kas]
   GitLabRoR[GitLab RoR]
   Gitaly[Gitaly]
-  kgb -- poll GitOps repositories --> Gitaly
-  kgb -- authZ for agentk --> GitLabRoR
-  kgb -- fetch configuration --> Gitaly
+  kas -- poll GitOps repositories --> Gitaly
+  kas -- authZ for agentk --> GitLabRoR
+  kas -- fetch configuration --> Gitaly
   end
 
   subgraph "Kubernetes cluster"
@@ -61,8 +61,8 @@ graph TB
   end
 ```
 
-`agentk` periodically fetches configuration from `kgb`. For each configured GitOps repository it spawns a goroutine. Each goroutine makes a streaming `GetObjectsToSynchronize()` gRPC call. `kgb` accepts these requests and checks with GitLab if this particular agent is authorized to access this repository.
-If it is, `kgb` starts polling Gitaly for repository updates and sends the latest manifests to the agent. Before each poll, `kgb` verifies with GitLab that the agent's token is still valid. When `agentk` receives an updated manifest, it performs a synchronization using [`gitops-engine`](https://github.com/argoproj/gitops-engine).
+`agentk` periodically fetches configuration from `kas`. For each configured GitOps repository it spawns a goroutine. Each goroutine makes a streaming `GetObjectsToSynchronize()` gRPC call. `kas` accepts these requests and checks with GitLab if this particular agent is authorized to access this repository.
+If it is, `kas` starts polling Gitaly for repository updates and sends the latest manifests to the agent. Before each poll, `kas` verifies with GitLab that the agent's token is still valid. When `agentk` receives an updated manifest, it performs a synchronization using [`gitops-engine`](https://github.com/argoproj/gitops-engine).
 
 For repositories no longer in the list, `agentk` stops corresponding `GetObjectsToSynchronize()` calls.
 
@@ -86,11 +86,11 @@ Design 2:
 
 ## Alternatives and ideas considered (for design 1)
 
-- Running `git-sync` and `gitops-engine` as part of `kgb`.
+- Running `git-sync` and `gitops-engine` as part of `kas`.
 
   - Pro: More code/infrastructure under our control for GitLab.com
   - Con: Running an arbitrary number of `git-sync` processes would require an unbounded amount of RAM and disk space.
-  - Con: Not clear which `kgb` replica is responsible for which agent/repository synchronization. If done as part of `agentk`, leader election can be done using [client-go](https://pkg.go.dev/k8s.io/client-go/tools/leaderelection?tab=doc).
+  - Con: Not clear which `kas` replica is responsible for which agent/repository synchronization. If done as part of `agentk`, leader election can be done using [client-go](https://pkg.go.dev/k8s.io/client-go/tools/leaderelection?tab=doc).
 
 - Running `git-sync` and a "`gitops-engine` driver" helper program as a separate Kubernetes `Deployment`.
 

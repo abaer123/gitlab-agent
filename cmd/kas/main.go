@@ -2,9 +2,9 @@ package main
 
 import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kgb/kgbapp"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kas/kasapp"
 )
 
 func main() {
-	cmd.Run(kgbapp.NewFromFlags)
+	cmd.Run(kasapp.NewFromFlags)
 }

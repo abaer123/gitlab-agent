@@ -57,7 +57,7 @@ test-it: fmt update-bazel
 	bazel test \
 		--test_env=GITALY_ADDRESS=$(GITALY_ADDRESS) \
 		--test_env=GITLAB_ADDRESS=$(GITLAB_ADDRESS) \
-		--test_env=KGB_TOKEN=$(KGB_TOKEN) \
+		--test_env=KAS_TOKEN=$(KAS_TOKEN) \
 		--test_env=KUBECONFIG=$(KUBECONFIG) \
 		--test_env=KUBECONTEXT=$(KUBECONTEXT) \
 		--test_env=TEST_LOG_FORMATTER=$(TEST_LOG_FORMATTER) \
@@ -79,14 +79,14 @@ quick-test:
 docker: update-bazel
 	bazel build \
 		//cmd/agentk:container \
-		//cmd/kgb:container
+		//cmd/kas:container
 
 # This only works from a linux machine
 .PHONY: docker-race
 docker-race: update-bazel
 	bazel build \
 		//cmd/agentk:container_race \
-		//cmd/kgb:container_race
+		//cmd/kas:container_race
 
 # Export docker image into local Docker
 .PHONY: docker-export
@@ -96,7 +96,7 @@ docker-export: update-bazel
 		-- \
 		--norun
 	bazel run \
-		//cmd/kgb:container \
+		//cmd/kas:container \
 		-- \
 		--norun
 
@@ -109,7 +109,7 @@ docker-export-race: update-bazel
 		-- \
 		--norun
 	bazel run \
-		//cmd/kgb:container_race \
+		//cmd/kas:container_race \
 		-- \
 		--norun
 
@@ -121,17 +121,17 @@ release-tag-all: update-bazel
 	bazel build \
 		//cmd/agentk:push_docker_tag \
 		//cmd/agentk:push_docker_tag_race \
-		//cmd/kgb:push_docker_tag \
-		//cmd/kgb:push_docker_tag_race
+		//cmd/kas:push_docker_tag \
+		//cmd/kas:push_docker_tag_race
 	# Actually push built images one by one
 	bazel run \
 		//cmd/agentk:push_docker_tag
 	bazel run \
 		//cmd/agentk:push_docker_tag_race
 	bazel run \
-		//cmd/kgb:push_docker_tag
+		//cmd/kas:push_docker_tag
 	bazel run \
-		//cmd/kgb:push_docker_tag_race
+		//cmd/kas:push_docker_tag_race
 
 # Build and push all docker images tagged with the current commit sha.
 # This only works on a linux machine
@@ -141,24 +141,24 @@ release-commit-all: update-bazel
 	bazel build \
 		//cmd/agentk:push_docker_commit \
 		//cmd/agentk:push_docker_commit_race \
-		//cmd/kgb:push_docker_commit \
-		//cmd/kgb:push_docker_commit_race
+		//cmd/kas:push_docker_commit \
+		//cmd/kas:push_docker_commit_race
 	# Actually push built images one by one
 	bazel run \
 		//cmd/agentk:push_docker_commit
 	bazel run \
 		//cmd/agentk:push_docker_commit_race
 	bazel run \
-		//cmd/kgb:push_docker_commit
+		//cmd/kas:push_docker_commit
 	bazel run \
-		//cmd/kgb:push_docker_commit_race
+		//cmd/kas:push_docker_commit_race
 
 .PHONY: release-commit-normal
 release-commit-normal: update-bazel
 	bazel run \
 		//cmd/agentk:push_docker_commit
 	bazel run \
-		//cmd/kgb:push_docker_commit
+		//cmd/kas:push_docker_commit
 
 # This only works on a linux machine
 .PHONY: release-commit-race
@@ -166,9 +166,11 @@ release-commit-race: update-bazel
 	bazel run \
 		//cmd/agentk:push_docker_commit_race
 	bazel run \
-		//cmd/kgb:push_docker_commit_race
+		//cmd/kas:push_docker_commit_race
 
 # Set TARGET_DIRECTORY variable to the target directory before running this target
 .PHONY: gdk-install
 gdk-install:
 	bazel run //build:extract_race_binaries_for_gdk -- "$(TARGET_DIRECTORY)"
+	# forward and backward compatibility with GDK. Will be removed once GDK no longer looks for kgb_race
+	cp "$(TARGET_DIRECTORY)/kas_race" "$(TARGET_DIRECTORY)/kgb_race"

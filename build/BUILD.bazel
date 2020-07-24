@@ -27,13 +27,13 @@ multirun(
 multirun(
     name = "extract_binaries_for_gdk",
     commands = [
-        "//cmd/kgb:extract_kgb",
+        "//cmd/kas:extract_kas",
     ],
 )
 
 multirun(
     name = "extract_race_binaries_for_gdk",
     commands = [
-        "//cmd/kgb:extract_kgb_race",
+        "//cmd/kas:extract_kas_race",
     ],
 )
