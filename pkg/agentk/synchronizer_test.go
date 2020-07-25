@@ -117,10 +117,10 @@ func TestRunHappyPath(t *testing.T) {
 	s.run()
 }
 
-func setupSynchronizer(t *testing.T, returnStream bool) (*synchronizer, *mock_engine.MockGitOpsEngine, *mock_agentrpc.MockGitLabServiceClient, *mock_agentrpc.MockGitLabService_GetObjectsToSynchronizeClient) {
+func setupSynchronizer(t *testing.T, returnStream bool) (*synchronizer, *mock_engine.MockGitOpsEngine, *mock_agentrpc.MockKasClient, *mock_agentrpc.MockKas_GetObjectsToSynchronizeClient) {
 	mockCtrl := gomock.NewController(t)
 	engine := mock_engine.NewMockGitOpsEngine(mockCtrl)
-	client := mock_agentrpc.NewMockGitLabServiceClient(mockCtrl)
+	client := mock_agentrpc.NewMockKasClient(mockCtrl)
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	s := &synchronizer{
@@ -130,12 +130,12 @@ func setupSynchronizer(t *testing.T, returnStream bool) (*synchronizer, *mock_en
 			log:       logrus.New().WithFields(nil),
 			projectId: projectId,
 			namespace: namespace,
-			client:    client,
+			kasClient: client,
 		},
 	}
-	var stream *mock_agentrpc.MockGitLabService_GetObjectsToSynchronizeClient
+	var stream *mock_agentrpc.MockKas_GetObjectsToSynchronizeClient
 	if returnStream {
-		stream = mock_agentrpc.NewMockGitLabService_GetObjectsToSynchronizeClient(mockCtrl)
+		stream = mock_agentrpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
 		client.EXPECT().
 			GetObjectsToSynchronize(gomock.Any(), projectIdMatcher{projectId: projectId}, gomock.Any()).
 			Return(stream, nil)

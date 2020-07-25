@@ -39,7 +39,7 @@ type synchronizerConfig struct {
 	log       *logrus.Entry
 	projectId string
 	namespace string
-	client    agentrpc.GitLabServiceClient
+	kasClient agentrpc.KasClient
 }
 
 type resourceInfo struct {
@@ -56,7 +56,7 @@ func (s *synchronizer) run() {
 	req := &agentrpc.ObjectsToSynchronizeRequest{
 		ProjectId: s.projectId,
 	}
-	res, err := s.client.GetObjectsToSynchronize(s.ctx, req)
+	res, err := s.kasClient.GetObjectsToSynchronize(s.ctx, req)
 	if err != nil {
 		s.log.WithError(err).Warn("GetObjectsToSynchronize failed")
 		return

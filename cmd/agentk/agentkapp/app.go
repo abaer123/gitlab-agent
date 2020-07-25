@@ -42,7 +42,7 @@ func (a *App) Run(ctx context.Context) error {
 		return err
 	}
 	defer conn.Close()
-	agent := agentk.New(agentrpc.NewGitLabServiceClient(conn), &agentk.DefaultGitOpsEngineFactory{
+	agent := agentk.New(agentrpc.NewKasClient(conn), &agentk.DefaultGitOpsEngineFactory{
 		KubeClientConfig: a.KubeClientConfig,
 	})
 	return agent.Run(ctx)
