@@ -97,7 +97,7 @@ func TestGetConfiguration(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	ctx = incomingCtx(ctx, t)
-	resp := mock_agentrpc.NewMockGitLabService_GetConfigurationServer(mockCtrl)
+	resp := mock_agentrpc.NewMockKas_GetConfigurationServer(mockCtrl)
 	resp.EXPECT().
 		Context().
 		Return(ctx).
@@ -174,7 +174,7 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	ctx = incomingCtx(ctx, t)
-	resp := mock_agentrpc.NewMockGitLabService_GetObjectsToSynchronizeServer(mockCtrl)
+	resp := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
 	resp.EXPECT().
 		Context().
 		Return(ctx).

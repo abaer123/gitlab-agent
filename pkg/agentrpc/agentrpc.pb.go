@@ -293,26 +293,25 @@ var file_pkg_agentrpc_agentrpc_proto_rawDesc = []byte{
 	0x6f, 0x6e, 0x12, 0x37, 0x0a, 0x07, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x18, 0x02, 0x20,
 	0x03, 0x28, 0x0b, 0x32, 0x1d, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x70, 0x63, 0x2e, 0x4f,
 	0x62, 0x6a, 0x65, 0x63, 0x74, 0x54, 0x6f, 0x53, 0x79, 0x6e, 0x63, 0x68, 0x72, 0x6f, 0x6e, 0x69,
-	0x7a, 0x65, 0x52, 0x07, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x32, 0xd6, 0x01, 0x0a, 0x0d,
-	0x47, 0x69, 0x74, 0x4c, 0x61, 0x62, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x57, 0x0a,
-	0x10, 0x47, 0x65, 0x74, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f,
-	0x6e, 0x12, 0x1e, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x70, 0x63, 0x2e, 0x43, 0x6f, 0x6e,
-	0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
-	0x74, 0x1a, 0x1f, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x70, 0x63, 0x2e, 0x43, 0x6f, 0x6e,
-	0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
-	0x73, 0x65, 0x22, 0x00, 0x30, 0x01, 0x12, 0x6c, 0x0a, 0x17, 0x47, 0x65, 0x74, 0x4f, 0x62, 0x6a,
-	0x65, 0x63, 0x74, 0x73, 0x54, 0x6f, 0x53, 0x79, 0x6e, 0x63, 0x68, 0x72, 0x6f, 0x6e, 0x69, 0x7a,
-	0x65, 0x12, 0x25, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x70, 0x63, 0x2e, 0x4f, 0x62, 0x6a,
-	0x65, 0x63, 0x74, 0x73, 0x54, 0x6f, 0x53, 0x79, 0x6e, 0x63, 0x68, 0x72, 0x6f, 0x6e, 0x69, 0x7a,
-	0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x26, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74,
-	0x72, 0x70, 0x63, 0x2e, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x54, 0x6f, 0x53, 0x79, 0x6e,
-	0x63, 0x68, 0x72, 0x6f, 0x6e, 0x69, 0x7a, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x22, 0x00, 0x30, 0x01, 0x42, 0x45, 0x5a, 0x43, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x63,
-	0x6f, 0x6d, 0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2d, 0x6f, 0x72, 0x67, 0x2f, 0x63, 0x6c,
-	0x75, 0x73, 0x74, 0x65, 0x72, 0x2d, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x72, 0x61, 0x74, 0x69, 0x6f,
-	0x6e, 0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2d, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2f, 0x70,
-	0x6b, 0x67, 0x2f, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x70, 0x63, 0x62, 0x06, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x33,
+	0x7a, 0x65, 0x52, 0x07, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x32, 0xcc, 0x01, 0x0a, 0x03,
+	0x4b, 0x61, 0x73, 0x12, 0x57, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67,
+	0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x1e, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x72,
+	0x70, 0x63, 0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1f, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x72,
+	0x70, 0x63, 0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x30, 0x01, 0x12, 0x6c, 0x0a, 0x17,
+	0x47, 0x65, 0x74, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x54, 0x6f, 0x53, 0x79, 0x6e, 0x63,
+	0x68, 0x72, 0x6f, 0x6e, 0x69, 0x7a, 0x65, 0x12, 0x25, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x72,
+	0x70, 0x63, 0x2e, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x54, 0x6f, 0x53, 0x79, 0x6e, 0x63,
+	0x68, 0x72, 0x6f, 0x6e, 0x69, 0x7a, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x26,
+	0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x70, 0x63, 0x2e, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74,
+	0x73, 0x54, 0x6f, 0x53, 0x79, 0x6e, 0x63, 0x68, 0x72, 0x6f, 0x6e, 0x69, 0x7a, 0x65, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x30, 0x01, 0x42, 0x45, 0x5a, 0x43, 0x67, 0x69,
+	0x74, 0x6c, 0x61, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2d,
+	0x6f, 0x72, 0x67, 0x2f, 0x63, 0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x2d, 0x69, 0x6e, 0x74, 0x65,
+	0x67, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2d, 0x61,
+	0x67, 0x65, 0x6e, 0x74, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x70,
+	0x63, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -339,10 +338,10 @@ var file_pkg_agentrpc_agentrpc_proto_goTypes = []interface{}{
 var file_pkg_agentrpc_agentrpc_proto_depIdxs = []int32{
 	5, // 0: agentrpc.ConfigurationResponse.configuration:type_name -> agentcfg.AgentConfiguration
 	3, // 1: agentrpc.ObjectsToSynchronizeResponse.objects:type_name -> agentrpc.ObjectToSynchronize
-	0, // 2: agentrpc.GitLabService.GetConfiguration:input_type -> agentrpc.ConfigurationRequest
-	2, // 3: agentrpc.GitLabService.GetObjectsToSynchronize:input_type -> agentrpc.ObjectsToSynchronizeRequest
-	1, // 4: agentrpc.GitLabService.GetConfiguration:output_type -> agentrpc.ConfigurationResponse
-	4, // 5: agentrpc.GitLabService.GetObjectsToSynchronize:output_type -> agentrpc.ObjectsToSynchronizeResponse
+	0, // 2: agentrpc.Kas.GetConfiguration:input_type -> agentrpc.ConfigurationRequest
+	2, // 3: agentrpc.Kas.GetObjectsToSynchronize:input_type -> agentrpc.ObjectsToSynchronizeRequest
+	1, // 4: agentrpc.Kas.GetConfiguration:output_type -> agentrpc.ConfigurationResponse
+	4, // 5: agentrpc.Kas.GetObjectsToSynchronize:output_type -> agentrpc.ObjectsToSynchronizeResponse
 	4, // [4:6] is the sub-list for method output_type
 	2, // [2:4] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
@@ -445,28 +444,28 @@ var _ grpc.ClientConnInterface
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion6
 
-// GitLabServiceClient is the client API for GitLabService service.
+// KasClient is the client API for Kas service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type GitLabServiceClient interface {
-	GetConfiguration(ctx context.Context, in *ConfigurationRequest, opts ...grpc.CallOption) (GitLabService_GetConfigurationClient, error)
-	GetObjectsToSynchronize(ctx context.Context, in *ObjectsToSynchronizeRequest, opts ...grpc.CallOption) (GitLabService_GetObjectsToSynchronizeClient, error)
+type KasClient interface {
+	GetConfiguration(ctx context.Context, in *ConfigurationRequest, opts ...grpc.CallOption) (Kas_GetConfigurationClient, error)
+	GetObjectsToSynchronize(ctx context.Context, in *ObjectsToSynchronizeRequest, opts ...grpc.CallOption) (Kas_GetObjectsToSynchronizeClient, error)
 }
 
-type gitLabServiceClient struct {
+type kasClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewGitLabServiceClient(cc grpc.ClientConnInterface) GitLabServiceClient {
-	return &gitLabServiceClient{cc}
+func NewKasClient(cc grpc.ClientConnInterface) KasClient {
+	return &kasClient{cc}
 }
 
-func (c *gitLabServiceClient) GetConfiguration(ctx context.Context, in *ConfigurationRequest, opts ...grpc.CallOption) (GitLabService_GetConfigurationClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_GitLabService_serviceDesc.Streams[0], "/agentrpc.GitLabService/GetConfiguration", opts...)
+func (c *kasClient) GetConfiguration(ctx context.Context, in *ConfigurationRequest, opts ...grpc.CallOption) (Kas_GetConfigurationClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Kas_serviceDesc.Streams[0], "/agentrpc.Kas/GetConfiguration", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &gitLabServiceGetConfigurationClient{stream}
+	x := &kasGetConfigurationClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -476,16 +475,16 @@ func (c *gitLabServiceClient) GetConfiguration(ctx context.Context, in *Configur
 	return x, nil
 }
 
-type GitLabService_GetConfigurationClient interface {
+type Kas_GetConfigurationClient interface {
 	Recv() (*ConfigurationResponse, error)
 	grpc.ClientStream
 }
 
-type gitLabServiceGetConfigurationClient struct {
+type kasGetConfigurationClient struct {
 	grpc.ClientStream
 }
 
-func (x *gitLabServiceGetConfigurationClient) Recv() (*ConfigurationResponse, error) {
+func (x *kasGetConfigurationClient) Recv() (*ConfigurationResponse, error) {
 	m := new(ConfigurationResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -493,12 +492,12 @@ func (x *gitLabServiceGetConfigurationClient) Recv() (*ConfigurationResponse, er
 	return m, nil
 }
 
-func (c *gitLabServiceClient) GetObjectsToSynchronize(ctx context.Context, in *ObjectsToSynchronizeRequest, opts ...grpc.CallOption) (GitLabService_GetObjectsToSynchronizeClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_GitLabService_serviceDesc.Streams[1], "/agentrpc.GitLabService/GetObjectsToSynchronize", opts...)
+func (c *kasClient) GetObjectsToSynchronize(ctx context.Context, in *ObjectsToSynchronizeRequest, opts ...grpc.CallOption) (Kas_GetObjectsToSynchronizeClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Kas_serviceDesc.Streams[1], "/agentrpc.Kas/GetObjectsToSynchronize", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &gitLabServiceGetObjectsToSynchronizeClient{stream}
+	x := &kasGetObjectsToSynchronizeClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -508,16 +507,16 @@ func (c *gitLabServiceClient) GetObjectsToSynchronize(ctx context.Context, in *O
 	return x, nil
 }
 
-type GitLabService_GetObjectsToSynchronizeClient interface {
+type Kas_GetObjectsToSynchronizeClient interface {
 	Recv() (*ObjectsToSynchronizeResponse, error)
 	grpc.ClientStream
 }
 
-type gitLabServiceGetObjectsToSynchronizeClient struct {
+type kasGetObjectsToSynchronizeClient struct {
 	grpc.ClientStream
 }
 
-func (x *gitLabServiceGetObjectsToSynchronizeClient) Recv() (*ObjectsToSynchronizeResponse, error) {
+func (x *kasGetObjectsToSynchronizeClient) Recv() (*ObjectsToSynchronizeResponse, error) {
 	m := new(ObjectsToSynchronizeResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -525,82 +524,82 @@ func (x *gitLabServiceGetObjectsToSynchronizeClient) Recv() (*ObjectsToSynchroni
 	return m, nil
 }
 
-// GitLabServiceServer is the server API for GitLabService service.
-type GitLabServiceServer interface {
-	GetConfiguration(*ConfigurationRequest, GitLabService_GetConfigurationServer) error
-	GetObjectsToSynchronize(*ObjectsToSynchronizeRequest, GitLabService_GetObjectsToSynchronizeServer) error
+// KasServer is the server API for Kas service.
+type KasServer interface {
+	GetConfiguration(*ConfigurationRequest, Kas_GetConfigurationServer) error
+	GetObjectsToSynchronize(*ObjectsToSynchronizeRequest, Kas_GetObjectsToSynchronizeServer) error
 }
 
-// UnimplementedGitLabServiceServer can be embedded to have forward compatible implementations.
-type UnimplementedGitLabServiceServer struct {
+// UnimplementedKasServer can be embedded to have forward compatible implementations.
+type UnimplementedKasServer struct {
 }
 
-func (*UnimplementedGitLabServiceServer) GetConfiguration(*ConfigurationRequest, GitLabService_GetConfigurationServer) error {
+func (*UnimplementedKasServer) GetConfiguration(*ConfigurationRequest, Kas_GetConfigurationServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetConfiguration not implemented")
 }
-func (*UnimplementedGitLabServiceServer) GetObjectsToSynchronize(*ObjectsToSynchronizeRequest, GitLabService_GetObjectsToSynchronizeServer) error {
+func (*UnimplementedKasServer) GetObjectsToSynchronize(*ObjectsToSynchronizeRequest, Kas_GetObjectsToSynchronizeServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetObjectsToSynchronize not implemented")
 }
 
-func RegisterGitLabServiceServer(s *grpc.Server, srv GitLabServiceServer) {
-	s.RegisterService(&_GitLabService_serviceDesc, srv)
+func RegisterKasServer(s *grpc.Server, srv KasServer) {
+	s.RegisterService(&_Kas_serviceDesc, srv)
 }
 
-func _GitLabService_GetConfiguration_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _Kas_GetConfiguration_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(ConfigurationRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(GitLabServiceServer).GetConfiguration(m, &gitLabServiceGetConfigurationServer{stream})
+	return srv.(KasServer).GetConfiguration(m, &kasGetConfigurationServer{stream})
 }
 
-type GitLabService_GetConfigurationServer interface {
+type Kas_GetConfigurationServer interface {
 	Send(*ConfigurationResponse) error
 	grpc.ServerStream
 }
 
-type gitLabServiceGetConfigurationServer struct {
+type kasGetConfigurationServer struct {
 	grpc.ServerStream
 }
 
-func (x *gitLabServiceGetConfigurationServer) Send(m *ConfigurationResponse) error {
+func (x *kasGetConfigurationServer) Send(m *ConfigurationResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _GitLabService_GetObjectsToSynchronize_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _Kas_GetObjectsToSynchronize_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(ObjectsToSynchronizeRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(GitLabServiceServer).GetObjectsToSynchronize(m, &gitLabServiceGetObjectsToSynchronizeServer{stream})
+	return srv.(KasServer).GetObjectsToSynchronize(m, &kasGetObjectsToSynchronizeServer{stream})
 }
 
-type GitLabService_GetObjectsToSynchronizeServer interface {
+type Kas_GetObjectsToSynchronizeServer interface {
 	Send(*ObjectsToSynchronizeResponse) error
 	grpc.ServerStream
 }
 
-type gitLabServiceGetObjectsToSynchronizeServer struct {
+type kasGetObjectsToSynchronizeServer struct {
 	grpc.ServerStream
 }
 
-func (x *gitLabServiceGetObjectsToSynchronizeServer) Send(m *ObjectsToSynchronizeResponse) error {
+func (x *kasGetObjectsToSynchronizeServer) Send(m *ObjectsToSynchronizeResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-var _GitLabService_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "agentrpc.GitLabService",
-	HandlerType: (*GitLabServiceServer)(nil),
+var _Kas_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "agentrpc.Kas",
+	HandlerType: (*KasServer)(nil),
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "GetConfiguration",
-			Handler:       _GitLabService_GetConfiguration_Handler,
+			Handler:       _Kas_GetConfiguration_Handler,
 			ServerStreams: true,
 		},
 		{
 			StreamName:    "GetObjectsToSynchronize",
-			Handler:       _GitLabService_GetObjectsToSynchronize_Handler,
+			Handler:       _Kas_GetObjectsToSynchronize_Handler,
 			ServerStreams: true,
 		},
 	},

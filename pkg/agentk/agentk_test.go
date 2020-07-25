@@ -135,7 +135,7 @@ func assertWorkersMatchConfiguration(t *testing.T, a *Agent, config *agentcfg.Ag
 
 func setupAgent(t *testing.T, configs ...*agentcfg.AgentConfiguration) (*Agent, *gomock.Controller, *mock_engine.MockGitOpsEngineFactory) {
 	mockCtrl := gomock.NewController(t)
-	configStream := mock_agentrpc.NewMockGitLabService_GetConfigurationClient(mockCtrl)
+	configStream := mock_agentrpc.NewMockKas_GetConfigurationClient(mockCtrl)
 	var calls []*gomock.Call
 	for _, config := range configs {
 		configResp := &agentrpc.ConfigurationResponse{
@@ -150,7 +150,7 @@ func setupAgent(t *testing.T, configs ...*agentcfg.AgentConfiguration) (*Agent, 
 			Recv().
 			Return(nil, io.EOF))
 	gomock.InOrder(calls...)
-	client := mock_agentrpc.NewMockGitLabServiceClient(mockCtrl)
+	client := mock_agentrpc.NewMockKasClient(mockCtrl)
 	client.EXPECT().
 		GetConfiguration(gomock.Any(), gomock.Any()).
 		Return(configStream, nil)

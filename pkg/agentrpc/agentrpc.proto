@@ -31,10 +31,11 @@ message ObjectsToSynchronizeResponse {
     repeated ObjectToSynchronize objects = 2;
 }
 
-service GitLabService {
-    // Fetch agentk configuration from the server.
+service Kas {
+    // Fetch agentk configuration.
     rpc GetConfiguration (ConfigurationRequest) returns (stream ConfigurationResponse) {
     }
+    // Fetch Kubernetes objects to synchronize.
     rpc GetObjectsToSynchronize (ObjectsToSynchronizeRequest) returns (stream ObjectsToSynchronizeResponse) {
     }
 }

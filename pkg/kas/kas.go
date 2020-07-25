@@ -39,7 +39,7 @@ type Server struct {
 	GitLabClient              GitLabClient
 }
 
-func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream agentrpc.GitLabService_GetConfigurationServer) error {
+func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream agentrpc.Kas_GetConfigurationServer) error {
 	ctx := stream.Context()
 	agentMeta, err := apiutil.AgentMetaFromContext(ctx)
 	if err != nil {
@@ -56,7 +56,7 @@ func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream age
 	return err
 }
 
-func (s *Server) sendConfiguration(agentInfo *api.AgentInfo, stream agentrpc.GitLabService_GetConfigurationServer) wait.ConditionFunc {
+func (s *Server) sendConfiguration(agentInfo *api.AgentInfo, stream agentrpc.Kas_GetConfigurationServer) wait.ConditionFunc {
 	return func() (bool /*done*/, error) {
 		config, err := s.fetchConfiguration(stream.Context(), agentInfo)
 		if err != nil {
@@ -115,7 +115,7 @@ func (s *Server) fetchSingleFile(ctx context.Context, repo *gitalypb.Repository,
 	return fileData, nil
 }
 
-func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeRequest, stream agentrpc.GitLabService_GetObjectsToSynchronizeServer) error {
+func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeRequest, stream agentrpc.Kas_GetObjectsToSynchronizeServer) error {
 	ctx := stream.Context()
 	agentMeta, err := apiutil.AgentMetaFromContext(ctx)
 	if err != nil {
@@ -133,7 +133,7 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 	return err
 }
 
-func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agentrpc.GitLabService_GetObjectsToSynchronizeServer, projectId string) wait.ConditionFunc {
+func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agentrpc.Kas_GetObjectsToSynchronizeServer, projectId string) wait.ConditionFunc {
 	return func() (bool /*done*/, error) {
 		ctx := stream.Context()
 		// This call is made on each poll because:

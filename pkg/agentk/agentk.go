@@ -28,7 +28,7 @@ type GitOpsEngineFactory interface {
 }
 
 type Agent struct {
-	client        agentrpc.GitLabServiceClient
+	kasClient     agentrpc.KasClient
 	engineFactory GitOpsEngineFactory
 
 	workers     map[string]*deploymentWorkerHolder // project id -> worker holder instance
@@ -41,9 +41,9 @@ type deploymentWorkerHolder struct {
 	stop   context.CancelFunc
 }
 
-func New(client agentrpc.GitLabServiceClient, engineFactory GitOpsEngineFactory) *Agent {
+func New(client agentrpc.KasClient, engineFactory GitOpsEngineFactory) *Agent {
 	return &Agent{
-		client:        client,
+		kasClient:     client,
 		engineFactory: engineFactory,
 		workers:       make(map[string]*deploymentWorkerHolder),
 	}
@@ -68,7 +68,7 @@ func (a *Agent) stopAllWorkers() {
 func (a *Agent) refreshConfiguration(ctx context.Context) wait.ConditionFunc {
 	return func() (bool /*done*/, error) {
 		req := &agentrpc.ConfigurationRequest{}
-		res, err := a.client.GetConfiguration(ctx, req)
+		res, err := a.kasClient.GetConfiguration(ctx, req)
 		if err != nil {
 			log.WithError(err).Warn("GetConfiguration failed")
 			return false, nil // nil error to keep polling
@@ -145,7 +145,7 @@ func (a *Agent) startNewWorkerLocked(project *agentcfg.ManifestProjectCF) {
 			log:       logger,
 			projectId: project.Id,
 			//namespace:
-			client: a.client,
+			kasClient: a.kasClient,
 		},
 	}
 	ctx, cancel := context.WithCancel(context.Background())

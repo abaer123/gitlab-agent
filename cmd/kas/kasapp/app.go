@@ -75,7 +75,7 @@ func (a *App) Run(ctx context.Context) error {
 
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
-	agentrpc.RegisterGitLabServiceServer(grpcServer, srv)
+	agentrpc.RegisterKasServer(grpcServer, srv)
 
 	// Start things up
 	st := stager.New()
