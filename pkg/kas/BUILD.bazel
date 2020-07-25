@@ -30,6 +30,7 @@ go_test(
         "//pkg/agentrpc/mock_agentrpc:go_default_library",
         "//pkg/api:go_default_library",
         "//pkg/api/apiutil:go_default_library",
+        "//pkg/gitaly/mock_gitalypool:go_default_library",
         "//pkg/gitlab/mock_gitlab:go_default_library",
         "//pkg/tools/testing/kube_testing:go_default_library",
         "//pkg/tools/testing/matcher:go_default_library",
