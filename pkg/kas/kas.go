@@ -195,8 +195,8 @@ func parseYAMLToConfiguration(configYaml []byte) (*agentcfg.ConfigurationFile, e
 	return configFile, nil
 }
 
-func extractAgentConfiguration(file *agentcfg.ConfigurationFile) (*agentrpc.AgentConfiguration, error) {
-	return &agentrpc.AgentConfiguration{
+func extractAgentConfiguration(file *agentcfg.ConfigurationFile) (*agentcfg.AgentConfiguration, error) {
+	return &agentcfg.AgentConfiguration{
 		Deployments: file.Deployments,
 	}, nil
 }

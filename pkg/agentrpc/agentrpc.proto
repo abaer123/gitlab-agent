@@ -11,15 +11,8 @@ import "pkg/agentcfg/agentcfg.proto";
 message ConfigurationRequest {
 }
 
-// AgentConfiguration represents configuration for agentk.
-// Note that agentk configuration is not exactly the whole file as the file may contain bits that are not
-// relevant for the agent. For example, some additional config for kas.
-message AgentConfiguration {
-    agentcfg.DeploymentsCF deployments = 1;
-}
-
 message ConfigurationResponse {
-    AgentConfiguration configuration = 1;
+    agentcfg.AgentConfiguration configuration = 1;
 }
 
 message ObjectsToSynchronizeRequest {
