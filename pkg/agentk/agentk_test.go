@@ -59,7 +59,7 @@ func TestRunUpdatesNumberOfWorkersAccordingToConfiguration(t *testing.T) {
 	})
 }
 
-func testRunUpdatesNumberOfWorkersAccordingToConfiguration(t *testing.T, configs []*agentrpc.AgentConfiguration) {
+func testRunUpdatesNumberOfWorkersAccordingToConfiguration(t *testing.T, configs []*agentcfg.AgentConfiguration) {
 	a, mockCtrl, factory := setupAgent(t, configs...)
 	engine := mock_engine.NewMockGitOpsEngine(mockCtrl)
 	engine.EXPECT().
@@ -77,8 +77,8 @@ func testRunUpdatesNumberOfWorkersAccordingToConfiguration(t *testing.T, configs
 	assertWorkersMatchConfiguration(t, a, configs[len(configs)-1])
 }
 
-func testConfigurations() []*agentrpc.AgentConfiguration {
-	return []*agentrpc.AgentConfiguration{
+func testConfigurations() []*agentcfg.AgentConfiguration {
+	return []*agentcfg.AgentConfiguration{
 		{},
 		{
 			Deployments: &agentcfg.DeploymentsCF{
@@ -116,7 +116,7 @@ func testConfigurations() []*agentrpc.AgentConfiguration {
 	}
 }
 
-func assertWorkersMatchConfiguration(t *testing.T, a *Agent, config *agentrpc.AgentConfiguration) bool {
+func assertWorkersMatchConfiguration(t *testing.T, a *Agent, config *agentcfg.AgentConfiguration) bool {
 	var projects []*agentcfg.ManifestProjectCF
 	if config.Deployments != nil {
 		projects = config.Deployments.ManifestProjects
@@ -133,7 +133,7 @@ func assertWorkersMatchConfiguration(t *testing.T, a *Agent, config *agentrpc.Ag
 	return success
 }
 
-func setupAgent(t *testing.T, configs ...*agentrpc.AgentConfiguration) (*Agent, *gomock.Controller, *mock_engine.MockGitOpsEngineFactory) {
+func setupAgent(t *testing.T, configs ...*agentcfg.AgentConfiguration) (*Agent, *gomock.Controller, *mock_engine.MockGitOpsEngineFactory) {
 	mockCtrl := gomock.NewController(t)
 	configStream := mock_agentrpc.NewMockGitLabService_GetConfigurationClient(mockCtrl)
 	var calls []*gomock.Call
@@ -160,7 +160,7 @@ func setupAgent(t *testing.T, configs ...*agentrpc.AgentConfiguration) (*Agent, 
 	}), mockCtrl, factory
 }
 
-type sortableConfigs []*agentrpc.AgentConfiguration
+type sortableConfigs []*agentcfg.AgentConfiguration
 
 func (r sortableConfigs) Len() int {
 	return len(r)
@@ -174,7 +174,7 @@ func (r sortableConfigs) Swap(i, j int) {
 	r[i], r[j] = r[j], r[i]
 }
 
-func numberOfManifestProjects(cfg *agentrpc.AgentConfiguration) int {
+func numberOfManifestProjects(cfg *agentcfg.AgentConfiguration) int {
 	if cfg.Deployments == nil {
 		return 0
 	}

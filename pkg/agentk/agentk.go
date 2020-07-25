@@ -90,7 +90,7 @@ func (a *Agent) refreshConfiguration(ctx context.Context) wait.ConditionFunc {
 	}
 }
 
-func (a *Agent) applyConfiguration(config *agentrpc.AgentConfiguration) {
+func (a *Agent) applyConfiguration(config *agentcfg.AgentConfiguration) {
 	log.WithField("config", config).Debug("Applying configuration")
 	a.applyDeploymentsConfiguration(config.Deployments)
 }

@@ -104,7 +104,7 @@ func TestGetConfiguration(t *testing.T) {
 		MinTimes(1)
 	resp.EXPECT().
 		Send(protomock.Eq(&agentrpc.ConfigurationResponse{
-			Configuration: &agentrpc.AgentConfiguration{
+			Configuration: &agentcfg.AgentConfiguration{
 				Deployments: configFile.Deployments,
 			},
 		})).
