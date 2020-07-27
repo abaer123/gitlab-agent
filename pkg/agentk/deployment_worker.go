@@ -35,7 +35,7 @@ func (d *deploymentWorker) Run(ctx context.Context) {
 		// context is done
 		return
 	}
-	defer stopEngine.Close()
+	defer stopEngine.Close() // nolint: errcheck
 
 	s := synchronizer{
 		ctx:                ctx,

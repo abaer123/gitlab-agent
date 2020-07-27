@@ -119,7 +119,7 @@ bazel_skylib_workspace()
 
 go_rules_dependencies()
 
-go_register_toolchains(nogo = "@//:nogo")
+go_register_toolchains()
 
 gazelle_dependencies()
 

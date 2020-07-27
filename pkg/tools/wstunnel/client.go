@@ -18,7 +18,7 @@ func Dial(ctx context.Context, u string, opts *websocket.DialOptions) (*websocke
 // gRPC target naming scheme.
 func DialerForGRPC(readLimit int64, dialOpts *websocket.DialOptions) func(context.Context, string) (net.Conn, error) {
 	return func(ctx context.Context, address string) (net.Conn, error) {
-		conn, _, err := Dial(ctx, address, &websocket.DialOptions{
+		conn, _, err := Dial(ctx, address, &websocket.DialOptions{ // nolint: bodyclose
 			HTTPClient:           dialOpts.HTTPClient,
 			HTTPHeader:           dialOpts.HTTPHeader,
 			CompressionMode:      dialOpts.CompressionMode,

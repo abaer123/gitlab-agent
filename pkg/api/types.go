@@ -30,6 +30,6 @@ type AgentInfo struct {
 }
 
 type ProjectInfo struct {
-	ProjectId  int64
+	ProjectID  int64
 	Repository gitalypb.Repository
 }

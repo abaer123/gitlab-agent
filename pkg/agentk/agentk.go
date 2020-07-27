@@ -116,7 +116,7 @@ func (a *Agent) synchronizeWorkers(projects []*agentcfg.ManifestProjectCF) {
 		workerHolder := a.workers[project.Id]
 		if workerHolder == nil {
 			projectsToAdd = append(projectsToAdd, project)
-		} else {
+			//} else {
 			// TODO update worker's configuration. Nothing currently, but e.g. credentials in the future
 		}
 	}

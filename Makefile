@@ -1,3 +1,9 @@
+# Install using your package manager, as recommended by
+# https://golangci-lint.run/usage/install/#local-installation
+.PHONY: lint
+lint:
+	golangci-lint run
+
 .PHONY: fmt-bazel
 fmt-bazel:
 	bazel run //:buildozer

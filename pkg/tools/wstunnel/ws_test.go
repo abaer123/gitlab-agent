@@ -97,7 +97,7 @@ func testHarness(t *testing.T, test func(*testing.T, *testStuff)) {
 	require.NoError(t, err)
 	defer lis.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	wrapper := ListenerWrapper{

@@ -73,13 +73,13 @@ func TestYAMLToConfigurationAndBack(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			config, err := parseYAMLToConfiguration([]byte(tc.given))
+			config, err := parseYAMLToConfiguration([]byte(tc.given)) // nolint: scopelint
 			require.NoError(t, err)
 			configJson, err := protojson.Marshal(config)
 			require.NoError(t, err)
 			configYaml, err := yaml.JSONToYAML(configJson)
 			require.NoError(t, err)
-			diff := cmp.Diff(tc.expected, string(configYaml))
+			diff := cmp.Diff(tc.expected, string(configYaml)) // nolint: scopelint
 			assert.Empty(t, diff)
 		})
 	}
@@ -153,7 +153,7 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 		GlProjectPath:      "GlProjectPath1",
 	}
 	projectInfo := &api.ProjectInfo{
-		ProjectId:  234,
+		ProjectID:  234,
 		Repository: projectRepo,
 	}
 	findCommitReq := &gitalypb.FindCommitRequest{
