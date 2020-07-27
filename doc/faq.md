@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-This document collects random bits of knowledge about the project which do not fit anywhere else. Also see [architecture-related FAQ](architecture.md#faq).
+This document collects random bits of knowledge about the project which do not fit anywhere else. Also, see [architecture-related FAQ](architecture.md#faq).
 
 - **Q**: Why is the build slow? Why does the build pull so many dependencies?
 
@@ -9,3 +9,18 @@ This document collects random bits of knowledge about the project which do not f
 - **Q**: Why does the build print so many `go: finding module` messages?
 
   **A**: See the previous entry. Kubernetes uses some packages from Docker, which depend on the logrus library. `go` modules support does not like invalid case of imports that some packages use and barfs at it. This is annoying but harmless. It may be fixed in newer Kubernetes/Docker versions already.
+
+- **Q**: Why `agentk` is written in Go?
+
+  **A**: Kubernetes is written in Go as is the whole ecosystem round it. One of the reasons for it is to be able to use bits of Kubernetes that it exports as libraries. Some very important libraries don't have analogs in other languages e.g. [informers](https://github.com/kubernetes/client-go/blob/ccd5becdffb7fd8006e31341baaaacd14db2dcb7/tools/cache/shared_informer.go#L34-L183).
+
+- **Q**: Why `kas` is written in Go (and not Ruby)?
+
+  **A**:
+
+  - Same as the question above, but to a lesser extent - to use libraries from Kubernetes.
+  - Go is perfect for handling long-running connections, Ruby on Rails is not as good.
+
+- **Q**: Why is `kas` not part of the Ruby monolith?
+
+  **A**: Because it's not written in Ruby.
