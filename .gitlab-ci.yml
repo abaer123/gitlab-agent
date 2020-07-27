@@ -55,7 +55,8 @@ test:
     - make test-ci
 
 lint:
-  image: registry.gitlab.com/gitlab-org/gitlab-build-images:golangci-lint-alpine
+  # Latest registry.gitlab.com/gitlab-org/gitlab-build-images:golangci-lint-alpine as of 2020-07-27
+  image: registry.gitlab.com/gitlab-org/gitlab-build-images@sha256:c9d9cbe6cbc68952cab8f02df566b5281e61c46cebada0ea2652935bc2ff9c7b
   stage: test
   script:
     # Use default .golangci.yml file from the image if one is not present in the project root.
