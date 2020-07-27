@@ -72,6 +72,9 @@ func (s *Server) sendConfiguration(agentInfo *api.AgentInfo, stream agentrpc.Kas
 func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInfo) (*agentrpc.ConfigurationResponse, error) {
 	filename := path.Join(agentConfigurationDirectory, agentInfo.Name, agentConfigurationFileName)
 	configYAML, err := s.fetchSingleFile(ctx, &agentInfo.Repository, filename, "master") // TODO handle different default branch
+	if err != nil {
+		return nil, fmt.Errorf("fetch agent configuration: %v", err)
+	}
 	if configYAML == nil {
 		return nil, fmt.Errorf("configuration file not found: %q", filename)
 	}
@@ -79,10 +82,7 @@ func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInf
 	if err != nil {
 		return nil, fmt.Errorf("parse agent configuration: %v", err)
 	}
-	agentConfig, err := extractAgentConfiguration(configFile)
-	if err != nil {
-		return nil, fmt.Errorf("extract agent configuration: %v", err)
-	}
+	agentConfig := extractAgentConfiguration(configFile)
 	return &agentrpc.ConfigurationResponse{
 		Configuration: agentConfig,
 	}, nil
@@ -195,8 +195,8 @@ func parseYAMLToConfiguration(configYaml []byte) (*agentcfg.ConfigurationFile, e
 	return configFile, nil
 }
 
-func extractAgentConfiguration(file *agentcfg.ConfigurationFile) (*agentcfg.AgentConfiguration, error) {
+func extractAgentConfiguration(file *agentcfg.ConfigurationFile) *agentcfg.AgentConfiguration {
 	return &agentcfg.AgentConfiguration{
 		Deployments: file.Deployments,
-	}, nil
+	}
 }

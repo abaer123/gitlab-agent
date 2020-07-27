@@ -75,13 +75,11 @@ func (w *ListenerWrapper) Wrap(source net.Listener) Listener {
 }
 
 type wrapperServer struct {
-	cancelAccept    context.CancelFunc
-	source          net.Listener
-	sourceCloseOnce sync.Once
-	sourceCloseErr  error
-	server          *http.Server
-	accepted        <-chan net.Conn
-	serverErr       chan error
+	cancelAccept context.CancelFunc
+	source       net.Listener
+	server       *http.Server
+	accepted     <-chan net.Conn
+	serverErr    chan error
 }
 
 func (s *wrapperServer) run() {
@@ -126,7 +124,7 @@ func (h *HttpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	subprotocol := conn.Subprotocol()
 	if subprotocol != TunnelWebSocketProtocol {
-		conn.Close(websocket.StatusProtocolError, fmt.Sprintf("Expecting %q subprotocol, got %q", TunnelWebSocketProtocol, subprotocol))
+		conn.Close(websocket.StatusProtocolError, fmt.Sprintf("Expecting %q subprotocol, got %q", TunnelWebSocketProtocol, subprotocol)) // nolint: errcheck, gosec
 		return
 	}
 	if h.ReadLimit != 0 {
@@ -136,10 +134,12 @@ func (h *HttpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	select {
 	case <-r.Context().Done():
-		netConn.Close()
+		netConn.Close() // nolint: errcheck, gosec
 	case <-h.Ctx.Done():
-		conn.Close(websocket.StatusGoingAway, "Shutting down") // send correct close frame
-		netConn.Close()                                        // free resources
+		// send correct close frame
+		conn.Close(websocket.StatusGoingAway, "Shutting down") // nolint: errcheck, gosec
+		// free resources
+		netConn.Close() // nolint: errcheck, gosec
 	case h.Sink <- netConn:
 	}
 }

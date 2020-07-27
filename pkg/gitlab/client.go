@@ -22,17 +22,17 @@ const (
 	responseHeaderTimeout = 20 * time.Second
 )
 
-type HttpClient interface {
+type HTTPClient interface {
 	Do(*http.Request) (*http.Response, error)
 }
 
 type Client struct {
 	Backend    *url.URL
-	HttpClient HttpClient
+	HTTPClient HTTPClient
 }
 
 type manifestProjectInfoResponse struct {
-	ProjectId int64 `json:"project_id"`
+	ProjectID int64 `json:"project_id"`
 	gitalyRepositoryResponsePart
 }
 
@@ -44,7 +44,7 @@ type gitalyRepositoryResponsePart struct {
 }
 
 type getAgentInfoResponse struct {
-	ProjectId int64  `json:"project_id"`
+	ProjectID int64  `json:"project_id"`
 	AgentId   int64  `json:"agent_id"`
 	AgentName string `json:"agent_name"`
 	gitalyRepositoryResponsePart
@@ -53,7 +53,7 @@ type getAgentInfoResponse struct {
 func NewClient(backend *url.URL, socket string) *Client {
 	return &Client{
 		Backend: backend,
-		HttpClient: &http.Client{
+		HTTPClient: &http.Client{
 			Transport: roundtripper.NewBackendRoundTripper(backend, socket, responseHeaderTimeout),
 		},
 	}
@@ -92,7 +92,7 @@ func (c *Client) GetProjectInfo(ctx context.Context, meta *api.AgentMeta, projec
 		return nil, err
 	}
 	return &api.ProjectInfo{
-		ProjectId: response.ProjectId,
+		ProjectID: response.ProjectID,
 		Repository: gitalypb.Repository{
 			StorageName:   response.StorageName,
 			RelativePath:  response.RelativePath,
@@ -126,7 +126,7 @@ func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta,
 		r.Header.Set("Content-Type", "application/json")
 	}
 
-	resp, err := c.HttpClient.Do(r)
+	resp, err := c.HTTPClient.Do(r)
 	if err != nil {
 		return fmt.Errorf("GitLab request: %v", err)
 	}
@@ -188,6 +188,6 @@ func IsForbidden(err error) bool {
 }
 
 func drainAndClose(body io.ReadCloser) {
-	defer body.Close()
-	io.Copy(ioutil.Discard, io.LimitReader(body, 16*1024))
+	defer body.Close()                                     // nolint: errcheck
+	io.Copy(ioutil.Discard, io.LimitReader(body, 16*1024)) // nolint: errcheck, gosec
 }

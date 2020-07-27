@@ -25,8 +25,8 @@ var (
 func TestRunStartsWorkersAccordingToConfiguration(t *testing.T) {
 	for i, config := range testConfigurations() {
 		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
-			expectedNumberOfWorkers := numberOfManifestProjects(config)
-			a, mockCtrl, factory := setupAgent(t, config)
+			expectedNumberOfWorkers := numberOfManifestProjects(config) // nolint: scopelint
+			a, mockCtrl, factory := setupAgent(t, config)               // nolint: scopelint
 			for i := 0; i < expectedNumberOfWorkers; i++ {
 				engine := mock_engine.NewMockGitOpsEngine(mockCtrl)
 				engine.EXPECT().
@@ -41,7 +41,7 @@ func TestRunStartsWorkersAccordingToConfiguration(t *testing.T) {
 			defer cancel()
 			err := a.Run(ctx)
 			require.NoError(t, err)
-			assertWorkersMatchConfiguration(t, a, config)
+			assertWorkersMatchConfiguration(t, a, config) // nolint: scopelint
 		})
 	}
 }
@@ -116,7 +116,7 @@ func testConfigurations() []*agentcfg.AgentConfiguration {
 	}
 }
 
-func assertWorkersMatchConfiguration(t *testing.T, a *Agent, config *agentcfg.AgentConfiguration) bool {
+func assertWorkersMatchConfiguration(t *testing.T, a *Agent, config *agentcfg.AgentConfiguration) bool { // nolint: unparam
 	var projects []*agentcfg.ManifestProjectCF
 	if config.Deployments != nil {
 		projects = config.Deployments.ManifestProjects

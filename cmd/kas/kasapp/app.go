@@ -46,7 +46,7 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("gRPC.dial Gitaly: %v", err)
 	}
-	defer gitalyConn.Close()
+	defer gitalyConn.Close() // nolint: errcheck
 
 	// Main logic of kas
 	gitLabUrl, err := url.Parse(a.GitLabAddress)

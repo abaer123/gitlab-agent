@@ -41,7 +41,7 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer conn.Close() // nolint: errcheck
 	agent := agentk.New(agentrpc.NewKasClient(conn), &agentk.DefaultGitOpsEngineFactory{
 		KubeClientConfig: a.KubeClientConfig,
 	})
