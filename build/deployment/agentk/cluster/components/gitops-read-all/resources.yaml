@@ -9,6 +9,7 @@ rules:
   apiGroups:
   - '*'
   verbs:
+  - get
   - list
   - watch
 ---
