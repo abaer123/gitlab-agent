@@ -127,6 +127,6 @@ def define_command_targets(name, binary_embed):
         image = ":container_race",
         registry = "registry.gitlab.com",
         repository = "gitlab-org/cluster-integration/gitlab-agent/%s" % name,
-        tag = "latest_race",
+        tag = "latest-race",
         tags = ["manual"],
     )
