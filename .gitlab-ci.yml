@@ -53,7 +53,8 @@ test:
   script:
     - sed -i'.bak' 's|go_register_toolchains()|go_register_toolchains(nogo = "@//:nogo_for_ci")|' WORKSPACE
     - make test-ci
-    - if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then make test-ci release-latest-all; fi
+    - *registry_creds
+    - if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then make release-latest-all; fi
 
 lint:
   # Latest registry.gitlab.com/gitlab-org/gitlab-build-images:golangci-lint-alpine as of 2020-07-27
