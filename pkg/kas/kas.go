@@ -178,6 +178,7 @@ func (s *Server) fetchObjectsToSynchronize(ctx context.Context, repoInfo *api.Pr
 	return []*agentrpc.ObjectToSynchronize{
 		{
 			Object: manifestYAML,
+			Source: filename,
 		},
 	}, fcResp.Commit.Id, nil
 }

@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	"github.com/argoproj/gitops-engine/pkg/cache"
 	"github.com/argoproj/gitops-engine/pkg/engine"
@@ -16,30 +15,20 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured/unstructuredscheme"
-	"k8s.io/apimachinery/pkg/runtime/serializer/json"
-	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
-	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/cli-runtime/pkg/resource"
 )
 
 const (
 	managedObjectAnnotationName = "k8s-agent.gitlab.com/managed-object"
 )
 
-var (
-	yamlSerializer = json.NewSerializerWithOptions(
-		json.DefaultMetaFactory,
-		unstructuredscheme.NewUnstructuredCreator(),
-		unstructuredscheme.NewUnstructuredObjectTyper(),
-		json.SerializerOptions{Yaml: true})
-)
-
 // synchronizerConfig holds configuration for a synchronizer.
 type synchronizerConfig struct {
-	log       *logrus.Entry
-	projectId string
-	namespace string
-	kasClient agentrpc.KasClient
+	log             *logrus.Entry
+	projectId       string
+	namespace       string
+	kasClient       agentrpc.KasClient
+	k8sClientGetter resource.RESTClientGetter
 }
 
 type resourceInfo struct {
@@ -81,7 +70,7 @@ func (s *synchronizer) run() {
 }
 
 func (s *synchronizer) synchronize(objectsResp *agentrpc.ObjectsToSynchronizeResponse) error {
-	objs, err := decodeObjectsToSynchronize(objectsResp.Objects)
+	objs, err := s.decodeObjectsToSynchronize(objectsResp.Objects)
 	if err != nil {
 		return err
 	}
@@ -103,6 +92,35 @@ func (s *synchronizer) isManaged(r *cache.Resource) bool {
 	return r.Info.(*resourceInfo).gcMark == "managed" // TODO
 }
 
+func (s *synchronizer) decodeObjectsToSynchronize(objs []*agentrpc.ObjectToSynchronize) ([]*unstructured.Unstructured, error) {
+	if len(objs) == 0 {
+		return nil, nil
+	}
+	// TODO allow enforcing namespace
+	builder := resource.NewBuilder(s.k8sClientGetter).
+		ContinueOnError().
+		Flatten().
+		Local().
+		Unstructured()
+	for _, obj := range objs {
+		builder.Stream(bytes.NewReader(obj.Object), obj.Source)
+	}
+	var res []*unstructured.Unstructured
+	err := builder.Do().Visit(func(info *resource.Info, err error) error {
+		if err != nil {
+			return err
+		}
+		un := info.Object.(*unstructured.Unstructured)
+		// TODO enforce namespace is set for namespaced objects?
+		res = append(res, un)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
 func markAsManaged(objs []*unstructured.Unstructured) {
 	for _, obj := range objs {
 		annotations := obj.GetAnnotations()
@@ -121,38 +139,4 @@ func populateResourceInfoHandler(un *unstructured.Unstructured, isRoot bool) (in
 	return &resourceInfo{
 		gcMark: gcMark,
 	}, gcMark != ""
-}
-
-func decodeObjectsToSynchronize(objs []*agentrpc.ObjectToSynchronize) ([]*unstructured.Unstructured, error) {
-	res := make([]*unstructured.Unstructured, 0, len(objs))
-	for _, obj := range objs {
-		decodedObjs, err := decodeObjectToSynchronize(obj)
-		if err != nil {
-			return nil, err
-		}
-		res = append(res, decodedObjs...)
-	}
-	return res, nil
-}
-
-func decodeObjectToSynchronize(obj *agentrpc.ObjectToSynchronize) (retObjs []*unstructured.Unstructured, retErr error) {
-	decoder := streaming.NewDecoder(yaml.NewDocumentDecoder(ioutil.NopCloser(bytes.NewReader(obj.Object))), yamlSerializer)
-	defer func() {
-		if err := decoder.Close(); err != nil && retErr == nil {
-			retObjs = nil
-			retErr = fmt.Errorf("close decode YAML: %v", err)
-		}
-	}()
-	var unstructuredObjs []*unstructured.Unstructured
-	for {
-		decodedRuntimeObj, _, err := decoder.Decode(nil, &unstructured.Unstructured{})
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return nil, fmt.Errorf("decode YAML: %v", err)
-		}
-		unstructuredObjs = append(unstructuredObjs, decodedRuntimeObj.(*unstructured.Unstructured))
-	}
-	return unstructuredObjs, nil
 }

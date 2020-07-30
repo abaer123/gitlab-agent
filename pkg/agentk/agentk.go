@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/status"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/rest"
 )
 
@@ -28,8 +29,9 @@ type GitOpsEngineFactory interface {
 }
 
 type Agent struct {
-	kasClient     agentrpc.KasClient
-	engineFactory GitOpsEngineFactory
+	kasClient       agentrpc.KasClient
+	engineFactory   GitOpsEngineFactory
+	k8sClientGetter resource.RESTClientGetter
 
 	workers     map[string]*deploymentWorkerHolder // project id -> worker holder instance
 	workersLock sync.RWMutex
@@ -41,11 +43,12 @@ type deploymentWorkerHolder struct {
 	stop   context.CancelFunc
 }
 
-func New(client agentrpc.KasClient, engineFactory GitOpsEngineFactory) *Agent {
+func New(kasClient agentrpc.KasClient, engineFactory GitOpsEngineFactory, k8sClientGetter resource.RESTClientGetter) *Agent {
 	return &Agent{
-		kasClient:     client,
-		engineFactory: engineFactory,
-		workers:       make(map[string]*deploymentWorkerHolder),
+		kasClient:       kasClient,
+		engineFactory:   engineFactory,
+		k8sClientGetter: k8sClientGetter,
+		workers:         make(map[string]*deploymentWorkerHolder),
 	}
 }
 
@@ -145,7 +148,8 @@ func (a *Agent) startNewWorkerLocked(project *agentcfg.ManifestProjectCF) {
 			log:       logger,
 			projectId: project.Id,
 			//namespace:
-			kasClient: a.kasClient,
+			kasClient:       a.kasClient,
+			k8sClientGetter: a.k8sClientGetter,
 		},
 	}
 	ctx, cancel := context.WithCancel(context.Background())

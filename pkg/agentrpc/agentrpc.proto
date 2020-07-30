@@ -24,6 +24,8 @@ message ObjectsToSynchronizeRequest {
 message ObjectToSynchronize {
     // YAML object manifest.
     bytes object = 1;
+    // Source of the YAML e.g. file name.
+    string source = 2;
 }
 
 message ObjectsToSynchronizeResponse {

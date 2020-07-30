@@ -16,7 +16,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/agentk/agentkapp"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kas/kasapp"
 	"golang.org/x/sync/errgroup"
-	"k8s.io/client-go/rest"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -57,11 +57,13 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 		os.Remove(tokenFile)
 	})
 	require.NoError(t, ioutil.WriteFile(tokenFile, []byte(kasToken), 0o644))
+	configFlags := genericclioptions.NewTestConfigFlags()
+	configFlags.WithClientConfig(getKubeConfig())
 	ak := agentkapp.App{
-		KasAddress:       address,
-		KasInsecure:      true,
-		TokenFile:        tokenFile,
-		KubeClientConfig: getKubeConfig(t),
+		KasAddress:      address,
+		KasInsecure:     true,
+		TokenFile:       tokenFile,
+		K8sClientGetter: configFlags,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -94,14 +96,12 @@ func getKasToken(t *testing.T) string {
 	return getEnvString(t, "KAS_TOKEN")
 }
 
-func getKubeConfig(t *testing.T) *rest.Config {
+func getKubeConfig() clientcmd.ClientConfig {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	overrides := &clientcmd.ConfigOverrides{
 		CurrentContext: os.Getenv("KUBECONTEXT"),
 	}
-	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides).ClientConfig()
-	require.NoError(t, err)
-	return config
+	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
 }
 
 func getEnvString(t *testing.T, envKey string) string {

@@ -16,6 +16,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc/mock_agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/tools/testing/mock_engine"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 var (
@@ -155,9 +156,10 @@ func setupAgent(t *testing.T, configs ...*agentcfg.AgentConfiguration) (*Agent, 
 		GetConfiguration(gomock.Any(), gomock.Any()).
 		Return(configStream, nil)
 	factory := mock_engine.NewMockGitOpsEngineFactory(mockCtrl)
+	configFlags := &genericclioptions.TestConfigFlags{}
 	return New(client, &mock_engine.ThreadSafeGitOpsEngineFactory{
 		EngineFactory: factory,
-	}), mockCtrl, factory
+	}, configFlags), mockCtrl, factory
 }
 
 type sortableConfigs []*agentcfg.AgentConfiguration
