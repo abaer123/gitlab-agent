@@ -110,3 +110,23 @@ def define_command_targets(name, binary_embed):
         tag = "{STABLE_BUILD_GIT_COMMIT}-race",
         tags = ["manual"],
     )
+
+    container_push(
+        name = "push_docker_latest",
+        format = "Docker",
+        image = ":container",
+        registry = "registry.gitlab.com",
+        repository = "gitlab-org/cluster-integration/gitlab-agent/%s" % name,
+        tag = "latest",
+        tags = ["manual"],
+    )
+
+    container_push(
+        name = "push_docker_latest_race",
+        format = "Docker",
+        image = ":container_race",
+        registry = "registry.gitlab.com",
+        repository = "gitlab-org/cluster-integration/gitlab-agent/%s" % name,
+        tag = "latest_race",
+        tags = ["manual"],
+    )

@@ -159,6 +159,27 @@ release-commit-all: update-bazel
 	bazel run \
 		//cmd/kas:push_docker_commit_race
 
+
+# Build and push all docker images tagged "latest".
+# This only works on a linux machine
+.PHONY: release-latest-all
+release-latest-all: update-bazel
+	# Build all targets in a single invocation for maximum parallelism
+	bazel build \
+		//cmd/agentk:push_docker_latest \
+		//cmd/agentk:push_docker_latest_race \
+		//cmd/kas:push_docker_latest \
+		//cmd/kas:push_docker_latest_race
+	# Actually push built images one by one
+	bazel run \
+		//cmd/agentk:push_docker_latest
+	bazel run \
+		//cmd/agentk:push_docker_latest_race
+	bazel run \
+		//cmd/kas:push_docker_latest
+	bazel run \
+		//cmd/kas:push_docker_latest_race
+
 .PHONY: release-commit-normal
 release-commit-normal: update-bazel
 	bazel run \
