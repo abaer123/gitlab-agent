@@ -23,7 +23,8 @@ spec:
         image: "registry.gitlab.com/gitlab-org/cluster-integration/gitlab-agent/agentk:latest"
         args:
         - --token-file=/config/token
-        - --kas-address=tcp://host.docker.internal:5005
+        - tcp://127.0.0.1:5005 # {"$openapi":"kas-address"}
+        # - --kas-address=tcp://host.docker.internal:5005 # use this when connecting from within Docker e.g. from kind
         - --kas-insecure
         volumeMounts:
         - name: token-volume

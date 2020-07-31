@@ -11,3 +11,9 @@ openAPI:
           value: agentk
           setBy: package-default
           count: 1
+    io.k8s.cli.setters.kas-address:
+      description: kas address. Use tcp://host.docker.internal:5005 if connecting from within Docker e.g. from kind.
+      x-k8s-cli:
+        setter:
+          name: kas-address
+          value: tcp://127.0.0.1:5005
