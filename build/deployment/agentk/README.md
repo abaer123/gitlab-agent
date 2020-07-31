@@ -34,7 +34,7 @@ Package for installing `agentk`, the in-cluster component of GitLab Kubernetes A
 
     ```shell
     # in agentk directory
-    echo '<Agent token>' > base/token.txt
+    echo -n '<Agent token>' > base/token.txt
     ```
 
 1. Deploy the stock configuration or your customized overlay:
