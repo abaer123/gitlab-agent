@@ -20,11 +20,11 @@ spec:
       serviceAccountName: agentk
       containers:
       - name: agentk
-        image: "registry.gitlab.com/gitlab-org/cluster-integration/gitlab-agent/agentk:v0.0.1"
+        image: "registry.gitlab.com/gitlab-org/cluster-integration/gitlab-agent/agentk:latest"
         args:
         - --token-file=/config/token
-        - --kgb-address=tcp://host.docker.internal:5005
-        - --kgb-insecure
+        - --kas-address=tcp://host.docker.internal:5005
+        - --kas-insecure
         volumeMounts:
         - name: token-volume
           mountPath: /config
