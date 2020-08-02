@@ -24,6 +24,7 @@ require (
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 	k8s.io/api v1.17.8
 	k8s.io/apimachinery v1.17.8
+	k8s.io/cli-runtime v1.17.8
 	k8s.io/client-go v11.0.1-0.20190816222228-6d55c1b1f1ca+incompatible
 	nhooyr.io/websocket v1.8.6
 	sigs.k8s.io/yaml v1.2.0

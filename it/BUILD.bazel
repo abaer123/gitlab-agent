@@ -21,7 +21,7 @@ go_test(
         "@com_github_stretchr_testify//assert:go_default_library",
         "@com_github_stretchr_testify//require:go_default_library",
         "@com_gitlab_gitlab_org_labkit//log:go_default_library",
-        "@io_k8s_client_go//rest:go_default_library",
+        "@io_k8s_cli_runtime//pkg/genericclioptions:go_default_library",
         "@io_k8s_client_go//tools/clientcmd:go_default_library",
         "@org_golang_x_sync//errgroup:go_default_library",
     ],

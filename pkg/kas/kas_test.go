@@ -1,7 +1,6 @@
 package kas
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"strconv"
@@ -18,15 +17,15 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/gitlab/mock_gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/tools/testing/kube_testing"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/tools/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/tools/testing/mock_gitaly"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/tools/testing/protomock"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"sigs.k8s.io/yaml"
 )
 
@@ -103,7 +102,7 @@ func TestGetConfiguration(t *testing.T) {
 		Return(ctx).
 		MinTimes(1)
 	resp.EXPECT().
-		Send(protomock.Eq(&agentrpc.ConfigurationResponse{
+		Send(matcher.ProtoEq(t, &agentrpc.ConfigurationResponse{
 			Configuration: &agentcfg.AgentConfiguration{
 				Deployments: configFile.Deployments,
 			},
@@ -112,7 +111,7 @@ func TestGetConfiguration(t *testing.T) {
 			cancel() // stop streaming call after the first response has been sent
 			return nil
 		})
-	mockTreeEntry(mockCtrl, gitalyClient, treeEntryReq, configToBytes(t, configFile))
+	mockTreeEntry(t, mockCtrl, gitalyClient, treeEntryReq, configToBytes(t, configFile))
 	err := a.GetConfiguration(&agentrpc.ConfigurationRequest{}, resp)
 	require.NoError(t, err)
 }
@@ -143,7 +142,7 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 			},
 		},
 	}
-	objectsYAML := objsToYAML(t, objects...)
+	objectsYAML := kube_testing.ObjsToYAML(t, objects...)
 
 	projectRepo := gitalypb.Repository{
 		StorageName:        "StorageName1",
@@ -180,11 +179,12 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 		Return(ctx).
 		MinTimes(1)
 	resp.EXPECT().
-		Send(protomock.Eq(&agentrpc.ObjectsToSynchronizeResponse{
+		Send(matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeResponse{
 			Revision: revision,
 			Objects: []*agentrpc.ObjectToSynchronize{
 				{
 					Object: objectsYAML,
+					Source: "manifest.yaml",
 				},
 			},
 		})).
@@ -197,26 +197,14 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 		Return(projectInfo, nil)
 
 	gitalyClient.EXPECT().
-		FindCommit(gomock.Any(), protomock.Eq(findCommitReq), gomock.Any()).
+		FindCommit(gomock.Any(), matcher.ProtoEq(t, findCommitReq), gomock.Any()).
 		Return(findCommitResp, nil)
-	mockTreeEntry(mockCtrl, gitalyClient, treeEntryReq, objectsYAML)
+	mockTreeEntry(t, mockCtrl, gitalyClient, treeEntryReq, objectsYAML)
 	err := a.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, resp)
 	require.NoError(t, err)
 }
 
-func objsToYAML(t *testing.T, objs ...runtime.Object) []byte {
-	out := &bytes.Buffer{}
-	w := json.YAMLFramer.NewFrameWriter(out)
-	for _, obj := range objs {
-		data, err := yaml.Marshal(obj)
-		require.NoError(t, err)
-		_, err = w.Write(data)
-		require.NoError(t, err)
-	}
-	return out.Bytes()
-}
-
-func mockTreeEntry(mockCtrl *gomock.Controller, gitalyClient *mock_gitaly.MockCommitServiceClient, req *gitalypb.TreeEntryRequest, data []byte) {
+func mockTreeEntry(t *testing.T, mockCtrl *gomock.Controller, gitalyClient *mock_gitaly.MockCommitServiceClient, req *gitalypb.TreeEntryRequest, data []byte) {
 	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(mockCtrl)
 	// Emulate streaming response
 	resp1 := &gitalypb.TreeEntryResponse{
@@ -237,7 +225,7 @@ func mockTreeEntry(mockCtrl *gomock.Controller, gitalyClient *mock_gitaly.MockCo
 			Return(nil, io.EOF),
 	)
 	gitalyClient.EXPECT().
-		TreeEntry(gomock.Any(), protomock.Eq(req)).
+		TreeEntry(gomock.Any(), matcher.ProtoEq(t, req)).
 		Return(treeEntryClient, nil)
 }
 

@@ -13,26 +13,29 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/tools/wstunnel"
 	"google.golang.org/grpc"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/resource"
 	"nhooyr.io/websocket"
 )
 
 const (
 	defaultMaxMessageSize = 10 * 1024 * 1024
-	kubernetesFlagsPrefix = "kube-"
 )
 
 type App struct {
 	// KasAddress specifies the address of kas.
 	KasAddress string
 	// KasInsecure disables transport security for connections to kas.
-	KasInsecure      bool
-	TokenFile        string
-	KubeClientConfig *rest.Config
+	KasInsecure     bool
+	TokenFile       string
+	K8sClientGetter resource.RESTClientGetter
 }
 
 func (a *App) Run(ctx context.Context) error {
+	restConfig, err := a.K8sClientGetter.ToRESTConfig()
+	if err != nil {
+		return fmt.Errorf("ToRESTConfig: %v", err)
+	}
 	tokenData, err := ioutil.ReadFile(a.TokenFile)
 	if err != nil {
 		return fmt.Errorf("token file: %v", err)
@@ -43,8 +46,8 @@ func (a *App) Run(ctx context.Context) error {
 	}
 	defer conn.Close() // nolint: errcheck
 	agent := agentk.New(agentrpc.NewKasClient(conn), &agentk.DefaultGitOpsEngineFactory{
-		KubeClientConfig: a.KubeClientConfig,
-	})
+		KubeClientConfig: restConfig,
+	}, a.K8sClientGetter)
 	return agent.Run(ctx)
 }
 
@@ -78,25 +81,11 @@ func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, err
 	flagset.StringVar(&app.KasAddress, "kas-address", "", "kas address")
 	flagset.BoolVar(&app.KasInsecure, "kas-insecure", false, "Disable transport security for kas connection")
 	flagset.StringVar(&app.TokenFile, "token-file", "", "File with access token")
-	clientConf := addKubeFlags(flagset)
+	kubeConfigFlags := genericclioptions.NewConfigFlags(true)
+	kubeConfigFlags.AddFlags(flagset)
 	if err := flagset.Parse(arguments); err != nil {
 		return nil, err
 	}
-	var err error
-	app.KubeClientConfig, err = clientConf.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
+	app.K8sClientGetter = kubeConfigFlags
 	return app, nil
-}
-
-// addKubeFlags adds kubectl-like flags to a flagset and returns the ClientConfig interface
-// for retrieving the values.
-func addKubeFlags(flagset *pflag.FlagSet) clientcmd.ClientConfig {
-	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-	overrides := &clientcmd.ConfigOverrides{}
-	kflags := clientcmd.RecommendedConfigOverrideFlags(kubernetesFlagsPrefix)
-	flagset.StringVar(&loadingRules.ExplicitPath, kubernetesFlagsPrefix+"config", "", "Path to a Kubernetes config. Only required if out-of-cluster")
-	clientcmd.BindOverrideFlags(overrides, flagset, kflags)
-	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
 }
