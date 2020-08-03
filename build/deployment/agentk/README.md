@@ -5,7 +5,7 @@ agentk
 
 Package for installing `agentk`, the in-cluster component of GitLab Kubernetes Agent.
 
-# Use the package
+## Use the package
 
 1. Get the package using [`kpt`](https://googlecontainertools.github.io/kpt/). See [`kpt pkg get` docs](https://googlecontainertools.github.io/kpt/guides/consumer/get/) for more information on how the following command works:
 
