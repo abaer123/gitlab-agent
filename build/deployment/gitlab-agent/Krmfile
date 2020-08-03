@@ -3,17 +3,18 @@ kind: Krmfile
 openAPI:
   definitions:
     io.k8s.cli.setters.namespace:
-      description: Namespace to install agentk into
+      description: Namespace to install GitLab Kubernetes Agent into
       type: string
       x-k8s-cli:
         setter:
           name: namespace
-          value: agentk
+          value: gitlab-agent
           setBy: package-default
           count: 1
     io.k8s.cli.setters.kas-address:
-      description: kas address. Use tcp://host.docker.internal:5005 if connecting from within Docker e.g. from kind.
+      description: kas address. Use grpc://host.docker.internal:5005 if connecting
+        from within Docker e.g. from kind.
       x-k8s-cli:
         setter:
           name: kas-address
-          value: tcp://127.0.0.1:5005
+          value: grpc://127.0.0.1:5005

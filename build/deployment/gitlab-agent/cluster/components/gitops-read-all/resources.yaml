@@ -2,7 +2,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: agentk-gitops-read-all
+  name: gitlab-agent-gitops-read-all
 rules:
 - resources:
   - '*'
@@ -16,11 +16,11 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: agentk-gitops-read-all
+  name: gitlab-agent-gitops-read-all
 roleRef:
-  name: agentk-gitops-read-all
+  name: gitlab-agent-gitops-read-all
   kind: ClusterRole
   apiGroup: rbac.authorization.k8s.io
 subjects:
-- name: agentk
+- name: gitlab-agent
   kind: ServiceAccount

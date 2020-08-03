@@ -2,7 +2,7 @@ apiVersion: builtin
 kind: NamespaceTransformer
 metadata:
   name: namespace-setter
-  namespace: agentk # {"$openapi":"namespace"}
+  namespace: gitlab-agent # {"$openapi":"namespace"}
 fieldSpecs:
 - create: true
   path: metadata/namespace
