@@ -80,8 +80,8 @@ go_repository(
     build_file_proto_mode = "disable_global",
     importpath = "k8s.io/kubernetes",
     replace = "k8s.io/kubernetes",
-    sum = "h1:VKkgXDo0PzBeoVABOWc4/ozDOzoouHbNxljqXC8TRIg=",
-    version = "v1.17.8",
+    sum = "h1:2rkR3ffvd5YVyPYU4LAUDCKoKQZtjuuj8ga15mbv96o=",
+    version = "v1.18.6",
 )
 
 # Copied from rules_go to keep patches in place
