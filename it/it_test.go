@@ -50,7 +50,7 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 	if websocket {
 		address = "ws://" + address
 	} else {
-		address = "tcp://" + address
+		address = "grpc://" + address
 	}
 	tokenFile := filepath.Join(os.TempDir(), fmt.Sprintf("%d.token", rand.Uint64()))
 	t.Cleanup(func() {

@@ -62,12 +62,19 @@ func (a *App) kasConnection(ctx context.Context, token string) (*grpc.ClientConn
 	if err != nil {
 		return nil, fmt.Errorf("invalid kas address: %v", err)
 	}
-	addressToDial := u.Host
-	if u.Scheme == "ws" || u.Scheme == "wss" {
+	var addressToDial string
+	switch u.Scheme {
+	case "ws", "wss":
 		addressToDial = a.KasAddress
 		opts = append(opts, grpc.WithContextDialer(wstunnel.DialerForGRPC(defaultMaxMessageSize, &websocket.DialOptions{
 			// TODO
 		})))
+	case "grpc", "tcp": // TODO remove tcp
+		addressToDial = u.Host
+	//case "grpcs":
+	// TODO https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/7
+	default:
+		return nil, fmt.Errorf("unsupported scheme in kas address: %q", u.Scheme)
 	}
 	conn, err := grpc.DialContext(ctx, addressToDial, opts...)
 	if err != nil {

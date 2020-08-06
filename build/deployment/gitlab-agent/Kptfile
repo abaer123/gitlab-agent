@@ -1,0 +1,7 @@
+apiVersion: kpt.dev/v1alpha1
+kind: Kptfile
+metadata:
+  name: gitlab-agent
+packageMetadata:
+  url: https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent
+  shortDescription: Package for installing GitLab Kubernetes Agent.

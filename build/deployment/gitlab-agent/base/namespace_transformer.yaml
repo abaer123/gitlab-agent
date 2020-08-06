@@ -1,0 +1,16 @@
+apiVersion: builtin
+kind: NamespaceTransformer
+metadata:
+  name: namespace-setter
+  namespace: gitlab-agent # {"$openapi":"namespace"}
+fieldSpecs:
+- create: true
+  path: metadata/namespace
+- kind: RoleBinding
+  create: true
+  group: rbac.authorization.k8s.io
+  path: subjects
+- kind: ClusterRoleBinding
+  create: true
+  group: rbac.authorization.k8s.io
+  path: subjects

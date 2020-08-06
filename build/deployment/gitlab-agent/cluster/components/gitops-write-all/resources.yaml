@@ -1,0 +1,27 @@
+# This is not great but we cannot do better at the moment. See https://github.com/argoproj/gitops-engine/issues/98
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gitlab-agent-gitops-write-all
+rules:
+- resources:
+  - '*'
+  apiGroups:
+  - '*'
+  verbs:
+  - create
+  - update
+  - delete
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gitlab-agent-gitops-write-all
+roleRef:
+  name: gitlab-agent-gitops-write-all
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- name: gitlab-agent
+  kind: ServiceAccount

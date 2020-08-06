@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gitlab-agent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitlab-agent
+  template:
+    metadata:
+      labels:
+        app: gitlab-agent
+    spec:
+      serviceAccountName: gitlab-agent
+      containers:
+      - name: agent
+        image: "registry.gitlab.com/gitlab-org/cluster-integration/gitlab-agent/agentk:latest"
+        args:
+        - --token-file=/config/token
+        - --kas-address
+        - grpc://127.0.0.1:5005 # {"$openapi":"kas-address"}
+        # - grpc://host.docker.internal:5005 # use this when connecting from within Docker e.g. from kind
+        - --kas-insecure
+        volumeMounts:
+        - name: token-volume
+          mountPath: /config
+      volumes:
+      - name: token-volume
+        secret:
+          secretName: gitlab-agent-token
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
