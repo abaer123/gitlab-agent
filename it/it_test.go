@@ -59,7 +59,6 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 	configFlags.WithClientConfig(getKubeConfig())
 	ak := agentkapp.App{
 		KasAddress:      address,
-		KasInsecure:     true,
 		TokenFile:       tokenFile,
 		K8sClientGetter: configFlags,
 	}
