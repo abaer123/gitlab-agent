@@ -24,9 +24,7 @@ const (
 
 type App struct {
 	// KasAddress specifies the address of kas.
-	KasAddress string
-	// KasInsecure disables transport security for connections to kas.
-	KasInsecure     bool
+	KasAddress      string
 	TokenFile       string
 	K8sClientGetter resource.RESTClientGetter
 }
@@ -52,30 +50,32 @@ func (a *App) Run(ctx context.Context) error {
 }
 
 func (a *App) kasConnection(ctx context.Context, token string) (*grpc.ClientConn, error) {
-	opts := []grpc.DialOption{
-		grpc.WithPerRPCCredentials(apiutil.NewTokenCredentials(token, a.KasInsecure)),
-	}
-	if a.KasInsecure {
-		opts = append(opts, grpc.WithInsecure())
-	}
 	u, err := url.Parse(a.KasAddress)
 	if err != nil {
 		return nil, fmt.Errorf("invalid kas address: %v", err)
 	}
+	var opts []grpc.DialOption
 	var addressToDial string
+	// "grpcs" is the only scheme where encryption is done by gRPC.
+	// "wss" is secure too but gRPC cannot know that, so we tell it it's not.
+	secure := u.Scheme == "grpcs"
 	switch u.Scheme {
 	case "ws", "wss":
 		addressToDial = a.KasAddress
 		opts = append(opts, grpc.WithContextDialer(wstunnel.DialerForGRPC(defaultMaxMessageSize, &websocket.DialOptions{
 			// TODO
 		})))
-	case "grpc", "tcp": // TODO remove tcp
+	case "grpc":
 		addressToDial = u.Host
 	//case "grpcs":
 	// TODO https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/7
 	default:
-		return nil, fmt.Errorf("unsupported scheme in kas address: %q", u.Scheme)
+		return nil, fmt.Errorf("unsupported scheme in GitLab Kubernetes Agent Server address: %q", u.Scheme)
 	}
+	if !secure {
+		opts = append(opts, grpc.WithInsecure())
+	}
+	opts = append(opts, grpc.WithPerRPCCredentials(apiutil.NewTokenCredentials(token, !secure)))
 	conn, err := grpc.DialContext(ctx, addressToDial, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("gRPC.dial: %v", err)
@@ -85,8 +85,7 @@ func (a *App) kasConnection(ctx context.Context, token string) (*grpc.ClientConn
 
 func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, error) {
 	app := &App{}
-	flagset.StringVar(&app.KasAddress, "kas-address", "", "kas address")
-	flagset.BoolVar(&app.KasInsecure, "kas-insecure", false, "Disable transport security for kas connection")
+	flagset.StringVar(&app.KasAddress, "kas-address", "", "GitLab Kubernetes Agent Server address")
 	flagset.StringVar(&app.TokenFile, "token-file", "", "File with access token")
 	kubeConfigFlags := genericclioptions.NewConfigFlags(true)
 	kubeConfigFlags.AddFlags(flagset)

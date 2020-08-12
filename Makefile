@@ -200,5 +200,3 @@ release-commit-race: update-bazel
 .PHONY: gdk-install
 gdk-install:
 	bazel run //build:extract_race_binaries_for_gdk -- "$(TARGET_DIRECTORY)"
-	# forward and backward compatibility with GDK. Will be removed once GDK no longer looks for kgb_race
-	cp "$(TARGET_DIRECTORY)/kas_race" "$(TARGET_DIRECTORY)/kgb_race"
