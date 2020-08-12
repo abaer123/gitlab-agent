@@ -8,14 +8,13 @@ go_library(
     deps = [
         "//cmd:go_default_library",
         "//pkg/agentrpc:go_default_library",
+        "//pkg/gitaly:go_default_library",
         "//pkg/gitlab:go_default_library",
         "//pkg/kas:go_default_library",
         "//pkg/tools/wstunnel:go_default_library",
         "@com_github_ash2k_stager//:go_default_library",
         "@com_github_spf13_pflag//:go_default_library",
-        "@com_gitlab_gitlab_org_gitaly//auth:go_default_library",
         "@com_gitlab_gitlab_org_gitaly//client:go_default_library",
-        "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
     ],
 )

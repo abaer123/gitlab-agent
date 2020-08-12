@@ -31,23 +31,48 @@ type Client struct {
 	HTTPClient HTTPClient
 }
 
-type manifestProjectInfoResponse struct {
-	ProjectID int64 `json:"project_id"`
-	gitalyRepositoryResponsePart
+type gitalyInfo struct {
+	Address  string            `json:"address"`
+	Token    string            `json:"token"`
+	Features map[string]string `json:"features"`
 }
 
-type gitalyRepositoryResponsePart struct {
+func (g *gitalyInfo) ToGitalyInfo() api.GitalyInfo {
+	return api.GitalyInfo{
+		Address:  g.Address,
+		Token:    g.Token,
+		Features: g.Features,
+	}
+}
+
+type gitalyRepository struct {
 	StorageName   string `json:"storage_name"`
 	RelativePath  string `json:"relative_path"`
 	GlRepository  string `json:"gl_repository"`
 	GlProjectPath string `json:"gl_project_path"`
 }
 
+func (r *gitalyRepository) ToProtoRepository() gitalypb.Repository {
+	return gitalypb.Repository{
+		StorageName:   r.StorageName,
+		RelativePath:  r.RelativePath,
+		GlRepository:  r.GlRepository,
+		GlProjectPath: r.GlProjectPath,
+	}
+}
+
+type manifestProjectInfoResponse struct {
+	ProjectID        int64            `json:"project_id"`
+	GitalyInfo       gitalyInfo       `json:"gitaly_info"`
+	GitalyRepository gitalyRepository `json:"gitaly_repository"`
+}
+
 type getAgentInfoResponse struct {
-	ProjectID int64  `json:"project_id"`
-	AgentId   int64  `json:"agent_id"`
-	AgentName string `json:"agent_name"`
-	gitalyRepositoryResponsePart
+	ProjectID        int64            `json:"project_id"`
+	AgentID          int64            `json:"agent_id"`
+	AgentName        string           `json:"agent_name"`
+	GitalyInfo       gitalyInfo       `json:"gitaly_info"`
+	GitalyRepository gitalyRepository `json:"gitaly_repository"`
 }
 
 func NewClient(backend *url.URL, socket string) *Client {
@@ -68,15 +93,11 @@ func (c *Client) GetAgentInfo(ctx context.Context, meta *api.AgentMeta) (*api.Ag
 		return nil, err
 	}
 	return &api.AgentInfo{
-		Meta: *meta,
-		Id:   response.AgentId,
-		Name: response.AgentName,
-		Repository: gitalypb.Repository{
-			StorageName:   response.StorageName,
-			RelativePath:  response.RelativePath,
-			GlRepository:  response.GlRepository,
-			GlProjectPath: response.GlProjectPath,
-		},
+		Meta:       *meta,
+		ID:         response.AgentID,
+		Name:       response.AgentName,
+		GitalyInfo: response.GitalyInfo.ToGitalyInfo(),
+		Repository: response.GitalyRepository.ToProtoRepository(),
 	}, nil
 }
 
@@ -92,13 +113,9 @@ func (c *Client) GetProjectInfo(ctx context.Context, meta *api.AgentMeta, projec
 		return nil, err
 	}
 	return &api.ProjectInfo{
-		ProjectID: response.ProjectID,
-		Repository: gitalypb.Repository{
-			StorageName:   response.StorageName,
-			RelativePath:  response.RelativePath,
-			GlRepository:  response.GlRepository,
-			GlProjectPath: response.GlProjectPath,
-		},
+		ProjectID:  response.ProjectID,
+		GitalyInfo: response.GitalyInfo.ToGitalyInfo(),
+		Repository: response.GitalyRepository.ToProtoRepository(),
 	}, nil
 }
 

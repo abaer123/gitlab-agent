@@ -16,6 +16,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc/mock_agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/api/apiutil"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/gitaly/mock_gitalypool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/gitlab/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/tools/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/tools/testing/matcher"
@@ -85,7 +86,7 @@ func TestYAMLToConfigurationAndBack(t *testing.T) {
 }
 
 func TestGetConfiguration(t *testing.T) {
-	a, agentInfo, mockCtrl, gitalyClient, _ := setupKas(t)
+	a, agentInfo, mockCtrl, gitalyPool, _ := setupKas(t)
 	treeEntryReq := &gitalypb.TreeEntryRequest{
 		Repository: &agentInfo.Repository,
 		Revision:   []byte("master"),
@@ -111,13 +112,17 @@ func TestGetConfiguration(t *testing.T) {
 			cancel() // stop streaming call after the first response has been sent
 			return nil
 		})
-	mockTreeEntry(t, mockCtrl, gitalyClient, treeEntryReq, configToBytes(t, configFile))
+	commitClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
+	gitalyPool.EXPECT().
+		CommitServiceClient(gomock.Any(), &agentInfo.GitalyInfo).
+		Return(commitClient, nil)
+	mockTreeEntry(t, mockCtrl, commitClient, treeEntryReq, configToBytes(t, configFile))
 	err := a.GetConfiguration(&agentrpc.ConfigurationRequest{}, resp)
 	require.NoError(t, err)
 }
 
 func TestGetObjectsToSynchronize(t *testing.T) {
-	a, agentInfo, mockCtrl, gitalyClient, gitlabClient := setupKas(t)
+	a, agentInfo, mockCtrl, gitalyPool, gitlabClient := setupKas(t)
 
 	objects := []runtime.Object{
 		&corev1.ConfigMap{
@@ -152,7 +157,14 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 		GlProjectPath:      "GlProjectPath1",
 	}
 	projectInfo := &api.ProjectInfo{
-		ProjectID:  234,
+		ProjectID: 234,
+		GitalyInfo: api.GitalyInfo{
+			Address: "127.0.0.1:321321",
+			Token:   "cba",
+			Features: map[string]string{
+				"bla": "false",
+			},
+		},
 		Repository: projectRepo,
 	}
 	findCommitReq := &gitalypb.FindCommitRequest{
@@ -195,16 +207,20 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	gitlabClient.EXPECT().
 		GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
 		Return(projectInfo, nil)
-
-	gitalyClient.EXPECT().
+	commitClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
+	gitalyPool.EXPECT().
+		CommitServiceClient(gomock.Any(), &projectInfo.GitalyInfo).
+		Return(commitClient, nil).
+		MinTimes(1) // FindCommit and TreeEntry
+	commitClient.EXPECT().
 		FindCommit(gomock.Any(), matcher.ProtoEq(t, findCommitReq), gomock.Any()).
 		Return(findCommitResp, nil)
-	mockTreeEntry(t, mockCtrl, gitalyClient, treeEntryReq, objectsYAML)
+	mockTreeEntry(t, mockCtrl, commitClient, treeEntryReq, objectsYAML)
 	err := a.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, resp)
 	require.NoError(t, err)
 }
 
-func mockTreeEntry(t *testing.T, mockCtrl *gomock.Controller, gitalyClient *mock_gitaly.MockCommitServiceClient, req *gitalypb.TreeEntryRequest, data []byte) {
+func mockTreeEntry(t *testing.T, mockCtrl *gomock.Controller, commitClient *mock_gitaly.MockCommitServiceClient, req *gitalypb.TreeEntryRequest, data []byte) {
 	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(mockCtrl)
 	// Emulate streaming response
 	resp1 := &gitalypb.TreeEntryResponse{
@@ -224,7 +240,7 @@ func mockTreeEntry(t *testing.T, mockCtrl *gomock.Controller, gitalyClient *mock
 			Recv().
 			Return(nil, io.EOF),
 	)
-	gitalyClient.EXPECT().
+	commitClient.EXPECT().
 		TreeEntry(gomock.Any(), matcher.ProtoEq(t, req)).
 		Return(treeEntryClient, nil)
 }
@@ -256,15 +272,22 @@ func sampleConfig() *agentcfg.ConfigurationFile {
 	}
 }
 
-func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_gitaly.MockCommitServiceClient, *mock_gitlab.MockGitLabClient) {
+func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_gitalypool.MockGitalyPool, *mock_gitlab.MockGitLabClient) {
 	agentMeta := api.AgentMeta{
 		Token:   token,
 		Version: "",
 	}
 	agentInfo := &api.AgentInfo{
 		Meta: agentMeta,
-		Id:   123,
+		ID:   123,
 		Name: "agent1",
+		GitalyInfo: api.GitalyInfo{
+			Address: "127.0.0.1:123123",
+			Token:   "abc",
+			Features: map[string]string{
+				"bla": "true",
+			},
+		},
 		Repository: gitalypb.Repository{
 			StorageName:        "StorageName",
 			RelativePath:       "RelativePath",
@@ -275,7 +298,7 @@ func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_
 	}
 
 	mockCtrl := gomock.NewController(t)
-	gitalyClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
+	gitalyPool := mock_gitalypool.NewMockGitalyPool(mockCtrl)
 	gitlabClient := mock_gitlab.NewMockGitLabClient(mockCtrl)
 	gitlabClient.EXPECT().
 		GetAgentInfo(gomock.Any(), &agentMeta).
@@ -283,9 +306,9 @@ func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_
 
 	a := &Server{
 		ReloadConfigurationPeriod: 10 * time.Minute,
-		CommitServiceClient:       gitalyClient,
+		GitalyPool:                gitalyPool,
 		GitLabClient:              gitlabClient,
 	}
 
-	return a, agentInfo, mockCtrl, gitalyClient, gitlabClient
+	return a, agentInfo, mockCtrl, gitalyPool, gitlabClient
 }

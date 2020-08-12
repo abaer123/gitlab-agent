@@ -20,9 +20,10 @@ regenerate-proto: internal-regenerate-proto fmt update-bazel
 internal-regenerate-mocks:
 	go generate -x -v \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc/mock_agentrpc" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/gitlab/mock_gitlab" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/gitaly/mock_gitalypool" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/tools/testing/mock_engine" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/tools/testing/mock_gitaly" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/gitlab/mock_gitlab"
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/tools/testing/mock_gitaly"
 
 .PHONY: regenerate-mocks
 regenerate-mocks: internal-regenerate-mocks fmt update-bazel

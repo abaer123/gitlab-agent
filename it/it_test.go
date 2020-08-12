@@ -35,7 +35,6 @@ func TestFetchConfiguration(t *testing.T) {
 }
 
 func testFetchConfiguration(t *testing.T, websocket bool) {
-	gitalyAddress := getGitalyAddress(t)
 	gitlabAddress := getGitLabAddress(t)
 	kasToken := getKasToken(t)
 	address := getRandomLocalAddress(t)
@@ -43,7 +42,6 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 		ListenNetwork:             "tcp",
 		ListenAddress:             address,
 		ListenWebSocket:           websocket,
-		GitalyAddress:             gitalyAddress,
 		GitLabAddress:             gitlabAddress,
 		ReloadConfigurationPeriod: 10 * time.Second,
 	}
@@ -82,10 +80,6 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 	})
 
 	// TODO
-}
-
-func getGitalyAddress(t *testing.T) string {
-	return getEnvString(t, "GITALY_ADDRESS")
 }
 
 func getGitLabAddress(t *testing.T) string {
