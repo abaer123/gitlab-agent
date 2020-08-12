@@ -26,7 +26,6 @@ spec:
         - --kas-address
         - grpc://127.0.0.1:5005 # {"$openapi":"kas-address"}
         # - grpc://host.docker.internal:5005 # use this when connecting from within Docker e.g. from kind
-        - --kas-insecure
         volumeMounts:
         - name: token-volume
           mountPath: /config
