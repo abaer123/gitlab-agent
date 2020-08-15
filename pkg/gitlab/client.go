@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"net/url"
@@ -147,7 +146,7 @@ func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta,
 	if err != nil {
 		return fmt.Errorf("GitLab request: %v", err)
 	}
-	defer drainAndClose(resp.Body)
+	defer resp.Body.Close() // nolint: errcheck
 	switch resp.StatusCode {
 	case http.StatusOK: // Handled below
 	case http.StatusForbidden: // Invalid or revoked token
@@ -202,9 +201,4 @@ func IsForbidden(err error) bool {
 		return false
 	}
 	return e.Kind == ErrorKindForbidden
-}
-
-func drainAndClose(body io.ReadCloser) {
-	defer body.Close()                                     // nolint: errcheck
-	io.Copy(ioutil.Discard, io.LimitReader(body, 16*1024)) // nolint: errcheck, gosec
 }
