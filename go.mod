@@ -9,6 +9,7 @@ require (
 	github.com/golang/mock v1.4.4-0.20200612212805-d9ac6780152f
 	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.5.1
+	github.com/gorilla/mux v1.7.4
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/pflag v1.0.5

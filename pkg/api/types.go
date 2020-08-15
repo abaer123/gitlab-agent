@@ -26,6 +26,8 @@ type AgentInfo struct {
 	Meta AgentMeta
 	// ID is the agent's id in the database.
 	ID int64
+	// ProjectID is the id of the configuration project of the agent.
+	ProjectID int64
 
 	// Name is the agent's name.
 	// Can contain only /a-z\d-/

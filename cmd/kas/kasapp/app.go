@@ -22,9 +22,16 @@ import (
 )
 
 const (
+	authSecretKeyLength = 32
+
 	defaultReloadConfigurationPeriod = 5 * time.Minute
 	defaultMaxMessageSize            = 10 * 1024 * 1024
-	authSecretKeyLength              = 32
+
+	defaultAgentInfoCacheTTL      = 5 * time.Minute
+	defaultAgentInfoCacheErrorTTL = 1 * time.Minute
+
+	defaultProjectInfoCacheTTL      = 5 * time.Minute
+	defaultProjectInfoCacheErrorTTL = 1 * time.Minute
 )
 
 type App struct {
@@ -65,12 +72,20 @@ func (a *App) Run(ctx context.Context) error {
 
 	gitalyClientPool := client.NewPool()
 	defer gitalyClientPool.Close() // nolint: errcheck
+	gitLabClient := gitlab.NewClient(gitLabUrl, a.GitLabSocket, decodedAuthSecret, fmt.Sprintf("kas/%s/%s", cmd.Version, cmd.Commit))
+	gitLabCachingClient := gitlab.NewCachingClient(gitLabClient, gitlab.CacheOptions{
+		CacheTTL:      defaultAgentInfoCacheTTL,
+		CacheErrorTTL: defaultAgentInfoCacheErrorTTL,
+	}, gitlab.CacheOptions{
+		CacheTTL:      defaultProjectInfoCacheTTL,
+		CacheErrorTTL: defaultProjectInfoCacheErrorTTL,
+	})
 	srv := &kas.Server{
 		ReloadConfigurationPeriod: a.ReloadConfigurationPeriod,
 		GitalyPool: &gitaly.Pool{
 			ClientPool: gitalyClientPool,
 		},
-		GitLabClient: gitlab.NewClient(gitLabUrl, a.GitLabSocket, decodedAuthSecret, fmt.Sprintf("kas/%s/%s", cmd.Version, cmd.Commit)),
+		GitLabClient: gitLabCachingClient,
 	}
 
 	var opts []grpc.ServerOption

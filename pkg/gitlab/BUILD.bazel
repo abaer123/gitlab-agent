@@ -1,14 +1,34 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "go_default_library",
-    srcs = ["client.go"],
+    srcs = [
+        "cache.go",
+        "client.go",
+        "types.go",
+    ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/gitlab",
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/api:go_default_library",
         "//pkg/gitlab/fromworkhorse/roundtripper:go_default_library",
         "@com_github_dgrijalva_jwt_go//:go_default_library",
+        "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    size = "small",
+    srcs = ["client_test.go"],
+    embed = [":go_default_library"],
+    race = "on",
+    deps = [
+        "//pkg/api:go_default_library",
+        "@com_github_dgrijalva_jwt_go//:go_default_library",
+        "@com_github_gorilla_mux//:go_default_library",
+        "@com_github_stretchr_testify//assert:go_default_library",
+        "@com_github_stretchr_testify//require:go_default_library",
         "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb:go_default_library",
     ],
 )
