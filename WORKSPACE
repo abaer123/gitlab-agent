@@ -128,6 +128,17 @@ load(
     "@io_bazel_rules_docker//repositories:repositories.bzl",
     container_repositories = "repositories",
 )
+
+container_repositories()
+
+load("@io_bazel_rules_docker//repositories:deps.bzl", container_deps = "deps")
+
+container_deps()
+
+load("@io_bazel_rules_docker//repositories:pip_repositories.bzl", "pip_deps")
+
+pip_deps()
+
 load(
     "@io_bazel_rules_docker//go:image.bzl",
     go_image_repositories = "repositories",
@@ -139,8 +150,6 @@ load(
 load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
 load("@rules_proto_grpc//:repositories.bzl", "rules_proto_grpc_toolchains")
 load("@rules_proto_grpc//go:repositories.bzl", rules_proto_grpc_go_repos = "go_repos")
-
-container_repositories()
 
 go_image_repositories()
 
