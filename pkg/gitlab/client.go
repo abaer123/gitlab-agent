@@ -147,7 +147,7 @@ func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta,
 	if err != nil {
 		return fmt.Errorf("GitLab request: %v", err)
 	}
-	defer drainAndClose(resp.Body)
+	defer resp.Body.Close() // nolint: errcheck
 	switch resp.StatusCode {
 	case http.StatusOK: // Handled below
 	case http.StatusForbidden: // Invalid or revoked token
@@ -161,11 +161,15 @@ func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta,
 			StatusCode: resp.StatusCode,
 		}
 	}
-	if !isApplicationJson(resp) {
+	if !isApplicationJSON(resp) {
 		return fmt.Errorf("unexpected Content-Type in response: %q", r.Header.Get("Content-Type"))
 	}
-	if err := json.NewDecoder(resp.Body).Decode(response); err != nil {
-		return fmt.Errorf("json.Decode: %v", err)
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("request body read: %v", err)
+	}
+	if err := json.Unmarshal(data, response); err != nil {
+		return fmt.Errorf("json.Unmarshal: %v", err)
 	}
 	return nil
 }
@@ -175,7 +179,7 @@ func isContentType(expected, actual string) bool {
 	return err == nil && parsed == expected
 }
 
-func isApplicationJson(r *http.Response) bool {
+func isApplicationJSON(r *http.Response) bool {
 	contentType := r.Header.Get("Content-Type")
 	return isContentType("application/json", contentType)
 }
@@ -202,9 +206,4 @@ func IsForbidden(err error) bool {
 		return false
 	}
 	return e.Kind == ErrorKindForbidden
-}
-
-func drainAndClose(body io.ReadCloser) {
-	defer body.Close()                                     // nolint: errcheck
-	io.Copy(ioutil.Discard, io.LimitReader(body, 16*1024)) // nolint: errcheck, gosec
 }
