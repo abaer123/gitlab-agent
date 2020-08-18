@@ -48,18 +48,14 @@ GitLab Kubernetes Agent needs two pieces of configuration to connect to a GitLab
                                                              Kubernetes Agent into
     kustomize cfg set . namespace custom-place
     set 1 fields
-    kustomize cfg set . kas-address wss://my-host.example.com:443
+    kustomize cfg set . kas-address wss://my-host.example.com:443/-/kubernetes-agent
     set 1 fields
     ```
 
 1. (Optional but recommended) Commit the configuration into a repository and manage it as code.
 
-1. Put the agent token into the file where Kustomize [`SecretGenerator`](https://kubernetes-sigs.github.io/kustomize/guides/plugins/builtins/#_secretgenerator_) plugin is expecting it:
-
-    ```shell
-    # in the package directory
-    echo -n '<Agent token>' > base/token.txt
-    ```
+1. Put the agent token into a `Secret` named `gitlab-agent-token`. Make sure it's in the same namespace with the
+agent (`gitlab-agent` by default). You can find out the currently set namespace by running `kustomize cfg list-setters .`. See step 2 above.
 
 1. Deploy the stock configuration or your customized overlay:
 
