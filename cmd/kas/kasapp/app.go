@@ -2,6 +2,7 @@ package kasapp
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/url"
 	"time"
@@ -59,7 +60,7 @@ func (a *App) Run(ctx context.Context) error {
 		GitalyPool: &gitaly.Pool{
 			ClientPool: gitalyClientPool,
 		},
-		GitLabClient: gitlab.NewClient(gitLabUrl, a.GitLabSocket),
+		GitLabClient: gitlab.NewClient(gitLabUrl, a.GitLabSocket, fmt.Sprintf("kas/%s/%s", cmd.Version, cmd.Commit)),
 	}
 
 	var opts []grpc.ServerOption

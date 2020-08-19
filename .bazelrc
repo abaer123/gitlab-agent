@@ -1,4 +1,5 @@
 build --workspace_status_command build/print_workspace_status.sh
+build --stamp
 
 test --test_output=errors
 test --test_verbose_timeout_warnings

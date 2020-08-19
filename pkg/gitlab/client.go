@@ -29,6 +29,7 @@ type HTTPClient interface {
 type Client struct {
 	Backend    *url.URL
 	HTTPClient HTTPClient
+	UserAgent  string
 }
 
 type gitalyInfo struct {
@@ -75,12 +76,13 @@ type getAgentInfoResponse struct {
 	GitalyRepository gitalyRepository `json:"gitaly_repository"`
 }
 
-func NewClient(backend *url.URL, socket string) *Client {
+func NewClient(backend *url.URL, socket, userAgent string) *Client {
 	return &Client{
 		Backend: backend,
 		HTTPClient: &http.Client{
 			Transport: roundtripper.NewBackendRoundTripper(backend, socket, responseHeaderTimeout),
 		},
+		UserAgent: userAgent,
 	}
 }
 
@@ -129,15 +131,12 @@ func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta,
 		bodyReader = bytes.NewReader(bodyBytes)
 	}
 	u := *url
-	query := u.Query()
-	query.Set("agentk_version", meta.Version)
-	u.RawQuery = query.Encode()
 	r, err := http.NewRequestWithContext(ctx, method, u.String(), bodyReader)
 	if err != nil {
 		return fmt.Errorf("NewRequestWithContext: %v", err)
 	}
 	r.Header.Set("Authorization", "Bearer "+string(meta.Token))
-	r.Header.Set("User-Agent", "kas")
+	r.Header.Set("User-Agent", c.UserAgent)
 	r.Header.Set("Accept", "application/json")
 	if bodyReader != nil {
 		r.Header.Set("Content-Type", "application/json")

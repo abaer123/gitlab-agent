@@ -274,8 +274,7 @@ func sampleConfig() *agentcfg.ConfigurationFile {
 
 func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_gitalypool.MockGitalyPool, *mock_gitlab.MockGitLabClient) {
 	agentMeta := api.AgentMeta{
-		Token:   token,
-		Version: "",
+		Token: token,
 	}
 	agentInfo := &api.AgentInfo{
 		Meta: agentMeta,

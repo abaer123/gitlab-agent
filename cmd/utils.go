@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -49,10 +51,16 @@ func run(factory RunnableFactory) error {
 }
 
 func runWithContext(ctx context.Context, factory RunnableFactory) error {
-	flagset := pflag.NewFlagSet(os.Args[0], pflag.ContinueOnError)
+	programName := os.Args[0]
+	flagset := pflag.NewFlagSet(programName, pflag.ContinueOnError)
+	printVersion := flagset.Bool("version", false, "Print version and exit")
 	app, err := factory(flagset, os.Args[1:])
 	if err != nil {
 		return err
+	}
+	if *printVersion {
+		fmt.Fprintf(os.Stderr, "%s version: %s, commit: %s\n", filepath.Base(programName), Version, Commit)
+		return nil
 	}
 	return app.Run(ctx)
 }
