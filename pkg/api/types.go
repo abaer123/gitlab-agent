@@ -4,7 +4,6 @@ import "gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 
 const (
 	MetadataAuthorization = "authorization"
-	MetadataAgentkVersion = "agentk-version"
 )
 
 // AgentToken is agentk's bearer access token.
@@ -13,8 +12,7 @@ type AgentToken string
 // AgentMeta contains information received from agentk with a request.
 // It's passed as gRPC metadata.
 type AgentMeta struct {
-	Token   AgentToken
-	Version string
+	Token AgentToken
 }
 
 type GitalyInfo struct {

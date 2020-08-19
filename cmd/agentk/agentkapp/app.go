@@ -54,7 +54,9 @@ func (a *App) kasConnection(ctx context.Context, token string) (*grpc.ClientConn
 	if err != nil {
 		return nil, fmt.Errorf("invalid kas address: %v", err)
 	}
-	var opts []grpc.DialOption
+	opts := []grpc.DialOption{
+		grpc.WithUserAgent(fmt.Sprintf("agentk/%s/%s", cmd.Version, cmd.Commit)),
+	}
 	var addressToDial string
 	// "grpcs" is the only scheme where encryption is done by gRPC.
 	// "wss" is secure too but gRPC cannot know that, so we tell it it's not.

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
-	"github.com/grpc-ecosystem/go-grpc-middleware/util/metautils"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/api"
 	"google.golang.org/grpc/credentials"
 )
@@ -15,8 +14,7 @@ func AgentMetaFromContext(ctx context.Context) (*api.AgentMeta, error) {
 		return nil, err
 	}
 	return &api.AgentMeta{
-		Token:   api.AgentToken(token),
-		Version: metautils.ExtractIncoming(ctx).Get(api.MetadataAgentkVersion),
+		Token: api.AgentToken(token),
 	}, nil
 }
 
