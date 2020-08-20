@@ -34,6 +34,7 @@ type GitalyPool interface {
 }
 
 type Server struct {
+	Context                   context.Context
 	ReloadConfigurationPeriod time.Duration
 	GitalyPool                GitalyPool
 	GitLabClient              gitlab.ClientInterface
@@ -49,7 +50,7 @@ func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream age
 	if err != nil {
 		return fmt.Errorf("GetAgentInfo(): %v", err)
 	}
-	err = wait.PollImmediateUntil(s.ReloadConfigurationPeriod, s.sendConfiguration(agentInfo, stream), ctx.Done())
+	err = wait.PollImmediateUntil(s.ReloadConfigurationPeriod, s.sendConfiguration(agentInfo, stream), joinDone(s.Context, ctx).Done())
 	if err == wait.ErrWaitTimeout {
 		return nil // all good, ctx is done
 	}
@@ -130,7 +131,7 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 		return fmt.Errorf("GetAgentInfo(): %v", err)
 	}
 	// TODO get period from request
-	err = wait.PollImmediateUntil(15*time.Second, s.sendObjectsToSynchronize(agentInfo, stream, req.ProjectId), ctx.Done())
+	err = wait.PollImmediateUntil(15*time.Second, s.sendObjectsToSynchronize(agentInfo, stream, req.ProjectId), joinDone(s.Context, ctx).Done())
 	if err == wait.ErrWaitTimeout {
 		return nil // all good, ctx is done
 	}
@@ -208,4 +209,24 @@ func extractAgentConfiguration(file *agentcfg.ConfigurationFile) *agentcfg.Agent
 	return &agentcfg.AgentConfiguration{
 		Deployments: file.Deployments,
 	}
+}
+
+// joinDone returns a context that is cancelled when c1 or c2 signal done.
+// The returned context does not use c1 or c2 as a parent context to avoid inheriting any attached values,
+// as this function is only meant to be used to join the done signal, not anything else. Also, it would be not
+// clear which of the two to use.
+//
+// This helper is used here to propagate done signal from both gRPC stream's context (stream is closed/broken) and
+// main program's context (program needs to stop). Polling should stop when one of this conditions happens so using
+// only one of these two contexts is not good enough.
+func joinDone(c1, c2 context.Context) context.Context {
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		defer cancel()
+		select {
+		case <-c1.Done():
+		case <-c2.Done():
+		}
+	}()
+	return ctx
 }
