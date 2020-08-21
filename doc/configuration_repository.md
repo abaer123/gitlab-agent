@@ -24,12 +24,13 @@ We have chosen the Git repository approach because:
 Minimal repository layout looks like this:
 
 ```plaintext
-|- agents
-   |- my_agent_1
-      |- config.yaml
+|- .gitlab
+    |- agents
+       |- my_agent_1
+          |- config.yaml
 ```
 
-`my_agent_1` is the name (identity) of the agent. See [Agent identity and name](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc/identity_and_auth.md#agent-identity-and-name) to find out more about names.
+`my_agent_1` is the name (identity) of the agent. See [Agent identity and name](identity_and_auth.md#agent-identity-and-name) to find out more about names.
 
 ## `config.yaml` syntax
 
@@ -40,16 +41,17 @@ Agents likely have different configuration, but some of it may be identical. `co
 Example repository layout:
 
 ```plaintext
-|- base
-|  |- config.yaml
-|- agents
-   |- my_agent_1
-   |  |- config.yaml
-   |- production-agent
-      |- config.yaml
+|- .gitlab
+    |- base_for_agents
+    |  |- config.yaml
+    |- agents
+       |- my_agent_1
+       |  |- config.yaml
+       |- production-agent
+          |- config.yaml
 ```
 
-`config.yaml` for both agents can include the `../../base/config.yaml` file in such layout.
+`config.yaml` for both agents can include the `../../base_for_agents/config.yaml` file in such layout.
 
 ### `deployments` section
 
