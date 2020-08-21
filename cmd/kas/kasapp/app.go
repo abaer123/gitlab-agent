@@ -2,7 +2,9 @@ package kasapp
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/url"
 	"time"
@@ -22,6 +24,7 @@ import (
 const (
 	defaultReloadConfigurationPeriod = 5 * time.Minute
 	defaultMaxMessageSize            = 10 * 1024 * 1024
+	authSecretKeyLength              = 32
 )
 
 type App struct {
@@ -30,6 +33,7 @@ type App struct {
 	ListenWebSocket           bool
 	GitLabAddress             string
 	GitLabSocket              string
+	GitLabAuthSecretFile      string
 	ReloadConfigurationPeriod time.Duration
 }
 
@@ -39,6 +43,12 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	// Secret for JWT signing
+	decodedAuthSecret, err := loadAuthSecret(a.GitLabAuthSecretFile)
+	if err != nil {
+		return fmt.Errorf("authentication secret: %v", err)
+	}
+
 	// gRPC server
 	lis, err := net.Listen(a.ListenNetwork, a.ListenAddress)
 	if err != nil {
@@ -60,7 +70,7 @@ func (a *App) Run(ctx context.Context) error {
 		GitalyPool: &gitaly.Pool{
 			ClientPool: gitalyClientPool,
 		},
-		GitLabClient: gitlab.NewClient(gitLabUrl, a.GitLabSocket, fmt.Sprintf("kas/%s/%s", cmd.Version, cmd.Commit)),
+		GitLabClient: gitlab.NewClient(gitLabUrl, a.GitLabSocket, decodedAuthSecret, fmt.Sprintf("kas/%s/%s", cmd.Version, cmd.Commit)),
 	}
 
 	var opts []grpc.ServerOption
@@ -78,6 +88,23 @@ func (a *App) Run(ctx context.Context) error {
 	return grpcServer.Serve(lis)
 }
 
+func loadAuthSecret(authSecretKeyFile string) ([]byte, error) {
+	encodedAuthSecret, err := ioutil.ReadFile(authSecretKeyFile) // nolint: gosec
+	if err != nil {
+		return nil, fmt.Errorf("read file: %v", err)
+	}
+	decodedAuthSecret := make([]byte, authSecretKeyLength)
+
+	n, err := base64.StdEncoding.Decode(decodedAuthSecret, encodedAuthSecret)
+	if err != nil {
+		return nil, fmt.Errorf("decoding: %v", err)
+	}
+	if n != authSecretKeyLength {
+		return nil, fmt.Errorf("decoding: expecting %d bytes, was %d", authSecretKeyLength, n)
+	}
+	return decodedAuthSecret, nil
+}
+
 func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, error) {
 	app := &App{}
 	flagset.StringVar(&app.ListenNetwork, "listen-network", "tcp", "Network type to listen on. Supported values: tcp, tcp4, tcp6, unix")
@@ -85,6 +112,7 @@ func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, err
 	flagset.BoolVar(&app.ListenWebSocket, "listen-websocket", false, "Enable \"gRPC through WebSocket\" listening mode. Rather than expecting gRPC directly, expect a WebSocket connection, from which a gRPC stream is then unpacked")
 	flagset.StringVar(&app.GitLabAddress, "gitlab-address", "http://localhost:8080", "GitLab address")
 	flagset.StringVar(&app.GitLabSocket, "gitlab-socket", "", "Optional: Unix domain socket to dial GitLab at")
+	flagset.StringVar(&app.GitLabAuthSecretFile, "authentication-secret-file", "", "File with JWT secret to authenticate with GitLab")
 	flagset.DurationVar(&app.ReloadConfigurationPeriod, "reload-configuration-period", defaultReloadConfigurationPeriod, "How often to reload agentk configuration")
 	if err := flagset.Parse(arguments); err != nil {
 		return nil, err

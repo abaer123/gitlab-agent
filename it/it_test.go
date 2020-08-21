@@ -36,13 +36,15 @@ func TestFetchConfiguration(t *testing.T) {
 
 func testFetchConfiguration(t *testing.T, websocket bool) {
 	gitlabAddress := getGitLabAddress(t)
-	kasToken := getKasToken(t)
+	agentkToken := getAgentkToken(t)
+	kasAuthSecretFile := getKasAuthSecretFile(t)
 	address := getRandomLocalAddress(t)
 	ag := kasapp.App{
 		ListenNetwork:             "tcp",
 		ListenAddress:             address,
 		ListenWebSocket:           websocket,
 		GitLabAddress:             gitlabAddress,
+		GitLabAuthSecretFile:      kasAuthSecretFile,
 		ReloadConfigurationPeriod: 10 * time.Second,
 	}
 	if websocket {
@@ -50,16 +52,16 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 	} else {
 		address = "grpc://" + address
 	}
-	tokenFile := filepath.Join(os.TempDir(), fmt.Sprintf("%d.token", rand.Uint64()))
+	agentkTokenFile := filepath.Join(os.TempDir(), fmt.Sprintf("agentk_token.%d.txt", rand.Uint64()))
 	t.Cleanup(func() {
-		os.Remove(tokenFile)
+		os.Remove(agentkTokenFile)
 	})
-	require.NoError(t, ioutil.WriteFile(tokenFile, []byte(kasToken), 0o644))
+	require.NoError(t, ioutil.WriteFile(agentkTokenFile, []byte(agentkToken), 0o644))
 	configFlags := genericclioptions.NewTestConfigFlags()
 	configFlags.WithClientConfig(getKubeConfig())
 	ak := agentkapp.App{
 		KasAddress:      address,
-		TokenFile:       tokenFile,
+		TokenFile:       agentkTokenFile,
 		K8sClientGetter: configFlags,
 	}
 
@@ -85,8 +87,12 @@ func getGitLabAddress(t *testing.T) string {
 	return getEnvString(t, "GITLAB_ADDRESS")
 }
 
-func getKasToken(t *testing.T) string {
-	return getEnvString(t, "KAS_TOKEN")
+func getAgentkToken(t *testing.T) string {
+	return getEnvString(t, "AGENTK_TOKEN")
+}
+
+func getKasAuthSecretFile(t *testing.T) string {
+	return getEnvString(t, "KAS_GITLAB_AUTH_SECRET")
 }
 
 func getKubeConfig() clientcmd.ClientConfig {
