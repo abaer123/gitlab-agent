@@ -19,11 +19,11 @@ regenerate-proto: internal-regenerate-proto fmt update-bazel
 .PHONY: internal-regenerate-mocks
 internal-regenerate-mocks:
 	go generate -x -v \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc/mock_agentrpc" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/gitlab/mock_gitlab" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/gitaly/mock_gitalypool" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/tools/testing/mock_engine" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/tools/testing/mock_gitaly"
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc/mock_agentrpc" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab/mock_gitlab" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_gitalypool" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_engine" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_gitaly"
 
 .PHONY: regenerate-mocks
 regenerate-mocks: internal-regenerate-mocks fmt update-bazel
@@ -46,7 +46,7 @@ update-bazel:
 
 .PHONY: fmt
 fmt:
-	go run golang.org/x/tools/cmd/goimports -w cmd it pkg
+	go run golang.org/x/tools/cmd/goimports -w cmd it internal
 
 .PHONY: test
 test: fmt update-bazel test-ci
