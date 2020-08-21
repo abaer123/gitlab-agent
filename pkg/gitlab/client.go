@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/gitlab/fromworkhorse/roundtripper"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
@@ -20,6 +21,8 @@ import (
 
 const (
 	responseHeaderTimeout = 20 * time.Second
+	// This header carries the JWT token for gitlab-rails
+	kasRequestHeader = "Gitlab-Kas-Api-Request"
 )
 
 type HTTPClient interface {
@@ -29,6 +32,7 @@ type HTTPClient interface {
 type Client struct {
 	Backend    *url.URL
 	HTTPClient HTTPClient
+	AuthSecret []byte
 	UserAgent  string
 }
 
@@ -76,13 +80,17 @@ type getAgentInfoResponse struct {
 	GitalyRepository gitalyRepository `json:"gitaly_repository"`
 }
 
-func NewClient(backend *url.URL, socket, userAgent string) *Client {
+func NewClient(backend *url.URL, socket string, authSecret []byte, userAgent string) *Client {
 	return &Client{
 		Backend: backend,
 		HTTPClient: &http.Client{
 			Transport: roundtripper.NewBackendRoundTripper(backend, socket, responseHeaderTimeout),
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
 		},
-		UserAgent: userAgent,
+		AuthSecret: authSecret,
+		UserAgent:  userAgent,
 	}
 }
 
@@ -135,7 +143,14 @@ func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta,
 	if err != nil {
 		return fmt.Errorf("NewRequestWithContext: %v", err)
 	}
+	signedClaims, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{Issuer: "gitlab-kas"}).
+		SignedString(c.AuthSecret)
+	if err != nil {
+		return fmt.Errorf("sign JWT: %v", err)
+	}
+
 	r.Header.Set("Authorization", "Bearer "+string(meta.Token))
+	r.Header.Set(kasRequestHeader, signedClaims)
 	r.Header.Set("User-Agent", c.UserAgent)
 	r.Header.Set("Accept", "application/json")
 	if bodyReader != nil {

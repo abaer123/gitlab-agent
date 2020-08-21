@@ -5,6 +5,7 @@ go 1.14
 require (
 	github.com/argoproj/gitops-engine v0.1.3-0.20200805021302-90979fe432d4
 	github.com/ash2k/stager v0.1.0
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/golang/mock v1.4.4-0.20200612212805-d9ac6780152f
 	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.5.1
