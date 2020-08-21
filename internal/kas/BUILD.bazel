@@ -1,0 +1,51 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["kas.go"],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/kas",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/agentcfg:go_default_library",
+        "//internal/agentrpc:go_default_library",
+        "//internal/api:go_default_library",
+        "//internal/api/apiutil:go_default_library",
+        "//internal/gitlab:go_default_library",
+        "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb:go_default_library",
+        "@com_gitlab_gitlab_org_labkit//log:go_default_library",
+        "@io_k8s_apimachinery//pkg/util/wait:go_default_library",
+        "@io_k8s_sigs_yaml//:go_default_library",
+        "@org_golang_google_protobuf//encoding/protojson:go_default_library",
+    ],
+)
+
+go_test(
+    name = "go_default_test",
+    size = "small",
+    srcs = ["kas_test.go"],
+    embed = [":go_default_library"],
+    race = "on",
+    deps = [
+        "//internal/agentcfg:go_default_library",
+        "//internal/agentrpc:go_default_library",
+        "//internal/agentrpc/mock_agentrpc:go_default_library",
+        "//internal/api:go_default_library",
+        "//internal/api/apiutil:go_default_library",
+        "//internal/gitaly/mock_gitalypool:go_default_library",
+        "//internal/gitlab/mock_gitlab:go_default_library",
+        "//internal/tools/testing/kube_testing:go_default_library",
+        "//internal/tools/testing/matcher:go_default_library",
+        "//internal/tools/testing/mock_gitaly:go_default_library",
+        "@com_github_golang_mock//gomock:go_default_library",
+        "@com_github_google_go_cmp//cmp:go_default_library",
+        "@com_github_stretchr_testify//assert:go_default_library",
+        "@com_github_stretchr_testify//require:go_default_library",
+        "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb:go_default_library",
+        "@io_k8s_api//core/v1:go_default_library",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:go_default_library",
+        "@io_k8s_apimachinery//pkg/runtime:go_default_library",
+        "@io_k8s_sigs_yaml//:go_default_library",
+        "@org_golang_google_grpc//metadata:go_default_library",
+        "@org_golang_google_protobuf//encoding/protojson:go_default_library",
+    ],
+)
