@@ -11,6 +11,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/api/apiutil"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/gitlab"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"gitlab.com/gitlab-org/labkit/log"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -28,11 +29,6 @@ const (
 	agentConfigurationFileName  = "config.yaml"
 )
 
-type GitLabClient interface {
-	GetAgentInfo(context.Context, *api.AgentMeta) (*api.AgentInfo, error)
-	GetProjectInfo(ctx context.Context, agentMeta *api.AgentMeta, projectId string) (*api.ProjectInfo, error)
-}
-
 type GitalyPool interface {
 	CommitServiceClient(context.Context, *api.GitalyInfo) (gitalypb.CommitServiceClient, error)
 }
@@ -40,7 +36,7 @@ type GitalyPool interface {
 type Server struct {
 	ReloadConfigurationPeriod time.Duration
 	GitalyPool                GitalyPool
-	GitLabClient              GitLabClient
+	GitLabClient              gitlab.ClientInterface
 }
 
 func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream agentrpc.Kas_GetConfigurationServer) error {

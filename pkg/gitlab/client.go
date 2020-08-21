@@ -23,6 +23,12 @@ const (
 	responseHeaderTimeout = 20 * time.Second
 	// This header carries the JWT token for gitlab-rails
 	kasRequestHeader = "Gitlab-Kas-Api-Request"
+	kasJWTIssuer     = "gitlab-kas"
+
+	projectIDQueryParam = "id"
+
+	agentInfoApiPath   = "/api/v4/internal/kubernetes/agent_info"
+	projectInfoApiPath = "/api/v4/internal/kubernetes/project_info"
 )
 
 type HTTPClient interface {
@@ -66,7 +72,7 @@ func (r *gitalyRepository) ToProtoRepository() gitalypb.Repository {
 	}
 }
 
-type manifestProjectInfoResponse struct {
+type projectInfoResponse struct {
 	ProjectID        int64            `json:"project_id"`
 	GitalyInfo       gitalyInfo       `json:"gitaly_info"`
 	GitalyRepository gitalyRepository `json:"gitaly_repository"`
@@ -96,7 +102,7 @@ func NewClient(backend *url.URL, socket string, authSecret []byte, userAgent str
 
 func (c *Client) GetAgentInfo(ctx context.Context, meta *api.AgentMeta) (*api.AgentInfo, error) {
 	u := *c.Backend
-	u.Path = "/api/v4/internal/kubernetes/agent_info"
+	u.Path = agentInfoApiPath
 	response := getAgentInfoResponse{}
 	err := c.doJSON(ctx, http.MethodGet, meta, &u, nil, &response)
 	if err != nil {
@@ -105,6 +111,7 @@ func (c *Client) GetAgentInfo(ctx context.Context, meta *api.AgentMeta) (*api.Ag
 	return &api.AgentInfo{
 		Meta:       *meta,
 		ID:         response.AgentID,
+		ProjectID:  response.ProjectID,
 		Name:       response.AgentName,
 		GitalyInfo: response.GitalyInfo.ToGitalyInfo(),
 		Repository: response.GitalyRepository.ToProtoRepository(),
@@ -113,11 +120,11 @@ func (c *Client) GetAgentInfo(ctx context.Context, meta *api.AgentMeta) (*api.Ag
 
 func (c *Client) GetProjectInfo(ctx context.Context, meta *api.AgentMeta, projectId string) (*api.ProjectInfo, error) {
 	u := *c.Backend
-	u.Path = "/api/v4/internal/kubernetes/project_info"
+	u.Path = projectInfoApiPath
 	query := u.Query()
-	query.Set("id", projectId)
+	query.Set(projectIDQueryParam, projectId)
 	u.RawQuery = query.Encode()
-	response := manifestProjectInfoResponse{}
+	response := projectInfoResponse{}
 	err := c.doJSON(ctx, http.MethodGet, meta, &u, nil, &response)
 	if err != nil {
 		return nil, err

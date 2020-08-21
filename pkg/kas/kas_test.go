@@ -272,7 +272,7 @@ func sampleConfig() *agentcfg.ConfigurationFile {
 	}
 }
 
-func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_gitalypool.MockGitalyPool, *mock_gitlab.MockGitLabClient) {
+func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_gitalypool.MockGitalyPool, *mock_gitlab.MockClientInterface) {
 	agentMeta := api.AgentMeta{
 		Token: token,
 	}
@@ -298,7 +298,7 @@ func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_
 
 	mockCtrl := gomock.NewController(t)
 	gitalyPool := mock_gitalypool.NewMockGitalyPool(mockCtrl)
-	gitlabClient := mock_gitlab.NewMockGitLabClient(mockCtrl)
+	gitlabClient := mock_gitlab.NewMockClientInterface(mockCtrl)
 	gitlabClient.EXPECT().
 		GetAgentInfo(gomock.Any(), &agentMeta).
 		Return(agentInfo, nil)
