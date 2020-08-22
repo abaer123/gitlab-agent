@@ -86,7 +86,9 @@ func TestYAMLToConfigurationAndBack(t *testing.T) {
 }
 
 func TestGetConfiguration(t *testing.T) {
-	a, agentInfo, mockCtrl, gitalyPool, _ := setupKas(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	a, agentInfo, mockCtrl, gitalyPool, _ := setupKas(ctx, t)
 	treeEntryReq := &gitalypb.TreeEntryRequest{
 		Repository: &agentInfo.Repository,
 		Revision:   []byte("master"),
@@ -94,8 +96,6 @@ func TestGetConfiguration(t *testing.T) {
 		Limit:      fileSizeLimit,
 	}
 	configFile := sampleConfig()
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	ctx = incomingCtx(ctx, t)
 	resp := mock_agentrpc.NewMockKas_GetConfigurationServer(mockCtrl)
 	resp.EXPECT().
@@ -122,7 +122,9 @@ func TestGetConfiguration(t *testing.T) {
 }
 
 func TestGetObjectsToSynchronize(t *testing.T) {
-	a, agentInfo, mockCtrl, gitalyPool, gitlabClient := setupKas(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	a, agentInfo, mockCtrl, gitalyPool, gitlabClient := setupKas(ctx, t)
 
 	objects := []runtime.Object{
 		&corev1.ConfigMap{
@@ -182,8 +184,6 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 		Path:       []byte("manifest.yaml"),
 		Limit:      fileSizeLimit,
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	ctx = incomingCtx(ctx, t)
 	resp := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
 	resp.EXPECT().
@@ -272,7 +272,7 @@ func sampleConfig() *agentcfg.ConfigurationFile {
 	}
 }
 
-func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_gitalypool.MockGitalyPool, *mock_gitlab.MockClientInterface) {
+func setupKas(ctx context.Context, t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_gitalypool.MockGitalyPool, *mock_gitlab.MockClientInterface) {
 	agentMeta := api.AgentMeta{
 		Token: token,
 	}
@@ -304,6 +304,7 @@ func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_
 		Return(agentInfo, nil)
 
 	a := &Server{
+		Context:                   ctx,
 		ReloadConfigurationPeriod: 10 * time.Minute,
 		GitalyPool:                gitalyPool,
 		GitLabClient:              gitlabClient,

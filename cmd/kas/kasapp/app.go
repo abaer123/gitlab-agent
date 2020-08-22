@@ -81,6 +81,7 @@ func (a *App) Run(ctx context.Context) error {
 		CacheErrorTTL: defaultProjectInfoCacheErrorTTL,
 	})
 	srv := &kas.Server{
+		Context:                   ctx,
 		ReloadConfigurationPeriod: a.ReloadConfigurationPeriod,
 		GitalyPool: &gitaly.Pool{
 			ClientPool: gitalyClientPool,
