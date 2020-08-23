@@ -20,13 +20,13 @@ copy_to_workspace(
     name = "extract_generated",
     file_to_copy = "agentcfg.pb.go",
     label = ":agent_cfg",
-    workspace_relative_target_directory = "internal/agentcfg",
+    workspace_relative_target_directory = "pkg/agentcfg",
 )
 
 go_library(
     name = "go_default_library",
     srcs = ["agentcfg.pb.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentcfg",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg",
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_golang_protobuf//proto:go_default_library",
