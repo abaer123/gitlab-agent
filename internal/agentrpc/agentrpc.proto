@@ -6,7 +6,7 @@ package agentrpc;
 
 option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc";
 
-import "internal/agentcfg/agentcfg.proto";
+import "pkg/agentcfg/agentcfg.proto";
 
 message ConfigurationRequest {
 }

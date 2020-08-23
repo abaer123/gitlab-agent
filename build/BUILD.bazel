@@ -19,7 +19,7 @@ sh_binary(
 multirun(
     name = "extract_generated_proto",
     commands = [
-        "//internal/agentcfg:extract_generated",
+        "//pkg/agentcfg:extract_generated",
         "//internal/agentrpc:extract_generated",
     ],
 )

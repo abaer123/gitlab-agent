@@ -8,9 +8,9 @@ import (
 
 	"github.com/argoproj/gitops-engine/pkg/cache"
 	"github.com/argoproj/gitops-engine/pkg/engine"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentcfg"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/labkit/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

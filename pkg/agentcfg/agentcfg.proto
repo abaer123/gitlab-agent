@@ -4,7 +4,7 @@ syntax = "proto3";
 
 package agentcfg;
 
-option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentcfg";
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg";
 
 // CF suffix stands for Configuration File, meaning a message is part of ConfigurationFile.
 
