@@ -7,11 +7,9 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 # Also update to the same version/commit in go.mod.
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "2697f6bc7c529ee5e6a2d9799870b9ec9eaeb3ee7d70ed50b87a2c2c97e13d9e",
-    urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.23.8/rules_go-v0.23.8.tar.gz",
-        "https://github.com/bazelbuild/rules_go/releases/download/v0.23.8/rules_go-v0.23.8.tar.gz",
-    ],
+    sha256 = "cfe0f2870e2b073d826cfe5fae349c24e8e2e54e7475cd326dc5c9b3a8b0f7e1",
+    strip_prefix = "rules_go-cbb70ea83175f949c139a6d29776b3218c67eb71",
+    urls = ["https://github.com/bazelbuild/rules_go/archive/cbb70ea83175f949c139a6d29776b3218c67eb71.tar.gz"],
 )
 
 http_archive(

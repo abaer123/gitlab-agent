@@ -21,6 +21,7 @@ multirun(
     commands = [
         "//pkg/agentcfg:extract_generated",
         "//internal/agentrpc:extract_generated",
+        "//pkg/kascfg:extract_generated",
     ],
 )
 

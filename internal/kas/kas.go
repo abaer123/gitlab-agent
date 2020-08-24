@@ -192,13 +192,13 @@ func (s *Server) fetchObjectsToSynchronize(ctx context.Context, repoInfo *api.Pr
 	}, fcResp.Commit.Id, nil
 }
 
-func parseYAMLToConfiguration(configYaml []byte) (*agentcfg.ConfigurationFile, error) {
-	configJson, err := yaml.YAMLToJSON(configYaml)
+func parseYAMLToConfiguration(configYAML []byte) (*agentcfg.ConfigurationFile, error) {
+	configJSON, err := yaml.YAMLToJSON(configYAML)
 	if err != nil {
 		return nil, fmt.Errorf("YAMLToJSON: %v", err)
 	}
 	configFile := &agentcfg.ConfigurationFile{}
-	err = protojson.Unmarshal(configJson, configFile)
+	err = protojson.Unmarshal(configJSON, configFile)
 	if err != nil {
 		return nil, fmt.Errorf("protojson.Unmarshal: %v", err)
 	}
