@@ -9,18 +9,19 @@ import (
 	"io"
 	"io/ioutil"
 	"mime"
+	"net"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab/fromworkhorse/roundtripper"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
+	"gitlab.com/gitlab-org/labkit/correlation"
+	"gitlab.com/gitlab-org/labkit/tracing"
 )
 
 const (
-	responseHeaderTimeout = 20 * time.Second
 	// This header carries the JWT token for gitlab-rails
 	kasRequestHeader = "Gitlab-Kas-Api-Request"
 	kasJWTIssuer     = "gitlab-kas"
@@ -86,11 +87,27 @@ type getAgentInfoResponse struct {
 	GitalyRepository gitalyRepository `json:"gitaly_repository"`
 }
 
-func NewClient(backend *url.URL, socket string, authSecret []byte, userAgent string) *Client {
+func NewClient(backend *url.URL, authSecret []byte, userAgent string) *Client {
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
 	return &Client{
 		Backend: backend,
 		HTTPClient: &http.Client{
-			Transport: roundtripper.NewBackendRoundTripper(backend, socket, responseHeaderTimeout),
+			Transport: tracing.NewRoundTripper(
+				correlation.NewInstrumentedRoundTripper(
+					&http.Transport{
+						Proxy:                 http.ProxyFromEnvironment,
+						DialContext:           dialer.DialContext,
+						MaxIdleConns:          100,
+						IdleConnTimeout:       90 * time.Second,
+						TLSHandshakeTimeout:   10 * time.Second,
+						ResponseHeaderTimeout: 20 * time.Second,
+						ExpectContinueTimeout: 1 * time.Second,
+					},
+				),
+			),
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				return http.ErrUseLastResponse
 			},

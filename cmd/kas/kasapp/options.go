@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	authSecretKeyLength   = 32
+	authSecretLength      = 32
 	defaultMaxMessageSize = 10 * 1024 * 1024
 
 	defaultListenNetwork = "tcp"
@@ -80,7 +80,7 @@ func (o *Options) Run(ctx context.Context) error {
 
 	gitalyClientPool := client.NewPool()
 	defer gitalyClientPool.Close() // nolint: errcheck
-	gitLabClient := gitlab.NewClient(gitLabUrl, "", decodedAuthSecret, fmt.Sprintf("kas/%s/%s", cmd.Version, cmd.Commit))
+	gitLabClient := gitlab.NewClient(gitLabUrl, decodedAuthSecret, fmt.Sprintf("kas/%s/%s", cmd.Version, cmd.Commit))
 	gitLabCachingClient := gitlab.NewCachingClient(gitLabClient, gitlab.CacheOptions{
 		CacheTTL:      cfg.Agent.InfoCacheTtl.AsDuration(),
 		CacheErrorTTL: cfg.Agent.InfoCacheErrorTtl.AsDuration(),
@@ -118,14 +118,14 @@ func (o *Options) loadAuthSecret() ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read file: %v", err)
 	}
-	decodedAuthSecret := make([]byte, authSecretKeyLength)
+	decodedAuthSecret := make([]byte, authSecretLength)
 
 	n, err := base64.StdEncoding.Decode(decodedAuthSecret, encodedAuthSecret)
 	if err != nil {
 		return nil, fmt.Errorf("decoding: %v", err)
 	}
-	if n != authSecretKeyLength {
-		return nil, fmt.Errorf("decoding: expecting %d bytes, was %d", authSecretKeyLength, n)
+	if n != authSecretLength {
+		return nil, fmt.Errorf("decoding: expecting %d bytes, was %d", authSecretLength, n)
 	}
 	return decodedAuthSecret, nil
 }
