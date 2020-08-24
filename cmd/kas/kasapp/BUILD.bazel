@@ -17,6 +17,7 @@ go_library(
         "//internal/tools/wstunnel:go_default_library",
         "//pkg/kascfg:go_default_library",
         "@com_github_ash2k_stager//:go_default_library",
+        "@com_github_golang_protobuf//ptypes/duration:go_default_library",
         "@com_github_spf13_pflag//:go_default_library",
         "@com_gitlab_gitlab_org_gitaly//client:go_default_library",
         "@com_gitlab_gitlab_org_labkit//log:go_default_library",

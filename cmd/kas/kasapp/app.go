@@ -26,29 +26,29 @@ type App struct {
 }
 
 func (a *App) Run(ctx context.Context) error {
-	cfg, err := a.maybeParseConfigurationFile()
+	cfg, err := a.maybeLoadConfigurationFile()
 	if err != nil {
 		return err
 	}
 	applyDefaultsToKasConfigurationFile(cfg)
-	if a.ListenNetwork != "" {
+	if a.ListenNetwork != defaultListenNetwork {
 		cfg.Listen.Network = a.ListenNetwork
 	}
-	if a.ListenAddress != "" {
+	if a.ListenAddress != defaultListenAddress {
 		cfg.Listen.Address = a.ListenAddress
 	}
 	if a.ListenWebSocket {
 		cfg.Listen.Websocket = a.ListenWebSocket
 	}
 
-	if a.GitLabAddress != "" {
+	if a.GitLabAddress != defaultGitLabAddress {
 		cfg.Gitlab.Address = a.GitLabAddress
 	}
 	if a.GitLabAuthSecretFile != "" {
 		cfg.Gitlab.AuthenticationSecretFile = a.GitLabAuthSecretFile
 	}
 
-	if a.ReloadConfigurationPeriod != defaultReloadConfigurationPeriod {
+	if a.ReloadConfigurationPeriod != defaultAgentConfigurationPollPeriod {
 		cfg.Agent.Configuration.PollPeriod = durationpb.New(a.ReloadConfigurationPeriod)
 	}
 	options := Options{
@@ -57,7 +57,7 @@ func (a *App) Run(ctx context.Context) error {
 	return options.Run(ctx)
 }
 
-func (a *App) maybeParseConfigurationFile() (*kascfg.ConfigurationFile, error) {
+func (a *App) maybeLoadConfigurationFile() (*kascfg.ConfigurationFile, error) {
 	cfg := &kascfg.ConfigurationFile{}
 	if a.ConfigurationFile == "" {
 		return cfg, nil
@@ -79,44 +79,16 @@ func (a *App) maybeParseConfigurationFile() (*kascfg.ConfigurationFile, error) {
 
 func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, error) {
 	app := &App{}
-	flagset.StringVar(&app.ConfigurationFile, "configuration-file", "", "Optional configuration file to use")
-	flagset.StringVar(&app.ListenNetwork, "listen-network", "tcp", "Network type to listen on. Supported values: tcp, tcp4, tcp6, unix")
-	flagset.StringVar(&app.ListenAddress, "listen-address", "127.0.0.1:0", "Address to listen on")
+	flagset.StringVar(&app.ConfigurationFile, "configuration-file", "", "Optional configuration file to use (YAML)")
+	flagset.StringVar(&app.ListenNetwork, "listen-network", defaultListenNetwork, "Network type to listen on. Supported values: tcp, tcp4, tcp6, unix")
+	flagset.StringVar(&app.ListenAddress, "listen-address", defaultListenAddress, "Address to listen on")
 	flagset.BoolVar(&app.ListenWebSocket, "listen-websocket", false, "Enable \"gRPC through WebSocket\" listening mode. Rather than expecting gRPC directly, expect a WebSocket connection, from which a gRPC stream is then unpacked")
-	flagset.StringVar(&app.GitLabAddress, "gitlab-address", "http://localhost:8080", "GitLab address")
+	flagset.StringVar(&app.GitLabAddress, "gitlab-address", defaultGitLabAddress, "GitLab address")
 	flagset.StringVar(&app.GitLabSocket, "gitlab-socket", "", "Optional: Unix domain socket to dial GitLab at")
 	flagset.StringVar(&app.GitLabAuthSecretFile, "authentication-secret-file", "", "File with JWT secret to authenticate with GitLab")
-	flagset.DurationVar(&app.ReloadConfigurationPeriod, "reload-configuration-period", defaultReloadConfigurationPeriod, "How often to reload agentk configuration")
+	flagset.DurationVar(&app.ReloadConfigurationPeriod, "reload-configuration-period", defaultAgentConfigurationPollPeriod, "How often to reload agentk configuration")
 	if err := flagset.Parse(arguments); err != nil {
 		return nil, err
 	}
 	return app, nil
-}
-
-func applyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
-	if cfg.Listen == nil {
-		cfg.Listen = &kascfg.ListenCF{}
-	}
-	if cfg.Listen.Network == "" {
-		cfg.Listen.Network = "tcp"
-	}
-	if cfg.Listen.Address == "" {
-		cfg.Listen.Address = "127.0.0.1:0"
-	}
-
-	if cfg.Gitlab == nil {
-		cfg.Gitlab = &kascfg.GitLabCF{}
-	}
-	if cfg.Gitlab.Address == "" {
-		cfg.Gitlab.Address = "http://localhost:8080"
-	}
-	if cfg.Agent == nil {
-		cfg.Agent = &kascfg.AgentCF{}
-	}
-	if cfg.Agent.Configuration == nil {
-		cfg.Agent.Configuration = &kascfg.AgentConfigurationCF{}
-	}
-	if cfg.Agent.Configuration.PollPeriod == nil {
-		cfg.Agent.Configuration.PollPeriod = durationpb.New(defaultReloadConfigurationPeriod)
-	}
 }

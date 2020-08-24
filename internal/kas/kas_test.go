@@ -304,10 +304,11 @@ func setupKas(ctx context.Context, t *testing.T) (*Server, *api.AgentInfo, *gomo
 		Return(agentInfo, nil)
 
 	a := &Server{
-		Context:                   ctx,
-		ReloadConfigurationPeriod: 10 * time.Minute,
-		GitalyPool:                gitalyPool,
-		GitLabClient:              gitlabClient,
+		Context:                      ctx,
+		GitalyPool:                   gitalyPool,
+		GitLabClient:                 gitlabClient,
+		AgentConfigurationPollPeriod: 10 * time.Minute,
+		GitopsPollPeriod:             10 * time.Minute,
 	}
 
 	return a, agentInfo, mockCtrl, gitalyPool, gitlabClient
