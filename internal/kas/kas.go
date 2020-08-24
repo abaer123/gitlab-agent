@@ -34,10 +34,11 @@ type GitalyPool interface {
 }
 
 type Server struct {
-	Context                   context.Context
-	ReloadConfigurationPeriod time.Duration
-	GitalyPool                GitalyPool
-	GitLabClient              gitlab.ClientInterface
+	Context                      context.Context
+	GitalyPool                   GitalyPool
+	GitLabClient                 gitlab.ClientInterface
+	AgentConfigurationPollPeriod time.Duration
+	GitopsPollPeriod             time.Duration
 }
 
 func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream agentrpc.Kas_GetConfigurationServer) error {
@@ -50,7 +51,7 @@ func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream age
 	if err != nil {
 		return fmt.Errorf("GetAgentInfo(): %v", err)
 	}
-	err = wait.PollImmediateUntil(s.ReloadConfigurationPeriod, s.sendConfiguration(agentInfo, stream), joinDone(s.Context, ctx).Done())
+	err = wait.PollImmediateUntil(s.AgentConfigurationPollPeriod, s.sendConfiguration(agentInfo, stream), joinDone(s.Context, ctx).Done())
 	if err == wait.ErrWaitTimeout {
 		return nil // all good, ctx is done
 	}
@@ -130,8 +131,7 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 	if err != nil {
 		return fmt.Errorf("GetAgentInfo(): %v", err)
 	}
-	// TODO get period from request
-	err = wait.PollImmediateUntil(15*time.Second, s.sendObjectsToSynchronize(agentInfo, stream, req.ProjectId), joinDone(s.Context, ctx).Done())
+	err = wait.PollImmediateUntil(s.GitopsPollPeriod, s.sendObjectsToSynchronize(agentInfo, stream, req.ProjectId), joinDone(s.Context, ctx).Done())
 	if err == wait.ErrWaitTimeout {
 		return nil // all good, ctx is done
 	}

@@ -11,7 +11,7 @@ import "google/protobuf/duration.proto";
 // CF suffix stands for Configuration File, meaning a message is part of ConfigurationFile.
 
 message ListenCF {
-    // Network type to listen on. Supported values: tcp, tcp4, tcp6, unix
+    // Network type to listen on. Supported values: tcp, tcp4, tcp6, unix.
     string network = 1 [json_name = "network"];
     // Address to listen on.
     string address = 2 [json_name = "address"];
@@ -25,9 +25,24 @@ message GitLabCF {
     string authentication_secret_file = 2 [json_name = "authentication_secret_file"];
 }
 
+message GitopsCF {
+    // How often to poll GitOps manifest repositories for changes.
+    google.protobuf.Duration poll_period = 1 [json_name = "poll_period"];
+    // TTL for successful project info lookups. /api/v4/internal/kubernetes/project_info
+    google.protobuf.Duration project_info_cache_ttl = 2 [json_name = "project_info_cache_ttl"];
+    // TTL for failed project info lookups. /api/v4/internal/kubernetes/project_info
+    google.protobuf.Duration project_info_cache_error_ttl = 3 [json_name = "project_info_cache_error_ttl"];
+}
+
 message AgentCF {
     // Configuration for agent's configuration repository.
     AgentConfigurationCF configuration = 1 [json_name = "configuration"];
+    // Configuration for GitOps.
+    GitopsCF gitops = 2 [json_name = "gitops"];
+    // TTL for successful agent info lookups. /api/v4/internal/kubernetes/agent_info
+    google.protobuf.Duration info_cache_ttl = 3 [json_name = "info_cache_ttl"];
+    // TTL for failed agent info lookups. /api/v4/internal/kubernetes/agent_info
+    google.protobuf.Duration info_cache_error_ttl = 4 [json_name = "info_cache_error_ttl"];
 }
 
 message AgentConfigurationCF {
@@ -37,7 +52,10 @@ message AgentConfigurationCF {
 
 // ConfigurationFile represents kas configuration file.
 message ConfigurationFile {
+    // RPC listener configuration.
     ListenCF listen = 1 [json_name = "listen"];
+    // Configuration related to interaction with GitLab.
     GitLabCF gitlab = 2 [json_name = "gitlab"];
+    // Configuration related to the agent.
     AgentCF agent = 3 [json_name = "agent"];
 }
