@@ -20,7 +20,6 @@ type App struct {
 	ListenAddress             string
 	ListenWebSocket           bool
 	GitLabAddress             string
-	GitLabSocket              string
 	GitLabAuthSecretFile      string
 	ReloadConfigurationPeriod time.Duration
 }
@@ -84,7 +83,6 @@ func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, err
 	flagset.StringVar(&app.ListenAddress, "listen-address", defaultListenAddress, "Address to listen on")
 	flagset.BoolVar(&app.ListenWebSocket, "listen-websocket", false, "Enable \"gRPC through WebSocket\" listening mode. Rather than expecting gRPC directly, expect a WebSocket connection, from which a gRPC stream is then unpacked")
 	flagset.StringVar(&app.GitLabAddress, "gitlab-address", defaultGitLabAddress, "GitLab address")
-	flagset.StringVar(&app.GitLabSocket, "gitlab-socket", "", "Optional: Unix domain socket to dial GitLab at")
 	flagset.StringVar(&app.GitLabAuthSecretFile, "authentication-secret-file", "", "File with JWT secret to authenticate with GitLab")
 	flagset.DurationVar(&app.ReloadConfigurationPeriod, "reload-configuration-period", defaultAgentConfigurationPollPeriod, "How often to reload agentk configuration")
 	if err := flagset.Parse(arguments); err != nil {

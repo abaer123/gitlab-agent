@@ -56,7 +56,7 @@ func TestGetAgentInfo(t *testing.T) {
 
 	u, err := url.Parse(s.URL)
 	require.NoError(t, err)
-	c := NewClient(u, "", []byte(authSecretKey), kasUserAgent)
+	c := NewClient(u, []byte(authSecretKey), kasUserAgent)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 	meta := &api.AgentMeta{
@@ -107,7 +107,7 @@ func TestGetProjectInfo(t *testing.T) {
 
 	u, err := url.Parse(s.URL)
 	require.NoError(t, err)
-	c := NewClient(u, "", []byte(authSecretKey), kasUserAgent)
+	c := NewClient(u, []byte(authSecretKey), kasUserAgent)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 	meta := &api.AgentMeta{

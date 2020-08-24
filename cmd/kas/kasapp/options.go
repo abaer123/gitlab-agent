@@ -80,7 +80,7 @@ func (o *Options) Run(ctx context.Context) error {
 
 	gitalyClientPool := client.NewPool()
 	defer gitalyClientPool.Close() // nolint: errcheck
-	gitLabClient := gitlab.NewClient(gitLabUrl, "", decodedAuthSecret, fmt.Sprintf("kas/%s/%s", cmd.Version, cmd.Commit))
+	gitLabClient := gitlab.NewClient(gitLabUrl, decodedAuthSecret, fmt.Sprintf("kas/%s/%s", cmd.Version, cmd.Commit))
 	gitLabCachingClient := gitlab.NewCachingClient(gitLabClient, gitlab.CacheOptions{
 		CacheTTL:      cfg.Agent.InfoCacheTtl.AsDuration(),
 		CacheErrorTTL: cfg.Agent.InfoCacheErrorTtl.AsDuration(),
