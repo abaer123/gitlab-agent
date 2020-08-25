@@ -53,17 +53,17 @@ func NewCachingClient(client ClientInterface, agentInfoCacheOptions CacheOptions
 }
 
 func (c *CachingClient) Run(ctx context.Context) {
-	agentInfoTimer := expirationTimer(c.agentInfoCacheOptions)
-	defer agentInfoTimer.Stop()
-	projectInfoTimer := expirationTimer(c.projectInfoCacheOptions)
-	defer projectInfoTimer.Stop()
+	agentInfoTicker := expirationTicker(c.agentInfoCacheOptions)
+	defer agentInfoTicker.Stop()
+	projectInfoTicker := expirationTicker(c.projectInfoCacheOptions)
+	defer projectInfoTicker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-agentInfoTimer.C:
+		case <-agentInfoTicker.C:
 			c.agentInfoCache.EvictExpiredEntries()
-		case <-projectInfoTimer.C:
+		case <-projectInfoTicker.C:
 			c.projectInfoCache.EvictExpiredEntries()
 		}
 	}
@@ -230,12 +230,12 @@ func (m betterMutex) Unlock() {
 	<-m.c // take something from the box
 }
 
-func expirationTimer(opts CacheOptions) *time.Timer {
+func expirationTicker(opts CacheOptions) *time.Ticker {
 	var minTTL time.Duration
 	if opts.CacheTTL < opts.CacheErrorTTL {
 		minTTL = opts.CacheTTL
 	} else {
 		minTTL = opts.CacheErrorTTL
 	}
-	return time.NewTimer(minTTL)
+	return time.NewTicker(minTTL)
 }
