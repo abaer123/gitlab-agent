@@ -105,3 +105,13 @@ create_release:
 #    name: '$CI_COMMIT_TAG'
 #    tag_name: '$CI_COMMIT_TAG'
 #    ref: '$CI_COMMIT_TAG'
+
+# see https://docs.gitlab.com/ee/user/project/code_intelligence.html#configuration
+code_navigation:
+  image: sourcegraph/lsif-go:v1
+  allow_failure: true # recommended
+  script:
+    - lsif-go
+  artifacts:
+    reports:
+      lsif: dump.lsif
