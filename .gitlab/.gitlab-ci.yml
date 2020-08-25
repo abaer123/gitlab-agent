@@ -27,6 +27,7 @@ stages:
     - echo "build --show_timestamps" >> .bazelrc
     - echo "build --google_default_credentials" >> .bazelrc
     - echo "build --remote_cache=https://storage.googleapis.com/gitlab-kubernetes-test-bucket/$BUILD_IMAGE_SHA" >> .bazelrc
+    #- echo "build --remote_download_minimal" >> .bazelrc
     - echo "test --test_output=all" >> .bazelrc
     - echo "test --test_arg=-test.v" >> .bazelrc
   #    - echo "build --sandbox_base=/dev/shm" >> .bazelrc # disabled because it's not big enough
