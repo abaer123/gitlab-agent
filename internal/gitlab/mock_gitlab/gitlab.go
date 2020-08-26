@@ -10,6 +10,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	api "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+	gitlab "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 )
 
 // MockClientInterface is a mock of ClientInterface interface
@@ -63,4 +64,18 @@ func (m *MockClientInterface) GetProjectInfo(arg0 context.Context, arg1 *api.Age
 func (mr *MockClientInterfaceMockRecorder) GetProjectInfo(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProjectInfo", reflect.TypeOf((*MockClientInterface)(nil).GetProjectInfo), arg0, arg1, arg2)
+}
+
+// SendUsage mocks base method.
+func (m *MockClientInterface) SendUsage(arg0 context.Context, arg1 *gitlab.UsageData) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendUsage", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SendUsage indicates an expected call of SendUsage.
+func (mr *MockClientInterfaceMockRecorder) SendUsage(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendUsage", reflect.TypeOf((*MockClientInterface)(nil).SendUsage), arg0, arg1)
 }

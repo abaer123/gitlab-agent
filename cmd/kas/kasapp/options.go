@@ -40,6 +40,9 @@ const (
 	defaultGitOpsPollPeriod               = 20 * time.Second
 	defaultGitOpsProjectInfoCacheTTL      = 5 * time.Minute
 	defaultGitOpsProjectInfoCacheErrorTTL = 1 * time.Minute
+
+	// TODO: enable when https://gitlab.com/gitlab-org/gitlab/-/issues/245667 is fixed
+	defaultUsageReportingPeriod = 0 * time.Minute
 )
 
 type Options struct {
@@ -96,6 +99,7 @@ func (o *Options) Run(ctx context.Context) error {
 		GitLabClient:                 gitLabCachingClient,
 		AgentConfigurationPollPeriod: cfg.Agent.Configuration.PollPeriod.AsDuration(),
 		GitopsPollPeriod:             cfg.Agent.Gitops.PollPeriod.AsDuration(),
+		UsageReportingPeriod:         cfg.Metrics.UsageReportingPeriod.AsDuration(),
 	}
 
 	var opts []grpc.ServerOption
@@ -105,7 +109,9 @@ func (o *Options) Run(ctx context.Context) error {
 	// Start things up
 	st := stager.New()
 	defer st.Shutdown()
-	stage := st.NextStageWithContext(ctx)
+	stage := st.NextStage()
+	stage.StartWithContext(srv.Run)
+	stage = st.NextStageWithContext(ctx)
 	stage.StartWithContext(func(ctx context.Context) {
 		<-ctx.Done() // can be cancelled because Server() failed or because main ctx was cancelled
 		grpcServer.GracefulStop()
@@ -156,6 +162,11 @@ func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
 
 	defaultDuration(&cfg.Agent.InfoCacheTtl, defaultAgentInfoCacheTTL)
 	defaultDuration(&cfg.Agent.InfoCacheErrorTtl, defaultAgentInfoCacheErrorTTL)
+
+	if cfg.Metrics == nil {
+		cfg.Metrics = &kascfg.MetricsCF{}
+	}
+	defaultDuration(&cfg.Metrics.UsageReportingPeriod, defaultUsageReportingPeriod)
 }
 
 func defaultDuration(d **duration.Duration, defaultValue time.Duration) {

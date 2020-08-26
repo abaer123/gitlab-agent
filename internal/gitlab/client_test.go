@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/google/go-cmp/cmp"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,6 +24,10 @@ const (
 	kasUserAgent                 = "kas/v0.1-blabla/asdwd"
 	agentkToken   api.AgentToken = "123123"
 	authSecretKey                = "blablabla"
+)
+
+var (
+	_ ClientInterface = &CachingClient{}
 )
 
 func TestGetAgentInfo(t *testing.T) {
@@ -121,6 +127,44 @@ func TestGetProjectInfo(t *testing.T) {
 	assertGitalyRepository(t, response.GitalyRepository, projectInfo.Repository)
 }
 
+func TestSendUsage(t *testing.T) {
+	usageData := UsageData{
+		GitopsSyncCount: 123,
+	}
+	r := mux.NewRouter()
+	r.Methods(http.MethodPost).Path(usagePingApiPath).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !assertJWTSignature(t, w, r) {
+			return
+		}
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		data, err := ioutil.ReadAll(r.Body)
+		if !assert.NoError(t, err) {
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+		var req UsageData
+		err = json.Unmarshal(data, &req)
+		if !assert.NoError(t, err) {
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+		assert.Empty(t, cmp.Diff(req, usageData))
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+	s := httptest.NewServer(r)
+	defer s.Close()
+
+	u, err := url.Parse(s.URL)
+	require.NoError(t, err)
+	c := NewClient(u, []byte(authSecretKey), kasUserAgent)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+	err = c.SendUsage(ctx, &usageData)
+	require.NoError(t, err)
+}
+
 func respondWithJSON(t *testing.T, w http.ResponseWriter, response interface{}) {
 	data, err := json.Marshal(response)
 	if !assert.NoError(t, err) {
@@ -135,6 +179,10 @@ func assertRequestIsCorrect(t *testing.T, w http.ResponseWriter, r *http.Request
 	assert.Equal(t, "Bearer "+string(agentkToken), r.Header.Get("Authorization"))
 	assert.Empty(t, r.Header.Values("Content-Type"))
 	assert.Equal(t, "application/json", r.Header.Get("Accept"))
+	return assertJWTSignature(t, w, r)
+}
+
+func assertJWTSignature(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
 	assert.Equal(t, kasUserAgent, r.Header.Get("User-Agent"))
 	token, err := jwt.Parse(r.Header.Get(kasRequestHeader), func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

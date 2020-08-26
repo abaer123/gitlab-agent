@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"sync/atomic"
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
@@ -34,11 +35,19 @@ type GitalyPool interface {
 }
 
 type Server struct {
+	// metrics must be the very first field to ensure 64-bit alignment.
+	// See https://github.com/golang/go/blob/95df156e6ac53f98efd6c57e4586c1dfb43066dd/src/sync/atomic/doc.go#L46-L54
+	metrics                      metrics
 	Context                      context.Context
 	GitalyPool                   GitalyPool
 	GitLabClient                 gitlab.ClientInterface
 	AgentConfigurationPollPeriod time.Duration
 	GitopsPollPeriod             time.Duration
+	UsageReportingPeriod         time.Duration
+}
+
+func (s *Server) Run(ctx context.Context) {
+	s.sendUsage(ctx)
 }
 
 func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream agentrpc.Kas_GetConfigurationServer) error {
@@ -154,10 +163,15 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agent
 			log.WithError(err).WithField(api.AgentId, agentInfo.ID).Warn("Failed to get objects to synchronize")
 			return false, nil // don't want to close the response stream, so report no error
 		}
-		return false, stream.Send(&agentrpc.ObjectsToSynchronizeResponse{
+		err = stream.Send(&agentrpc.ObjectsToSynchronizeResponse{
 			Revision: revision,
 			Objects:  objects,
 		})
+		if err != nil {
+			return false, err
+		}
+		s.metrics.IncGitopsSyncCount()
+		return false, nil
 	}
 }
 
@@ -190,6 +204,63 @@ func (s *Server) fetchObjectsToSynchronize(ctx context.Context, repoInfo *api.Pr
 			Source: filename,
 		},
 	}, fcResp.Commit.Id, nil
+}
+
+func (s *Server) sendUsage(ctx context.Context) {
+	if s.UsageReportingPeriod == 0 {
+		return
+	}
+	ticker := time.NewTicker(s.UsageReportingPeriod)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := s.sendUsageInternal(ctx); err != nil {
+				log.WithError(err).Error("Failed to send usage data")
+			}
+		}
+	}
+}
+
+func (s *Server) sendUsageInternal(ctx context.Context) error {
+	m := s.metrics.Clone()
+	if m.IsEmptyNotThreadSafe() {
+		// No new counts
+		return nil
+	}
+	err := s.GitLabClient.SendUsage(ctx, &gitlab.UsageData{
+		GitopsSyncCount: m.gitopsSyncCount,
+	})
+	if err != nil {
+		return err
+	}
+	// Subtract the increments we've just sent
+	s.metrics.Subtract(m)
+	return nil
+}
+
+type metrics struct {
+	gitopsSyncCount int64
+}
+
+func (m *metrics) IsEmptyNotThreadSafe() bool {
+	return m.gitopsSyncCount == 0
+}
+
+func (m *metrics) IncGitopsSyncCount() {
+	atomic.AddInt64(&m.gitopsSyncCount, 1)
+}
+
+func (m *metrics) Clone() *metrics {
+	return &metrics{
+		gitopsSyncCount: atomic.LoadInt64(&m.gitopsSyncCount),
+	}
+}
+
+func (m *metrics) Subtract(other *metrics) {
+	atomic.AddInt64(&m.gitopsSyncCount, -other.gitopsSyncCount)
 }
 
 func parseYAMLToConfiguration(configYAML []byte) (*agentcfg.ConfigurationFile, error) {

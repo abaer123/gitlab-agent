@@ -2,6 +2,7 @@ package kas
 
 import (
 	"context"
+	"errors"
 	"io"
 	"strconv"
 	"testing"
@@ -16,6 +17,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_gitalypool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
@@ -125,6 +127,10 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	a, agentInfo, mockCtrl, gitalyPool, gitlabClient := setupKas(ctx, t)
+	gitlabClient.EXPECT().
+		SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 1})).
+		Return(nil)
+	a.UsageReportingPeriod = 10 * time.Millisecond
 
 	objects := []runtime.Object{
 		&corev1.ConfigMap{
@@ -218,6 +224,74 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	mockTreeEntry(t, mockCtrl, commitClient, treeEntryReq, objectsYAML)
 	err := a.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, resp)
 	require.NoError(t, err)
+
+	ctxRun, cancelRun := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancelRun()
+	a.Run(ctxRun)
+}
+
+func TestSendUsage(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	mockCtrl := gomock.NewController(t)
+	gitalyPool := mock_gitalypool.NewMockGitalyPool(mockCtrl)
+	gitlabClient := mock_gitlab.NewMockClientInterface(mockCtrl)
+	gitlabClient.EXPECT().
+		SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
+		Return(nil)
+
+	s := &Server{
+		Context:                      ctx,
+		GitalyPool:                   gitalyPool,
+		GitLabClient:                 gitlabClient,
+		AgentConfigurationPollPeriod: 10 * time.Minute,
+		GitopsPollPeriod:             10 * time.Minute,
+		UsageReportingPeriod:         10 * time.Millisecond,
+	}
+	s.metrics.gitopsSyncCount = 5
+
+	// Send accumulated counters
+	require.NoError(t, s.sendUsageInternal(ctx))
+
+	// Should not call SendUsage again
+	require.NoError(t, s.sendUsageInternal(ctx))
+}
+
+func TestSendUsageRetry(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	mockCtrl := gomock.NewController(t)
+	gitalyPool := mock_gitalypool.NewMockGitalyPool(mockCtrl)
+	gitlabClient := mock_gitlab.NewMockClientInterface(mockCtrl)
+	gomock.InOrder(
+		gitlabClient.EXPECT().
+			SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
+			Return(errors.New("expected error")),
+		gitlabClient.EXPECT().
+			SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 6})).
+			Return(nil),
+	)
+
+	s := &Server{
+		Context:                      ctx,
+		GitalyPool:                   gitalyPool,
+		GitLabClient:                 gitlabClient,
+		AgentConfigurationPollPeriod: 10 * time.Minute,
+		GitopsPollPeriod:             10 * time.Minute,
+		UsageReportingPeriod:         10 * time.Millisecond,
+	}
+	s.metrics.gitopsSyncCount = 5
+
+	// Try to send accumulated counters, fail
+	require.EqualError(t, s.sendUsageInternal(ctx), "expected error")
+
+	s.metrics.gitopsSyncCount++
+
+	// Try again and succeed
+	require.NoError(t, s.sendUsageInternal(ctx))
+
+	// Should not call SendUsage again
+	require.NoError(t, s.sendUsageInternal(ctx))
 }
 
 func mockTreeEntry(t *testing.T, mockCtrl *gomock.Controller, commitClient *mock_gitaly.MockCommitServiceClient, req *gitalypb.TreeEntryRequest, data []byte) {
