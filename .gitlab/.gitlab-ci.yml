@@ -10,7 +10,7 @@ variables:
   # must use image digest to invalidate cache if image is updated.
   # Image built using https://github.com/ash2k/container-definitions/compare/master...ash2k:bazel-and-clang-only
   # Bazel v3.4.1
-  BUILD_IMAGE: "registry.gitlab.com/gitlab-org/cluster-integration/gitlab-agent/ci@sha256:bb223b625e8b58a29fede6804c8e223df1de11faef57507d6bf8ba6ef2aafc32"
+  BUILD_IMAGE_SHA: "bb223b625e8b58a29fede6804c8e223df1de11faef57507d6bf8ba6ef2aafc32"
 
 stages:
   - test
@@ -18,18 +18,16 @@ stages:
   - create_release
 
 .bazel_build:
-  cache:
-    key: "$BUILD_IMAGE"
-    paths:
-      - .cache/
   image:
-    name: "$BUILD_IMAGE"
+    name: "registry.gitlab.com/gitlab-org/cluster-integration/gitlab-agent/ci@sha256:$BUILD_IMAGE_SHA"
     entrypoint: [""]
   before_script:
-    - echo "build --disk_cache=$CI_PROJECT_DIR/.cache" >> .bazelrc
     - echo "build --verbose_failures" >> .bazelrc
     - echo "build --curses=no" >> .bazelrc
     - echo "build --show_timestamps" >> .bazelrc
+    - echo "build --google_default_credentials" >> .bazelrc
+    - echo "build --remote_cache=https://storage.googleapis.com/gitlab-kubernetes-test-bucket/$BUILD_IMAGE_SHA" >> .bazelrc
+    - echo "build --remote_download_minimal" >> .bazelrc
     - echo "test --test_output=all" >> .bazelrc
     - echo "test --test_arg=-test.v" >> .bazelrc
   #    - echo "build --sandbox_base=/dev/shm" >> .bazelrc # disabled because it's not big enough
