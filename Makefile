@@ -122,8 +122,8 @@ docker-export-race: update-bazel
 
 # Build and push all docker images tagged with the tag on the current commit.
 # This only works on a linux machine
-.PHONY: release-tag-all
-release-tag-all: update-bazel
+.PHONY: release-tag-all-ci
+release-tag-all-ci:
 	# Build all targets in a single invocation for maximum parallelism
 	bazel build \
 		//cmd/agentk:push_docker_tag \
@@ -142,8 +142,8 @@ release-tag-all: update-bazel
 
 # Build and push all docker images tagged with the current commit sha.
 # This only works on a linux machine
-.PHONY: release-commit-all
-release-commit-all: update-bazel
+.PHONY: release-commit-all-ci
+release-commit-all-ci:
 	# Build all targets in a single invocation for maximum parallelism
 	bazel build \
 		//cmd/agentk:push_docker_commit \
@@ -163,8 +163,8 @@ release-commit-all: update-bazel
 
 # Build and push all docker images tagged "latest".
 # This only works on a linux machine
-.PHONY: release-latest-all
-release-latest-all: update-bazel
+.PHONY: release-latest-all-ci
+release-latest-all-ci:
 	# Build all targets in a single invocation for maximum parallelism
 	bazel build \
 		//cmd/agentk:push_docker_latest \
