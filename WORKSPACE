@@ -7,16 +7,20 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 # Also update to the same version/commit in go.mod.
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "cfe0f2870e2b073d826cfe5fae349c24e8e2e54e7475cd326dc5c9b3a8b0f7e1",
-    strip_prefix = "rules_go-cbb70ea83175f949c139a6d29776b3218c67eb71",
-    urls = ["https://github.com/bazelbuild/rules_go/archive/cbb70ea83175f949c139a6d29776b3218c67eb71.tar.gz"],
+    sha256 = "08369b54a7cbe9348eea474e36c9bbb19d47101e8860cec75cbf1ccd4f749281",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.24.0/rules_go-v0.24.0.tar.gz",
+        "https://github.com/bazelbuild/rules_go/releases/download/v0.24.0/rules_go-v0.24.0.tar.gz",
+    ],
 )
 
 http_archive(
     name = "bazel_gazelle",
-    sha256 = "d50aa00c2eb4f4a9b4514f45ee9ff7bcf744214b36cc0f1b4affec7b0a0bb9c3",
-    strip_prefix = "bazel-gazelle-49a5b63911d89f6bcc5a8c771ea2a3c63c821996",
-    urls = ["https://github.com/bazelbuild/bazel-gazelle/archive/49a5b63911d89f6bcc5a8c771ea2a3c63c821996.tar.gz"],
+    sha256 = "d4113967ab451dd4d2d767c3ca5f927fec4b30f3b2c6f8135a2033b9c05a5687",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.22.0/bazel-gazelle-v0.22.0.tar.gz",
+        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.22.0/bazel-gazelle-v0.22.0.tar.gz",
+    ],
 )
 
 http_archive(
@@ -42,10 +46,10 @@ http_archive(
 
 http_archive(
     name = "rules_proto",
-    sha256 = "dedb72afb9476b2f75da2f661a00d6ad27dfab5d97c0460cf3265894adfaf467",
-    strip_prefix = "rules_proto-486aaf1808a15b87f1b6778be6d30a17a87e491a",
+    sha256 = "aa1ee19226f707d44bee44c720915199c20c84a23318bb0597ed4e5c873ccbd5",
+    strip_prefix = "rules_proto-40298556293ae502c66579620a7ce867d5f57311",
     urls = [
-        "https://github.com/bazelbuild/rules_proto/archive/486aaf1808a15b87f1b6778be6d30a17a87e491a.tar.gz",
+        "https://github.com/bazelbuild/rules_proto/archive/40298556293ae502c66579620a7ce867d5f57311.tar.gz",
     ],
 )
 
@@ -58,10 +62,10 @@ http_archive(
 
 http_archive(
     name = "bazel_skylib",
-    sha256 = "97e70364e9249702246c0e9444bccdc4b847bed1eb03c5a3ece4f83dfe6abc44",
+    sha256 = "1c531376ac7e5a180e0237938a2536de0c54d93f5c278634818e0efc952dd56c",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.0.2/bazel-skylib-1.0.2.tar.gz",
-        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.0.2/bazel-skylib-1.0.2.tar.gz",
+        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.0.3/bazel-skylib-1.0.3.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.0.3/bazel-skylib-1.0.3.tar.gz",
     ],
 )
 
@@ -81,6 +85,7 @@ go_repository(
 )
 
 # Copied from rules_go to keep patches in place
+# https://github.com/bazelbuild/rules_go/blob/master/go/private/repositories.bzl
 http_archive(
     name = "org_golang_x_tools",
     patch_args = ["-p1"],
@@ -88,19 +93,15 @@ http_archive(
         # deletegopls removes the gopls subdirectory. It contains a nested
         # module with additional dependencies. It's not needed by rules_go.
         "@io_bazel_rules_go//third_party:org_golang_x_tools-deletegopls.patch",
-        # gazelle args: -repo_root . -go_prefix golang.org/x/tools
+        # gazelle args: -repo_root . -go_prefix golang.org/x/tools -go_naming_convention import_alias
         "@io_bazel_rules_go//third_party:org_golang_x_tools-gazelle.patch",
-        # extras adds go_tool_library rules for packages under
-        # go/analysis/passes and their dependencies. These are needed by
-        # nogo.
-        "@io_bazel_rules_go//third_party:org_golang_x_tools-extras.patch",
     ],
-    sha256 = "b05c5b5b9091a35ecb433227ea30aa75cb6b9d9409b308bc75d0975d4a291912",
-    strip_prefix = "tools-2bc93b1c0c88b2406b967fcd19a623d1ff9ea0cd",
-    # master, as of 2020-05-12
+    sha256 = "5b330e3bd29a52c235648457e1aa899d948cb1eb90a8b5caa0ac882be75572db",
+    strip_prefix = "tools-c024452afbcdebb4a0fbe1bb0eaea0d2dbff835b",
+    # master, as of 2020-08-24
     urls = [
-        "https://mirror.bazel.build/github.com/golang/tools/archive/2bc93b1c0c88b2406b967fcd19a623d1ff9ea0cd.zip",
-        "https://github.com/golang/tools/archive/2bc93b1c0c88b2406b967fcd19a623d1ff9ea0cd.zip",
+        "https://mirror.bazel.build/github.com/golang/tools/archive/c024452afbcdebb4a0fbe1bb0eaea0d2dbff835b.zip",
+        "https://github.com/golang/tools/archive/c024452afbcdebb4a0fbe1bb0eaea0d2dbff835b.zip",
     ],
 )
 

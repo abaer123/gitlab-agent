@@ -17,7 +17,7 @@ require (
 	gitlab.com/gitlab-org/gitaly v1.87.1-0.20200731181045-a6091637dcb4
 	gitlab.com/gitlab-org/labkit v0.0.0-20200728123508-886c482d483c
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
-	golang.org/x/tools v0.0.0-20200512131952-2bc93b1c0c88
+	golang.org/x/tools v0.0.0-20200823205832-c024452afbcd
 	google.golang.org/grpc v1.31.0
 	google.golang.org/protobuf v1.25.0
 	k8s.io/api v0.18.6
@@ -30,7 +30,7 @@ require (
 
 replace (
 	// same version as used by rules_go to maintain compatibility with patches - see the WORKSPACE file
-	golang.org/x/tools => golang.org/x/tools v0.0.0-20200512131952-2bc93b1c0c88
+	golang.org/x/tools => golang.org/x/tools v0.0.0-20200823205832-c024452afbcd
 
 	// https://github.com/kubernetes/kubernetes/issues/79384#issuecomment-505627280
 	k8s.io/api => k8s.io/api v0.18.6
