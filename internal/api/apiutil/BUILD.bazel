@@ -4,7 +4,7 @@ go_library(
     name = "apiutil",
     srcs = ["apiutil.go"],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil",
-    visibility = ["//visibility:public"],
+    visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",
         "@com_github_grpc_ecosystem_go_grpc_middleware//auth",

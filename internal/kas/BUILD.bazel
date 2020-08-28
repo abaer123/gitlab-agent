@@ -4,7 +4,7 @@ go_library(
     name = "kas",
     srcs = ["kas.go"],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/kas",
-    visibility = ["//visibility:public"],
+    visibility = ["//:__subpackages__"],
     deps = [
         "//internal/agentrpc",
         "//internal/api",

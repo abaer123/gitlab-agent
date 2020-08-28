@@ -7,7 +7,7 @@ go_library(
         "doc.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc/mock_agentrpc",
-    visibility = ["//visibility:public"],
+    visibility = ["//:__subpackages__"],
     deps = [
         "//internal/agentrpc",
         "@com_github_golang_mock//gomock",

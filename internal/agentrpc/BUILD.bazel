@@ -28,7 +28,7 @@ go_library(
     name = "agentrpc",
     srcs = ["agentrpc.pb.go"],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc",
-    visibility = ["//visibility:public"],
+    visibility = ["//:__subpackages__"],
     deps = [
         "//pkg/agentcfg",
         "@com_github_golang_protobuf//proto",

@@ -8,7 +8,7 @@ go_library(
         "types.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab",
-    visibility = ["//visibility:public"],
+    visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",
         "@com_github_dgrijalva_jwt_go//:jwt-go",

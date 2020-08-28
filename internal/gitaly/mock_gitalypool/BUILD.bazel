@@ -7,7 +7,7 @@ go_library(
         "pool.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_gitalypool",
-    visibility = ["//visibility:public"],
+    visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",
         "@com_github_golang_mock//gomock",

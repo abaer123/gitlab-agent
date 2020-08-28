@@ -7,7 +7,7 @@ go_library(
         "gitaly.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_gitaly",
-    visibility = ["//visibility:public"],
+    visibility = ["//:__subpackages__"],
     deps = [
         "@com_github_golang_mock//gomock",
         "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",
