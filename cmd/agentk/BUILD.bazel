@@ -2,17 +2,17 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("//cmd:cmd.bzl", "define_command_targets")
 
 go_library(
-    name = "go_default_library",
+    name = "agentk_lib",
     srcs = ["main.go"],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/agentk",
     visibility = ["//visibility:private"],
     deps = [
-        "//cmd:go_default_library",
-        "//cmd/agentk/agentkapp:go_default_library",
+        "//cmd",
+        "//cmd/agentk/agentkapp",
     ],
 )
 
 define_command_targets(
     name = "agentk",
-    binary_embed = [":go_default_library"],
+    binary_embed = [":agentk_lib"],
 )

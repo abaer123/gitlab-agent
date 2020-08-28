@@ -1,36 +1,36 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "go_default_library",
+    name = "kube_testing",
     srcs = [
         "cmp_options.go",
         "kube_testing.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/kube_testing",
-    visibility = ["//visibility:public"],
+    visibility = ["//:__subpackages__"],
     deps = [
-        "@com_github_google_go_cmp//cmp:go_default_library",
-        "@com_github_google_go_cmp//cmp/cmpopts:go_default_library",
-        "@com_github_stretchr_testify//require:go_default_library",
-        "@io_k8s_apimachinery//pkg/api/equality:go_default_library",
-        "@io_k8s_apimachinery//pkg/apis/meta/v1/unstructured:go_default_library",
-        "@io_k8s_apimachinery//pkg/runtime:go_default_library",
-        "@io_k8s_apimachinery//pkg/runtime/serializer/json:go_default_library",
-        "@io_k8s_sigs_yaml//:go_default_library",
+        "@com_github_google_go_cmp//cmp",
+        "@com_github_google_go_cmp//cmp/cmpopts",
+        "@com_github_stretchr_testify//require",
+        "@io_k8s_apimachinery//pkg/api/equality",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1/unstructured",
+        "@io_k8s_apimachinery//pkg/runtime",
+        "@io_k8s_apimachinery//pkg/runtime/serializer/json",
+        "@io_k8s_sigs_yaml//:yaml",
     ],
 )
 
 go_test(
-    name = "go_default_test",
+    name = "kube_testing_test",
     size = "small",
     srcs = ["cmp_options_test.go"],
-    embed = [":go_default_library"],
+    embed = [":kube_testing"],
     race = "on",
     deps = [
-        "@com_github_google_go_cmp//cmp:go_default_library",
-        "@com_github_stretchr_testify//assert:go_default_library",
-        "@io_k8s_api//core/v1:go_default_library",
-        "@io_k8s_apimachinery//pkg/apis/meta/v1:go_default_library",
-        "@io_k8s_apimachinery//pkg/runtime:go_default_library",
+        "@com_github_google_go_cmp//cmp",
+        "@com_github_stretchr_testify//assert",
+        "@io_k8s_api//core/v1:core",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
+        "@io_k8s_apimachinery//pkg/runtime",
     ],
 )

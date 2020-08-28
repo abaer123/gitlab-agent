@@ -1,20 +1,20 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "go_default_library",
+    name = "agentkapp",
     srcs = ["app.go"],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/agentk/agentkapp",
     visibility = ["//visibility:public"],
     deps = [
-        "//cmd:go_default_library",
-        "//internal/agentk:go_default_library",
-        "//internal/agentrpc:go_default_library",
-        "//internal/api/apiutil:go_default_library",
-        "//internal/tools/wstunnel:go_default_library",
-        "@com_github_spf13_pflag//:go_default_library",
-        "@io_k8s_cli_runtime//pkg/genericclioptions:go_default_library",
-        "@io_k8s_cli_runtime//pkg/resource:go_default_library",
-        "@io_nhooyr_websocket//:go_default_library",
-        "@org_golang_google_grpc//:go_default_library",
+        "//cmd",
+        "//internal/agentk",
+        "//internal/agentrpc",
+        "//internal/api/apiutil",
+        "//internal/tools/wstunnel",
+        "@com_github_spf13_pflag//:pflag",
+        "@io_k8s_cli_runtime//pkg/genericclioptions",
+        "@io_k8s_cli_runtime//pkg/resource",
+        "@io_nhooyr_websocket//:websocket",
+        "@org_golang_google_grpc//:grpc",
     ],
 )

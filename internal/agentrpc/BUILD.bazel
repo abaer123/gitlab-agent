@@ -25,17 +25,17 @@ copy_to_workspace(
 )
 
 go_library(
-    name = "go_default_library",
+    name = "agentrpc",
     srcs = ["agentrpc.pb.go"],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc",
-    visibility = ["//visibility:public"],
+    visibility = ["//:__subpackages__"],
     deps = [
-        "//pkg/agentcfg:go_default_library",
-        "@com_github_golang_protobuf//proto:go_default_library",
-        "@org_golang_google_grpc//:go_default_library",
-        "@org_golang_google_grpc//codes:go_default_library",
-        "@org_golang_google_grpc//status:go_default_library",
-        "@org_golang_google_protobuf//reflect/protoreflect:go_default_library",
-        "@org_golang_google_protobuf//runtime/protoimpl:go_default_library",
+        "//pkg/agentcfg",
+        "@com_github_golang_protobuf//proto",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
     ],
 )

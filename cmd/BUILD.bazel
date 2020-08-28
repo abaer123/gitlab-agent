@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "go_default_library",
+    name = "cmd",
     srcs = [
         "build_info.go",
         "utils.go",
@@ -9,7 +9,7 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd",
     visibility = ["//visibility:public"],
     deps = [
-        "@com_github_spf13_pflag//:go_default_library",
-        "@com_gitlab_gitlab_org_labkit//log:go_default_library",
+        "@com_github_spf13_pflag//:pflag",
+        "@com_gitlab_gitlab_org_labkit//log",
     ],
 )

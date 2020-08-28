@@ -3050,8 +3050,8 @@ def go_repositories():
         name = "com_github_yuin_goldmark",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/yuin/goldmark",
-        sum = "h1:nqDD4MMMQA0lmWq03Z2/myGPYLQoXtmi0rGVs95ntbo=",
-        version = "v1.1.27",
+        sum = "h1:5tjfNdR2ki3yYQ842+eX2sQHeiwpKJ0RnHO4IYOc4V8=",
+        version = "v1.1.32",
     )
     go_repository(
         name = "com_github_ziutek_mymysql",
@@ -3666,8 +3666,8 @@ def go_repositories():
         name = "org_golang_x_crypto",
         build_file_proto_mode = "disable_global",
         importpath = "golang.org/x/crypto",
-        sum = "h1:/Tl7pH94bvbAAHBdZJT947M/+gp0+CqQXDtMRC0fseo=",
-        version = "v0.0.0-20200220183623-bac4c82f6975",
+        sum = "h1:psW17arqaxU48Z5kZ0CQnkZWQJsqcURM6tKiBApRjXI=",
+        version = "v0.0.0-20200622213623-75b288015ac9",
     )
     go_repository(
         name = "org_golang_x_exp",
@@ -3708,8 +3708,8 @@ def go_repositories():
         name = "org_golang_x_net",
         build_file_proto_mode = "disable_global",
         importpath = "golang.org/x/net",
-        sum = "h1:0mm1VjtFUOIlE1SbDlwjYaDxZVDP2S5ou6y0gSgXHu8=",
-        version = "v0.0.0-20200226121028-0de0cce0169b",
+        sum = "h1:vGXIOMxbNfDTk/aXCmfdLgkrSV+Z2tcbze+pEc3v5W4=",
+        version = "v0.0.0-20200625001655-4c5254603344",
     )
     go_repository(
         name = "org_golang_x_oauth2",
@@ -3736,8 +3736,8 @@ def go_repositories():
         name = "org_golang_x_sys",
         build_file_proto_mode = "disable_global",
         importpath = "golang.org/x/sys",
-        sum = "h1:vEOn+mP2zCOVzKckCZy6YsCtDblrpj/w7B9nxGNELpg=",
-        version = "v0.0.0-20200116001909-b77594299b42",
+        sum = "h1:xhmwyvizuTgC2qz7ZlMluP20uW+C3Rm0FD/WLDX8884=",
+        version = "v0.0.0-20200323222414-85ca7c5b95cd",
     )
     go_repository(
         name = "org_golang_x_text",

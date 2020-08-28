@@ -8,14 +8,15 @@ load("@io_bazel_rules_docker//container:container.bzl", "container_push")
 load("//build:build.bzl", "copy_absolute")
 
 def define_command_targets(name, binary_embed):
+    x_defs = {
+        "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.Version": "{STABLE_BUILD_GIT_TAG}",
+        "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.Commit": "{STABLE_BUILD_GIT_COMMIT}",
+    }
     go_binary(
         name = name,
         embed = binary_embed,
         visibility = ["//visibility:public"],
-        x_defs = {
-            "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.Version": "{STABLE_BUILD_GIT_TAG}",
-            "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.Commit": "{STABLE_BUILD_GIT_COMMIT}",
-        },
+        x_defs = x_defs,
     )
 
     go_binary(
@@ -24,6 +25,7 @@ def define_command_targets(name, binary_embed):
         race = "on",
         tags = ["manual"],
         visibility = ["//visibility:public"],
+        x_defs = x_defs,
     )
 
     go_binary(
@@ -33,6 +35,7 @@ def define_command_targets(name, binary_embed):
         goos = "linux",
         tags = ["manual"],
         visibility = ["//visibility:public"],
+        x_defs = x_defs,
     )
 
     go_binary(
@@ -43,6 +46,7 @@ def define_command_targets(name, binary_embed):
         race = "on",
         tags = ["manual"],
         visibility = ["//visibility:public"],
+        x_defs = x_defs,
     )
 
     copy_absolute(
