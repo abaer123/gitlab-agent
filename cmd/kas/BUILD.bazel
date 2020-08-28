@@ -2,17 +2,17 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("//cmd:cmd.bzl", "define_command_targets")
 
 go_library(
-    name = "go_default_library",
+    name = "kas_lib",
     srcs = ["main.go"],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kas",
     visibility = ["//visibility:private"],
     deps = [
-        "//cmd:go_default_library",
-        "//cmd/kas/kasapp:go_default_library",
+        "//cmd",
+        "//cmd/kas/kasapp",
     ],
 )
 
 define_command_targets(
     name = "kas",
-    binary_embed = [":go_default_library"],
+    binary_embed = [":kas_lib"],
 )

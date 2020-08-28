@@ -27,14 +27,14 @@ copy_to_workspace(
 )
 
 go_library(
-    name = "go_default_library",
+    name = "kascfg",
     srcs = ["kascfg.pb.go"],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg",
     visibility = ["//visibility:public"],
     deps = [
-        "@com_github_golang_protobuf//proto:go_default_library",
-        "@com_github_golang_protobuf//ptypes/duration:go_default_library",
-        "@org_golang_google_protobuf//reflect/protoreflect:go_default_library",
-        "@org_golang_google_protobuf//runtime/protoimpl:go_default_library",
+        "@com_github_golang_protobuf//proto",
+        "@com_github_golang_protobuf//ptypes/duration",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
     ],
 )

@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_test")
 
 go_test(
-    name = "go_default_test",
+    name = "it_test",
     size = "small",
     srcs = [
         "it_test.go",
@@ -16,15 +16,15 @@ go_test(
         "requires-network",
     ],
     deps = [
-        "//cmd/agentk/agentkapp:go_default_library",
-        "//cmd/kas/kasapp:go_default_library",
-        "//pkg/kascfg:go_default_library",
-        "@com_github_stretchr_testify//assert:go_default_library",
-        "@com_github_stretchr_testify//require:go_default_library",
-        "@com_gitlab_gitlab_org_labkit//log:go_default_library",
-        "@io_k8s_cli_runtime//pkg/genericclioptions:go_default_library",
-        "@io_k8s_client_go//tools/clientcmd:go_default_library",
-        "@org_golang_google_protobuf//types/known/durationpb:go_default_library",
-        "@org_golang_x_sync//errgroup:go_default_library",
+        "//cmd/agentk/agentkapp",
+        "//cmd/kas/kasapp",
+        "//pkg/kascfg",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+        "@com_gitlab_gitlab_org_labkit//log",
+        "@io_k8s_cli_runtime//pkg/genericclioptions",
+        "@io_k8s_client_go//tools/clientcmd",
+        "@org_golang_google_protobuf//types/known/durationpb",
+        "@org_golang_x_sync//errgroup",
     ],
 )

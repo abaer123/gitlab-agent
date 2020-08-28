@@ -3,8 +3,12 @@ load("@com_github_atlassian_bazel_tools//buildozer:def.bzl", "buildozer")
 load("@com_github_bazelbuild_buildtools//buildifier:def.bzl", "buildifier")
 load("@io_bazel_rules_go//go:def.bzl", "nogo")
 
+# See https://github.com/bazelbuild/bazel-gazelle#directives
+
 # See https://github.com/bazelbuild/rules_go/blob/master/proto/core.rst#option-2-use-pre-generated-pbgo-files
 # gazelle:proto disable_global
+# gazelle:go_naming_convention import
+# gazelle:go_naming_convention_external import
 
 gazelle(
     name = "gazelle",

@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "go_default_library",
+    name = "mock_engine",
     srcs = [
         "doc.go",
         "engine.go",
@@ -11,11 +11,11 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_engine",
     visibility = ["//visibility:public"],
     deps = [
-        "@com_github_argoproj_gitops_engine//pkg/cache:go_default_library",
-        "@com_github_argoproj_gitops_engine//pkg/engine:go_default_library",
-        "@com_github_argoproj_gitops_engine//pkg/sync:go_default_library",
-        "@com_github_argoproj_gitops_engine//pkg/sync/common:go_default_library",
-        "@com_github_golang_mock//gomock:go_default_library",
-        "@io_k8s_apimachinery//pkg/apis/meta/v1/unstructured:go_default_library",
+        "@com_github_argoproj_gitops_engine//pkg/cache",
+        "@com_github_argoproj_gitops_engine//pkg/engine",
+        "@com_github_argoproj_gitops_engine//pkg/sync",
+        "@com_github_argoproj_gitops_engine//pkg/sync/common",
+        "@com_github_golang_mock//gomock",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1/unstructured",
     ],
 )
