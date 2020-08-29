@@ -14,30 +14,30 @@ import (
 	metadata "google.golang.org/grpc/metadata"
 )
 
-// MockKasClient is a mock of KasClient interface.
+// MockKasClient is a mock of KasClient interface
 type MockKasClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockKasClientMockRecorder
 }
 
-// MockKasClientMockRecorder is the mock recorder for MockKasClient.
+// MockKasClientMockRecorder is the mock recorder for MockKasClient
 type MockKasClientMockRecorder struct {
 	mock *MockKasClient
 }
 
-// NewMockKasClient creates a new mock instance.
+// NewMockKasClient creates a new mock instance
 func NewMockKasClient(ctrl *gomock.Controller) *MockKasClient {
 	mock := &MockKasClient{ctrl: ctrl}
 	mock.recorder = &MockKasClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockKasClient) EXPECT() *MockKasClientMockRecorder {
 	return m.recorder
 }
 
-// GetConfiguration mocks base method.
+// GetConfiguration mocks base method
 func (m *MockKasClient) GetConfiguration(arg0 context.Context, arg1 *agentrpc.ConfigurationRequest, arg2 ...grpc.CallOption) (agentrpc.Kas_GetConfigurationClient, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -50,14 +50,14 @@ func (m *MockKasClient) GetConfiguration(arg0 context.Context, arg1 *agentrpc.Co
 	return ret0, ret1
 }
 
-// GetConfiguration indicates an expected call of GetConfiguration.
+// GetConfiguration indicates an expected call of GetConfiguration
 func (mr *MockKasClientMockRecorder) GetConfiguration(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfiguration", reflect.TypeOf((*MockKasClient)(nil).GetConfiguration), varargs...)
 }
 
-// GetObjectsToSynchronize mocks base method.
+// GetObjectsToSynchronize mocks base method
 func (m *MockKasClient) GetObjectsToSynchronize(arg0 context.Context, arg1 *agentrpc.ObjectsToSynchronizeRequest, arg2 ...grpc.CallOption) (agentrpc.Kas_GetObjectsToSynchronizeClient, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -70,37 +70,37 @@ func (m *MockKasClient) GetObjectsToSynchronize(arg0 context.Context, arg1 *agen
 	return ret0, ret1
 }
 
-// GetObjectsToSynchronize indicates an expected call of GetObjectsToSynchronize.
+// GetObjectsToSynchronize indicates an expected call of GetObjectsToSynchronize
 func (mr *MockKasClientMockRecorder) GetObjectsToSynchronize(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObjectsToSynchronize", reflect.TypeOf((*MockKasClient)(nil).GetObjectsToSynchronize), varargs...)
 }
 
-// MockKas_GetObjectsToSynchronizeClient is a mock of Kas_GetObjectsToSynchronizeClient interface.
+// MockKas_GetObjectsToSynchronizeClient is a mock of Kas_GetObjectsToSynchronizeClient interface
 type MockKas_GetObjectsToSynchronizeClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockKas_GetObjectsToSynchronizeClientMockRecorder
 }
 
-// MockKas_GetObjectsToSynchronizeClientMockRecorder is the mock recorder for MockKas_GetObjectsToSynchronizeClient.
+// MockKas_GetObjectsToSynchronizeClientMockRecorder is the mock recorder for MockKas_GetObjectsToSynchronizeClient
 type MockKas_GetObjectsToSynchronizeClientMockRecorder struct {
 	mock *MockKas_GetObjectsToSynchronizeClient
 }
 
-// NewMockKas_GetObjectsToSynchronizeClient creates a new mock instance.
+// NewMockKas_GetObjectsToSynchronizeClient creates a new mock instance
 func NewMockKas_GetObjectsToSynchronizeClient(ctrl *gomock.Controller) *MockKas_GetObjectsToSynchronizeClient {
 	mock := &MockKas_GetObjectsToSynchronizeClient{ctrl: ctrl}
 	mock.recorder = &MockKas_GetObjectsToSynchronizeClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockKas_GetObjectsToSynchronizeClient) EXPECT() *MockKas_GetObjectsToSynchronizeClientMockRecorder {
 	return m.recorder
 }
 
-// CloseSend mocks base method.
+// CloseSend mocks base method
 func (m *MockKas_GetObjectsToSynchronizeClient) CloseSend() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CloseSend")
@@ -108,13 +108,13 @@ func (m *MockKas_GetObjectsToSynchronizeClient) CloseSend() error {
 	return ret0
 }
 
-// CloseSend indicates an expected call of CloseSend.
+// CloseSend indicates an expected call of CloseSend
 func (mr *MockKas_GetObjectsToSynchronizeClientMockRecorder) CloseSend() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseSend", reflect.TypeOf((*MockKas_GetObjectsToSynchronizeClient)(nil).CloseSend))
 }
 
-// Context mocks base method.
+// Context mocks base method
 func (m *MockKas_GetObjectsToSynchronizeClient) Context() context.Context {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Context")
@@ -122,13 +122,13 @@ func (m *MockKas_GetObjectsToSynchronizeClient) Context() context.Context {
 	return ret0
 }
 
-// Context indicates an expected call of Context.
+// Context indicates an expected call of Context
 func (mr *MockKas_GetObjectsToSynchronizeClientMockRecorder) Context() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Context", reflect.TypeOf((*MockKas_GetObjectsToSynchronizeClient)(nil).Context))
 }
 
-// Header mocks base method.
+// Header mocks base method
 func (m *MockKas_GetObjectsToSynchronizeClient) Header() (metadata.MD, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Header")
@@ -137,13 +137,13 @@ func (m *MockKas_GetObjectsToSynchronizeClient) Header() (metadata.MD, error) {
 	return ret0, ret1
 }
 
-// Header indicates an expected call of Header.
+// Header indicates an expected call of Header
 func (mr *MockKas_GetObjectsToSynchronizeClientMockRecorder) Header() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Header", reflect.TypeOf((*MockKas_GetObjectsToSynchronizeClient)(nil).Header))
 }
 
-// Recv mocks base method.
+// Recv mocks base method
 func (m *MockKas_GetObjectsToSynchronizeClient) Recv() (*agentrpc.ObjectsToSynchronizeResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Recv")
@@ -152,13 +152,13 @@ func (m *MockKas_GetObjectsToSynchronizeClient) Recv() (*agentrpc.ObjectsToSynch
 	return ret0, ret1
 }
 
-// Recv indicates an expected call of Recv.
+// Recv indicates an expected call of Recv
 func (mr *MockKas_GetObjectsToSynchronizeClientMockRecorder) Recv() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Recv", reflect.TypeOf((*MockKas_GetObjectsToSynchronizeClient)(nil).Recv))
 }
 
-// RecvMsg mocks base method.
+// RecvMsg mocks base method
 func (m *MockKas_GetObjectsToSynchronizeClient) RecvMsg(arg0 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RecvMsg", arg0)
@@ -166,13 +166,13 @@ func (m *MockKas_GetObjectsToSynchronizeClient) RecvMsg(arg0 interface{}) error 
 	return ret0
 }
 
-// RecvMsg indicates an expected call of RecvMsg.
+// RecvMsg indicates an expected call of RecvMsg
 func (mr *MockKas_GetObjectsToSynchronizeClientMockRecorder) RecvMsg(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockKas_GetObjectsToSynchronizeClient)(nil).RecvMsg), arg0)
 }
 
-// SendMsg mocks base method.
+// SendMsg mocks base method
 func (m *MockKas_GetObjectsToSynchronizeClient) SendMsg(arg0 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMsg", arg0)
@@ -180,13 +180,13 @@ func (m *MockKas_GetObjectsToSynchronizeClient) SendMsg(arg0 interface{}) error 
 	return ret0
 }
 
-// SendMsg indicates an expected call of SendMsg.
+// SendMsg indicates an expected call of SendMsg
 func (mr *MockKas_GetObjectsToSynchronizeClientMockRecorder) SendMsg(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockKas_GetObjectsToSynchronizeClient)(nil).SendMsg), arg0)
 }
 
-// Trailer mocks base method.
+// Trailer mocks base method
 func (m *MockKas_GetObjectsToSynchronizeClient) Trailer() metadata.MD {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Trailer")
@@ -194,36 +194,36 @@ func (m *MockKas_GetObjectsToSynchronizeClient) Trailer() metadata.MD {
 	return ret0
 }
 
-// Trailer indicates an expected call of Trailer.
+// Trailer indicates an expected call of Trailer
 func (mr *MockKas_GetObjectsToSynchronizeClientMockRecorder) Trailer() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Trailer", reflect.TypeOf((*MockKas_GetObjectsToSynchronizeClient)(nil).Trailer))
 }
 
-// MockKas_GetConfigurationClient is a mock of Kas_GetConfigurationClient interface.
+// MockKas_GetConfigurationClient is a mock of Kas_GetConfigurationClient interface
 type MockKas_GetConfigurationClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockKas_GetConfigurationClientMockRecorder
 }
 
-// MockKas_GetConfigurationClientMockRecorder is the mock recorder for MockKas_GetConfigurationClient.
+// MockKas_GetConfigurationClientMockRecorder is the mock recorder for MockKas_GetConfigurationClient
 type MockKas_GetConfigurationClientMockRecorder struct {
 	mock *MockKas_GetConfigurationClient
 }
 
-// NewMockKas_GetConfigurationClient creates a new mock instance.
+// NewMockKas_GetConfigurationClient creates a new mock instance
 func NewMockKas_GetConfigurationClient(ctrl *gomock.Controller) *MockKas_GetConfigurationClient {
 	mock := &MockKas_GetConfigurationClient{ctrl: ctrl}
 	mock.recorder = &MockKas_GetConfigurationClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockKas_GetConfigurationClient) EXPECT() *MockKas_GetConfigurationClientMockRecorder {
 	return m.recorder
 }
 
-// CloseSend mocks base method.
+// CloseSend mocks base method
 func (m *MockKas_GetConfigurationClient) CloseSend() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CloseSend")
@@ -231,13 +231,13 @@ func (m *MockKas_GetConfigurationClient) CloseSend() error {
 	return ret0
 }
 
-// CloseSend indicates an expected call of CloseSend.
+// CloseSend indicates an expected call of CloseSend
 func (mr *MockKas_GetConfigurationClientMockRecorder) CloseSend() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseSend", reflect.TypeOf((*MockKas_GetConfigurationClient)(nil).CloseSend))
 }
 
-// Context mocks base method.
+// Context mocks base method
 func (m *MockKas_GetConfigurationClient) Context() context.Context {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Context")
@@ -245,13 +245,13 @@ func (m *MockKas_GetConfigurationClient) Context() context.Context {
 	return ret0
 }
 
-// Context indicates an expected call of Context.
+// Context indicates an expected call of Context
 func (mr *MockKas_GetConfigurationClientMockRecorder) Context() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Context", reflect.TypeOf((*MockKas_GetConfigurationClient)(nil).Context))
 }
 
-// Header mocks base method.
+// Header mocks base method
 func (m *MockKas_GetConfigurationClient) Header() (metadata.MD, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Header")
@@ -260,13 +260,13 @@ func (m *MockKas_GetConfigurationClient) Header() (metadata.MD, error) {
 	return ret0, ret1
 }
 
-// Header indicates an expected call of Header.
+// Header indicates an expected call of Header
 func (mr *MockKas_GetConfigurationClientMockRecorder) Header() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Header", reflect.TypeOf((*MockKas_GetConfigurationClient)(nil).Header))
 }
 
-// Recv mocks base method.
+// Recv mocks base method
 func (m *MockKas_GetConfigurationClient) Recv() (*agentrpc.ConfigurationResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Recv")
@@ -275,13 +275,13 @@ func (m *MockKas_GetConfigurationClient) Recv() (*agentrpc.ConfigurationResponse
 	return ret0, ret1
 }
 
-// Recv indicates an expected call of Recv.
+// Recv indicates an expected call of Recv
 func (mr *MockKas_GetConfigurationClientMockRecorder) Recv() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Recv", reflect.TypeOf((*MockKas_GetConfigurationClient)(nil).Recv))
 }
 
-// RecvMsg mocks base method.
+// RecvMsg mocks base method
 func (m *MockKas_GetConfigurationClient) RecvMsg(arg0 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RecvMsg", arg0)
@@ -289,13 +289,13 @@ func (m *MockKas_GetConfigurationClient) RecvMsg(arg0 interface{}) error {
 	return ret0
 }
 
-// RecvMsg indicates an expected call of RecvMsg.
+// RecvMsg indicates an expected call of RecvMsg
 func (mr *MockKas_GetConfigurationClientMockRecorder) RecvMsg(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockKas_GetConfigurationClient)(nil).RecvMsg), arg0)
 }
 
-// SendMsg mocks base method.
+// SendMsg mocks base method
 func (m *MockKas_GetConfigurationClient) SendMsg(arg0 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMsg", arg0)
@@ -303,13 +303,13 @@ func (m *MockKas_GetConfigurationClient) SendMsg(arg0 interface{}) error {
 	return ret0
 }
 
-// SendMsg indicates an expected call of SendMsg.
+// SendMsg indicates an expected call of SendMsg
 func (mr *MockKas_GetConfigurationClientMockRecorder) SendMsg(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockKas_GetConfigurationClient)(nil).SendMsg), arg0)
 }
 
-// Trailer mocks base method.
+// Trailer mocks base method
 func (m *MockKas_GetConfigurationClient) Trailer() metadata.MD {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Trailer")
@@ -317,36 +317,36 @@ func (m *MockKas_GetConfigurationClient) Trailer() metadata.MD {
 	return ret0
 }
 
-// Trailer indicates an expected call of Trailer.
+// Trailer indicates an expected call of Trailer
 func (mr *MockKas_GetConfigurationClientMockRecorder) Trailer() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Trailer", reflect.TypeOf((*MockKas_GetConfigurationClient)(nil).Trailer))
 }
 
-// MockKas_GetConfigurationServer is a mock of Kas_GetConfigurationServer interface.
+// MockKas_GetConfigurationServer is a mock of Kas_GetConfigurationServer interface
 type MockKas_GetConfigurationServer struct {
 	ctrl     *gomock.Controller
 	recorder *MockKas_GetConfigurationServerMockRecorder
 }
 
-// MockKas_GetConfigurationServerMockRecorder is the mock recorder for MockKas_GetConfigurationServer.
+// MockKas_GetConfigurationServerMockRecorder is the mock recorder for MockKas_GetConfigurationServer
 type MockKas_GetConfigurationServerMockRecorder struct {
 	mock *MockKas_GetConfigurationServer
 }
 
-// NewMockKas_GetConfigurationServer creates a new mock instance.
+// NewMockKas_GetConfigurationServer creates a new mock instance
 func NewMockKas_GetConfigurationServer(ctrl *gomock.Controller) *MockKas_GetConfigurationServer {
 	mock := &MockKas_GetConfigurationServer{ctrl: ctrl}
 	mock.recorder = &MockKas_GetConfigurationServerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockKas_GetConfigurationServer) EXPECT() *MockKas_GetConfigurationServerMockRecorder {
 	return m.recorder
 }
 
-// Context mocks base method.
+// Context mocks base method
 func (m *MockKas_GetConfigurationServer) Context() context.Context {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Context")
@@ -354,13 +354,13 @@ func (m *MockKas_GetConfigurationServer) Context() context.Context {
 	return ret0
 }
 
-// Context indicates an expected call of Context.
+// Context indicates an expected call of Context
 func (mr *MockKas_GetConfigurationServerMockRecorder) Context() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Context", reflect.TypeOf((*MockKas_GetConfigurationServer)(nil).Context))
 }
 
-// RecvMsg mocks base method.
+// RecvMsg mocks base method
 func (m *MockKas_GetConfigurationServer) RecvMsg(arg0 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RecvMsg", arg0)
@@ -368,13 +368,13 @@ func (m *MockKas_GetConfigurationServer) RecvMsg(arg0 interface{}) error {
 	return ret0
 }
 
-// RecvMsg indicates an expected call of RecvMsg.
+// RecvMsg indicates an expected call of RecvMsg
 func (mr *MockKas_GetConfigurationServerMockRecorder) RecvMsg(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockKas_GetConfigurationServer)(nil).RecvMsg), arg0)
 }
 
-// Send mocks base method.
+// Send mocks base method
 func (m *MockKas_GetConfigurationServer) Send(arg0 *agentrpc.ConfigurationResponse) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Send", arg0)
@@ -382,13 +382,13 @@ func (m *MockKas_GetConfigurationServer) Send(arg0 *agentrpc.ConfigurationRespon
 	return ret0
 }
 
-// Send indicates an expected call of Send.
+// Send indicates an expected call of Send
 func (mr *MockKas_GetConfigurationServerMockRecorder) Send(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockKas_GetConfigurationServer)(nil).Send), arg0)
 }
 
-// SendHeader mocks base method.
+// SendHeader mocks base method
 func (m *MockKas_GetConfigurationServer) SendHeader(arg0 metadata.MD) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendHeader", arg0)
@@ -396,13 +396,13 @@ func (m *MockKas_GetConfigurationServer) SendHeader(arg0 metadata.MD) error {
 	return ret0
 }
 
-// SendHeader indicates an expected call of SendHeader.
+// SendHeader indicates an expected call of SendHeader
 func (mr *MockKas_GetConfigurationServerMockRecorder) SendHeader(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendHeader", reflect.TypeOf((*MockKas_GetConfigurationServer)(nil).SendHeader), arg0)
 }
 
-// SendMsg mocks base method.
+// SendMsg mocks base method
 func (m *MockKas_GetConfigurationServer) SendMsg(arg0 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMsg", arg0)
@@ -410,13 +410,13 @@ func (m *MockKas_GetConfigurationServer) SendMsg(arg0 interface{}) error {
 	return ret0
 }
 
-// SendMsg indicates an expected call of SendMsg.
+// SendMsg indicates an expected call of SendMsg
 func (mr *MockKas_GetConfigurationServerMockRecorder) SendMsg(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockKas_GetConfigurationServer)(nil).SendMsg), arg0)
 }
 
-// SetHeader mocks base method.
+// SetHeader mocks base method
 func (m *MockKas_GetConfigurationServer) SetHeader(arg0 metadata.MD) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetHeader", arg0)
@@ -424,48 +424,48 @@ func (m *MockKas_GetConfigurationServer) SetHeader(arg0 metadata.MD) error {
 	return ret0
 }
 
-// SetHeader indicates an expected call of SetHeader.
+// SetHeader indicates an expected call of SetHeader
 func (mr *MockKas_GetConfigurationServerMockRecorder) SetHeader(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetHeader", reflect.TypeOf((*MockKas_GetConfigurationServer)(nil).SetHeader), arg0)
 }
 
-// SetTrailer mocks base method.
+// SetTrailer mocks base method
 func (m *MockKas_GetConfigurationServer) SetTrailer(arg0 metadata.MD) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetTrailer", arg0)
 }
 
-// SetTrailer indicates an expected call of SetTrailer.
+// SetTrailer indicates an expected call of SetTrailer
 func (mr *MockKas_GetConfigurationServerMockRecorder) SetTrailer(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetTrailer", reflect.TypeOf((*MockKas_GetConfigurationServer)(nil).SetTrailer), arg0)
 }
 
-// MockKas_GetObjectsToSynchronizeServer is a mock of Kas_GetObjectsToSynchronizeServer interface.
+// MockKas_GetObjectsToSynchronizeServer is a mock of Kas_GetObjectsToSynchronizeServer interface
 type MockKas_GetObjectsToSynchronizeServer struct {
 	ctrl     *gomock.Controller
 	recorder *MockKas_GetObjectsToSynchronizeServerMockRecorder
 }
 
-// MockKas_GetObjectsToSynchronizeServerMockRecorder is the mock recorder for MockKas_GetObjectsToSynchronizeServer.
+// MockKas_GetObjectsToSynchronizeServerMockRecorder is the mock recorder for MockKas_GetObjectsToSynchronizeServer
 type MockKas_GetObjectsToSynchronizeServerMockRecorder struct {
 	mock *MockKas_GetObjectsToSynchronizeServer
 }
 
-// NewMockKas_GetObjectsToSynchronizeServer creates a new mock instance.
+// NewMockKas_GetObjectsToSynchronizeServer creates a new mock instance
 func NewMockKas_GetObjectsToSynchronizeServer(ctrl *gomock.Controller) *MockKas_GetObjectsToSynchronizeServer {
 	mock := &MockKas_GetObjectsToSynchronizeServer{ctrl: ctrl}
 	mock.recorder = &MockKas_GetObjectsToSynchronizeServerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockKas_GetObjectsToSynchronizeServer) EXPECT() *MockKas_GetObjectsToSynchronizeServerMockRecorder {
 	return m.recorder
 }
 
-// Context mocks base method.
+// Context mocks base method
 func (m *MockKas_GetObjectsToSynchronizeServer) Context() context.Context {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Context")
@@ -473,13 +473,13 @@ func (m *MockKas_GetObjectsToSynchronizeServer) Context() context.Context {
 	return ret0
 }
 
-// Context indicates an expected call of Context.
+// Context indicates an expected call of Context
 func (mr *MockKas_GetObjectsToSynchronizeServerMockRecorder) Context() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Context", reflect.TypeOf((*MockKas_GetObjectsToSynchronizeServer)(nil).Context))
 }
 
-// RecvMsg mocks base method.
+// RecvMsg mocks base method
 func (m *MockKas_GetObjectsToSynchronizeServer) RecvMsg(arg0 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RecvMsg", arg0)
@@ -487,13 +487,13 @@ func (m *MockKas_GetObjectsToSynchronizeServer) RecvMsg(arg0 interface{}) error 
 	return ret0
 }
 
-// RecvMsg indicates an expected call of RecvMsg.
+// RecvMsg indicates an expected call of RecvMsg
 func (mr *MockKas_GetObjectsToSynchronizeServerMockRecorder) RecvMsg(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockKas_GetObjectsToSynchronizeServer)(nil).RecvMsg), arg0)
 }
 
-// Send mocks base method.
+// Send mocks base method
 func (m *MockKas_GetObjectsToSynchronizeServer) Send(arg0 *agentrpc.ObjectsToSynchronizeResponse) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Send", arg0)
@@ -501,13 +501,13 @@ func (m *MockKas_GetObjectsToSynchronizeServer) Send(arg0 *agentrpc.ObjectsToSyn
 	return ret0
 }
 
-// Send indicates an expected call of Send.
+// Send indicates an expected call of Send
 func (mr *MockKas_GetObjectsToSynchronizeServerMockRecorder) Send(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockKas_GetObjectsToSynchronizeServer)(nil).Send), arg0)
 }
 
-// SendHeader mocks base method.
+// SendHeader mocks base method
 func (m *MockKas_GetObjectsToSynchronizeServer) SendHeader(arg0 metadata.MD) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendHeader", arg0)
@@ -515,13 +515,13 @@ func (m *MockKas_GetObjectsToSynchronizeServer) SendHeader(arg0 metadata.MD) err
 	return ret0
 }
 
-// SendHeader indicates an expected call of SendHeader.
+// SendHeader indicates an expected call of SendHeader
 func (mr *MockKas_GetObjectsToSynchronizeServerMockRecorder) SendHeader(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendHeader", reflect.TypeOf((*MockKas_GetObjectsToSynchronizeServer)(nil).SendHeader), arg0)
 }
 
-// SendMsg mocks base method.
+// SendMsg mocks base method
 func (m *MockKas_GetObjectsToSynchronizeServer) SendMsg(arg0 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMsg", arg0)
@@ -529,13 +529,13 @@ func (m *MockKas_GetObjectsToSynchronizeServer) SendMsg(arg0 interface{}) error 
 	return ret0
 }
 
-// SendMsg indicates an expected call of SendMsg.
+// SendMsg indicates an expected call of SendMsg
 func (mr *MockKas_GetObjectsToSynchronizeServerMockRecorder) SendMsg(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockKas_GetObjectsToSynchronizeServer)(nil).SendMsg), arg0)
 }
 
-// SetHeader mocks base method.
+// SetHeader mocks base method
 func (m *MockKas_GetObjectsToSynchronizeServer) SetHeader(arg0 metadata.MD) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetHeader", arg0)
@@ -543,19 +543,19 @@ func (m *MockKas_GetObjectsToSynchronizeServer) SetHeader(arg0 metadata.MD) erro
 	return ret0
 }
 
-// SetHeader indicates an expected call of SetHeader.
+// SetHeader indicates an expected call of SetHeader
 func (mr *MockKas_GetObjectsToSynchronizeServerMockRecorder) SetHeader(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetHeader", reflect.TypeOf((*MockKas_GetObjectsToSynchronizeServer)(nil).SetHeader), arg0)
 }
 
-// SetTrailer mocks base method.
+// SetTrailer mocks base method
 func (m *MockKas_GetObjectsToSynchronizeServer) SetTrailer(arg0 metadata.MD) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetTrailer", arg0)
 }
 
-// SetTrailer indicates an expected call of SetTrailer.
+// SetTrailer indicates an expected call of SetTrailer
 func (mr *MockKas_GetObjectsToSynchronizeServerMockRecorder) SetTrailer(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetTrailer", reflect.TypeOf((*MockKas_GetObjectsToSynchronizeServer)(nil).SetTrailer), arg0)
