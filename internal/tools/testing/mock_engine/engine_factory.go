@@ -12,30 +12,30 @@ import (
 	gomock "github.com/golang/mock/gomock"
 )
 
-// MockGitOpsEngineFactory is a mock of GitOpsEngineFactory interface.
+// MockGitOpsEngineFactory is a mock of GitOpsEngineFactory interface
 type MockGitOpsEngineFactory struct {
 	ctrl     *gomock.Controller
 	recorder *MockGitOpsEngineFactoryMockRecorder
 }
 
-// MockGitOpsEngineFactoryMockRecorder is the mock recorder for MockGitOpsEngineFactory.
+// MockGitOpsEngineFactoryMockRecorder is the mock recorder for MockGitOpsEngineFactory
 type MockGitOpsEngineFactoryMockRecorder struct {
 	mock *MockGitOpsEngineFactory
 }
 
-// NewMockGitOpsEngineFactory creates a new mock instance.
+// NewMockGitOpsEngineFactory creates a new mock instance
 func NewMockGitOpsEngineFactory(ctrl *gomock.Controller) *MockGitOpsEngineFactory {
 	mock := &MockGitOpsEngineFactory{ctrl: ctrl}
 	mock.recorder = &MockGitOpsEngineFactoryMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockGitOpsEngineFactory) EXPECT() *MockGitOpsEngineFactoryMockRecorder {
 	return m.recorder
 }
 
-// New mocks base method.
+// New mocks base method
 func (m *MockGitOpsEngineFactory) New(arg0 ...cache.UpdateSettingsFunc) engine.GitOpsEngine {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{}
@@ -47,7 +47,7 @@ func (m *MockGitOpsEngineFactory) New(arg0 ...cache.UpdateSettingsFunc) engine.G
 	return ret0
 }
 
-// New indicates an expected call of New.
+// New indicates an expected call of New
 func (mr *MockGitOpsEngineFactoryMockRecorder) New(arg0 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "New", reflect.TypeOf((*MockGitOpsEngineFactory)(nil).New), arg0...)

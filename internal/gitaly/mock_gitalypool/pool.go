@@ -13,30 +13,30 @@ import (
 	gitalypb "gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 )
 
-// MockGitalyPool is a mock of GitalyPool interface.
+// MockGitalyPool is a mock of GitalyPool interface
 type MockGitalyPool struct {
 	ctrl     *gomock.Controller
 	recorder *MockGitalyPoolMockRecorder
 }
 
-// MockGitalyPoolMockRecorder is the mock recorder for MockGitalyPool.
+// MockGitalyPoolMockRecorder is the mock recorder for MockGitalyPool
 type MockGitalyPoolMockRecorder struct {
 	mock *MockGitalyPool
 }
 
-// NewMockGitalyPool creates a new mock instance.
+// NewMockGitalyPool creates a new mock instance
 func NewMockGitalyPool(ctrl *gomock.Controller) *MockGitalyPool {
 	mock := &MockGitalyPool{ctrl: ctrl}
 	mock.recorder = &MockGitalyPoolMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use.
+// EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockGitalyPool) EXPECT() *MockGitalyPoolMockRecorder {
 	return m.recorder
 }
 
-// CommitServiceClient mocks base method.
+// CommitServiceClient mocks base method
 func (m *MockGitalyPool) CommitServiceClient(arg0 context.Context, arg1 *api.GitalyInfo) (gitalypb.CommitServiceClient, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CommitServiceClient", arg0, arg1)
@@ -45,7 +45,7 @@ func (m *MockGitalyPool) CommitServiceClient(arg0 context.Context, arg1 *api.Git
 	return ret0, ret1
 }
 
-// CommitServiceClient indicates an expected call of CommitServiceClient.
+// CommitServiceClient indicates an expected call of CommitServiceClient
 func (mr *MockGitalyPoolMockRecorder) CommitServiceClient(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CommitServiceClient", reflect.TypeOf((*MockGitalyPool)(nil).CommitServiceClient), arg0, arg1)
