@@ -1,0 +1,17 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "pktline",
+    srcs = ["pktline.go"],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/pktline",
+    visibility = ["//:__subpackages__"],
+)
+
+go_test(
+    name = "pktline_test",
+    size = "small",
+    srcs = ["pkt_line_test.go"],
+    embed = [":pktline"],
+    race = "on",
+    deps = ["@com_github_stretchr_testify//require"],
+)
