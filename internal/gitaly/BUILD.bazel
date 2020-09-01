@@ -1,13 +1,29 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "gitaly",
-    srcs = ["pool.go"],
+    srcs = [
+        "pool.go",
+        "reference_discovery.go",
+    ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",
+        "//internal/gitaly/pktline",
         "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",
         "@org_golang_google_grpc//:grpc",
+    ],
+)
+
+go_test(
+    name = "gitaly_test",
+    size = "small",
+    srcs = ["reference_discovery_test.go"],
+    embed = [":gitaly"],
+    race = "on",
+    deps = [
+        "//internal/gitaly/pktline",
+        "@com_github_stretchr_testify//require",
     ],
 )
