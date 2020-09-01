@@ -29,7 +29,7 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	applyDefaultsToKasConfigurationFile(cfg)
+	ApplyDefaultsToKasConfigurationFile(cfg)
 	if a.ListenNetwork != defaultListenNetwork {
 		cfg.Listen.Network = a.ListenNetwork
 	}
