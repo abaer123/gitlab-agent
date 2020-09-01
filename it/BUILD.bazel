@@ -7,8 +7,7 @@ go_test(
         "it_test.go",
         "main_test.go",
     ],
-    # turn race off as a workaround for https://github.com/argoproj/gitops-engine/issues/50
-    race = "off",
+    race = "on",
     tags = [
         "external",
         "manual",
@@ -24,7 +23,6 @@ go_test(
         "@com_gitlab_gitlab_org_labkit//log",
         "@io_k8s_cli_runtime//pkg/genericclioptions",
         "@io_k8s_client_go//tools/clientcmd",
-        "@org_golang_google_protobuf//types/known/durationpb",
         "@org_golang_x_sync//errgroup",
     ],
 )

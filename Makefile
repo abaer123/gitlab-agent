@@ -64,7 +64,8 @@ test-it: fmt update-bazel
 	bazel test \
 		--test_env=GITALY_ADDRESS=$(GITALY_ADDRESS) \
 		--test_env=GITLAB_ADDRESS=$(GITLAB_ADDRESS) \
-		--test_env=KAS_TOKEN=$(KAS_TOKEN) \
+		--test_env=AGENTK_TOKEN=$(AGENTK_TOKEN) \
+		--test_env=KAS_GITLAB_AUTH_SECRET=$(KAS_GITLAB_AUTH_SECRET) \
 		--test_env=KUBECONFIG=$(KUBECONFIG) \
 		--test_env=KUBECONTEXT=$(KUBECONTEXT) \
 		--test_env=TEST_LOG_FORMATTER=$(TEST_LOG_FORMATTER) \

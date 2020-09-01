@@ -17,7 +17,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kas/kasapp"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"golang.org/x/sync/errgroup"
-	"google.golang.org/protobuf/types/known/durationpb"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -44,7 +43,6 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 	ag := kasapp.Options{
 		Configuration: &kascfg.ConfigurationFile{
 			Listen: &kascfg.ListenCF{
-				Network:   "tcp",
 				Address:   address,
 				Websocket: websocket,
 			},
@@ -52,13 +50,9 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 				Address:                  gitlabAddress,
 				AuthenticationSecretFile: kasAuthSecretFile,
 			},
-			Agent: &kascfg.AgentCF{
-				Configuration: &kascfg.AgentConfigurationCF{
-					PollPeriod: durationpb.New(10 * time.Second),
-				},
-			},
 		},
 	}
+	kasapp.ApplyDefaultsToKasConfigurationFile(ag.Configuration)
 	if websocket {
 		address = "ws://" + address
 	} else {

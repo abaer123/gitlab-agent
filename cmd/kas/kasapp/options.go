@@ -130,7 +130,7 @@ func (o *Options) loadAuthSecret() ([]byte, error) {
 	return decodedAuthSecret, nil
 }
 
-func applyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
+func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
 	if cfg.Listen == nil {
 		cfg.Listen = &kascfg.ListenCF{}
 	}
