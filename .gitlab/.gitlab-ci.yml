@@ -27,7 +27,8 @@ stages:
     - echo "build --show_timestamps" >> .bazelrc
     - echo "build --google_default_credentials" >> .bazelrc
     - echo "build --remote_cache=https://storage.googleapis.com/gitlab-kubernetes-test-bucket/$BUILD_IMAGE_SHA" >> .bazelrc
-    - echo "build --remote_download_toplevel" >> .bazelrc
+    - echo "build --remote_download_minimal" >> .bazelrc
+    - echo "run --remote_download_outputs=toplevel" >> .bazelrc
     - echo "test --test_output=all" >> .bazelrc
     - echo "test --test_arg=-test.v" >> .bazelrc
   #    - echo "build --sandbox_base=/dev/shm" >> .bazelrc # disabled because it's not big enough
@@ -97,12 +98,12 @@ create_release:
     - if: $CI_COMMIT_TAG
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   script:
-    - release-cli create --name "$CI_COMMIT_TAG" --tag-name "$CI_COMMIT_TAG" --ref "$CI_COMMIT_TAG"
-# DON'T MERGE DOCS BEFORE TURNING THINGS ON https://gitlab.com/gitlab-org/gitlab/-/issues/207842
-#  release:
-#    name: '$CI_COMMIT_TAG'
-#    tag_name: '$CI_COMMIT_TAG'
-#    ref: '$CI_COMMIT_TAG'
+    - echo 'release job'
+  release:
+    name: '$CI_COMMIT_TAG'
+    tag_name: '$CI_COMMIT_TAG'
+    ref: '$CI_COMMIT_TAG'
+    description: 'Release for tag $CI_COMMIT_TAG'
 
 # see https://docs.gitlab.com/ee/user/project/code_intelligence.html#configuration
 code_navigation:
