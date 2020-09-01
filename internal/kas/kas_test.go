@@ -35,7 +35,13 @@ import (
 const (
 	token     = "abfaasdfasdfasdf"
 	projectId = "some/project"
-	revision  = "asdfadsfasdfasdfas"
+	revision  = "507ebc6de9bcac25628aa7afd52802a91a0685d8"
+
+	infoRefsData = `001e# service=git-upload-pack
+00000148` + revision + ` HEAD` + "\x00" + `multi_ack thin-pack side-band side-band-64k ofs-delta shallow deepen-since deepen-not deepen-relative no-progress include-tag multi_ack_detailed allow-tip-sha1-in-want allow-reachable-sha1-in-want no-done symref=HEAD:refs/heads/master filter object-format=sha1 agent=git/2.28.0
+003f` + revision + ` refs/heads/master
+0044` + revision + ` refs/heads/test-branch
+0000`
 )
 
 func TestYAMLToConfigurationAndBack(t *testing.T) {
@@ -93,9 +99,12 @@ func TestGetConfiguration(t *testing.T) {
 	a, agentInfo, mockCtrl, gitalyPool, _ := setupKas(ctx, t)
 	treeEntryReq := &gitalypb.TreeEntryRequest{
 		Repository: &agentInfo.Repository,
-		Revision:   []byte("master"),
+		Revision:   []byte(revision),
 		Path:       []byte(agentConfigurationDirectory + "/" + agentInfo.Name + "/" + agentConfigurationFileName),
 		Limit:      fileSizeLimit,
+	}
+	infoRefsReq := &gitalypb.InfoRefsRequest{
+		Repository: &agentInfo.Repository,
 	}
 	configFile := sampleConfig()
 	ctx = incomingCtx(ctx, t)
@@ -114,6 +123,11 @@ func TestGetConfiguration(t *testing.T) {
 			cancel() // stop streaming call after the first response has been sent
 			return nil
 		})
+	httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(mockCtrl)
+	gitalyPool.EXPECT().
+		SmartHTTPServiceClient(gomock.Any(), &agentInfo.GitalyInfo).
+		Return(httpClient, nil)
+	mockInfoRefsUploadPack(t, mockCtrl, httpClient, infoRefsReq, []byte(infoRefsData))
 	commitClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
 	gitalyPool.EXPECT().
 		CommitServiceClient(gomock.Any(), &agentInfo.GitalyInfo).
@@ -175,20 +189,14 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 		},
 		Repository: projectRepo,
 	}
-	findCommitReq := &gitalypb.FindCommitRequest{
-		Repository: &projectRepo,
-		Revision:   []byte("master"),
-	}
-	findCommitResp := &gitalypb.FindCommitResponse{
-		Commit: &gitalypb.GitCommit{
-			Id: revision,
-		},
-	}
 	treeEntryReq := &gitalypb.TreeEntryRequest{
 		Repository: &projectRepo,
-		Revision:   []byte(findCommitResp.Commit.Id),
+		Revision:   []byte(revision),
 		Path:       []byte("manifest.yaml"),
 		Limit:      fileSizeLimit,
+	}
+	infoRefsReq := &gitalypb.InfoRefsRequest{
+		Repository: &projectRepo,
 	}
 	ctx = incomingCtx(ctx, t)
 	resp := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
@@ -213,14 +221,15 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	gitlabClient.EXPECT().
 		GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
 		Return(projectInfo, nil)
+	httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(mockCtrl)
+	gitalyPool.EXPECT().
+		SmartHTTPServiceClient(gomock.Any(), &projectInfo.GitalyInfo).
+		Return(httpClient, nil)
+	mockInfoRefsUploadPack(t, mockCtrl, httpClient, infoRefsReq, []byte(infoRefsData))
 	commitClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
 	gitalyPool.EXPECT().
 		CommitServiceClient(gomock.Any(), &projectInfo.GitalyInfo).
-		Return(commitClient, nil).
-		MinTimes(1) // FindCommit and TreeEntry
-	commitClient.EXPECT().
-		FindCommit(gomock.Any(), matcher.ProtoEq(t, findCommitReq), gomock.Any()).
-		Return(findCommitResp, nil)
+		Return(commitClient, nil)
 	mockTreeEntry(t, mockCtrl, commitClient, treeEntryReq, objectsYAML)
 	err := a.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, resp)
 	require.NoError(t, err)
@@ -234,7 +243,7 @@ func TestSendUsage(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	mockCtrl := gomock.NewController(t)
-	gitalyPool := mock_gitalypool.NewMockGitalyPool(mockCtrl)
+	gitalyPool := mock_gitalypool.NewMockPoolInterface(mockCtrl)
 	gitlabClient := mock_gitlab.NewMockClientInterface(mockCtrl)
 	gitlabClient.EXPECT().
 		SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
@@ -261,7 +270,7 @@ func TestSendUsageRetry(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	mockCtrl := gomock.NewController(t)
-	gitalyPool := mock_gitalypool.NewMockGitalyPool(mockCtrl)
+	gitalyPool := mock_gitalypool.NewMockPoolInterface(mockCtrl)
 	gitlabClient := mock_gitlab.NewMockClientInterface(mockCtrl)
 	gomock.InOrder(
 		gitlabClient.EXPECT().
@@ -319,6 +328,31 @@ func mockTreeEntry(t *testing.T, mockCtrl *gomock.Controller, commitClient *mock
 		Return(treeEntryClient, nil)
 }
 
+func mockInfoRefsUploadPack(t *testing.T, mockCtrl *gomock.Controller, httpClient *mock_gitaly.MockSmartHTTPServiceClient, infoRefsReq *gitalypb.InfoRefsRequest, data []byte) {
+	infoRefsClient := mock_gitaly.NewMockSmartHTTPService_InfoRefsUploadPackClient(mockCtrl)
+	// Emulate streaming response
+	resp1 := &gitalypb.InfoRefsResponse{
+		Data: data[:1],
+	}
+	resp2 := &gitalypb.InfoRefsResponse{
+		Data: data[1:],
+	}
+	gomock.InOrder(
+		infoRefsClient.EXPECT().
+			Recv().
+			Return(resp1, nil),
+		infoRefsClient.EXPECT().
+			Recv().
+			Return(resp2, nil),
+		infoRefsClient.EXPECT().
+			Recv().
+			Return(nil, io.EOF),
+	)
+	httpClient.EXPECT().
+		InfoRefsUploadPack(gomock.Any(), matcher.ProtoEq(t, infoRefsReq)).
+		Return(infoRefsClient, nil)
+}
+
 func incomingCtx(ctx context.Context, t *testing.T) context.Context {
 	creds := apiutil.NewTokenCredentials(token, false)
 	meta, err := creds.GetRequestMetadata(context.Background())
@@ -346,7 +380,7 @@ func sampleConfig() *agentcfg.ConfigurationFile {
 	}
 }
 
-func setupKas(ctx context.Context, t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_gitalypool.MockGitalyPool, *mock_gitlab.MockClientInterface) {
+func setupKas(ctx context.Context, t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_gitalypool.MockPoolInterface, *mock_gitlab.MockClientInterface) {
 	agentMeta := api.AgentMeta{
 		Token: token,
 	}
@@ -371,7 +405,7 @@ func setupKas(ctx context.Context, t *testing.T) (*Server, *api.AgentInfo, *gomo
 	}
 
 	mockCtrl := gomock.NewController(t)
-	gitalyPool := mock_gitalypool.NewMockGitalyPool(mockCtrl)
+	gitalyPool := mock_gitalypool.NewMockPoolInterface(mockCtrl)
 	gitlabClient := mock_gitlab.NewMockClientInterface(mockCtrl)
 	gitlabClient.EXPECT().
 		GetAgentInfo(gomock.Any(), &agentMeta).
