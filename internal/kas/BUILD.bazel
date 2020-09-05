@@ -31,6 +31,7 @@ go_test(
         "//internal/api",
         "//internal/api/apiutil",
         "//internal/gitaly/mock_gitalypool",
+        "//internal/gitlab",
         "//internal/gitlab/mock_gitlab",
         "//internal/tools/testing/kube_testing",
         "//internal/tools/testing/matcher",

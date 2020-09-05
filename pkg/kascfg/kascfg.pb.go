@@ -326,20 +326,68 @@ func (x *AgentConfigurationCF) GetPollPeriod() *duration.Duration {
 	return nil
 }
 
+type MetricsCF struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	UsageReportingPeriod *duration.Duration `protobuf:"bytes,1,opt,name=usage_reporting_period,proto3" json:"usage_reporting_period,omitempty"`
+}
+
+func (x *MetricsCF) Reset() {
+	*x = MetricsCF{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_pkg_kascfg_kascfg_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *MetricsCF) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MetricsCF) ProtoMessage() {}
+
+func (x *MetricsCF) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_kascfg_kascfg_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MetricsCF.ProtoReflect.Descriptor instead.
+func (*MetricsCF) Descriptor() ([]byte, []int) {
+	return file_pkg_kascfg_kascfg_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *MetricsCF) GetUsageReportingPeriod() *duration.Duration {
+	if x != nil {
+		return x.UsageReportingPeriod
+	}
+	return nil
+}
+
 type ConfigurationFile struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Listen *ListenCF `protobuf:"bytes,1,opt,name=listen,proto3" json:"listen,omitempty"`
-	Gitlab *GitLabCF `protobuf:"bytes,2,opt,name=gitlab,proto3" json:"gitlab,omitempty"`
-	Agent  *AgentCF  `protobuf:"bytes,3,opt,name=agent,proto3" json:"agent,omitempty"`
+	Listen  *ListenCF  `protobuf:"bytes,1,opt,name=listen,proto3" json:"listen,omitempty"`
+	Gitlab  *GitLabCF  `protobuf:"bytes,2,opt,name=gitlab,proto3" json:"gitlab,omitempty"`
+	Agent   *AgentCF   `protobuf:"bytes,3,opt,name=agent,proto3" json:"agent,omitempty"`
+	Metrics *MetricsCF `protobuf:"bytes,4,opt,name=metrics,proto3" json:"metrics,omitempty"`
 }
 
 func (x *ConfigurationFile) Reset() {
 	*x = ConfigurationFile{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_kascfg_kascfg_proto_msgTypes[5]
+		mi := &file_pkg_kascfg_kascfg_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -352,7 +400,7 @@ func (x *ConfigurationFile) String() string {
 func (*ConfigurationFile) ProtoMessage() {}
 
 func (x *ConfigurationFile) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_kascfg_kascfg_proto_msgTypes[5]
+	mi := &file_pkg_kascfg_kascfg_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -365,7 +413,7 @@ func (x *ConfigurationFile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfigurationFile.ProtoReflect.Descriptor instead.
 func (*ConfigurationFile) Descriptor() ([]byte, []int) {
-	return file_pkg_kascfg_kascfg_proto_rawDescGZIP(), []int{5}
+	return file_pkg_kascfg_kascfg_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ConfigurationFile) GetListen() *ListenCF {
@@ -385,6 +433,13 @@ func (x *ConfigurationFile) GetGitlab() *GitLabCF {
 func (x *ConfigurationFile) GetAgent() *AgentCF {
 	if x != nil {
 		return x.Agent
+	}
+	return nil
+}
+
+func (x *ConfigurationFile) GetMetrics() *MetricsCF {
+	if x != nil {
+		return x.Metrics
 	}
 	return nil
 }
@@ -446,7 +501,13 @@ var file_pkg_kascfg_kascfg_proto_rawDesc = []byte{
 	0x72, 0x69, 0x6f, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x19, 0x2e, 0x67, 0x6f, 0x6f,
 	0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x44, 0x75, 0x72,
 	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x0b, 0x70, 0x6f, 0x6c, 0x6c, 0x5f, 0x70, 0x65, 0x72, 0x69,
-	0x6f, 0x64, 0x22, 0x8e, 0x01, 0x0a, 0x11, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61,
+	0x6f, 0x64, 0x22, 0x5e, 0x0a, 0x09, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x43, 0x46, 0x12,
+	0x51, 0x0a, 0x16, 0x75, 0x73, 0x61, 0x67, 0x65, 0x5f, 0x72, 0x65, 0x70, 0x6f, 0x72, 0x74, 0x69,
+	0x6e, 0x67, 0x5f, 0x70, 0x65, 0x72, 0x69, 0x6f, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x19, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75,
+	0x66, 0x2e, 0x44, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x16, 0x75, 0x73, 0x61, 0x67,
+	0x65, 0x5f, 0x72, 0x65, 0x70, 0x6f, 0x72, 0x74, 0x69, 0x6e, 0x67, 0x5f, 0x70, 0x65, 0x72, 0x69,
+	0x6f, 0x64, 0x22, 0xbb, 0x01, 0x0a, 0x11, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61,
 	0x74, 0x69, 0x6f, 0x6e, 0x46, 0x69, 0x6c, 0x65, 0x12, 0x28, 0x0a, 0x06, 0x6c, 0x69, 0x73, 0x74,
 	0x65, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x10, 0x2e, 0x6b, 0x61, 0x73, 0x63, 0x66,
 	0x67, 0x2e, 0x4c, 0x69, 0x73, 0x74, 0x65, 0x6e, 0x43, 0x46, 0x52, 0x06, 0x6c, 0x69, 0x73, 0x74,
@@ -455,11 +516,14 @@ var file_pkg_kascfg_kascfg_proto_rawDesc = []byte{
 	0x61, 0x62, 0x43, 0x46, 0x52, 0x06, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x12, 0x25, 0x0a, 0x05,
 	0x61, 0x67, 0x65, 0x6e, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0f, 0x2e, 0x6b, 0x61,
 	0x73, 0x63, 0x66, 0x67, 0x2e, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x43, 0x46, 0x52, 0x05, 0x61, 0x67,
-	0x65, 0x6e, 0x74, 0x42, 0x43, 0x5a, 0x41, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x63, 0x6f,
-	0x6d, 0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2d, 0x6f, 0x72, 0x67, 0x2f, 0x63, 0x6c, 0x75,
-	0x73, 0x74, 0x65, 0x72, 0x2d, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e,
-	0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2d, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2f, 0x70, 0x6b,
-	0x67, 0x2f, 0x6b, 0x61, 0x73, 0x63, 0x66, 0x67, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x65, 0x6e, 0x74, 0x12, 0x2b, 0x0a, 0x07, 0x6d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x18, 0x04,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x11, 0x2e, 0x6b, 0x61, 0x73, 0x63, 0x66, 0x67, 0x2e, 0x4d, 0x65,
+	0x74, 0x72, 0x69, 0x63, 0x73, 0x43, 0x46, 0x52, 0x07, 0x6d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73,
+	0x42, 0x43, 0x5a, 0x41, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x67,
+	0x69, 0x74, 0x6c, 0x61, 0x62, 0x2d, 0x6f, 0x72, 0x67, 0x2f, 0x63, 0x6c, 0x75, 0x73, 0x74, 0x65,
+	0x72, 0x2d, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2f, 0x67, 0x69,
+	0x74, 0x6c, 0x61, 0x62, 0x2d, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x6b,
+	0x61, 0x73, 0x63, 0x66, 0x67, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -474,33 +538,36 @@ func file_pkg_kascfg_kascfg_proto_rawDescGZIP() []byte {
 	return file_pkg_kascfg_kascfg_proto_rawDescData
 }
 
-var file_pkg_kascfg_kascfg_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_pkg_kascfg_kascfg_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_pkg_kascfg_kascfg_proto_goTypes = []interface{}{
 	(*ListenCF)(nil),             // 0: kascfg.ListenCF
 	(*GitLabCF)(nil),             // 1: kascfg.GitLabCF
 	(*GitopsCF)(nil),             // 2: kascfg.GitopsCF
 	(*AgentCF)(nil),              // 3: kascfg.AgentCF
 	(*AgentConfigurationCF)(nil), // 4: kascfg.AgentConfigurationCF
-	(*ConfigurationFile)(nil),    // 5: kascfg.ConfigurationFile
-	(*duration.Duration)(nil),    // 6: google.protobuf.Duration
+	(*MetricsCF)(nil),            // 5: kascfg.MetricsCF
+	(*ConfigurationFile)(nil),    // 6: kascfg.ConfigurationFile
+	(*duration.Duration)(nil),    // 7: google.protobuf.Duration
 }
 var file_pkg_kascfg_kascfg_proto_depIdxs = []int32{
-	6,  // 0: kascfg.GitopsCF.poll_period:type_name -> google.protobuf.Duration
-	6,  // 1: kascfg.GitopsCF.project_info_cache_ttl:type_name -> google.protobuf.Duration
-	6,  // 2: kascfg.GitopsCF.project_info_cache_error_ttl:type_name -> google.protobuf.Duration
+	7,  // 0: kascfg.GitopsCF.poll_period:type_name -> google.protobuf.Duration
+	7,  // 1: kascfg.GitopsCF.project_info_cache_ttl:type_name -> google.protobuf.Duration
+	7,  // 2: kascfg.GitopsCF.project_info_cache_error_ttl:type_name -> google.protobuf.Duration
 	4,  // 3: kascfg.AgentCF.configuration:type_name -> kascfg.AgentConfigurationCF
 	2,  // 4: kascfg.AgentCF.gitops:type_name -> kascfg.GitopsCF
-	6,  // 5: kascfg.AgentCF.info_cache_ttl:type_name -> google.protobuf.Duration
-	6,  // 6: kascfg.AgentCF.info_cache_error_ttl:type_name -> google.protobuf.Duration
-	6,  // 7: kascfg.AgentConfigurationCF.poll_period:type_name -> google.protobuf.Duration
-	0,  // 8: kascfg.ConfigurationFile.listen:type_name -> kascfg.ListenCF
-	1,  // 9: kascfg.ConfigurationFile.gitlab:type_name -> kascfg.GitLabCF
-	3,  // 10: kascfg.ConfigurationFile.agent:type_name -> kascfg.AgentCF
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	7,  // 5: kascfg.AgentCF.info_cache_ttl:type_name -> google.protobuf.Duration
+	7,  // 6: kascfg.AgentCF.info_cache_error_ttl:type_name -> google.protobuf.Duration
+	7,  // 7: kascfg.AgentConfigurationCF.poll_period:type_name -> google.protobuf.Duration
+	7,  // 8: kascfg.MetricsCF.usage_reporting_period:type_name -> google.protobuf.Duration
+	0,  // 9: kascfg.ConfigurationFile.listen:type_name -> kascfg.ListenCF
+	1,  // 10: kascfg.ConfigurationFile.gitlab:type_name -> kascfg.GitLabCF
+	3,  // 11: kascfg.ConfigurationFile.agent:type_name -> kascfg.AgentCF
+	5,  // 12: kascfg.ConfigurationFile.metrics:type_name -> kascfg.MetricsCF
+	13, // [13:13] is the sub-list for method output_type
+	13, // [13:13] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_pkg_kascfg_kascfg_proto_init() }
@@ -570,6 +637,18 @@ func file_pkg_kascfg_kascfg_proto_init() {
 			}
 		}
 		file_pkg_kascfg_kascfg_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*MetricsCF); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_pkg_kascfg_kascfg_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ConfigurationFile); i {
 			case 0:
 				return &v.state
@@ -588,7 +667,7 @@ func file_pkg_kascfg_kascfg_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_pkg_kascfg_kascfg_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

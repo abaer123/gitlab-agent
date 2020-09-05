@@ -30,6 +30,7 @@ const (
 
 	agentInfoApiPath   = "/api/v4/internal/kubernetes/agent_info"
 	projectInfoApiPath = "/api/v4/internal/kubernetes/project_info"
+	usagePingApiPath   = "/api/v4/internal/kubernetes/usage_metrics"
 )
 
 type HTTPClient interface {
@@ -153,6 +154,20 @@ func (c *Client) GetProjectInfo(ctx context.Context, meta *api.AgentMeta, projec
 	}, nil
 }
 
+func (c *Client) SendUsage(ctx context.Context, data *UsageData) error {
+	u := *c.Backend
+	u.Path = usagePingApiPath
+	err := c.doJSON(ctx, http.MethodPost, nil, &u, data, nil)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// doJSON sends a request with JSON payload (optional) and expects a response with JSON payload (optional).
+// meta may be nil to avoid sending Authorization header (not acting as agentk).
+// body may be nil to avoid sending a request payload.
+// response may be nil to avoid sending an Accept header and ignore the response payload, if any.
 func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta, url *url.URL, body, response interface{}) error {
 	var bodyReader io.Reader
 	if body != nil {
@@ -173,10 +188,14 @@ func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta,
 		return fmt.Errorf("sign JWT: %v", err)
 	}
 
-	r.Header.Set("Authorization", "Bearer "+string(meta.Token))
+	if meta != nil {
+		r.Header.Set("Authorization", "Bearer "+string(meta.Token))
+	}
 	r.Header.Set(kasRequestHeader, signedClaims)
 	r.Header.Set("User-Agent", c.UserAgent)
-	r.Header.Set("Accept", "application/json")
+	if response != nil {
+		r.Header.Set("Accept", "application/json")
+	}
 	if bodyReader != nil {
 		r.Header.Set("Content-Type", "application/json")
 	}
@@ -186,9 +205,26 @@ func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta,
 		return fmt.Errorf("GitLab request: %v", err)
 	}
 	defer resp.Body.Close() // nolint: errcheck
-	switch resp.StatusCode {
-	case http.StatusOK: // Handled below
-	case http.StatusForbidden: // Invalid or revoked token
+	switch {
+	case resp.StatusCode == http.StatusOK:
+		if response == nil {
+			// No response expected or ignoring response
+			return nil
+		}
+		if !isApplicationJSON(resp) {
+			return fmt.Errorf("unexpected Content-Type in response: %q", r.Header.Get("Content-Type"))
+		}
+		data, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("request body read: %v", err)
+		}
+		if err := json.Unmarshal(data, response); err != nil {
+			return fmt.Errorf("json.Unmarshal: %v", err)
+		}
+		return nil
+	case resp.StatusCode == http.StatusNoContent && response == nil:
+		return nil
+	case resp.StatusCode == http.StatusForbidden: // Invalid or revoked token
 		return &ClientError{
 			Kind:       ErrorKindForbidden,
 			StatusCode: http.StatusForbidden,
@@ -199,17 +235,6 @@ func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta,
 			StatusCode: resp.StatusCode,
 		}
 	}
-	if !isApplicationJSON(resp) {
-		return fmt.Errorf("unexpected Content-Type in response: %q", r.Header.Get("Content-Type"))
-	}
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("request body read: %v", err)
-	}
-	if err := json.Unmarshal(data, response); err != nil {
-		return fmt.Errorf("json.Unmarshal: %v", err)
-	}
-	return nil
 }
 
 func isContentType(expected, actual string) bool {
