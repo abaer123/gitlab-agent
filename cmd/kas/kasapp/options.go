@@ -41,8 +41,7 @@ const (
 	defaultGitOpsProjectInfoCacheTTL      = 5 * time.Minute
 	defaultGitOpsProjectInfoCacheErrorTTL = 1 * time.Minute
 
-	// TODO: enable when https://gitlab.com/gitlab-org/gitlab/-/issues/245667 is fixed
-	defaultUsageReportingPeriod = 0 * time.Minute
+	defaultUsageReportingPeriod = 1 * time.Minute
 )
 
 type Options struct {
