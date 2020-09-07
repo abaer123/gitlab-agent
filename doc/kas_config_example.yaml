@@ -1,0 +1,21 @@
+# This is a sample configuration file for kas. The source of truth is pkg/kascfg/kascfg.proto. It contains documentation
+# for all the fields. Configuration values in this file are the defaults (if set) that are used by kas.
+
+listen:
+  network: tcp
+  address: 127.0.0.1:0
+  websocket: false
+gitlab:
+  address: http://localhost:8080
+  authentication_secret_file: /some/file
+agent:
+  configuration:
+    poll_period: "20s"
+  gitops:
+    poll_period: "10s"
+    project_info_cache_ttl: "300s"
+    project_info_cache_error_ttl: "60s"
+  info_cache_ttl: "300s"
+  info_cache_error_ttl: "60s"
+metrics:
+  usage_reporting_period: "60s"
