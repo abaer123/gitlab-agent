@@ -68,13 +68,9 @@ def define_command_targets(name, binary_embed):
         tags = ["manual"],
     )
 
-    # Use CC base image here to have libstdc++6 installed because it is
-    # needed for race detector to work https://github.com/golang/go/issues/14481
-    # Otherwise getting:
-    # error while loading shared libraries: libstdc++.so.6: cannot open shared object file: No such file or directory
     go_image(
         name = "container_race",
-        base = "@cc_image_base//image",
+        base = "@go_image_base//image",
         binary = ":%s_linux_race" % name,
         tags = ["manual"],
     )

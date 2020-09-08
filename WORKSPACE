@@ -142,17 +142,11 @@ load(
     "@io_bazel_rules_docker//go:image.bzl",
     go_image_repositories = "repositories",
 )
-load(
-    "@io_bazel_rules_docker//cc:image.bzl",
-    cc_image_repositories = "repositories",
-)
 load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
 load("@rules_proto_grpc//:repositories.bzl", "rules_proto_grpc_toolchains")
 load("@rules_proto_grpc//go:repositories.bzl", rules_proto_grpc_go_repos = "go_repos")
 
 go_image_repositories()
-
-cc_image_repositories()
 
 buildifier_dependencies()
 
