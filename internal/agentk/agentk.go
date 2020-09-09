@@ -130,6 +130,7 @@ func (a *Agent) synchronizeWorkers(projects []*agentcfg.ManifestProjectCF) {
 			log.WithField(api.ProjectId, projectId).Info("Stopping synchronization worker")
 			workerHolder.stop()
 			delete(a.workers, projectId)
+			// TODO wait for worker to stop
 		}
 	}
 
@@ -143,13 +144,12 @@ func (a *Agent) startNewWorkerLocked(project *agentcfg.ManifestProjectCF) {
 	logger := log.WithField(api.ProjectId, project.Id)
 	logger.Info("Starting synchronization worker")
 	worker := &deploymentWorker{
+		kasClient:     a.kasClient,
 		engineFactory: a.engineFactory,
 		synchronizerConfig: synchronizerConfig{
-			log:       logger,
-			projectId: project.Id,
-			//namespace:
-			kasClient:       a.kasClient,
-			k8sClientGetter: a.k8sClientGetter,
+			log:                  logger,
+			projectConfiguration: project,
+			k8sClientGetter:      a.k8sClientGetter,
 		},
 	}
 	ctx, cancel := context.WithCancel(context.Background())

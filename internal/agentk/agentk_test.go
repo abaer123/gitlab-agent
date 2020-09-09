@@ -156,7 +156,7 @@ func setupAgent(t *testing.T, configs ...*agentcfg.AgentConfiguration) (*Agent, 
 		GetConfiguration(gomock.Any(), gomock.Any()).
 		Return(configStream, nil)
 	factory := mock_engine.NewMockGitOpsEngineFactory(mockCtrl)
-	configFlags := &genericclioptions.TestConfigFlags{}
+	configFlags := genericclioptions.NewTestConfigFlags()
 	return New(client, &mock_engine.ThreadSafeGitOpsEngineFactory{
 		EngineFactory: factory,
 	}, configFlags), mockCtrl, factory
