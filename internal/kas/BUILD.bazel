@@ -9,6 +9,7 @@ go_library(
         "//internal/agentrpc",
         "//internal/api",
         "//internal/api/apiutil",
+        "//internal/gitaly",
         "//internal/gitlab",
         "//pkg/agentcfg",
         "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",

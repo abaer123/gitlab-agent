@@ -66,7 +66,7 @@ func (mr *MockClientInterfaceMockRecorder) GetProjectInfo(arg0, arg1, arg2 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProjectInfo", reflect.TypeOf((*MockClientInterface)(nil).GetProjectInfo), arg0, arg1, arg2)
 }
 
-// SendUsage mocks base method.
+// SendUsage mocks base method
 func (m *MockClientInterface) SendUsage(arg0 context.Context, arg1 *gitlab.UsageData) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendUsage", arg0, arg1)
@@ -74,7 +74,7 @@ func (m *MockClientInterface) SendUsage(arg0 context.Context, arg1 *gitlab.Usage
 	return ret0
 }
 
-// SendUsage indicates an expected call of SendUsage.
+// SendUsage indicates an expected call of SendUsage
 func (mr *MockClientInterfaceMockRecorder) SendUsage(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendUsage", reflect.TypeOf((*MockClientInterface)(nil).SendUsage), arg0, arg1)

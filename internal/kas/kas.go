@@ -11,6 +11,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
@@ -30,16 +31,12 @@ const (
 	agentConfigurationFileName  = "config.yaml"
 )
 
-type GitalyPool interface {
-	CommitServiceClient(context.Context, *api.GitalyInfo) (gitalypb.CommitServiceClient, error)
-}
-
 type Server struct {
 	// metrics must be the very first field to ensure 64-bit alignment.
 	// See https://github.com/golang/go/blob/95df156e6ac53f98efd6c57e4586c1dfb43066dd/src/sync/atomic/doc.go#L46-L54
 	metrics                      metrics
 	Context                      context.Context
-	GitalyPool                   GitalyPool
+	GitalyPool                   gitaly.PoolInterface
 	GitLabClient                 gitlab.ClientInterface
 	AgentConfigurationPollPeriod time.Duration
 	GitopsPollPeriod             time.Duration
@@ -68,21 +65,38 @@ func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream age
 }
 
 func (s *Server) sendConfiguration(agentInfo *api.AgentInfo, stream agentrpc.Kas_GetConfigurationServer) wait.ConditionFunc {
+	var lastProcessedCommitId string
+	p := gitaly.Poller{
+		GitalyPool: s.GitalyPool,
+	}
+	logger := log.WithField(api.AgentId, agentInfo.ID)
+	ctx := stream.Context()
 	return func() (bool /*done*/, error) {
-		config, err := s.fetchConfiguration(stream.Context(), agentInfo)
+		info, err := p.Poll(ctx, &agentInfo.GitalyInfo, &agentInfo.Repository, lastProcessedCommitId, gitaly.DefaultBranch)
 		if err != nil {
-			log.WithError(err).WithField(api.AgentId, agentInfo.ID).Warn("Failed to fetch configuration")
+			logger.WithError(err).Warn("Config: repository poll failed")
 			return false, nil // don't want to close the response stream, so report no error
 		}
+		if !info.UpdateAvailable {
+			logger.WithField(api.CommitId, lastProcessedCommitId).Debug("Config: no updates")
+			return false, nil
+		}
+		logger.WithField(api.CommitId, info.CommitID).Info("Config: new commit")
+		config, err := s.fetchConfiguration(ctx, agentInfo, info.CommitID)
+		if err != nil {
+			logger.WithError(err).Warn("Config: failed to fetch")
+			return false, nil // don't want to close the response stream, so report no error
+		}
+		lastProcessedCommitId = info.CommitID
 		return false, stream.Send(config)
 	}
 }
 
 // fetchConfiguration fetches agent's configuration from a corresponding repository.
 // Assumes configuration is stored in "agents/<agent id>/config.yaml" file.
-func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInfo) (*agentrpc.ConfigurationResponse, error) {
+func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInfo, revision string) (*agentrpc.ConfigurationResponse, error) {
 	filename := path.Join(agentConfigurationDirectory, agentInfo.Name, agentConfigurationFileName)
-	configYAML, err := s.fetchSingleFile(ctx, &agentInfo.GitalyInfo, &agentInfo.Repository, filename, "master") // TODO handle different default branch
+	configYAML, err := s.fetchSingleFile(ctx, &agentInfo.GitalyInfo, &agentInfo.Repository, filename, revision)
 	if err != nil {
 		return nil, fmt.Errorf("fetch agent configuration: %v", err)
 	}
@@ -102,15 +116,15 @@ func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInf
 // fetchSingleFile fetches the latest revision of a single file.
 // Returned data slice is nil if file was not found and is empty if the file is empty.
 func (s *Server) fetchSingleFile(ctx context.Context, gInfo *api.GitalyInfo, repo *gitalypb.Repository, filename, revision string) ([]byte, error) {
+	client, err := s.GitalyPool.CommitServiceClient(ctx, gInfo)
+	if err != nil {
+		return nil, fmt.Errorf("CommitServiceClient: %v", err)
+	}
 	treeEntryReq := &gitalypb.TreeEntryRequest{
 		Repository: repo,
 		Revision:   []byte(revision),
 		Path:       []byte(filename),
 		Limit:      fileSizeLimit,
-	}
-	client, err := s.GitalyPool.CommitServiceClient(ctx, gInfo)
-	if err != nil {
-		return nil, fmt.Errorf("CommitServiceClient: %v", err)
 	}
 	teResp, err := client.TreeEntry(ctx, treeEntryReq)
 	if err != nil {
@@ -148,23 +162,40 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 }
 
 func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agentrpc.Kas_GetObjectsToSynchronizeServer, projectId string) wait.ConditionFunc {
+	var lastProcessedCommitId string
+	p := gitaly.Poller{
+		GitalyPool: s.GitalyPool,
+	}
+	logger := log.WithField(api.AgentId, agentInfo.ID)
+	ctx := stream.Context()
 	return func() (bool /*done*/, error) {
-		ctx := stream.Context()
 		// This call is made on each poll because:
 		// - it checks that the agent's token is still valid
 		// - repository location in Gitaly might have changed
 		repoInfo, err := s.GitLabClient.GetProjectInfo(ctx, &agentInfo.Meta, projectId)
 		if err != nil {
-			log.WithError(err).WithField(api.AgentId, agentInfo.ID).Warn("Failed to get project info")
+			logger.WithError(err).Warn("GitOps: failed to get project info")
 			return false, nil // don't want to close the response stream, so report no error
 		}
-		objects, revision, err := s.fetchObjectsToSynchronize(ctx, repoInfo)
+		revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
+		info, err := p.Poll(ctx, &repoInfo.GitalyInfo, &repoInfo.Repository, lastProcessedCommitId, revision)
 		if err != nil {
-			log.WithError(err).WithField(api.AgentId, agentInfo.ID).Warn("Failed to get objects to synchronize")
+			logger.WithError(err).Warn("GitOps: repository poll failed")
 			return false, nil // don't want to close the response stream, so report no error
 		}
+		if !info.UpdateAvailable {
+			logger.WithField(api.CommitId, lastProcessedCommitId).Debug("GitOps: no updates")
+			return false, nil
+		}
+		logger.WithField(api.CommitId, info.CommitID).Info("GitOps: new commit")
+		objects, err := s.fetchObjectsToSynchronize(ctx, repoInfo, info.CommitID)
+		if err != nil {
+			logger.WithError(err).Warn("GitOps: failed to get objects to synchronize")
+			return false, nil // don't want to close the response stream, so report no error
+		}
+		lastProcessedCommitId = info.CommitID
 		err = stream.Send(&agentrpc.ObjectsToSynchronizeResponse{
-			Revision: revision,
+			Revision: lastProcessedCommitId,
 			Objects:  objects,
 		})
 		if err != nil {
@@ -175,35 +206,22 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agent
 	}
 }
 
-func (s *Server) fetchObjectsToSynchronize(ctx context.Context, repoInfo *api.ProjectInfo) ([]*agentrpc.ObjectToSynchronize, string /* revision */, error) {
-	client, err := s.GitalyPool.CommitServiceClient(ctx, &repoInfo.GitalyInfo)
-	if err != nil {
-		return nil, "", fmt.Errorf("CommitServiceClient: %v", err)
-	}
-	findCommitReq := &gitalypb.FindCommitRequest{
-		Repository: &repoInfo.Repository,
-		Revision:   []byte("master"), // TODO handle different default branch
-	}
-	fcResp, err := client.FindCommit(ctx, findCommitReq)
-	if err != nil {
-		return nil, "", fmt.Errorf("FindCommit: %v", err)
-	}
-
+func (s *Server) fetchObjectsToSynchronize(ctx context.Context, repoInfo *api.ProjectInfo, revision string) ([]*agentrpc.ObjectToSynchronize, error) {
 	// TODO fetching just one file with a hardcoded name is a shortcut to cut scope
 	filename := "manifest.yaml"
-	manifestYAML, err := s.fetchSingleFile(ctx, &repoInfo.GitalyInfo, &repoInfo.Repository, filename, fcResp.Commit.Id)
+	manifestYAML, err := s.fetchSingleFile(ctx, &repoInfo.GitalyInfo, &repoInfo.Repository, filename, revision)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	if manifestYAML == nil {
-		return nil, "", fmt.Errorf("manifest file not found: %q", filename)
+		return nil, fmt.Errorf("manifest file not found: %q", filename)
 	}
 	return []*agentrpc.ObjectToSynchronize{
 		{
 			Object: manifestYAML,
 			Source: filename,
 		},
-	}, fcResp.Commit.Id, nil
+	}, nil
 }
 
 func (s *Server) sendUsage(ctx context.Context) {

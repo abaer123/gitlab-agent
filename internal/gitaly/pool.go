@@ -8,6 +8,11 @@ import (
 	"google.golang.org/grpc"
 )
 
+type PoolInterface interface {
+	CommitServiceClient(context.Context, *api.GitalyInfo) (gitalypb.CommitServiceClient, error)
+	SmartHTTPServiceClient(context.Context, *api.GitalyInfo) (gitalypb.SmartHTTPServiceClient, error)
+}
+
 // ClientPool abstracts gitlab.com/gitlab-org/gitaly/client.Pool.
 type ClientPool interface {
 	Dial(ctx context.Context, address, token string) (*grpc.ClientConn, error)
@@ -23,4 +28,12 @@ func (p *Pool) CommitServiceClient(ctx context.Context, gInfo *api.GitalyInfo) (
 		return nil, err
 	}
 	return gitalypb.NewCommitServiceClient(conn), nil
+}
+
+func (p *Pool) SmartHTTPServiceClient(ctx context.Context, gInfo *api.GitalyInfo) (gitalypb.SmartHTTPServiceClient, error) {
+	conn, err := p.ClientPool.Dial(ctx, gInfo.Address, gInfo.Token)
+	if err != nil {
+		return nil, err
+	}
+	return gitalypb.NewSmartHTTPServiceClient(conn), nil
 }
