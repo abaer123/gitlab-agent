@@ -80,9 +80,10 @@ func (o *Options) Run(ctx context.Context) error {
 		lis = wsWrapper.Wrap(lis)
 	}
 
-	gitalyClientPool := client.NewPool()
+	kasUserAgent := fmt.Sprintf("gitlab-kas/%s/%s", cmd.Version, cmd.Commit)
+	gitalyClientPool := client.NewPool(grpc.WithUserAgent(kasUserAgent))
 	defer gitalyClientPool.Close() // nolint: errcheck
-	gitLabClient := gitlab.NewClient(gitLabUrl, decodedAuthSecret, fmt.Sprintf("kas/%s/%s", cmd.Version, cmd.Commit))
+	gitLabClient := gitlab.NewClient(gitLabUrl, decodedAuthSecret, kasUserAgent)
 	gitLabCachingClient := gitlab.NewCachingClient(gitLabClient, gitlab.CacheOptions{
 		CacheTTL:      cfg.Agent.InfoCacheTtl.AsDuration(),
 		CacheErrorTTL: cfg.Agent.InfoCacheErrorTtl.AsDuration(),
