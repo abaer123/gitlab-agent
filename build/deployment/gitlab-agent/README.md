@@ -54,8 +54,13 @@ GitLab Kubernetes Agent needs two pieces of configuration to connect to a GitLab
 
 1. (Optional but recommended) Commit the configuration into a repository and manage it as code.
 
-1. Put the agent token into a `Secret` named `gitlab-agent-token`. Make sure it's in the same namespace with the
-agent (`gitlab-agent` by default). You can find out the currently set namespace by running `kustomize cfg list-setters .`. See step 2 above.
+1. Put the agent token into a `Secret` named `gitlab-agent-token` and reference by the `token` key. Make sure it's within the same namespace as the agent (`gitlab-agent` by default). E.g.:
+
+```shell
+kubectl create secret generic -n gitlab-agent gitlab-agent-token --from-literal=token='YOUR_AGENT_TOKEN'
+```
+
+You can find out the currently set namespace by running `kustomize cfg list-setters .`. See step 2 above.
 
 1. Deploy the stock configuration or your customized overlay:
 
