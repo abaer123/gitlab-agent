@@ -2,8 +2,8 @@ package agentk
 
 import (
 	"context"
+	"fmt"
 	"io"
-	"sync"
 	"time"
 
 	"github.com/argoproj/gitops-engine/pkg/cache"
@@ -14,6 +14,7 @@ import (
 	"gitlab.com/gitlab-org/labkit/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/resource"
@@ -32,14 +33,12 @@ type Agent struct {
 	kasClient       agentrpc.KasClient
 	engineFactory   GitOpsEngineFactory
 	k8sClientGetter resource.RESTClientGetter
-
-	workers     map[string]*deploymentWorkerHolder // project id -> worker holder instance
-	workersLock sync.RWMutex
-	workersWg   wait.Group
+	workers         map[string]*deploymentWorkerHolder // project id -> worker holder instance
 }
 
 type deploymentWorkerHolder struct {
 	worker *deploymentWorker
+	wg     wait.Group
 	stop   context.CancelFunc
 }
 
@@ -53,7 +52,6 @@ func New(kasClient agentrpc.KasClient, engineFactory GitOpsEngineFactory, k8sCli
 }
 
 func (a *Agent) Run(ctx context.Context) error {
-	defer a.workersWg.Wait() // Wait for all workers to stop
 	defer a.stopAllWorkers()
 	err := wait.PollImmediateUntil(refreshConfigurationRetryPeriod, a.refreshConfiguration(ctx), ctx.Done())
 	if err == wait.ErrWaitTimeout {
@@ -63,8 +61,13 @@ func (a *Agent) Run(ctx context.Context) error {
 }
 
 func (a *Agent) stopAllWorkers() {
+	// Tell all workers to stop
 	for _, workerHolder := range a.workers {
 		workerHolder.stop()
+	}
+	// Wait for all workers to stop
+	for _, workerHolder := range a.workers {
+		workerHolder.wg.Wait()
 	}
 }
 
@@ -88,59 +91,94 @@ func (a *Agent) refreshConfiguration(ctx context.Context) wait.ConditionFunc {
 				}
 				return false, nil // nil error to keep polling
 			}
-			a.applyConfiguration(config.Configuration)
+			err = a.applyConfiguration(config.Configuration)
+			if err != nil {
+				log.WithError(err).Error("Failed to apply configuration")
+			}
 		}
 	}
 }
 
-func (a *Agent) applyConfiguration(config *agentcfg.AgentConfiguration) {
+func (a *Agent) applyConfiguration(config *agentcfg.AgentConfiguration) error {
 	log.WithField("config", config).Debug("Applying configuration")
-	a.applyDeploymentsConfiguration(config.Deployments)
+	err := a.applyDeploymentsConfiguration(config.Deployments)
+	if err != nil {
+		return fmt.Errorf("deployments: %v", err)
+	}
+	return nil
 }
 
-func (a *Agent) applyDeploymentsConfiguration(deployments *agentcfg.DeploymentsCF) {
+func (a *Agent) applyDeploymentsConfiguration(deployments *agentcfg.DeploymentsCF) error {
 	var projects []*agentcfg.ManifestProjectCF
 	if deployments != nil {
 		projects = deployments.ManifestProjects
 	}
-	a.synchronizeWorkers(projects)
+	err := a.synchronizeWorkers(projects)
+	if err != nil {
+		return fmt.Errorf("manifest projects: %v", err)
+	}
+	return nil
 }
 
-func (a *Agent) synchronizeWorkers(projects []*agentcfg.ManifestProjectCF) {
-	a.workersLock.Lock()
-	defer a.workersLock.Unlock()
-
+func (a *Agent) synchronizeWorkers(projects []*agentcfg.ManifestProjectCF) error {
 	newSetOfProjects := sets.NewString()
-	var projectsToAdd []*agentcfg.ManifestProjectCF
+	var (
+		projectsToStartWorkersFor []*agentcfg.ManifestProjectCF
+		workersToStop             []*deploymentWorkerHolder
+	)
 
-	// Collect projects without workers.
+	// Collect projects without workers or with updated configuration.
 	for _, project := range projects {
+		if newSetOfProjects.Has(project.Id) {
+			log.WithField(api.ProjectId, project.Id).Error()
+			return fmt.Errorf("duplicate project id: %s", project.Id)
+		}
 		newSetOfProjects.Insert(project.Id)
 		workerHolder := a.workers[project.Id]
-		if workerHolder == nil {
-			projectsToAdd = append(projectsToAdd, project)
-			//} else {
-			// TODO update worker's configuration. Nothing currently, but e.g. credentials in the future
+		if workerHolder == nil { // New project added
+			projectsToStartWorkersFor = append(projectsToStartWorkersFor, project)
+		} else { // We have a worker for this project already
+			if proto.Equal(project, workerHolder.worker.projectConfiguration) {
+				// Worker's configuration hasn't changed, nothing to do here
+				continue
+			}
+			log.WithField(api.ProjectId, project.Id).Info("Configuration has been updated, restarting synchronization worker")
+			workersToStop = append(workersToStop, workerHolder)
+			projectsToStartWorkersFor = append(projectsToStartWorkersFor, project)
 		}
 	}
 
 	// Stop workers for projects which have been removed from the list.
 	for projectId, workerHolder := range a.workers {
-		if !newSetOfProjects.Has(projectId) {
-			log.WithField(api.ProjectId, projectId).Info("Stopping synchronization worker")
-			workerHolder.stop()
-			delete(a.workers, projectId)
-			// TODO wait for worker to stop
+		if newSetOfProjects.Has(projectId) {
+			continue
 		}
+		workersToStop = append(workersToStop, workerHolder)
 	}
 
-	// Start workers for newly added projects.
-	for _, project := range projectsToAdd {
-		a.startNewWorkerLocked(project)
+	// Tell workers that should be stopped to stop.
+	for _, workerHolder := range workersToStop {
+		projectId := workerHolder.worker.projectConfiguration.Id
+		log.WithField(api.ProjectId, projectId).Info("Stopping synchronization worker")
+		workerHolder.stop()
+		delete(a.workers, projectId)
 	}
+
+	// Wait for stopped workers to finish.
+	for _, workerHolder := range workersToStop {
+		projectId := workerHolder.worker.projectConfiguration.Id
+		log.WithField(api.ProjectId, projectId).Info("Waiting for synchronization worker to stop")
+		workerHolder.wg.Wait()
+	}
+
+	// Start new workers for new projects or because of updated configuration.
+	for _, project := range projectsToStartWorkersFor {
+		a.startNewWorker(project)
+	}
+	return nil
 }
 
-func (a *Agent) startNewWorkerLocked(project *agentcfg.ManifestProjectCF) {
+func (a *Agent) startNewWorker(project *agentcfg.ManifestProjectCF) {
 	logger := log.WithField(api.ProjectId, project.Id)
 	logger.Info("Starting synchronization worker")
 	worker := &deploymentWorker{
@@ -153,11 +191,12 @@ func (a *Agent) startNewWorkerLocked(project *agentcfg.ManifestProjectCF) {
 		},
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	a.workersWg.StartWithContext(ctx, worker.Run)
-	a.workers[project.Id] = &deploymentWorkerHolder{
+	workerHolder := &deploymentWorkerHolder{
 		worker: worker,
 		stop:   cancel,
 	}
+	workerHolder.wg.StartWithContext(ctx, worker.Run)
+	a.workers[project.Id] = workerHolder
 }
 
 type DefaultGitOpsEngineFactory struct {

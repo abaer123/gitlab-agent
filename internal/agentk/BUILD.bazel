@@ -27,6 +27,7 @@ go_library(
         "@io_k8s_client_go//rest",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//proto",
     ],
 )
 
@@ -52,6 +53,7 @@ go_test(
         "@com_github_argoproj_gitops_engine//pkg/sync",
         "@com_github_argoproj_gitops_engine//pkg/sync/common",
         "@com_github_golang_mock//gomock",
+        "@com_github_google_go_cmp//cmp",
         "@com_github_sirupsen_logrus//:logrus",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
@@ -59,5 +61,6 @@ go_test(
         "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
         "@io_k8s_apimachinery//pkg/apis/meta/v1/unstructured",
         "@io_k8s_cli_runtime//pkg/genericclioptions",
+        "@org_golang_google_protobuf//testing/protocmp",
     ],
 )
