@@ -51,7 +51,6 @@ test:
   stage: test
   extends: .bazel_build
   script:
-    - sed -i'.bak' 's|go_register_toolchains()|go_register_toolchains(nogo = "@//:nogo_for_ci")|' WORKSPACE
     - make test-ci
     - *registry_creds
     - if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then make release-latest-all-ci; fi
