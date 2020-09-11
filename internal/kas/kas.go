@@ -27,7 +27,7 @@ const (
 	// - Kubernetes manifest files
 	fileSizeLimit = 1024 * 1024
 
-	agentConfigurationDirectory = "agents"
+	agentConfigurationDirectory = ".gitlab/agents"
 	agentConfigurationFileName  = "config.yaml"
 )
 
