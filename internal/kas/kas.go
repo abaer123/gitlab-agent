@@ -195,7 +195,7 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agent
 		}
 		lastProcessedCommitId = info.CommitID
 		err = stream.Send(&agentrpc.ObjectsToSynchronizeResponse{
-			Revision: lastProcessedCommitId,
+			CommitId: lastProcessedCommitId,
 			Objects:  objects,
 		})
 		if err != nil {

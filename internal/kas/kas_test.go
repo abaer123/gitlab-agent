@@ -206,7 +206,7 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 		MinTimes(1)
 	resp.EXPECT().
 		Send(matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeResponse{
-			Revision: revision,
+			CommitId: revision,
 			Objects: []*agentrpc.ObjectToSynchronize{
 				{
 					Object: objectsYAML,

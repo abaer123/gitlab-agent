@@ -63,4 +63,26 @@ deployments:
   manifest_projects:
     # No authentication mechanisms are currently supported.
   - id: gitlab-org/cluster-integration/gitlab-agent
+    # Holds the only api groups and kinds of resources that gitops will monitor.
+    # Inclusion rules are evaluated first, then exclusion rules. If there is still no match,
+    # resource is monitored.
+    resource_inclusions:
+    - api_groups:
+      - apps
+      kinds:
+      - '*'
+    - api_groups:
+      - ''
+      kinds:
+      - 'ConfigMap'
+    # Holds the api groups and kinds of resources to exclude from gitops watch.
+    # Inclusion rules are evaluated first, then exclusion rules. If there is still no match,
+    # resource is monitored.
+    resource_exclusions:
+    - api_groups:
+      - '*'
+      kinds:
+      - '*'
 ```
+
+By default, all resource kinds are monitored. Use `resource_exclusions` section to specify exclusion patterns to narrow down the list of monitored resources. This allows to reduce the needed permissions for the GitOps feature. To invert the matching behavior, exclude all groups/kinds and use `resource_inclusions` to specify the desired resource patterns. See the example configuration above for this pattern.

@@ -3,18 +3,13 @@ package agentk
 import (
 	"bytes"
 	"context"
-	"fmt"
-	"io"
 
-	"github.com/argoproj/gitops-engine/pkg/cache"
 	"github.com/argoproj/gitops-engine/pkg/engine"
 	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
-	"gitlab.com/gitlab-org/labkit/log"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/resource"
 )
 
@@ -24,11 +19,9 @@ const (
 
 // synchronizerConfig holds configuration for a synchronizer.
 type synchronizerConfig struct {
-	log             *logrus.Entry
-	projectId       string
-	namespace       string
-	kasClient       agentrpc.KasClient
-	k8sClientGetter resource.RESTClientGetter
+	log                  *logrus.Entry
+	projectConfiguration *agentcfg.ManifestProjectCF
+	k8sClientGetter      resource.RESTClientGetter
 }
 
 type resourceInfo struct {
@@ -36,60 +29,75 @@ type resourceInfo struct {
 }
 
 type synchronizer struct {
-	ctx context.Context
-	eng engine.GitOpsEngine
 	synchronizerConfig
+	engine       engine.GitOpsEngine
+	desiredState chan *agentrpc.ObjectsToSynchronizeResponse
 }
 
-func (s *synchronizer) run() {
-	req := &agentrpc.ObjectsToSynchronizeRequest{
-		ProjectId: s.projectId,
+func newSynchronizer(config synchronizerConfig, engine engine.GitOpsEngine) *synchronizer {
+	return &synchronizer{
+		synchronizerConfig: config,
+		engine:             engine,
+		desiredState:       make(chan *agentrpc.ObjectsToSynchronizeResponse),
 	}
-	res, err := s.kasClient.GetObjectsToSynchronize(s.ctx, req)
-	if err != nil {
-		s.log.WithError(err).Warn("GetObjectsToSynchronize failed")
-		return
+}
+
+func (s *synchronizer) setDesiredState(ctx context.Context, objectsResp *agentrpc.ObjectsToSynchronizeResponse) bool {
+	select {
+	case <-ctx.Done():
+		return false
+	case s.desiredState <- objectsResp:
+		return true
 	}
+}
+
+func (s *synchronizer) run(ctx context.Context) {
+	jobs := make(chan syncJob)
+	sw := newSyncWorker(s.synchronizerConfig, s.engine)
+	var wg wait.Group
+	defer wg.Wait()   // Wait for sw to exit
+	defer close(jobs) // Close jobs to signal sw there is no more work to be done
+	wg.Start(func() {
+		sw.run(jobs) // Start sw
+	})
+
+	var (
+		jobsCh    chan syncJob
+		newJob    syncJob
+		jobCancel context.CancelFunc
+	)
+	defer func() {
+		if jobCancel != nil {
+			jobCancel()
+		}
+	}()
+
 	for {
-		objectsResp, err := res.Recv()
-		if err != nil {
-			switch {
-			case err == io.EOF:
-			case status.Code(err) == codes.DeadlineExceeded:
-			case status.Code(err) == codes.Canceled:
-			default:
-				s.log.WithError(err).Warn("GetObjectsToSynchronize.Recv failed")
+		select {
+		case <-ctx.Done():
+			return // nolint: govet
+		case desiredState := <-s.desiredState:
+			objs, err := s.decodeObjectsToSynchronize(desiredState.Objects)
+			if err != nil {
+				s.log.WithError(err).Warning("Failed to decode GitOps objects")
+				continue
 			}
-			return
+			if jobCancel != nil {
+				jobCancel() // Cancel running/pending job ASAP
+			}
+			markAsManaged(objs)
+			newJob = syncJob{
+				commitId: desiredState.CommitId,
+				objects:  objs,
+			}
+			newJob.ctx, jobCancel = context.WithCancel(context.Background()) // nolint: govet
+			jobsCh = jobs                                                    // Enable select case
+		case jobsCh <- newJob: // Try to send new job to syncWorker. This case is active only when jobsCh is not nil
+			// Success!
+			newJob = syncJob{} // Erase contents to help GC
+			jobsCh = nil       // Disable this select case (send to nil channel blocks forever)
 		}
-		err = s.synchronize(objectsResp)
-		if err != nil {
-			s.log.WithError(err).Warn("Synchronization failed")
-		}
 	}
-}
-
-func (s *synchronizer) synchronize(objectsResp *agentrpc.ObjectsToSynchronizeResponse) error {
-	objs, err := s.decodeObjectsToSynchronize(objectsResp.Objects)
-	if err != nil {
-		return err
-	}
-	markAsManaged(objs)
-	result, err := s.eng.Sync(s.ctx, objs, s.isManaged, objectsResp.Revision, s.namespace)
-	if err != nil {
-		return fmt.Errorf("engine.Sync failed: %v", err)
-	}
-	for _, res := range result {
-		s.log.WithFields(log.Fields{
-			api.ResourceKey: res.ResourceKey.String(),
-			api.SyncResult:  res.Message,
-		}).Info("Synced")
-	}
-	return nil
-}
-
-func (s *synchronizer) isManaged(r *cache.Resource) bool {
-	return r.Info.(*resourceInfo).gcMark == "managed" // TODO
 }
 
 func (s *synchronizer) decodeObjectsToSynchronize(objs []*agentrpc.ObjectToSynchronize) ([]*unstructured.Unstructured, error) {

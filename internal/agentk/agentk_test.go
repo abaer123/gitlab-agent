@@ -10,12 +10,14 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc/mock_agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_engine"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
+	"google.golang.org/protobuf/testing/protocmp"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
@@ -47,20 +49,20 @@ func TestRunStartsWorkersAccordingToConfiguration(t *testing.T) {
 	}
 }
 
-func TestRunUpdatesNumberOfWorkersAccordingToConfiguration(t *testing.T) {
+func TestRunUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 	t.Run("increasing order", func(t *testing.T) {
 		configs := sortableConfigs(testConfigurations())
 		sort.Stable(configs)
-		testRunUpdatesNumberOfWorkersAccordingToConfiguration(t, configs)
+		testRunUpdatesWorkersAccordingToConfiguration(t, configs)
 	})
 	t.Run("decreasing order", func(t *testing.T) {
 		configs := sortableConfigs(testConfigurations())
 		sort.Sort(sort.Reverse(configs))
-		testRunUpdatesNumberOfWorkersAccordingToConfiguration(t, configs)
+		testRunUpdatesWorkersAccordingToConfiguration(t, configs)
 	})
 }
 
-func testRunUpdatesNumberOfWorkersAccordingToConfiguration(t *testing.T, configs []*agentcfg.AgentConfiguration) {
+func testRunUpdatesWorkersAccordingToConfiguration(t *testing.T, configs []*agentcfg.AgentConfiguration) {
 	a, mockCtrl, factory := setupAgent(t, configs...)
 	engine := mock_engine.NewMockGitOpsEngine(mockCtrl)
 	engine.EXPECT().
@@ -79,13 +81,17 @@ func testRunUpdatesNumberOfWorkersAccordingToConfiguration(t *testing.T, configs
 }
 
 func testConfigurations() []*agentcfg.AgentConfiguration {
+	const (
+		project1 = "bla1/project1"
+		project2 = "bla1/project2"
+	)
 	return []*agentcfg.AgentConfiguration{
 		{},
 		{
 			Deployments: &agentcfg.DeploymentsCF{
 				ManifestProjects: []*agentcfg.ManifestProjectCF{
 					{
-						Id: "bla1/project1",
+						Id: project1,
 					},
 				},
 			},
@@ -94,10 +100,12 @@ func testConfigurations() []*agentcfg.AgentConfiguration {
 			Deployments: &agentcfg.DeploymentsCF{
 				ManifestProjects: []*agentcfg.ManifestProjectCF{
 					{
-						Id: "bla1/project1",
+						Id:                 project1,
+						ResourceInclusions: defaultResourceExclusions, // update config
+						ResourceExclusions: defaultResourceExclusions, // update config
 					},
 					{
-						Id: "bla2/project2",
+						Id: project2,
 					},
 				},
 			},
@@ -109,7 +117,9 @@ func testConfigurations() []*agentcfg.AgentConfiguration {
 						Id: "bla3/project3",
 					},
 					{
-						Id: "bla2/project2",
+						Id:                 project2,
+						ResourceInclusions: defaultResourceExclusions, // update config
+						ResourceExclusions: defaultResourceExclusions, // update config
 					},
 				},
 			},
@@ -118,10 +128,7 @@ func testConfigurations() []*agentcfg.AgentConfiguration {
 }
 
 func assertWorkersMatchConfiguration(t *testing.T, a *Agent, config *agentcfg.AgentConfiguration) bool { // nolint: unparam
-	var projects []*agentcfg.ManifestProjectCF
-	if config.Deployments != nil {
-		projects = config.Deployments.ManifestProjects
-	}
+	projects := config.GetDeployments().GetManifestProjects()
 	if !assert.Len(t, a.workers, len(projects)) {
 		return false
 	}
@@ -129,7 +136,9 @@ func assertWorkersMatchConfiguration(t *testing.T, a *Agent, config *agentcfg.Ag
 	for _, project := range projects {
 		if !assert.Contains(t, a.workers, project.Id) {
 			success = false
+			continue
 		}
+		success = assert.Empty(t, cmp.Diff(a.workers[project.Id].worker.projectConfiguration, project, protocmp.Transform())) || success
 	}
 	return success
 }
@@ -156,7 +165,7 @@ func setupAgent(t *testing.T, configs ...*agentcfg.AgentConfiguration) (*Agent, 
 		GetConfiguration(gomock.Any(), gomock.Any()).
 		Return(configStream, nil)
 	factory := mock_engine.NewMockGitOpsEngineFactory(mockCtrl)
-	configFlags := &genericclioptions.TestConfigFlags{}
+	configFlags := genericclioptions.NewTestConfigFlags()
 	return New(client, &mock_engine.ThreadSafeGitOpsEngineFactory{
 		EngineFactory: factory,
 	}, configFlags), mockCtrl, factory
