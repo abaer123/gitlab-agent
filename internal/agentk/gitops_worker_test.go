@@ -90,7 +90,7 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 			return nil, ctx.Err()
 		})
 
-	d := &deploymentWorker{
+	d := &gitopsWorker{
 		kasClient:                          kasClient,
 		engineFactory:                      engineFactory,
 		getObjectsToSynchronizeRetryPeriod: 10 * time.Millisecond,
@@ -221,7 +221,7 @@ func objsAndResp(t *testing.T) ([]*unstructured.Unstructured, *agentrpc.ObjectsT
 	return objs, resp1
 }
 
-func setupWorker(t *testing.T) (*deploymentWorker, *mock_engine.MockGitOpsEngine, *mock_agentrpc.MockKas_GetObjectsToSynchronizeClient) {
+func setupWorker(t *testing.T) (*gitopsWorker, *mock_engine.MockGitOpsEngine, *mock_agentrpc.MockKas_GetObjectsToSynchronizeClient) {
 	mockCtrl := gomock.NewController(t)
 	mockEngineCtrl := gomock.NewController(t)
 	engineCloser := mock_misc.NewMockCloser(mockCtrl)
@@ -247,7 +247,7 @@ func setupWorker(t *testing.T) (*deploymentWorker, *mock_engine.MockGitOpsEngine
 			Close().
 			Return(nil),
 	)
-	d := &deploymentWorker{
+	d := &gitopsWorker{
 		kasClient:                          kasClient,
 		engineFactory:                      engineFactory,
 		getObjectsToSynchronizeRetryPeriod: 10 * time.Millisecond,

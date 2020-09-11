@@ -4,7 +4,7 @@ go_library(
     name = "agentk",
     srcs = [
         "agentk.go",
-        "deployment_worker.go",
+        "gitops_worker.go",
         "resources_filter.go",
         "sync_worker.go",
         "synchronizer.go",
@@ -37,7 +37,7 @@ go_test(
     size = "small",
     srcs = [
         "agentk_test.go",
-        "deployment_worker_test.go",
+        "gitops_worker_test.go",
         "resources_filter_test.go",
     ],
     embed = [":agentk"],

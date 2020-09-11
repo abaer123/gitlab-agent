@@ -15,15 +15,15 @@ func TestStructToJSONAndBack(t *testing.T) {
 	testCases := []*ConfigurationFile{
 		{}, // empty config
 		{
-			Deployments: &DeploymentsCF{}, // no ManifestProjects
+			Gitops: &GitopsCF{}, // no ManifestProjects
 		},
 		{
-			Deployments: &DeploymentsCF{
+			Gitops: &GitopsCF{
 				ManifestProjects: []*ManifestProjectCF{}, // empty list of ManifestProjects
 			},
 		},
 		{
-			Deployments: &DeploymentsCF{
+			Gitops: &GitopsCF{
 				ManifestProjects: []*ManifestProjectCF{
 					{
 						Id: "gitlab-org/cluster-integration/gitlab-agent",
@@ -55,16 +55,16 @@ func TestJSONToStructAndBack(t *testing.T) {
 			expected: `{}`,
 		},
 		{
-			given:    `{"deployments":{}}`,
-			expected: `{"deployments":{}}`,
+			given:    `{"gitops":{}}`,
+			expected: `{"gitops":{}}`,
 		},
 		{
-			given:    `{"deployments":{"manifest_projects":[]}}`,
-			expected: `{"deployments":{}}`, // empty slice is omitted
+			given:    `{"gitops":{"manifest_projects":[]}}`,
+			expected: `{"gitops":{}}`, // empty slice is omitted
 		},
 		{
-			given:    `{"deployments":{"manifest_projects":[{"id":"gitlab-org/cluster-integration/gitlab-agent"}]}}`,
-			expected: `{"deployments":{"manifest_projects":[{"id":"gitlab-org/cluster-integration/gitlab-agent"}]}}`,
+			given:    `{"gitops":{"manifest_projects":[{"id":"gitlab-org/cluster-integration/gitlab-agent"}]}}`,
+			expected: `{"gitops":{"manifest_projects":[{"id":"gitlab-org/cluster-integration/gitlab-agent"}]}}`,
 		},
 	}
 

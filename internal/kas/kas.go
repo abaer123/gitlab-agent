@@ -294,7 +294,7 @@ func parseYAMLToConfiguration(configYAML []byte) (*agentcfg.ConfigurationFile, e
 
 func extractAgentConfiguration(file *agentcfg.ConfigurationFile) *agentcfg.AgentConfiguration {
 	return &agentcfg.AgentConfiguration{
-		Deployments: file.Deployments,
+		Gitops: file.Gitops,
 	}
 }
 

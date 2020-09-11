@@ -18,14 +18,14 @@ const (
 	engineRunRetryPeriod = 10 * time.Second
 )
 
-type deploymentWorker struct {
+type gitopsWorker struct {
 	kasClient                          agentrpc.KasClient
 	engineFactory                      GitOpsEngineFactory
 	getObjectsToSynchronizeRetryPeriod time.Duration
 	synchronizerConfig
 }
 
-func (d *deploymentWorker) Run(ctx context.Context) {
+func (d *gitopsWorker) Run(ctx context.Context) {
 	eng := d.engineFactory.New(cache.SetPopulateResourceInfoHandler(populateResourceInfoHandler), cache.SetSettings(cache.Settings{
 		ResourcesFilter: resourcesFilter{
 			resourceInclusions: d.synchronizerConfig.projectConfiguration.ResourceInclusions,
@@ -56,7 +56,7 @@ func (d *deploymentWorker) Run(ctx context.Context) {
 	retry.JitterUntil(ctx, d.getObjectsToSynchronizeRetryPeriod, d.getObjectsToSynchronize(s))
 }
 
-func (d *deploymentWorker) getObjectsToSynchronize(s *synchronizer) func(context.Context) {
+func (d *gitopsWorker) getObjectsToSynchronize(s *synchronizer) func(context.Context) {
 	var lastProcessedCommitId string
 	return func(ctx context.Context) {
 		req := &agentrpc.ObjectsToSynchronizeRequest{

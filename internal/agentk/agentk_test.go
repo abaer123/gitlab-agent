@@ -65,8 +65,8 @@ func TestGetConfigurationResumeConnection(t *testing.T) {
 func TestRunStartsWorkersAccordingToConfiguration(t *testing.T) {
 	for i, config := range testConfigurations() {
 		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
-			expectedNumberOfWorkers := numberOfManifestProjects(config)   // nolint: scopelint
-			ctx, a, mockCtrl, factory := setupAgentWithConfigs(t, config) // nolint: scopelint
+			expectedNumberOfWorkers := len(config.GetGitops().GetManifestProjects()) // nolint: scopelint
+			ctx, a, mockCtrl, factory := setupAgentWithConfigs(t, config)            // nolint: scopelint
 			for i := 0; i < expectedNumberOfWorkers; i++ {
 				engine := mock_engine.NewMockGitOpsEngine(mockCtrl)
 				engine.EXPECT().
@@ -121,7 +121,7 @@ func testConfigurations() []*agentcfg.AgentConfiguration {
 	return []*agentcfg.AgentConfiguration{
 		{},
 		{
-			Deployments: &agentcfg.DeploymentsCF{
+			Gitops: &agentcfg.GitopsCF{
 				ManifestProjects: []*agentcfg.ManifestProjectCF{
 					{
 						Id: project1,
@@ -130,7 +130,7 @@ func testConfigurations() []*agentcfg.AgentConfiguration {
 			},
 		},
 		{
-			Deployments: &agentcfg.DeploymentsCF{
+			Gitops: &agentcfg.GitopsCF{
 				ManifestProjects: []*agentcfg.ManifestProjectCF{
 					{
 						Id:                 project1,
@@ -144,7 +144,7 @@ func testConfigurations() []*agentcfg.AgentConfiguration {
 			},
 		},
 		{
-			Deployments: &agentcfg.DeploymentsCF{
+			Gitops: &agentcfg.GitopsCF{
 				ManifestProjects: []*agentcfg.ManifestProjectCF{
 					{
 						Id: "bla3/project3",
@@ -161,7 +161,7 @@ func testConfigurations() []*agentcfg.AgentConfiguration {
 }
 
 func assertWorkersMatchConfiguration(t *testing.T, a *Agent, config *agentcfg.AgentConfiguration) bool { // nolint: unparam
-	projects := config.GetDeployments().GetManifestProjects()
+	projects := config.GetGitops().GetManifestProjects()
 	if !assert.Len(t, a.workers, len(projects)) {
 		return false
 	}
@@ -229,11 +229,4 @@ func (r sortableConfigs) Less(i, j int) bool {
 
 func (r sortableConfigs) Swap(i, j int) {
 	r[i], r[j] = r[j], r[i]
-}
-
-func numberOfManifestProjects(cfg *agentcfg.AgentConfiguration) int {
-	if cfg.Deployments == nil {
-		return 0
-	}
-	return len(cfg.Deployments.ManifestProjects)
 }
