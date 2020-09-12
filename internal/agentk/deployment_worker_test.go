@@ -2,7 +2,6 @@ package agentk
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"testing"
 	"time"
@@ -165,7 +164,9 @@ func setupWorker(t *testing.T) (*deploymentWorker, *mock_engine.MockGitOpsEngine
 			Run().
 			Return(engineCloser, nil),
 		kasClient.EXPECT().
-			GetObjectsToSynchronize(gomock.Any(), projectIDMatcher{projectId: projectId}, gomock.Any()).
+			GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeRequest{
+				ProjectId: projectId,
+			}), gomock.Any()).
 			Return(stream, nil),
 		engineCloser.EXPECT().
 			Close().
@@ -183,22 +184,6 @@ func setupWorker(t *testing.T) (*deploymentWorker, *mock_engine.MockGitOpsEngine
 		},
 	}
 	return d, engine, stream
-}
-
-type projectIDMatcher struct {
-	projectId string
-}
-
-func (e projectIDMatcher) Matches(x interface{}) bool {
-	req, ok := x.(*agentrpc.ObjectsToSynchronizeRequest)
-	if !ok {
-		return false
-	}
-	return req.ProjectId == e.projectId
-}
-
-func (e projectIDMatcher) String() string {
-	return fmt.Sprintf("has project id %s", e.projectId)
 }
 
 func testMap1() *corev1.ConfigMap {
