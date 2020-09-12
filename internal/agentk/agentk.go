@@ -10,6 +10,7 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/engine"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/labkit/log"
 	"google.golang.org/grpc/codes"
@@ -53,11 +54,8 @@ func New(kasClient agentrpc.KasClient, engineFactory GitOpsEngineFactory, k8sCli
 
 func (a *Agent) Run(ctx context.Context) error {
 	defer a.stopAllWorkers()
-	err := wait.PollImmediateUntil(refreshConfigurationRetryPeriod, a.refreshConfiguration(ctx), ctx.Done())
-	if err == wait.ErrWaitTimeout {
-		return nil // all good, ctx is done
-	}
-	return err
+	retry.JitterUntil(ctx, refreshConfigurationRetryPeriod, a.refreshConfiguration())
+	return nil
 }
 
 func (a *Agent) stopAllWorkers() {
@@ -71,13 +69,13 @@ func (a *Agent) stopAllWorkers() {
 	}
 }
 
-func (a *Agent) refreshConfiguration(ctx context.Context) wait.ConditionFunc {
-	return func() (bool /*done*/, error) {
+func (a *Agent) refreshConfiguration() func(context.Context) {
+	return func(ctx context.Context) {
 		req := &agentrpc.ConfigurationRequest{}
 		res, err := a.kasClient.GetConfiguration(ctx, req)
 		if err != nil {
 			log.WithError(err).Warn("GetConfiguration failed")
-			return false, nil // nil error to keep polling
+			return
 		}
 		for {
 			config, err := res.Recv()
@@ -89,7 +87,7 @@ func (a *Agent) refreshConfiguration(ctx context.Context) wait.ConditionFunc {
 				default:
 					log.WithError(err).Warn("GetConfiguration.Recv failed")
 				}
-				return false, nil // nil error to keep polling
+				return
 			}
 			err = a.applyConfiguration(config.Configuration)
 			if err != nil {
