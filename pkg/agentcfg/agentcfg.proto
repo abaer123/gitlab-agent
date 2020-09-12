@@ -32,18 +32,18 @@ message ManifestProjectCF {
     // TODO support fetching a path (subdirectory) within a repository
 }
 
-message DeploymentsCF {
+message GitopsCF {
     repeated ManifestProjectCF manifest_projects = 1 [json_name = "manifest_projects"];
 }
 
 // ConfigurationFile represents user-facing configuration file.
 message ConfigurationFile {
-    DeploymentsCF deployments = 1 [json_name = "deployments"];
+    GitopsCF gitops = 1 [json_name = "gitops"];
 }
 
 // AgentConfiguration represents configuration for agentk.
 // Note that agentk configuration is not exactly the whole file as the file may contain bits that are not
 // relevant for the agent. For example, some additional config for kas.
 message AgentConfiguration {
-    DeploymentsCF deployments = 1;
+    GitopsCF gitops = 1;
 }

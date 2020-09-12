@@ -35,12 +35,12 @@ type Agent struct {
 	kasClient                       agentrpc.KasClient
 	engineFactory                   GitOpsEngineFactory
 	k8sClientGetter                 resource.RESTClientGetter
-	workers                         map[string]*deploymentWorkerHolder // project id -> worker holder instance
+	workers                         map[string]*gitopsWorkerHolder // project id -> worker holder instance
 	refreshConfigurationRetryPeriod time.Duration
 }
 
-type deploymentWorkerHolder struct {
-	worker *deploymentWorker
+type gitopsWorkerHolder struct {
+	worker *gitopsWorker
 	wg     wait.Group
 	stop   context.CancelFunc
 }
@@ -50,7 +50,7 @@ func New(kasClient agentrpc.KasClient, engineFactory GitOpsEngineFactory, k8sCli
 		kasClient:                       kasClient,
 		engineFactory:                   engineFactory,
 		k8sClientGetter:                 k8sClientGetter,
-		workers:                         make(map[string]*deploymentWorkerHolder),
+		workers:                         make(map[string]*gitopsWorkerHolder),
 		refreshConfigurationRetryPeriod: defaultRefreshConfigurationRetryPeriod,
 	}
 }
@@ -106,30 +106,26 @@ func (a *Agent) refreshConfiguration() func(context.Context) {
 
 func (a *Agent) applyConfiguration(config *agentcfg.AgentConfiguration) error {
 	log.WithField("config", config).Debug("Applying configuration")
-	err := a.applyDeploymentsConfiguration(config.Deployments)
+	err := a.applyGitOpsConfiguration(config.Gitops)
 	if err != nil {
-		return fmt.Errorf("deployments: %v", err)
+		return fmt.Errorf("gitops: %v", err)
 	}
 	return nil
 }
 
-func (a *Agent) applyDeploymentsConfiguration(deployments *agentcfg.DeploymentsCF) error {
-	var projects []*agentcfg.ManifestProjectCF
-	if deployments != nil {
-		projects = deployments.ManifestProjects
-	}
-	err := a.synchronizeWorkers(projects)
+func (a *Agent) applyGitOpsConfiguration(gitops *agentcfg.GitopsCF) error {
+	err := a.configureWorkers(gitops.GetManifestProjects())
 	if err != nil {
 		return fmt.Errorf("manifest projects: %v", err)
 	}
 	return nil
 }
 
-func (a *Agent) synchronizeWorkers(projects []*agentcfg.ManifestProjectCF) error {
+func (a *Agent) configureWorkers(projects []*agentcfg.ManifestProjectCF) error {
 	newSetOfProjects := sets.NewString()
 	var (
 		projectsToStartWorkersFor []*agentcfg.ManifestProjectCF
-		workersToStop             []*deploymentWorkerHolder
+		workersToStop             []*gitopsWorkerHolder
 	)
 
 	// Collect projects without workers or with updated configuration.
@@ -186,7 +182,7 @@ func (a *Agent) synchronizeWorkers(projects []*agentcfg.ManifestProjectCF) error
 func (a *Agent) startNewWorker(project *agentcfg.ManifestProjectCF) {
 	logger := log.WithField(api.ProjectId, project.Id)
 	logger.Info("Starting synchronization worker")
-	worker := &deploymentWorker{
+	worker := &gitopsWorker{
 		kasClient:                          a.kasClient,
 		engineFactory:                      a.engineFactory,
 		getObjectsToSynchronizeRetryPeriod: defaultGetObjectsToSynchronizeRetryPeriod,
@@ -197,7 +193,7 @@ func (a *Agent) startNewWorker(project *agentcfg.ManifestProjectCF) {
 		},
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	workerHolder := &deploymentWorkerHolder{
+	workerHolder := &gitopsWorkerHolder{
 		worker: worker,
 		stop:   cancel,
 	}

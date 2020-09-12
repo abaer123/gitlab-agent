@@ -56,24 +56,24 @@ func TestYAMLToConfigurationAndBack(t *testing.T) {
 `,
 		},
 		{
-			given: `deployments: {}
+			given: `gitops: {}
 `,
-			expected: `deployments: {}
+			expected: `gitops: {}
 `,
 		},
 		{
-			given: `deployments:
+			given: `gitops:
   manifest_projects: []
 `,
-			expected: `deployments: {}
+			expected: `gitops: {}
 `, // empty slice is omitted
 		},
 		{
-			expected: `deployments:
+			expected: `gitops:
   manifest_projects:
   - id: gitlab-org/cluster-integration/gitlab-agent
 `,
-			given: `deployments:
+			given: `gitops:
   manifest_projects:
   - id: gitlab-org/cluster-integration/gitlab-agent
 `,
@@ -118,7 +118,7 @@ func TestGetConfiguration(t *testing.T) {
 	resp.EXPECT().
 		Send(matcher.ProtoEq(t, &agentrpc.ConfigurationResponse{
 			Configuration: &agentcfg.AgentConfiguration{
-				Deployments: configFile.Deployments,
+				Gitops: configFile.Gitops,
 			},
 		})).
 		DoAndReturn(func(resp *agentrpc.ConfigurationResponse) error {
@@ -420,7 +420,7 @@ func configToBytes(t *testing.T, configFile *agentcfg.ConfigurationFile) []byte 
 
 func sampleConfig() *agentcfg.ConfigurationFile {
 	return &agentcfg.ConfigurationFile{
-		Deployments: &agentcfg.DeploymentsCF{
+		Gitops: &agentcfg.GitopsCF{
 			ManifestProjects: []*agentcfg.ManifestProjectCF{
 				{
 					Id: projectId,

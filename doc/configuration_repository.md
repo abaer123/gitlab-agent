@@ -53,14 +53,14 @@ Example repository layout:
 
 `config.yaml` for both agents can include the `../../base_for_agents/config.yaml` file in such layout.
 
-### `deployments` section
+### `gitops` section
 
 #### `manifest_projects` section
 
 `manifest_projects` is a list of manifest projects, each of which is a Git repository with Kubernetes resource definitions in YAML or JSON format. Project can be specified using the `id` field.
 
 ```yaml
-deployments:
+gitops:
   # Manifest projects are watched by the agent. Whenever a project changes, GitLab deploys the changes using the agent.
   manifest_projects:
     # No authentication mechanisms are currently supported.
