@@ -10,6 +10,7 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/engine"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/labkit/log"
 	"google.golang.org/grpc/codes"
@@ -22,7 +23,8 @@ import (
 )
 
 const (
-	refreshConfigurationRetryPeriod = 10 * time.Second
+	defaultRefreshConfigurationRetryPeriod    = 10 * time.Second
+	defaultGetObjectsToSynchronizeRetryPeriod = 10 * time.Second
 )
 
 type GitOpsEngineFactory interface {
@@ -30,10 +32,11 @@ type GitOpsEngineFactory interface {
 }
 
 type Agent struct {
-	kasClient       agentrpc.KasClient
-	engineFactory   GitOpsEngineFactory
-	k8sClientGetter resource.RESTClientGetter
-	workers         map[string]*deploymentWorkerHolder // project id -> worker holder instance
+	kasClient                       agentrpc.KasClient
+	engineFactory                   GitOpsEngineFactory
+	k8sClientGetter                 resource.RESTClientGetter
+	workers                         map[string]*deploymentWorkerHolder // project id -> worker holder instance
+	refreshConfigurationRetryPeriod time.Duration
 }
 
 type deploymentWorkerHolder struct {
@@ -44,20 +47,18 @@ type deploymentWorkerHolder struct {
 
 func New(kasClient agentrpc.KasClient, engineFactory GitOpsEngineFactory, k8sClientGetter resource.RESTClientGetter) *Agent {
 	return &Agent{
-		kasClient:       kasClient,
-		engineFactory:   engineFactory,
-		k8sClientGetter: k8sClientGetter,
-		workers:         make(map[string]*deploymentWorkerHolder),
+		kasClient:                       kasClient,
+		engineFactory:                   engineFactory,
+		k8sClientGetter:                 k8sClientGetter,
+		workers:                         make(map[string]*deploymentWorkerHolder),
+		refreshConfigurationRetryPeriod: defaultRefreshConfigurationRetryPeriod,
 	}
 }
 
 func (a *Agent) Run(ctx context.Context) error {
 	defer a.stopAllWorkers()
-	err := wait.PollImmediateUntil(refreshConfigurationRetryPeriod, a.refreshConfiguration(ctx), ctx.Done())
-	if err == wait.ErrWaitTimeout {
-		return nil // all good, ctx is done
-	}
-	return err
+	retry.JitterUntil(ctx, a.refreshConfigurationRetryPeriod, a.refreshConfiguration())
+	return nil
 }
 
 func (a *Agent) stopAllWorkers() {
@@ -71,13 +72,16 @@ func (a *Agent) stopAllWorkers() {
 	}
 }
 
-func (a *Agent) refreshConfiguration(ctx context.Context) wait.ConditionFunc {
-	return func() (bool /*done*/, error) {
-		req := &agentrpc.ConfigurationRequest{}
+func (a *Agent) refreshConfiguration() func(context.Context) {
+	var lastProcessedCommitId string
+	return func(ctx context.Context) {
+		req := &agentrpc.ConfigurationRequest{
+			CommitId: lastProcessedCommitId,
+		}
 		res, err := a.kasClient.GetConfiguration(ctx, req)
 		if err != nil {
 			log.WithError(err).Warn("GetConfiguration failed")
-			return false, nil // nil error to keep polling
+			return
 		}
 		for {
 			config, err := res.Recv()
@@ -89,8 +93,9 @@ func (a *Agent) refreshConfiguration(ctx context.Context) wait.ConditionFunc {
 				default:
 					log.WithError(err).Warn("GetConfiguration.Recv failed")
 				}
-				return false, nil // nil error to keep polling
+				return
 			}
+			lastProcessedCommitId = config.CommitId
 			err = a.applyConfiguration(config.Configuration)
 			if err != nil {
 				log.WithError(err).Error("Failed to apply configuration")
@@ -182,8 +187,9 @@ func (a *Agent) startNewWorker(project *agentcfg.ManifestProjectCF) {
 	logger := log.WithField(api.ProjectId, project.Id)
 	logger.Info("Starting synchronization worker")
 	worker := &deploymentWorker{
-		kasClient:     a.kasClient,
-		engineFactory: a.engineFactory,
+		kasClient:                          a.kasClient,
+		engineFactory:                      a.engineFactory,
+		getObjectsToSynchronizeRetryPeriod: defaultGetObjectsToSynchronizeRetryPeriod,
 		synchronizerConfig: synchronizerConfig{
 			log:                  logger,
 			projectConfiguration: project,

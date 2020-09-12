@@ -2,7 +2,6 @@ package agentk
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"testing"
 	"time"
@@ -30,6 +29,81 @@ const (
 	namespace = ""
 	revision  = "rev12341234"
 )
+
+func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1000*time.Second)
+	defer cancel()
+	mockCtrl := gomock.NewController(t)
+	t.Cleanup(mockCtrl.Finish)
+	mockEngineCtrl := gomock.NewController(t)
+	engineCloser := mock_misc.NewMockCloser(mockCtrl)
+	// engine is used concurrently with other mocks. So use a separate mock controller to avoid data races because
+	// mock controllers are not thread safe.
+	engine := mock_engine.NewMockGitOpsEngine(mockEngineCtrl)
+	engineFactory := mock_engine.NewMockGitOpsEngineFactory(mockCtrl)
+	kasClient := mock_agentrpc.NewMockKasClient(mockCtrl)
+	stream1 := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
+	job1started := make(chan struct{})
+	stream2 := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
+	gomock.InOrder(
+		engineFactory.EXPECT().
+			New(gomock.Any()).
+			Return(engine),
+		engine.EXPECT().
+			Run().
+			Return(engineCloser, nil),
+		kasClient.EXPECT().
+			GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeRequest{
+				ProjectId: projectId,
+			}), gomock.Any()).
+			Return(stream1, nil),
+		stream1.EXPECT().
+			Recv().
+			Return(&agentrpc.ObjectsToSynchronizeResponse{
+				CommitId: revision,
+			}, nil),
+		stream1.EXPECT().
+			Recv().
+			Return(nil, io.EOF),
+		kasClient.EXPECT().
+			GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeRequest{
+				ProjectId: projectId,
+				CommitId:  revision,
+			}), gomock.Any()).
+			Return(stream2, nil),
+		stream2.EXPECT().
+			Recv().
+			DoAndReturn(func() (*agentrpc.ObjectsToSynchronizeResponse, error) {
+				<-job1started
+				cancel()
+				return nil, io.EOF
+			}),
+		engineCloser.EXPECT().
+			Close().
+			Return(nil),
+	)
+	engine.EXPECT().
+		Sync(gomock.Any(), gomock.Len(0), gomock.Any(), revision, namespace, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, resources []*unstructured.Unstructured, isManaged func(r *cache.Resource) bool, revision string, namespace string, opts ...sync.SyncOpt) ([]common.ResourceSyncResult, error) {
+			close(job1started) // signal that this job has been started
+			<-ctx.Done()       // block until the job is cancelled
+			return nil, ctx.Err()
+		})
+
+	d := &deploymentWorker{
+		kasClient:                          kasClient,
+		engineFactory:                      engineFactory,
+		getObjectsToSynchronizeRetryPeriod: 10 * time.Millisecond,
+		synchronizerConfig: synchronizerConfig{
+			log: logrus.New().WithFields(nil),
+			projectConfiguration: &agentcfg.ManifestProjectCF{
+				Id: projectId,
+			},
+			k8sClientGetter: genericclioptions.NewTestConfigFlags(),
+		},
+	}
+	d.Run(ctx)
+}
 
 func TestRunHappyPathNoObjects(t *testing.T) {
 	s, engine, stream := setupWorker(t)
@@ -165,15 +239,18 @@ func setupWorker(t *testing.T) (*deploymentWorker, *mock_engine.MockGitOpsEngine
 			Run().
 			Return(engineCloser, nil),
 		kasClient.EXPECT().
-			GetObjectsToSynchronize(gomock.Any(), projectIDMatcher{projectId: projectId}, gomock.Any()).
+			GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeRequest{
+				ProjectId: projectId,
+			}), gomock.Any()).
 			Return(stream, nil),
 		engineCloser.EXPECT().
 			Close().
 			Return(nil),
 	)
 	d := &deploymentWorker{
-		kasClient:     kasClient,
-		engineFactory: engineFactory,
+		kasClient:                          kasClient,
+		engineFactory:                      engineFactory,
+		getObjectsToSynchronizeRetryPeriod: 10 * time.Millisecond,
 		synchronizerConfig: synchronizerConfig{
 			log: logrus.New().WithFields(nil),
 			projectConfiguration: &agentcfg.ManifestProjectCF{
@@ -183,22 +260,6 @@ func setupWorker(t *testing.T) (*deploymentWorker, *mock_engine.MockGitOpsEngine
 		},
 	}
 	return d, engine, stream
-}
-
-type projectIDMatcher struct {
-	projectId string
-}
-
-func (e projectIDMatcher) Matches(x interface{}) bool {
-	req, ok := x.(*agentrpc.ObjectsToSynchronizeRequest)
-	if !ok {
-		return false
-	}
-	return req.ProjectId == e.projectId
-}
-
-func (e projectIDMatcher) String() string {
-	return fmt.Sprintf("has project id %s", e.projectId)
 }
 
 func testMap1() *corev1.ConfigMap {

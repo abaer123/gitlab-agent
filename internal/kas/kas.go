@@ -57,15 +57,14 @@ func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream age
 	if err != nil {
 		return fmt.Errorf("GetAgentInfo(): %v", err)
 	}
-	err = wait.PollImmediateUntil(s.AgentConfigurationPollPeriod, s.sendConfiguration(agentInfo, stream), joinDone(s.Context, ctx).Done())
+	err = wait.PollImmediateUntil(s.AgentConfigurationPollPeriod, s.sendConfiguration(agentInfo, req.CommitId, stream), joinDone(s.Context, ctx).Done())
 	if err == wait.ErrWaitTimeout {
 		return nil // all good, ctx is done
 	}
 	return err
 }
 
-func (s *Server) sendConfiguration(agentInfo *api.AgentInfo, stream agentrpc.Kas_GetConfigurationServer) wait.ConditionFunc {
-	var lastProcessedCommitId string
+func (s *Server) sendConfiguration(agentInfo *api.AgentInfo, lastProcessedCommitId string, stream agentrpc.Kas_GetConfigurationServer) wait.ConditionFunc {
 	p := gitaly.Poller{
 		GitalyPool: s.GitalyPool,
 	}
@@ -154,15 +153,14 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 	if err != nil {
 		return fmt.Errorf("GetAgentInfo(): %v", err)
 	}
-	err = wait.PollImmediateUntil(s.GitopsPollPeriod, s.sendObjectsToSynchronize(agentInfo, stream, req.ProjectId), joinDone(s.Context, ctx).Done())
+	err = wait.PollImmediateUntil(s.GitopsPollPeriod, s.sendObjectsToSynchronize(agentInfo, stream, req.ProjectId, req.CommitId), joinDone(s.Context, ctx).Done())
 	if err == wait.ErrWaitTimeout {
 		return nil // all good, ctx is done
 	}
 	return err
 }
 
-func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agentrpc.Kas_GetObjectsToSynchronizeServer, projectId string) wait.ConditionFunc {
-	var lastProcessedCommitId string
+func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agentrpc.Kas_GetObjectsToSynchronizeServer, projectId, lastProcessedCommitId string) wait.ConditionFunc {
 	p := gitaly.Poller{
 		GitalyPool: s.GitalyPool,
 	}

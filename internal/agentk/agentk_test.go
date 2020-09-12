@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc/mock_agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_engine"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -25,11 +26,47 @@ var (
 	_ GitOpsEngineFactory = &DefaultGitOpsEngineFactory{}
 )
 
+func TestGetConfigurationResumeConnection(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	a, mockCtrl, client, _ := setupBasicAgent(t)
+	t.Cleanup(mockCtrl.Finish)
+	configStream1 := mock_agentrpc.NewMockKas_GetConfigurationClient(mockCtrl)
+	configStream2 := mock_agentrpc.NewMockKas_GetConfigurationClient(mockCtrl)
+	gomock.InOrder(
+		client.EXPECT().
+			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &agentrpc.ConfigurationRequest{})).
+			Return(configStream1, nil),
+		configStream1.EXPECT().
+			Recv().
+			Return(&agentrpc.ConfigurationResponse{
+				Configuration: &agentcfg.AgentConfiguration{},
+				CommitId:      revision,
+			}, nil),
+		configStream1.EXPECT().
+			Recv().
+			Return(nil, io.EOF),
+		client.EXPECT().
+			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &agentrpc.ConfigurationRequest{
+				CommitId: revision,
+			})).
+			Return(configStream2, nil),
+		configStream2.EXPECT().
+			Recv().
+			DoAndReturn(func() (*agentrpc.ConfigurationResponse, error) {
+				cancel()
+				return nil, io.EOF
+			}),
+	)
+	err := a.Run(ctx)
+	require.NoError(t, err)
+}
+
 func TestRunStartsWorkersAccordingToConfiguration(t *testing.T) {
 	for i, config := range testConfigurations() {
 		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
-			expectedNumberOfWorkers := numberOfManifestProjects(config) // nolint: scopelint
-			a, mockCtrl, factory := setupAgent(t, config)               // nolint: scopelint
+			expectedNumberOfWorkers := numberOfManifestProjects(config)   // nolint: scopelint
+			ctx, a, mockCtrl, factory := setupAgentWithConfigs(t, config) // nolint: scopelint
 			for i := 0; i < expectedNumberOfWorkers; i++ {
 				engine := mock_engine.NewMockGitOpsEngine(mockCtrl)
 				engine.EXPECT().
@@ -40,8 +77,6 @@ func TestRunStartsWorkersAccordingToConfiguration(t *testing.T) {
 					New(gomock.Any()).
 					Return(engine)
 			}
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second) // give it a moment to start goroutines
-			defer cancel()
 			err := a.Run(ctx)
 			require.NoError(t, err)
 			assertWorkersMatchConfiguration(t, a, config) // nolint: scopelint
@@ -63,7 +98,7 @@ func TestRunUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 }
 
 func testRunUpdatesWorkersAccordingToConfiguration(t *testing.T, configs []*agentcfg.AgentConfiguration) {
-	a, mockCtrl, factory := setupAgent(t, configs...)
+	ctx, a, mockCtrl, factory := setupAgentWithConfigs(t, configs...)
 	engine := mock_engine.NewMockGitOpsEngine(mockCtrl)
 	engine.EXPECT().
 		Run().
@@ -73,8 +108,6 @@ func testRunUpdatesWorkersAccordingToConfiguration(t *testing.T, configs []*agen
 		New(gomock.Any()).
 		Return(engine).
 		AnyTimes()
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second) // give it a moment to start goroutines
-	defer cancel()
 	err := a.Run(ctx)
 	require.NoError(t, err)
 	assertWorkersMatchConfiguration(t, a, configs[len(configs)-1])
@@ -143,8 +176,22 @@ func assertWorkersMatchConfiguration(t *testing.T, a *Agent, config *agentcfg.Ag
 	return success
 }
 
-func setupAgent(t *testing.T, configs ...*agentcfg.AgentConfiguration) (*Agent, *gomock.Controller, *mock_engine.MockGitOpsEngineFactory) {
+func setupBasicAgent(t *testing.T) (*Agent, *gomock.Controller, *mock_agentrpc.MockKasClient, *mock_engine.MockGitOpsEngineFactory) {
 	mockCtrl := gomock.NewController(t)
+	client := mock_agentrpc.NewMockKasClient(mockCtrl)
+	factory := mock_engine.NewMockGitOpsEngineFactory(mockCtrl)
+	configFlags := genericclioptions.NewTestConfigFlags()
+	agent := New(client, &mock_engine.ThreadSafeGitOpsEngineFactory{
+		EngineFactory: factory,
+	}, configFlags)
+	agent.refreshConfigurationRetryPeriod = 10 * time.Millisecond
+	return agent, mockCtrl, client, factory
+}
+
+func setupAgentWithConfigs(t *testing.T, configs ...*agentcfg.AgentConfiguration) (context.Context, *Agent, *gomock.Controller, *mock_engine.MockGitOpsEngineFactory) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	t.Cleanup(cancel)
+	agent, mockCtrl, client, factory := setupBasicAgent(t)
 	configStream := mock_agentrpc.NewMockKas_GetConfigurationClient(mockCtrl)
 	var calls []*gomock.Call
 	for _, config := range configs {
@@ -158,17 +205,16 @@ func setupAgent(t *testing.T, configs ...*agentcfg.AgentConfiguration) (*Agent, 
 	calls = append(calls,
 		configStream.EXPECT().
 			Recv().
-			Return(nil, io.EOF))
+			DoAndReturn(func() (*agentrpc.ConfigurationResponse, error) {
+				cancel()
+				return nil, io.EOF
+			}))
 	gomock.InOrder(calls...)
-	client := mock_agentrpc.NewMockKasClient(mockCtrl)
 	client.EXPECT().
-		GetConfiguration(gomock.Any(), gomock.Any()).
+		GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &agentrpc.ConfigurationRequest{})).
 		Return(configStream, nil)
-	factory := mock_engine.NewMockGitOpsEngineFactory(mockCtrl)
-	configFlags := genericclioptions.NewTestConfigFlags()
-	return New(client, &mock_engine.ThreadSafeGitOpsEngineFactory{
-		EngineFactory: factory,
-	}, configFlags), mockCtrl, factory
+
+	return ctx, agent, mockCtrl, factory
 }
 
 type sortableConfigs []*agentcfg.AgentConfiguration

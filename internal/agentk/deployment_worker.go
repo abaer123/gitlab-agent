@@ -8,19 +8,20 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/cache"
 	"github.com/ash2k/stager"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
-	engineRunRetryPeriod               = 10 * time.Second
-	getObjectsToSynchronizeRetryPeriod = 10 * time.Second
+	engineRunRetryPeriod = 10 * time.Second
 )
 
 type deploymentWorker struct {
-	kasClient     agentrpc.KasClient
-	engineFactory GitOpsEngineFactory
+	kasClient                          agentrpc.KasClient
+	engineFactory                      GitOpsEngineFactory
+	getObjectsToSynchronizeRetryPeriod time.Duration
 	synchronizerConfig
 }
 
@@ -52,33 +53,35 @@ func (d *deploymentWorker) Run(ctx context.Context) {
 	s := newSynchronizer(d.synchronizerConfig, eng)
 	stage.StartWithContext(s.run)
 
-	_ = wait.PollImmediateUntil(getObjectsToSynchronizeRetryPeriod, func() (bool /*done*/, error) {
-		d.getObjectsToSynchronize(ctx, s)
-		return false, nil // never done, never error. Polling is interrupted by ctx
-	}, ctx.Done())
+	retry.JitterUntil(ctx, d.getObjectsToSynchronizeRetryPeriod, d.getObjectsToSynchronize(s))
 }
 
-func (d *deploymentWorker) getObjectsToSynchronize(ctx context.Context, s *synchronizer) {
-	req := &agentrpc.ObjectsToSynchronizeRequest{
-		ProjectId: d.projectConfiguration.Id,
-	}
-	res, err := d.kasClient.GetObjectsToSynchronize(ctx, req)
-	if err != nil {
-		d.log.WithError(err).Warn("GetObjectsToSynchronize failed")
-		return
-	}
-	for {
-		objectsResp, err := res.Recv()
+func (d *deploymentWorker) getObjectsToSynchronize(s *synchronizer) func(context.Context) {
+	var lastProcessedCommitId string
+	return func(ctx context.Context) {
+		req := &agentrpc.ObjectsToSynchronizeRequest{
+			ProjectId: d.projectConfiguration.Id,
+			CommitId:  lastProcessedCommitId,
+		}
+		res, err := d.kasClient.GetObjectsToSynchronize(ctx, req)
 		if err != nil {
-			switch {
-			case err == io.EOF:
-			case status.Code(err) == codes.DeadlineExceeded:
-			case status.Code(err) == codes.Canceled:
-			default:
-				d.log.WithError(err).Warn("GetObjectsToSynchronize.Recv failed")
-			}
+			d.log.WithError(err).Warn("GetObjectsToSynchronize failed")
 			return
 		}
-		s.setDesiredState(ctx, objectsResp)
+		for {
+			objectsResp, err := res.Recv()
+			if err != nil {
+				switch {
+				case err == io.EOF:
+				case status.Code(err) == codes.DeadlineExceeded:
+				case status.Code(err) == codes.Canceled:
+				default:
+					d.log.WithError(err).Warn("GetObjectsToSynchronize.Recv failed")
+				}
+				return
+			}
+			s.setDesiredState(ctx, objectsResp)
+			lastProcessedCommitId = objectsResp.CommitId
+		}
 	}
 }
