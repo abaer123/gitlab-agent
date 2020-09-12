@@ -45,6 +45,7 @@ const (
 )
 
 func TestYAMLToConfigurationAndBack(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		given, expected string
 	}{
@@ -94,6 +95,7 @@ func TestYAMLToConfigurationAndBack(t *testing.T) {
 }
 
 func TestGetConfiguration(t *testing.T) {
+	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	a, agentInfo, mockCtrl, gitalyPool, _ := setupKas(ctx, t)
@@ -137,7 +139,35 @@ func TestGetConfiguration(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetConfigurationResumeConnection(t *testing.T) {
+	t.Parallel()
+	// we check that nothing gets sent back when the request with the last commit id comes
+	// so we just wait to see that nothing happens
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	a, agentInfo, mockCtrl, gitalyPool, _ := setupKas(ctx, t)
+	infoRefsReq := &gitalypb.InfoRefsRequest{
+		Repository: &agentInfo.Repository,
+	}
+	ctx = incomingCtx(ctx, t)
+	resp := mock_agentrpc.NewMockKas_GetConfigurationServer(mockCtrl)
+	resp.EXPECT().
+		Context().
+		Return(ctx).
+		MinTimes(1)
+	httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(mockCtrl)
+	gitalyPool.EXPECT().
+		SmartHTTPServiceClient(gomock.Any(), &agentInfo.GitalyInfo).
+		Return(httpClient, nil)
+	mockInfoRefsUploadPack(t, mockCtrl, httpClient, infoRefsReq, []byte(infoRefsData))
+	err := a.GetConfiguration(&agentrpc.ConfigurationRequest{
+		CommitId: revision, // same commit id
+	}, resp)
+	require.NoError(t, err)
+}
+
 func TestGetObjectsToSynchronize(t *testing.T) {
+	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	a, agentInfo, mockCtrl, gitalyPool, gitlabClient := setupKas(ctx, t)
@@ -170,33 +200,15 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 		},
 	}
 	objectsYAML := kube_testing.ObjsToYAML(t, objects...)
-
-	projectRepo := gitalypb.Repository{
-		StorageName:        "StorageName1",
-		RelativePath:       "RelativePath1",
-		GitObjectDirectory: "GitObjectDirectory1",
-		GlRepository:       "GlRepository1",
-		GlProjectPath:      "GlProjectPath1",
-	}
-	projectInfo := &api.ProjectInfo{
-		ProjectID: 234,
-		GitalyInfo: api.GitalyInfo{
-			Address: "127.0.0.1:321321",
-			Token:   "cba",
-			Features: map[string]string{
-				"bla": "false",
-			},
-		},
-		Repository: projectRepo,
-	}
+	projectInfo := projectInfo()
 	treeEntryReq := &gitalypb.TreeEntryRequest{
-		Repository: &projectRepo,
+		Repository: &projectInfo.Repository,
 		Revision:   []byte(revision),
 		Path:       []byte("manifest.yaml"),
 		Limit:      fileSizeLimit,
 	}
 	infoRefsReq := &gitalypb.InfoRefsRequest{
-		Repository: &projectRepo,
+		Repository: &projectInfo.Repository,
 	}
 	ctx = incomingCtx(ctx, t)
 	resp := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
@@ -239,7 +251,44 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	a.Run(ctxRun)
 }
 
+func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
+	t.Parallel()
+	// we check that nothing gets sent back when the request with the last commit id comes
+	// so we just wait to see that nothing happens
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	a, agentInfo, mockCtrl, gitalyPool, gitlabClient := setupKas(ctx, t)
+	projectInfo := projectInfo()
+	infoRefsReq := &gitalypb.InfoRefsRequest{
+		Repository: &projectInfo.Repository,
+	}
+	ctx = incomingCtx(ctx, t)
+	resp := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
+	resp.EXPECT().
+		Context().
+		Return(ctx).
+		MinTimes(1)
+	gitlabClient.EXPECT().
+		GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
+		Return(projectInfo, nil)
+	httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(mockCtrl)
+	gitalyPool.EXPECT().
+		SmartHTTPServiceClient(gomock.Any(), &projectInfo.GitalyInfo).
+		Return(httpClient, nil)
+	mockInfoRefsUploadPack(t, mockCtrl, httpClient, infoRefsReq, []byte(infoRefsData))
+	commitClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
+	gitalyPool.EXPECT().
+		CommitServiceClient(gomock.Any(), &projectInfo.GitalyInfo).
+		Return(commitClient, nil)
+	err := a.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{
+		ProjectId: projectId,
+		CommitId:  revision,
+	}, resp)
+	require.NoError(t, err)
+}
+
 func TestSendUsage(t *testing.T) {
+	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	mockCtrl := gomock.NewController(t)
@@ -267,6 +316,7 @@ func TestSendUsage(t *testing.T) {
 }
 
 func TestSendUsageRetry(t *testing.T) {
+	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	mockCtrl := gomock.NewController(t)
@@ -376,6 +426,26 @@ func sampleConfig() *agentcfg.ConfigurationFile {
 					Id: projectId,
 				},
 			},
+		},
+	}
+}
+
+func projectInfo() *api.ProjectInfo {
+	return &api.ProjectInfo{
+		ProjectID: 234,
+		GitalyInfo: api.GitalyInfo{
+			Address: "127.0.0.1:321321",
+			Token:   "cba",
+			Features: map[string]string{
+				"bla": "false",
+			},
+		},
+		Repository: gitalypb.Repository{
+			StorageName:        "StorageName1",
+			RelativePath:       "RelativePath1",
+			GitObjectDirectory: "GitObjectDirectory1",
+			GlRepository:       "GlRepository1",
+			GlProjectPath:      "GlProjectPath1",
 		},
 	}
 }

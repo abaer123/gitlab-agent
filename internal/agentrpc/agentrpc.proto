@@ -9,16 +9,27 @@ option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/inte
 import "pkg/agentcfg/agentcfg.proto";
 
 message ConfigurationRequest {
+    // Last processed commit id. Optional.
+    // Server will only send configuration if the last commit on the branch is a different one.
+    // If a connection breaks, this allows to resume the stream without sending the same data again.
+    string commit_id = 1;
 }
 
 message ConfigurationResponse {
     agentcfg.AgentConfiguration configuration = 1;
+    // Commit id of the configuration repository.
+    // Can be used to resume connection from where it dropped.
+    string commit_id = 2;
 }
 
 message ObjectsToSynchronizeRequest {
     // Project to fetch Kubernetes object manifests from.
     // e.g. gitlab-org/cluster-integration/gitlab-agent
     string project_id = 1;
+    // Last processed commit id. Optional.
+    // Server will only send objects if the last commit on the branch is a different one.
+    // If a connection breaks, this allows to resume the stream without sending the same data again.
+    string commit_id = 2;
 }
 
 message ObjectToSynchronize {
@@ -29,6 +40,8 @@ message ObjectToSynchronize {
 }
 
 message ObjectsToSynchronizeResponse {
+    // Commit id of the manifest repository.
+    // Can be used to resume connection from where it dropped.
     string commit_id = 1;
     repeated ObjectToSynchronize objects = 2;
 }

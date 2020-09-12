@@ -15,13 +15,13 @@ import (
 )
 
 const (
-	engineRunRetryPeriod               = 10 * time.Second
-	getObjectsToSynchronizeRetryPeriod = 10 * time.Second
+	engineRunRetryPeriod = 10 * time.Second
 )
 
 type deploymentWorker struct {
-	kasClient     agentrpc.KasClient
-	engineFactory GitOpsEngineFactory
+	kasClient                          agentrpc.KasClient
+	engineFactory                      GitOpsEngineFactory
+	getObjectsToSynchronizeRetryPeriod time.Duration
 	synchronizerConfig
 }
 
@@ -53,13 +53,15 @@ func (d *deploymentWorker) Run(ctx context.Context) {
 	s := newSynchronizer(d.synchronizerConfig, eng)
 	stage.StartWithContext(s.run)
 
-	retry.JitterUntil(ctx, getObjectsToSynchronizeRetryPeriod, d.getObjectsToSynchronize(s))
+	retry.JitterUntil(ctx, d.getObjectsToSynchronizeRetryPeriod, d.getObjectsToSynchronize(s))
 }
 
 func (d *deploymentWorker) getObjectsToSynchronize(s *synchronizer) func(context.Context) {
+	var lastProcessedCommitId string
 	return func(ctx context.Context) {
 		req := &agentrpc.ObjectsToSynchronizeRequest{
 			ProjectId: d.projectConfiguration.Id,
+			CommitId:  lastProcessedCommitId,
 		}
 		res, err := d.kasClient.GetObjectsToSynchronize(ctx, req)
 		if err != nil {
@@ -79,6 +81,7 @@ func (d *deploymentWorker) getObjectsToSynchronize(s *synchronizer) func(context
 				return
 			}
 			s.setDesiredState(ctx, objectsResp)
+			lastProcessedCommitId = objectsResp.CommitId
 		}
 	}
 }
