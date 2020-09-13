@@ -202,3 +202,8 @@ release-commit-race: update-bazel
 .PHONY: gdk-install
 gdk-install:
 	bazel run //build:extract_race_binaries_for_gdk -- "$(TARGET_DIRECTORY)"
+
+# https://github.com/golang/go/wiki/Modules#how-to-upgrade-and-downgrade-dependencies
+.PHONY: show-go-dependency-updates
+show-go-dependency-updates:
+	go list -u -f '{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}}: {{.Version}} -> {{.Update.Version}}{{end}}' -m all 2> /dev/null
