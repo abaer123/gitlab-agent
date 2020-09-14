@@ -9,8 +9,8 @@ default:
 variables:
   # must use image digest to invalidate cache if image is updated.
   # Image built using https://github.com/ash2k/container-definitions/compare/master...ash2k:bazel-and-clang-only
-  # Bazel v3.4.1
-  BUILD_IMAGE_SHA: "bb223b625e8b58a29fede6804c8e223df1de11faef57507d6bf8ba6ef2aafc32"
+  # Bazel v3.5.0
+  BUILD_IMAGE_SHA: "d58276ff75adf47c894da6b77e6ebc2183ccd7fd8f3cf2033ebc629efccd4452"
 
 stages:
   - test
