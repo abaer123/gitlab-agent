@@ -203,6 +203,11 @@ release-commit-race: update-bazel
 gdk-install:
 	bazel run //build:extract_race_binaries_for_gdk -- "$(TARGET_DIRECTORY)"
 
+# Set TARGET_DIRECTORY variable to the target directory before running this target
+.PHONY: kas
+kas:
+	go build -o "$(TARGET_DIRECTORY)" ./cmd/kas
+
 # https://github.com/golang/go/wiki/Modules#how-to-upgrade-and-downgrade-dependencies
 .PHONY: show-go-dependency-updates
 show-go-dependency-updates:
