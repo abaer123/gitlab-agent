@@ -306,7 +306,7 @@ func TestSendUsage(t *testing.T) {
 		GitopsPollPeriod:             10 * time.Minute,
 		UsageReportingPeriod:         10 * time.Millisecond,
 	}
-	s.metrics.gitopsSyncCount = 5
+	s.usageMetrics.gitopsSyncCount = 5
 
 	// Send accumulated counters
 	require.NoError(t, s.sendUsageInternal(ctx))
@@ -339,12 +339,12 @@ func TestSendUsageRetry(t *testing.T) {
 		GitopsPollPeriod:             10 * time.Minute,
 		UsageReportingPeriod:         10 * time.Millisecond,
 	}
-	s.metrics.gitopsSyncCount = 5
+	s.usageMetrics.gitopsSyncCount = 5
 
 	// Try to send accumulated counters, fail
 	require.EqualError(t, s.sendUsageInternal(ctx), "expected error")
 
-	s.metrics.gitopsSyncCount++
+	s.usageMetrics.gitopsSyncCount++
 
 	// Try again and succeed
 	require.NoError(t, s.sendUsageInternal(ctx))

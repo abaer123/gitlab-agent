@@ -32,9 +32,9 @@ const (
 )
 
 type Server struct {
-	// metrics must be the very first field to ensure 64-bit alignment.
+	// usageMetrics must be the very first field to ensure 64-bit alignment.
 	// See https://github.com/golang/go/blob/95df156e6ac53f98efd6c57e4586c1dfb43066dd/src/sync/atomic/doc.go#L46-L54
-	metrics                      metrics
+	usageMetrics                 usageMetrics
 	Context                      context.Context
 	GitalyPool                   gitaly.PoolInterface
 	GitLabClient                 gitlab.ClientInterface
@@ -199,7 +199,7 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agent
 		if err != nil {
 			return false, err
 		}
-		s.metrics.IncGitopsSyncCount()
+		s.usageMetrics.IncGitopsSyncCount()
 		return false, nil
 	}
 }
@@ -241,7 +241,7 @@ func (s *Server) sendUsage(ctx context.Context) {
 }
 
 func (s *Server) sendUsageInternal(ctx context.Context) error {
-	m := s.metrics.Clone()
+	m := s.usageMetrics.Clone()
 	if m.IsEmptyNotThreadSafe() {
 		// No new counts
 		return nil
@@ -253,29 +253,29 @@ func (s *Server) sendUsageInternal(ctx context.Context) error {
 		return err
 	}
 	// Subtract the increments we've just sent
-	s.metrics.Subtract(m)
+	s.usageMetrics.Subtract(m)
 	return nil
 }
 
-type metrics struct {
+type usageMetrics struct {
 	gitopsSyncCount int64
 }
 
-func (m *metrics) IsEmptyNotThreadSafe() bool {
+func (m *usageMetrics) IsEmptyNotThreadSafe() bool {
 	return m.gitopsSyncCount == 0
 }
 
-func (m *metrics) IncGitopsSyncCount() {
+func (m *usageMetrics) IncGitopsSyncCount() {
 	atomic.AddInt64(&m.gitopsSyncCount, 1)
 }
 
-func (m *metrics) Clone() *metrics {
-	return &metrics{
+func (m *usageMetrics) Clone() *usageMetrics {
+	return &usageMetrics{
 		gitopsSyncCount: atomic.LoadInt64(&m.gitopsSyncCount),
 	}
 }
 
-func (m *metrics) Subtract(other *metrics) {
+func (m *usageMetrics) Subtract(other *usageMetrics) {
 	atomic.AddInt64(&m.gitopsSyncCount, -other.gitopsSyncCount)
 }
 
