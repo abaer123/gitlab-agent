@@ -1405,8 +1405,8 @@ def go_repositories():
         name = "com_github_google_go_cmp",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/google/go-cmp",
-        sum = "h1:JFrFEBb2xKufg6XkJsJr+WbKb4FQlURi5RUcBveYu9k=",
-        version = "v0.5.1",
+        sum = "h1:X2ev0eStA3AbceY54o37/0PQ/UWqKEiiO2dKL5OPaFM=",
+        version = "v0.5.2",
     )
     go_repository(
         name = "com_github_google_go_github",
@@ -1510,8 +1510,8 @@ def go_repositories():
         name = "com_github_gorilla_mux",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/gorilla/mux",
-        sum = "h1:VuZ8uybHlWmqV03+zRzdwKL4tUnIp1MAQtp1mIFE1bc=",
-        version = "v1.7.4",
+        sum = "h1:i40aqfkR1h2SlN9hojwV5ZA91wcXFOvkdNIeFDP5koI=",
+        version = "v1.8.0",
     )
     go_repository(
         name = "com_github_gorilla_websocket",
@@ -1538,8 +1538,8 @@ def go_repositories():
         name = "com_github_grpc_ecosystem_go_grpc_middleware",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/grpc-ecosystem/go-grpc-middleware",
-        sum = "h1:V59tBiPuMkySHwJkuq/OYkK0WnOLwCwD3UkTbEMr12U=",
-        version = "v1.2.1",
+        sum = "h1:FlFbCRLd5Jr4iYXZufAvgWN6Ao0JrI5chLINnUXDDr0=",
+        version = "v1.2.2",
     )
     go_repository(
         name = "com_github_grpc_ecosystem_go_grpc_prometheus",
@@ -3092,8 +3092,8 @@ def go_repositories():
         name = "com_gitlab_gitlab_org_labkit",
         build_file_proto_mode = "disable_global",
         importpath = "gitlab.com/gitlab-org/labkit",
-        sum = "h1:vsTpUiAFINSK3+Whysz99bdOZEY+d2FsfOteakypiXI=",
-        version = "v0.0.0-20200728123508-886c482d483c",
+        sum = "h1:L7b9YLsU3zBfTShAPl4fjhgFdfSvuo9tu4VobJdcKDs=",
+        version = "v0.0.0-20200908084045-45895e129029",
     )
     go_repository(
         name = "com_google_cloud_go",
@@ -3659,8 +3659,8 @@ def go_repositories():
         name = "org_golang_google_grpc",
         build_file_proto_mode = "disable_global",
         importpath = "google.golang.org/grpc",
-        sum = "h1:T7P4R73V3SSDPhH7WW7ATbfViLtmamH0DKrP3f9AuDI=",
-        version = "v1.31.0",
+        sum = "h1:zWTV+LMdc3kaiJMSTOFz2UgSBgx8RNQoTGiZu3fR9S0=",
+        version = "v1.32.0",
     )
     go_repository(
         name = "org_golang_google_grpc_examples",
