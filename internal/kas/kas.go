@@ -68,7 +68,7 @@ func (s *Server) sendConfiguration(agentInfo *api.AgentInfo, lastProcessedCommit
 	p := gitaly.Poller{
 		GitalyPool: s.GitalyPool,
 	}
-	logger := log.WithField(api.AgentId, agentInfo.ID)
+	logger := log.WithField(api.AgentId, agentInfo.Id)
 	ctx := stream.Context()
 	return func() (bool /*done*/, error) {
 		info, err := p.Poll(ctx, &agentInfo.GitalyInfo, &agentInfo.Repository, lastProcessedCommitId, gitaly.DefaultBranch)
@@ -80,13 +80,13 @@ func (s *Server) sendConfiguration(agentInfo *api.AgentInfo, lastProcessedCommit
 			logger.WithField(api.CommitId, lastProcessedCommitId).Debug("Config: no updates")
 			return false, nil
 		}
-		logger.WithField(api.CommitId, info.CommitID).Info("Config: new commit")
-		config, err := s.fetchConfiguration(ctx, agentInfo, info.CommitID)
+		logger.WithField(api.CommitId, info.CommitId).Info("Config: new commit")
+		config, err := s.fetchConfiguration(ctx, agentInfo, info.CommitId)
 		if err != nil {
 			logger.WithError(err).Warn("Config: failed to fetch")
 			return false, nil // don't want to close the response stream, so report no error
 		}
-		lastProcessedCommitId = info.CommitID
+		lastProcessedCommitId = info.CommitId
 		return false, stream.Send(config)
 	}
 }
@@ -164,7 +164,7 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agent
 	p := gitaly.Poller{
 		GitalyPool: s.GitalyPool,
 	}
-	logger := log.WithField(api.AgentId, agentInfo.ID)
+	logger := log.WithField(api.AgentId, agentInfo.Id)
 	ctx := stream.Context()
 	return func() (bool /*done*/, error) {
 		// This call is made on each poll because:
@@ -185,13 +185,13 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agent
 			logger.WithField(api.CommitId, lastProcessedCommitId).Debug("GitOps: no updates")
 			return false, nil
 		}
-		logger.WithField(api.CommitId, info.CommitID).Info("GitOps: new commit")
-		objects, err := s.fetchObjectsToSynchronize(ctx, repoInfo, info.CommitID)
+		logger.WithField(api.CommitId, info.CommitId).Info("GitOps: new commit")
+		objects, err := s.fetchObjectsToSynchronize(ctx, repoInfo, info.CommitId)
 		if err != nil {
 			logger.WithError(err).Warn("GitOps: failed to get objects to synchronize")
 			return false, nil // don't want to close the response stream, so report no error
 		}
-		lastProcessedCommitId = info.CommitID
+		lastProcessedCommitId = info.CommitId
 		err = stream.Send(&agentrpc.ObjectsToSynchronizeResponse{
 			CommitId: lastProcessedCommitId,
 			Objects:  objects,

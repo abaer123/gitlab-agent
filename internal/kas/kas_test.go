@@ -432,7 +432,7 @@ func sampleConfig() *agentcfg.ConfigurationFile {
 
 func projectInfo() *api.ProjectInfo {
 	return &api.ProjectInfo{
-		ProjectID: 234,
+		ProjectId: 234,
 		GitalyInfo: api.GitalyInfo{
 			Address: "127.0.0.1:321321",
 			Token:   "cba",
@@ -456,7 +456,7 @@ func setupKas(ctx context.Context, t *testing.T) (*Server, *api.AgentInfo, *gomo
 	}
 	agentInfo := &api.AgentInfo{
 		Meta: agentMeta,
-		ID:   123,
+		Id:   123,
 		Name: "agent1",
 		GitalyInfo: api.GitalyInfo{
 			Address: "127.0.0.1:123123",

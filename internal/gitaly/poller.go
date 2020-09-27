@@ -26,7 +26,7 @@ type Poller struct {
 
 type PollInfo struct {
 	UpdateAvailable bool
-	CommitID        string
+	CommitId        string
 }
 
 // Poll performs a poll on the repository.
@@ -67,7 +67,7 @@ loop:
 	}
 	return &PollInfo{
 		UpdateAvailable: wanted.Oid != lastProcessedCommitId,
-		CommitID:        wanted.Oid,
+		CommitId:        wanted.Oid,
 	}, nil
 }
 
