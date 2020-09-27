@@ -26,7 +26,7 @@ const (
 	kasRequestHeader = "Gitlab-Kas-Api-Request"
 	kasJWTIssuer     = "gitlab-kas"
 
-	projectIDQueryParam = "id"
+	projectIdQueryParam = "id"
 
 	agentInfoApiPath   = "/api/v4/internal/kubernetes/agent_info"
 	projectInfoApiPath = "/api/v4/internal/kubernetes/project_info"
@@ -75,14 +75,14 @@ func (r *gitalyRepository) ToProtoRepository() gitalypb.Repository {
 }
 
 type projectInfoResponse struct {
-	ProjectID        int64            `json:"project_id"`
+	ProjectId        int64            `json:"project_id"`
 	GitalyInfo       gitalyInfo       `json:"gitaly_info"`
 	GitalyRepository gitalyRepository `json:"gitaly_repository"`
 }
 
 type getAgentInfoResponse struct {
-	ProjectID        int64            `json:"project_id"`
-	AgentID          int64            `json:"agent_id"`
+	ProjectId        int64            `json:"project_id"`
+	AgentId          int64            `json:"agent_id"`
 	AgentName        string           `json:"agent_name"`
 	GitalyInfo       gitalyInfo       `json:"gitaly_info"`
 	GitalyRepository gitalyRepository `json:"gitaly_repository"`
@@ -128,8 +128,8 @@ func (c *Client) GetAgentInfo(ctx context.Context, meta *api.AgentMeta) (*api.Ag
 	}
 	return &api.AgentInfo{
 		Meta:       *meta,
-		ID:         response.AgentID,
-		ProjectID:  response.ProjectID,
+		Id:         response.AgentId,
+		ProjectId:  response.ProjectId,
 		Name:       response.AgentName,
 		GitalyInfo: response.GitalyInfo.ToGitalyInfo(),
 		Repository: response.GitalyRepository.ToProtoRepository(),
@@ -140,7 +140,7 @@ func (c *Client) GetProjectInfo(ctx context.Context, meta *api.AgentMeta, projec
 	u := *c.Backend
 	u.Path = projectInfoApiPath
 	query := u.Query()
-	query.Set(projectIDQueryParam, projectId)
+	query.Set(projectIdQueryParam, projectId)
 	u.RawQuery = query.Encode()
 	response := projectInfoResponse{}
 	err := c.doJSON(ctx, http.MethodGet, meta, &u, nil, &response)
@@ -148,7 +148,7 @@ func (c *Client) GetProjectInfo(ctx context.Context, meta *api.AgentMeta, projec
 		return nil, err
 	}
 	return &api.ProjectInfo{
-		ProjectID:  response.ProjectID,
+		ProjectId:  response.ProjectId,
 		GitalyInfo: response.GitalyInfo.ToGitalyInfo(),
 		Repository: response.GitalyRepository.ToProtoRepository(),
 	}, nil

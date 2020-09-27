@@ -306,7 +306,7 @@ func TestSendUsage(t *testing.T) {
 		GitopsPollPeriod:             10 * time.Minute,
 		UsageReportingPeriod:         10 * time.Millisecond,
 	}
-	s.metrics.gitopsSyncCount = 5
+	s.usageMetrics.gitopsSyncCount = 5
 
 	// Send accumulated counters
 	require.NoError(t, s.sendUsageInternal(ctx))
@@ -339,12 +339,12 @@ func TestSendUsageRetry(t *testing.T) {
 		GitopsPollPeriod:             10 * time.Minute,
 		UsageReportingPeriod:         10 * time.Millisecond,
 	}
-	s.metrics.gitopsSyncCount = 5
+	s.usageMetrics.gitopsSyncCount = 5
 
 	// Try to send accumulated counters, fail
 	require.EqualError(t, s.sendUsageInternal(ctx), "expected error")
 
-	s.metrics.gitopsSyncCount++
+	s.usageMetrics.gitopsSyncCount++
 
 	// Try again and succeed
 	require.NoError(t, s.sendUsageInternal(ctx))
@@ -432,7 +432,7 @@ func sampleConfig() *agentcfg.ConfigurationFile {
 
 func projectInfo() *api.ProjectInfo {
 	return &api.ProjectInfo{
-		ProjectID: 234,
+		ProjectId: 234,
 		GitalyInfo: api.GitalyInfo{
 			Address: "127.0.0.1:321321",
 			Token:   "cba",
@@ -456,7 +456,7 @@ func setupKas(ctx context.Context, t *testing.T) (*Server, *api.AgentInfo, *gomo
 	}
 	agentInfo := &api.AgentInfo{
 		Meta: agentMeta,
-		ID:   123,
+		Id:   123,
 		Name: "agent1",
 		GitalyInfo: api.GitalyInfo{
 			Address: "127.0.0.1:123123",

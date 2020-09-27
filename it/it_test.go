@@ -40,7 +40,7 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 	agentkToken := getAgentkToken(t)
 	kasAuthSecretFile := getKasAuthSecretFile(t)
 	address := getRandomLocalAddress(t)
-	ag := kasapp.Options{
+	ag := kasapp.ConfiguredApp{
 		Configuration: &kascfg.ConfigurationFile{
 			Listen: &kascfg.ListenCF{
 				Address:   address,

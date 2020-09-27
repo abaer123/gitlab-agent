@@ -32,8 +32,8 @@ var (
 
 func TestGetAgentInfo(t *testing.T) {
 	response := getAgentInfoResponse{
-		ProjectID: 234,
-		AgentID:   555,
+		ProjectId: 234,
+		AgentId:   555,
 		AgentName: "agent-x",
 		GitalyInfo: gitalyInfo{
 			Address: "example.com",
@@ -71,8 +71,8 @@ func TestGetAgentInfo(t *testing.T) {
 	agentInfo, err := c.GetAgentInfo(ctx, meta)
 	require.NoError(t, err)
 
-	assert.Equal(t, response.ProjectID, agentInfo.ProjectID)
-	assert.Equal(t, response.AgentID, agentInfo.ID)
+	assert.Equal(t, response.ProjectId, agentInfo.ProjectId)
+	assert.Equal(t, response.AgentId, agentInfo.Id)
 	assert.Equal(t, response.AgentName, agentInfo.Name)
 
 	assertGitalyInfo(t, response.GitalyInfo, agentInfo.GitalyInfo)
@@ -81,10 +81,10 @@ func TestGetAgentInfo(t *testing.T) {
 
 func TestGetProjectInfo(t *testing.T) {
 	const (
-		projectID = "bla/bla"
+		projectId = "bla/bla"
 	)
 	response := projectInfoResponse{
-		ProjectID: 234,
+		ProjectId: 234,
 		GitalyInfo: gitalyInfo{
 			Address: "example.com",
 			Token:   "123123",
@@ -104,7 +104,7 @@ func TestGetProjectInfo(t *testing.T) {
 		if !assertRequestIsCorrect(t, w, r) {
 			return
 		}
-		assert.Equal(t, projectID, r.URL.Query().Get(projectIDQueryParam))
+		assert.Equal(t, projectId, r.URL.Query().Get(projectIdQueryParam))
 
 		respondWithJSON(t, w, response)
 	})
@@ -119,10 +119,10 @@ func TestGetProjectInfo(t *testing.T) {
 	meta := &api.AgentMeta{
 		Token: agentkToken,
 	}
-	projectInfo, err := c.GetProjectInfo(ctx, meta, projectID)
+	projectInfo, err := c.GetProjectInfo(ctx, meta, projectId)
 	require.NoError(t, err)
 
-	assert.Equal(t, response.ProjectID, projectInfo.ProjectID)
+	assert.Equal(t, response.ProjectId, projectInfo.ProjectId)
 	assertGitalyInfo(t, response.GitalyInfo, projectInfo.GitalyInfo)
 	assertGitalyRepository(t, response.GitalyRepository, projectInfo.Repository)
 }
