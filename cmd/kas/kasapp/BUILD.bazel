@@ -4,7 +4,7 @@ go_library(
     name = "kasapp",
     srcs = [
         "app.go",
-        "options.go",
+        "configured_app.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kas/kasapp",
     visibility = ["//visibility:public"],

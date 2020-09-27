@@ -50,7 +50,7 @@ func (a *App) Run(ctx context.Context) error {
 	if a.ReloadConfigurationPeriod != defaultAgentConfigurationPollPeriod {
 		cfg.Agent.Configuration.PollPeriod = durationpb.New(a.ReloadConfigurationPeriod)
 	}
-	options := Options{
+	options := ConfiguredApp{
 		Configuration: cfg,
 	}
 	return options.Run(ctx)

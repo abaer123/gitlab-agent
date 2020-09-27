@@ -44,19 +44,19 @@ const (
 	defaultUsageReportingPeriod = 1 * time.Minute
 )
 
-type Options struct {
+type ConfiguredApp struct {
 	Configuration *kascfg.ConfigurationFile
 }
 
-func (o *Options) Run(ctx context.Context) error {
+func (a *ConfiguredApp) Run(ctx context.Context) error {
 	// Main logic of kas
-	cfg := o.Configuration
+	cfg := a.Configuration
 	gitLabUrl, err := url.Parse(cfg.Gitlab.Address)
 	if err != nil {
 		return err
 	}
 	// Secret for JWT signing
-	decodedAuthSecret, err := o.loadAuthSecret()
+	decodedAuthSecret, err := a.loadAuthSecret()
 	if err != nil {
 		return fmt.Errorf("authentication secret: %v", err)
 	}
@@ -119,8 +119,8 @@ func (o *Options) Run(ctx context.Context) error {
 	return grpcServer.Serve(lis)
 }
 
-func (o *Options) loadAuthSecret() ([]byte, error) {
-	encodedAuthSecret, err := ioutil.ReadFile(o.Configuration.Gitlab.AuthenticationSecretFile) // nolint: gosec
+func (a *ConfiguredApp) loadAuthSecret() ([]byte, error) {
+	encodedAuthSecret, err := ioutil.ReadFile(a.Configuration.Gitlab.AuthenticationSecretFile) // nolint: gosec
 	if err != nil {
 		return nil, fmt.Errorf("read file: %v", err)
 	}
