@@ -18,11 +18,11 @@ go_test(
         "//cmd/agentk/agentkapp",
         "//cmd/kas/kasapp",
         "//pkg/kascfg",
+        "@com_github_ash2k_stager//:stager",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@com_gitlab_gitlab_org_labkit//log",
         "@io_k8s_cli_runtime//pkg/genericclioptions",
         "@io_k8s_client_go//tools/clientcmd",
-        "@org_golang_x_sync//errgroup",
     ],
 )
