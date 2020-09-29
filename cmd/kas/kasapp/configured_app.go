@@ -57,10 +57,12 @@ type ConfiguredApp struct {
 func (a *ConfiguredApp) Run(ctx context.Context) error {
 	// Metrics
 	reg := prometheus.NewPedanticRegistry()
-	err := reg.Register(prometheus.NewGoCollector())
+	goCollector := prometheus.NewGoCollector()
+	err := reg.Register(goCollector)
 	if err != nil {
 		return err
 	}
+	defer reg.Unregister(goCollector)
 
 	// Start things up
 	st := stager.New()
