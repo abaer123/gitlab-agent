@@ -11,17 +11,20 @@ import (
 
 	"github.com/ash2k/stager"
 	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/kas"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/wstunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"gitlab.com/gitlab-org/gitaly/client"
 	"gitlab.com/gitlab-org/labkit/log"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -41,7 +44,10 @@ const (
 	defaultGitOpsProjectInfoCacheTTL      = 5 * time.Minute
 	defaultGitOpsProjectInfoCacheErrorTTL = 1 * time.Minute
 
-	defaultUsageReportingPeriod = 1 * time.Minute
+	defaultUsageReportingPeriod    = 1 * time.Minute
+	defaultPrometheusListenNetwork = "tcp"
+	defaultPrometheusListenAddress = "127.0.0.1:9091"
+	defaultPrometheusListenUrlPath = "/metrics"
 )
 
 type ConfiguredApp struct {
@@ -49,74 +55,126 @@ type ConfiguredApp struct {
 }
 
 func (a *ConfiguredApp) Run(ctx context.Context) error {
-	// Main logic of kas
-	cfg := a.Configuration
-	gitLabUrl, err := url.Parse(cfg.Gitlab.Address)
+	// Metrics
+	reg := prometheus.NewPedanticRegistry()
+	err := reg.Register(prometheus.NewGoCollector())
 	if err != nil {
 		return err
 	}
-	// Secret for JWT signing
-	decodedAuthSecret, err := a.loadAuthSecret()
-	if err != nil {
-		return fmt.Errorf("authentication secret: %v", err)
-	}
-
-	// gRPC server
-	lis, err := net.Listen(cfg.Listen.Network, cfg.Listen.Address)
-	if err != nil {
-		return err
-	}
-
-	log.WithFields(log.Fields{
-		"address": lis.Addr().String(),
-		"network": lis.Addr().Network(),
-	}).Info("Listening for connections")
-
-	if cfg.GetListen().GetWebsocket() {
-		wsWrapper := wstunnel.ListenerWrapper{
-			// TODO set timeouts
-			ReadLimit: defaultMaxMessageSize,
-		}
-		lis = wsWrapper.Wrap(lis)
-	}
-
-	kasUserAgent := fmt.Sprintf("gitlab-kas/%s/%s", cmd.Version, cmd.Commit)
-	gitalyClientPool := client.NewPool(grpc.WithUserAgent(kasUserAgent))
-	defer gitalyClientPool.Close() // nolint: errcheck
-	gitLabClient := gitlab.NewClient(gitLabUrl, decodedAuthSecret, kasUserAgent)
-	gitLabCachingClient := gitlab.NewCachingClient(gitLabClient, gitlab.CacheOptions{
-		CacheTTL:      cfg.Agent.InfoCacheTtl.AsDuration(),
-		CacheErrorTTL: cfg.Agent.InfoCacheErrorTtl.AsDuration(),
-	}, gitlab.CacheOptions{
-		CacheTTL:      cfg.Agent.Gitops.ProjectInfoCacheTtl.AsDuration(),
-		CacheErrorTTL: cfg.Agent.Gitops.ProjectInfoCacheErrorTtl.AsDuration(),
-	})
-	srv := &kas.Server{
-		Context: ctx,
-		GitalyPool: &gitaly.Pool{
-			ClientPool: gitalyClientPool,
-		},
-		GitLabClient:                 gitLabCachingClient,
-		AgentConfigurationPollPeriod: cfg.Agent.Configuration.PollPeriod.AsDuration(),
-		GitopsPollPeriod:             cfg.Agent.Gitops.PollPeriod.AsDuration(),
-		UsageReportingPeriod:         cfg.Metrics.UsageReportingPeriod.AsDuration(),
-	}
-
-	var opts []grpc.ServerOption
-	grpcServer := grpc.NewServer(opts...)
-	agentrpc.RegisterKasServer(grpcServer, srv)
 
 	// Start things up
 	st := stager.New()
-	defer st.Shutdown()
+	a.startMetricsServer(st, reg)
+	a.startGrpcServer(st, reg)
+	return st.Run(ctx)
+}
+
+func kasVersionString() string {
+	return fmt.Sprintf("gitlab-kas/%s/%s", cmd.Version, cmd.Commit)
+}
+
+func (a *ConfiguredApp) startMetricsServer(st stager.Stager, gatherer prometheus.Gatherer) {
+	promCfg := a.Configuration.Metrics.PrometheusListen
+	if promCfg.Disabled {
+		return
+	}
 	stage := st.NextStage()
-	stage.StartWithContext(srv.Run)
-	stage = st.NextStageWithContext(ctx)
-	stage.StartWithContext(func(ctx context.Context) {
-		<-ctx.Done() // can be cancelled because Server() failed or because main ctx was cancelled
-		grpcServer.GracefulStop()
+	stage.Go(func(ctx context.Context) error {
+		lis, err := net.Listen(promCfg.Network, promCfg.Address)
+		if err != nil {
+			return err
+		}
+		defer lis.Close() // nolint: errcheck
+
+		log.WithFields(log.Fields{
+			"address":  lis.Addr().String(),
+			"network":  lis.Addr().Network(),
+			"url_path": promCfg.UrlPath,
+		}).Info("Listening for Prometheus connections")
+
+		metricSrv := &metric.Server{
+			Name:     kasVersionString(),
+			Listener: lis,
+			UrlPath:  promCfg.UrlPath,
+			Gatherer: gatherer,
+		}
+		return metricSrv.Run(ctx)
 	})
-	return grpcServer.Serve(lis)
+}
+
+func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.Registerer) {
+	_ = registerer // TODO use to register metrics
+	stage := st.NextStage()
+	stage.Go(func(ctx context.Context) error {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		cfg := a.Configuration
+
+		gitLabUrl, err := url.Parse(cfg.Gitlab.Address)
+		if err != nil {
+			return err
+		}
+		// Secret for JWT signing
+		decodedAuthSecret, err := a.loadAuthSecret()
+		if err != nil {
+			return fmt.Errorf("authentication secret: %v", err)
+		}
+		// gRPC listener
+		lis, err := net.Listen(cfg.Listen.Network, cfg.Listen.Address)
+		if err != nil {
+			return err
+		}
+		defer lis.Close() // nolint: errcheck
+
+		log.WithFields(log.Fields{
+			"address":   lis.Addr().String(),
+			"network":   lis.Addr().Network(),
+			"websocket": cfg.GetListen().GetWebsocket(),
+		}).Info("Listening for agentk connections")
+
+		if cfg.GetListen().GetWebsocket() {
+			wsWrapper := wstunnel.ListenerWrapper{
+				// TODO set timeouts
+				ReadLimit: defaultMaxMessageSize,
+			}
+			lis = wsWrapper.Wrap(lis)
+		}
+
+		ver := kasVersionString()
+		gitalyClientPool := client.NewPool(grpc.WithUserAgent(ver))
+		defer gitalyClientPool.Close() // nolint: errcheck
+		gitLabClient := gitlab.NewClient(gitLabUrl, decodedAuthSecret, ver)
+		gitLabCachingClient := gitlab.NewCachingClient(gitLabClient, gitlab.CacheOptions{
+			CacheTTL:      cfg.Agent.InfoCacheTtl.AsDuration(),
+			CacheErrorTTL: cfg.Agent.InfoCacheErrorTtl.AsDuration(),
+		}, gitlab.CacheOptions{
+			CacheTTL:      cfg.Agent.Gitops.ProjectInfoCacheTtl.AsDuration(),
+			CacheErrorTTL: cfg.Agent.Gitops.ProjectInfoCacheErrorTtl.AsDuration(),
+		})
+		srv := &kas.Server{
+			Context: ctx,
+			GitalyPool: &gitaly.Pool{
+				ClientPool: gitalyClientPool,
+			},
+			GitLabClient:                 gitLabCachingClient,
+			AgentConfigurationPollPeriod: cfg.Agent.Configuration.PollPeriod.AsDuration(),
+			GitopsPollPeriod:             cfg.Agent.Gitops.PollPeriod.AsDuration(),
+			UsageReportingPeriod:         cfg.Metrics.UsageReportingPeriod.AsDuration(),
+		}
+
+		var opts []grpc.ServerOption
+		grpcServer := grpc.NewServer(opts...)
+		agentrpc.RegisterKasServer(grpcServer, srv)
+
+		var wg wait.Group
+		defer wg.Wait() // wait for grpcServer to shutdown
+		defer cancel()  // cancel ctx
+		wg.Start(func() {
+			<-ctx.Done() // can be cancelled because Serve() failed or because main ctx was cancelled
+			grpcServer.GracefulStop()
+		})
+		return grpcServer.Serve(lis)
+	})
 }
 
 func (a *ConfiguredApp) loadAuthSecret() ([]byte, error) {
@@ -136,7 +194,7 @@ func (a *ConfiguredApp) loadAuthSecret() ([]byte, error) {
 	return decodedAuthSecret, nil
 }
 
-func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
+func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) error {
 	if cfg.Listen == nil {
 		cfg.Listen = &kascfg.ListenCF{}
 	}
@@ -167,6 +225,14 @@ func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
 		cfg.Metrics = &kascfg.MetricsCF{}
 	}
 	defaultDuration(&cfg.Metrics.UsageReportingPeriod, defaultUsageReportingPeriod)
+	if cfg.Metrics.PrometheusListen == nil {
+		cfg.Metrics.PrometheusListen = &kascfg.PrometheusListenCF{}
+	}
+
+	defaultString(&cfg.Metrics.PrometheusListen.Network, defaultPrometheusListenNetwork)
+	defaultString(&cfg.Metrics.PrometheusListen.Address, defaultPrometheusListenAddress)
+	defaultString(&cfg.Metrics.PrometheusListen.UrlPath, defaultPrometheusListenUrlPath)
+	return nil
 }
 
 func defaultDuration(d **duration.Duration, defaultValue time.Duration) {

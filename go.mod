@@ -4,13 +4,14 @@ go 1.15
 
 require (
 	github.com/argoproj/gitops-engine v0.1.3-0.20200829061729-4d6f2988b2a7
-	github.com/ash2k/stager v0.1.0
+	github.com/ash2k/stager v0.2.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.5.2
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
+	github.com/prometheus/client_golang v1.7.1
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1

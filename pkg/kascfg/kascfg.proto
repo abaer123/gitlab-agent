@@ -20,6 +20,16 @@ message ListenCF {
     bool websocket = 3 [json_name = "websocket"];
 }
 
+message PrometheusListenCF {
+    bool disabled = 1 [json_name = "disabled"];
+    // Network type to listen on. Supported values: tcp, tcp4, tcp6, unix.
+    string network = 2 [json_name = "network"];
+    // Address to listen on.
+    string address = 3 [json_name = "address"];
+    // Expected URL path for requests.
+    string url_path = 4 [json_name = "url_path"];
+}
+
 message GitLabCF {
     string address = 1 [json_name = "address"];
     string authentication_secret_file = 2 [json_name = "authentication_secret_file"];
@@ -56,6 +66,8 @@ message MetricsCF {
     // How often to send usage metrics to the main application. /api/v4/internal/kubernetes/usage_ping
     // Set to zero to disable.
     google.protobuf.Duration usage_reporting_period = 1 [json_name = "usage_reporting_period"];
+    // Listener configuration for Prometheus metrics endpoint.
+    PrometheusListenCF prometheus_listen = 2 [json_name = "prometheus_listen"];
 }
 
 // ConfigurationFile represents kas configuration file.
