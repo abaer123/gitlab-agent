@@ -52,7 +52,7 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 			},
 		},
 	}
-	kasapp.ApplyDefaultsToKasConfigurationFile(ag.Configuration)
+	require.NoError(t, kasapp.ApplyDefaultsToKasConfigurationFile(ag.Configuration))
 	if websocket {
 		address = "ws://" + address
 	} else {

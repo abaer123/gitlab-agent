@@ -47,13 +47,19 @@ func (d *gitopsWorker) Run(ctx context.Context) {
 		return
 	}
 	defer stopEngine.Close() // nolint: errcheck
-	st := stager.New()
-	defer st.Shutdown()
-	stage := st.NextStage()
 	s := newSynchronizer(d.synchronizerConfig, eng)
-	stage.StartWithContext(s.run)
-
-	retry.JitterUntil(ctx, d.getObjectsToSynchronizeRetryPeriod, d.getObjectsToSynchronize(s))
+	st := stager.New()
+	stage := st.NextStage()
+	stage.Go(func(ctx context.Context) error {
+		s.run(ctx)
+		return nil
+	})
+	stage = st.NextStage()
+	stage.Go(func(ctx context.Context) error {
+		retry.JitterUntil(ctx, d.getObjectsToSynchronizeRetryPeriod, d.getObjectsToSynchronize(s))
+		return nil
+	})
+	_ = st.Run(ctx) // no errors possible
 }
 
 func (d *gitopsWorker) getObjectsToSynchronize(s *synchronizer) func(context.Context) {

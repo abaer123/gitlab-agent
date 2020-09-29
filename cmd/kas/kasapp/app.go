@@ -29,7 +29,10 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	ApplyDefaultsToKasConfigurationFile(cfg)
+	err = ApplyDefaultsToKasConfigurationFile(cfg)
+	if err != nil {
+		return err
+	}
 	if a.ListenNetwork != defaultListenNetwork {
 		cfg.Listen.Network = a.ListenNetwork
 	}
@@ -50,10 +53,10 @@ func (a *App) Run(ctx context.Context) error {
 	if a.ReloadConfigurationPeriod != defaultAgentConfigurationPollPeriod {
 		cfg.Agent.Configuration.PollPeriod = durationpb.New(a.ReloadConfigurationPeriod)
 	}
-	options := ConfiguredApp{
+	app := ConfiguredApp{
 		Configuration: cfg,
 	}
-	return options.Run(ctx)
+	return app.Run(ctx)
 }
 
 func (a *App) maybeLoadConfigurationFile() (*kascfg.ConfigurationFile, error) {
