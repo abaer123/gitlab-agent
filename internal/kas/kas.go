@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
@@ -31,16 +32,55 @@ const (
 	agentConfigurationFileName  = "config.yaml"
 )
 
-type Server struct {
-	// usageMetrics must be the very first field to ensure 64-bit alignment.
-	// See https://github.com/golang/go/blob/95df156e6ac53f98efd6c57e4586c1dfb43066dd/src/sync/atomic/doc.go#L46-L54
-	usageMetrics                 usageMetrics
+type ServerConfig struct {
 	Context                      context.Context
 	GitalyPool                   gitaly.PoolInterface
 	GitLabClient                 gitlab.ClientInterface
 	AgentConfigurationPollPeriod time.Duration
 	GitopsPollPeriod             time.Duration
 	UsageReportingPeriod         time.Duration
+	Registerer                   prometheus.Registerer
+}
+
+type Server struct {
+	// usageMetrics must be the very first field to ensure 64-bit alignment.
+	// See https://github.com/golang/go/blob/95df156e6ac53f98efd6c57e4586c1dfb43066dd/src/sync/atomic/doc.go#L46-L54
+	usageMetrics                 usageMetrics
+	context                      context.Context
+	gitalyPool                   gitaly.PoolInterface
+	gitLabClient                 gitlab.ClientInterface
+	agentConfigurationPollPeriod time.Duration
+	gitopsPollPeriod             time.Duration
+	usageReportingPeriod         time.Duration
+}
+
+func NewServer(config ServerConfig) (*Server, func(), error) {
+	toRegister := []prometheus.Collector{
+		// TODO add actual metrics
+	}
+	var registered []prometheus.Collector
+	r := config.Registerer
+	cleanup := func() {
+		for _, c := range registered {
+			r.Unregister(c)
+		}
+	}
+	for _, c := range toRegister {
+		if err := r.Register(c); err != nil {
+			cleanup()
+			return nil, nil, err
+		}
+		registered = append(registered, c)
+	}
+	s := &Server{
+		context:                      config.Context,
+		gitalyPool:                   config.GitalyPool,
+		gitLabClient:                 config.GitLabClient,
+		agentConfigurationPollPeriod: config.AgentConfigurationPollPeriod,
+		gitopsPollPeriod:             config.GitopsPollPeriod,
+		usageReportingPeriod:         config.UsageReportingPeriod,
+	}
+	return s, cleanup, nil
 }
 
 func (s *Server) Run(ctx context.Context) {
@@ -53,11 +93,11 @@ func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream age
 	if err != nil {
 		return err
 	}
-	agentInfo, err := s.GitLabClient.GetAgentInfo(ctx, agentMeta)
+	agentInfo, err := s.gitLabClient.GetAgentInfo(ctx, agentMeta)
 	if err != nil {
 		return fmt.Errorf("GetAgentInfo(): %v", err)
 	}
-	err = wait.PollImmediateUntil(s.AgentConfigurationPollPeriod, s.sendConfiguration(agentInfo, req.CommitId, stream), joinDone(s.Context, ctx).Done())
+	err = wait.PollImmediateUntil(s.agentConfigurationPollPeriod, s.sendConfiguration(agentInfo, req.CommitId, stream), joinDone(s.context, ctx).Done())
 	if err == wait.ErrWaitTimeout {
 		return nil // all good, ctx is done
 	}
@@ -66,7 +106,7 @@ func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream age
 
 func (s *Server) sendConfiguration(agentInfo *api.AgentInfo, lastProcessedCommitId string, stream agentrpc.Kas_GetConfigurationServer) wait.ConditionFunc {
 	p := gitaly.Poller{
-		GitalyPool: s.GitalyPool,
+		GitalyPool: s.gitalyPool,
 	}
 	logger := log.WithField(api.AgentId, agentInfo.Id)
 	ctx := stream.Context()
@@ -115,7 +155,7 @@ func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInf
 // fetchSingleFile fetches the latest revision of a single file.
 // Returned data slice is nil if file was not found and is empty if the file is empty.
 func (s *Server) fetchSingleFile(ctx context.Context, gInfo *api.GitalyInfo, repo *gitalypb.Repository, filename, revision string) ([]byte, error) {
-	client, err := s.GitalyPool.CommitServiceClient(ctx, gInfo)
+	client, err := s.gitalyPool.CommitServiceClient(ctx, gInfo)
 	if err != nil {
 		return nil, fmt.Errorf("CommitServiceClient: %v", err)
 	}
@@ -149,11 +189,11 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 	if err != nil {
 		return err
 	}
-	agentInfo, err := s.GitLabClient.GetAgentInfo(ctx, agentMeta)
+	agentInfo, err := s.gitLabClient.GetAgentInfo(ctx, agentMeta)
 	if err != nil {
 		return fmt.Errorf("GetAgentInfo(): %v", err)
 	}
-	err = wait.PollImmediateUntil(s.GitopsPollPeriod, s.sendObjectsToSynchronize(agentInfo, stream, req.ProjectId, req.CommitId), joinDone(s.Context, ctx).Done())
+	err = wait.PollImmediateUntil(s.gitopsPollPeriod, s.sendObjectsToSynchronize(agentInfo, stream, req.ProjectId, req.CommitId), joinDone(s.context, ctx).Done())
 	if err == wait.ErrWaitTimeout {
 		return nil // all good, ctx is done
 	}
@@ -162,7 +202,7 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 
 func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agentrpc.Kas_GetObjectsToSynchronizeServer, projectId, lastProcessedCommitId string) wait.ConditionFunc {
 	p := gitaly.Poller{
-		GitalyPool: s.GitalyPool,
+		GitalyPool: s.gitalyPool,
 	}
 	logger := log.WithField(api.AgentId, agentInfo.Id)
 	ctx := stream.Context()
@@ -170,7 +210,7 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agent
 		// This call is made on each poll because:
 		// - it checks that the agent's token is still valid
 		// - repository location in Gitaly might have changed
-		repoInfo, err := s.GitLabClient.GetProjectInfo(ctx, &agentInfo.Meta, projectId)
+		repoInfo, err := s.gitLabClient.GetProjectInfo(ctx, &agentInfo.Meta, projectId)
 		if err != nil {
 			logger.WithError(err).Warn("GitOps: failed to get project info")
 			return false, nil // don't want to close the response stream, so report no error
@@ -223,10 +263,10 @@ func (s *Server) fetchObjectsToSynchronize(ctx context.Context, repoInfo *api.Pr
 }
 
 func (s *Server) sendUsage(ctx context.Context) {
-	if s.UsageReportingPeriod == 0 {
+	if s.usageReportingPeriod == 0 {
 		return
 	}
-	ticker := time.NewTicker(s.UsageReportingPeriod)
+	ticker := time.NewTicker(s.usageReportingPeriod)
 	defer ticker.Stop()
 	for {
 		select {
@@ -246,7 +286,7 @@ func (s *Server) sendUsageInternal(ctx context.Context) error {
 		// No new counts
 		return nil
 	}
-	err := s.GitLabClient.SendUsage(ctx, &gitlab.UsageData{
+	err := s.gitLabClient.SendUsage(ctx, &gitlab.UsageData{
 		GitopsSyncCount: m.gitopsSyncCount,
 	})
 	if err != nil {

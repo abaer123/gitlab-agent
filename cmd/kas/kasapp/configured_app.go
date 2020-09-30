@@ -57,10 +57,12 @@ type ConfiguredApp struct {
 func (a *ConfiguredApp) Run(ctx context.Context) error {
 	// Metrics
 	reg := prometheus.NewPedanticRegistry()
-	err := reg.Register(prometheus.NewGoCollector())
+	goCollector := prometheus.NewGoCollector()
+	err := reg.Register(goCollector)
 	if err != nil {
 		return err
 	}
+	defer reg.Unregister(goCollector)
 
 	// Start things up
 	st := stager.New()
@@ -103,7 +105,6 @@ func (a *ConfiguredApp) startMetricsServer(st stager.Stager, gatherer prometheus
 }
 
 func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.Registerer) {
-	_ = registerer // TODO use to register metrics
 	stage := st.NextStage()
 	stage.Go(func(ctx context.Context) error {
 		ctx, cancel := context.WithCancel(ctx)
@@ -151,7 +152,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			CacheTTL:      cfg.Agent.Gitops.ProjectInfoCacheTtl.AsDuration(),
 			CacheErrorTTL: cfg.Agent.Gitops.ProjectInfoCacheErrorTtl.AsDuration(),
 		})
-		srv := &kas.Server{
+		srv, cleanup, err := kas.NewServer(kas.ServerConfig{
 			Context: ctx,
 			GitalyPool: &gitaly.Pool{
 				ClientPool: gitalyClientPool,
@@ -160,7 +161,12 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			AgentConfigurationPollPeriod: cfg.Agent.Configuration.PollPeriod.AsDuration(),
 			GitopsPollPeriod:             cfg.Agent.Gitops.PollPeriod.AsDuration(),
 			UsageReportingPeriod:         cfg.Metrics.UsageReportingPeriod.AsDuration(),
+			Registerer:                   registerer,
+		})
+		if err != nil {
+			return fmt.Errorf("kas.NewServer: %v", err)
 		}
+		defer cleanup()
 
 		var opts []grpc.ServerOption
 		grpcServer := grpc.NewServer(opts...)

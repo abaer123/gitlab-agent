@@ -17,7 +17,6 @@ require (
 	github.com/stretchr/testify v1.6.1
 	gitlab.com/gitlab-org/gitaly v1.87.1-0.20200731181045-a6091637dcb4
 	gitlab.com/gitlab-org/labkit v0.0.0-20200908084045-45895e129029
-	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	golang.org/x/tools v0.0.0-20200823205832-c024452afbcd
 	google.golang.org/grpc v1.32.0
 	google.golang.org/grpc/examples v0.0.0-20200828165940-d8ef479ab79a // indirect

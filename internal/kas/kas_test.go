@@ -10,6 +10,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
@@ -174,7 +175,7 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	gitlabClient.EXPECT().
 		SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 1})).
 		Return(nil)
-	a.UsageReportingPeriod = 10 * time.Millisecond
+	a.usageReportingPeriod = 10 * time.Millisecond
 
 	objects := []runtime.Object{
 		&corev1.ConfigMap{
@@ -298,14 +299,17 @@ func TestSendUsage(t *testing.T) {
 		SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
 		Return(nil)
 
-	s := &Server{
+	s, cleanup, err := NewServer(ServerConfig{
 		Context:                      ctx,
 		GitalyPool:                   gitalyPool,
 		GitLabClient:                 gitlabClient,
 		AgentConfigurationPollPeriod: 10 * time.Minute,
 		GitopsPollPeriod:             10 * time.Minute,
 		UsageReportingPeriod:         10 * time.Millisecond,
-	}
+		Registerer:                   prometheus.NewPedanticRegistry(),
+	})
+	require.NoError(t, err)
+	defer cleanup()
 	s.usageMetrics.gitopsSyncCount = 5
 
 	// Send accumulated counters
@@ -331,14 +335,17 @@ func TestSendUsageRetry(t *testing.T) {
 			Return(nil),
 	)
 
-	s := &Server{
+	s, cleanup, err := NewServer(ServerConfig{
 		Context:                      ctx,
 		GitalyPool:                   gitalyPool,
 		GitLabClient:                 gitlabClient,
 		AgentConfigurationPollPeriod: 10 * time.Minute,
 		GitopsPollPeriod:             10 * time.Minute,
 		UsageReportingPeriod:         10 * time.Millisecond,
-	}
+		Registerer:                   prometheus.NewPedanticRegistry(),
+	})
+	require.NoError(t, err)
+	defer cleanup()
 	s.usageMetrics.gitopsSyncCount = 5
 
 	// Try to send accumulated counters, fail
@@ -481,13 +488,16 @@ func setupKas(ctx context.Context, t *testing.T) (*Server, *api.AgentInfo, *gomo
 		GetAgentInfo(gomock.Any(), &agentMeta).
 		Return(agentInfo, nil)
 
-	a := &Server{
+	k, cleanup, err := NewServer(ServerConfig{
 		Context:                      ctx,
 		GitalyPool:                   gitalyPool,
 		GitLabClient:                 gitlabClient,
 		AgentConfigurationPollPeriod: 10 * time.Minute,
 		GitopsPollPeriod:             10 * time.Minute,
-	}
+		Registerer:                   prometheus.NewPedanticRegistry(),
+	})
+	require.NoError(t, err)
+	t.Cleanup(cleanup)
 
-	return a, agentInfo, mockCtrl, gitalyPool, gitlabClient
+	return k, agentInfo, mockCtrl, gitalyPool, gitlabClient
 }

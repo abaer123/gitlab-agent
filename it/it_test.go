@@ -11,12 +11,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ash2k/stager"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/agentk/agentkapp"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kas/kasapp"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
-	"golang.org/x/sync/errgroup"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -74,19 +74,15 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	g, ctx := errgroup.WithContext(ctx)
-	defer func() {
-		assert.NoError(t, g.Wait())
-	}()
-	g.Go(func() error {
-		return ag.Run(ctx)
-	})
+	st := stager.New()
+	stage := st.NextStage()
+	stage.Go(ag.Run)
 	time.Sleep(1 * time.Second) // let kas start listening
-	g.Go(func() error {
-		return ak.Run(ctx)
-	})
+	stage.Go(ak.Run)
 
 	// TODO
+
+	assert.NoError(t, st.Run(ctx))
 }
 
 func getGitLabAddress(t *testing.T) string {
