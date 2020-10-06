@@ -11,6 +11,7 @@ go_library(
         "//internal/api/apiutil",
         "//internal/gitaly",
         "//internal/gitlab",
+        "//internal/tools/metric",
         "//pkg/agentcfg",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",

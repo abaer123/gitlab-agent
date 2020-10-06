@@ -19,6 +19,7 @@ go_library(
         "//pkg/kascfg",
         "@com_github_ash2k_stager//:stager",
         "@com_github_golang_protobuf//ptypes/duration",
+        "@com_github_grpc_ecosystem_go_grpc_prometheus//:go-grpc-prometheus",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_spf13_pflag//:pflag",
         "@com_gitlab_gitlab_org_gitaly//client",
