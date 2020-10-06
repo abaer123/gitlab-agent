@@ -204,9 +204,16 @@ gdk-install:
 	bazel run //build:extract_race_binaries_for_gdk -- "$(TARGET_DIRECTORY)"
 
 # Set TARGET_DIRECTORY variable to the target directory before running this target
+GIT_COMMIT = $(shell git rev-parse --short HEAD)
+GIT_TAG = $(shell git tag --points-at HEAD 2>/dev/null || true)
+ifeq ($(GIT_TAG), )
+	GIT_TAG = "v0.0.0"
+endif
 .PHONY: kas
 kas:
-	go build -o "$(TARGET_DIRECTORY)" ./cmd/kas
+	go build \
+		-ldflags "-X gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.Version=$(GIT_TAG) -X gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.Commit=$(GIT_COMMIT)" \
+		-o "$(TARGET_DIRECTORY)" ./cmd/kas
 
 # https://github.com/golang/go/wiki/Modules#how-to-upgrade-and-downgrade-dependencies
 .PHONY: show-go-dependency-updates
