@@ -2473,6 +2473,13 @@ def go_repositories():
         version = "v0.11.4",
     )
     go_repository(
+        name = "com_github_piotrkowalczuk_promgrpc_v4",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/piotrkowalczuk/promgrpc/v4",
+        sum = "h1:SZtxlzAYUaYky9TdNQiubxM8hgH8EyGjVzEEw3iC8Uo=",
+        version = "v4.0.2",
+    )
+    go_repository(
         name = "com_github_pkg_errors",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/pkg/errors",
