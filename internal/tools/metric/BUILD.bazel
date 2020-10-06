@@ -2,7 +2,10 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "metric",
-    srcs = ["metric_server.go"],
+    srcs = [
+        "metric.go",
+        "metric_server.go",
+    ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric",
     visibility = ["//:__subpackages__"],
     deps = [

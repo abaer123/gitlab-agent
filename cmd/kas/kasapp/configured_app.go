@@ -11,6 +11,7 @@ import (
 
 	"github.com/ash2k/stager"
 	"github.com/golang/protobuf/ptypes/duration"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
@@ -56,17 +57,21 @@ type ConfiguredApp struct {
 
 func (a *ConfiguredApp) Run(ctx context.Context) error {
 	// Metrics
-	reg := prometheus.NewPedanticRegistry()
-	goCollector := prometheus.NewGoCollector()
-	err := reg.Register(goCollector)
-	if err != nil {
-		return err
-	}
-	defer reg.Unregister(goCollector)
+	// TODO use an independent registry with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
+	// reg := prometheus.NewPedanticRegistry()
+	reg := prometheus.DefaultRegisterer
+	//goCollector := prometheus.NewGoCollector()
+	//cleanup, err := metric.Register(reg, goCollector)
+	//if err != nil {
+	//	return err
+	//}
+	//defer cleanup()
 
 	// Start things up
 	st := stager.New()
-	a.startMetricsServer(st, reg)
+	// TODO use an independent registry with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
+	gatherer := prometheus.DefaultGatherer
+	a.startMetricsServer(st, gatherer)
 	a.startGrpcServer(st, reg)
 	return st.Run(ctx)
 }
@@ -142,7 +147,12 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		}
 
 		ver := kasVersionString()
-		gitalyClientPool := client.NewPool(grpc.WithUserAgent(ver))
+		gitalyClientPool := client.NewPool(
+			grpc.WithUserAgent(ver),
+			// TODO construct independent interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
+			grpc.WithChainStreamInterceptor(grpc_prometheus.StreamClientInterceptor),
+			grpc.WithChainUnaryInterceptor(grpc_prometheus.UnaryClientInterceptor),
+		)
 		defer gitalyClientPool.Close() // nolint: errcheck
 		gitLabClient := gitlab.NewClient(gitLabUrl, decodedAuthSecret, ver)
 		gitLabCachingClient := gitlab.NewCachingClient(gitLabClient, gitlab.CacheOptions{
@@ -167,9 +177,11 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			return fmt.Errorf("kas.NewServer: %v", err)
 		}
 		defer cleanup()
-
-		var opts []grpc.ServerOption
-		grpcServer := grpc.NewServer(opts...)
+		grpcServer := grpc.NewServer(
+			// TODO construct independent interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
+			grpc.ChainStreamInterceptor(grpc_prometheus.StreamServerInterceptor),
+			grpc.ChainUnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
+		)
 		agentrpc.RegisterKasServer(grpcServer, srv)
 
 		var wg wait.Group

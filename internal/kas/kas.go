@@ -14,6 +14,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"gitlab.com/gitlab-org/labkit/log"
@@ -58,19 +59,9 @@ func NewServer(config ServerConfig) (*Server, func(), error) {
 	toRegister := []prometheus.Collector{
 		// TODO add actual metrics
 	}
-	var registered []prometheus.Collector
-	r := config.Registerer
-	cleanup := func() {
-		for _, c := range registered {
-			r.Unregister(c)
-		}
-	}
-	for _, c := range toRegister {
-		if err := r.Register(c); err != nil {
-			cleanup()
-			return nil, nil, err
-		}
-		registered = append(registered, c)
+	cleanup, err := metric.Register(config.Registerer, toRegister...)
+	if err != nil {
+		return nil, nil, err
 	}
 	s := &Server{
 		context:                      config.Context,

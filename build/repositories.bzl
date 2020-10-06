@@ -1552,8 +1552,8 @@ def go_repositories():
         name = "com_github_grpc_ecosystem_go_grpc_prometheus",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/grpc-ecosystem/go-grpc-prometheus",
-        sum = "h1:Ovs26xHkKqVztRpIrF/92BcuyuQ/YW4NSIpoGtfXNho=",
-        version = "v1.2.0",
+        sum = "h1:tDEI6JHij2b2WFuvCLn6ZFk4WcpH+lWJPrDdIAgeBuQ=",
+        version = "v1.2.1-0.20200507082539-9abf3eb82b4a",
     )
     go_repository(
         name = "com_github_grpc_ecosystem_grpc_gateway",
