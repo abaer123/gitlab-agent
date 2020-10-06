@@ -85,6 +85,8 @@ gitops:
       - '*'
       kinds:
       - '*'
+    # Namespace to use if not set explicitly in object manifest.
+    default_namespace: my-ns
 ```
 
 By default, all resource kinds are monitored. Use `resource_exclusions` section to specify exclusion patterns to narrow down the list of monitored resources. This allows to reduce the needed permissions for the GitOps feature. To invert the matching behavior, exclude all groups/kinds and use `resource_inclusions` to specify the desired resource patterns. See the example configuration above for this pattern.

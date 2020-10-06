@@ -28,7 +28,8 @@ message ManifestProjectCF {
     // Inclusion rules are evaluated first, then exclusion rules. If there is still no match,
     // resource is monitored.
     repeated ResourceFilterCF resource_exclusions = 3 [json_name = "resource_exclusions"];
-
+    // Namespace to use if not set explicitly in object manifest.
+    string default_namespace = 4 [json_name = "default_namespace"];
     // TODO support fetching a path (subdirectory) within a repository
 }
 

@@ -26,7 +26,6 @@ import (
 
 const (
 	projectId = "bla123/bla-1"
-	namespace = ""
 	revision  = "rev12341234"
 )
 
@@ -34,7 +33,6 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1000*time.Second)
 	defer cancel()
 	mockCtrl := gomock.NewController(t)
-	t.Cleanup(mockCtrl.Finish)
 	mockEngineCtrl := gomock.NewController(t)
 	engineCloser := mock_misc.NewMockCloser(mockCtrl)
 	// engine is used concurrently with other mocks. So use a separate mock controller to avoid data races because
@@ -83,7 +81,7 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 			Return(nil),
 	)
 	engine.EXPECT().
-		Sync(gomock.Any(), gomock.Len(0), gomock.Any(), revision, namespace, gomock.Any()).
+		Sync(gomock.Any(), gomock.Len(0), gomock.Any(), revision, defaultNamespace, gomock.Any()).
 		DoAndReturn(func(ctx context.Context, resources []*unstructured.Unstructured, isManaged func(r *cache.Resource) bool, revision string, namespace string, opts ...sync.SyncOpt) ([]common.ResourceSyncResult, error) {
 			close(job1started) // signal that this job has been started
 			<-ctx.Done()       // block until the job is cancelled
@@ -97,7 +95,8 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 		synchronizerConfig: synchronizerConfig{
 			log: logrus.New().WithFields(nil),
 			projectConfiguration: &agentcfg.ManifestProjectCF{
-				Id: projectId,
+				Id:               projectId,
+				DefaultNamespace: defaultNamespace, // as if user didn't specify configuration so it's the default value
 			},
 			k8sClientGetter: genericclioptions.NewTestConfigFlags(),
 		},
@@ -122,7 +121,7 @@ func TestRunHappyPathNoObjects(t *testing.T) {
 			Return(nil, io.EOF),
 	)
 	engine.EXPECT().
-		Sync(gomock.Any(), gomock.Len(0), gomock.Any(), revision, namespace).
+		Sync(gomock.Any(), gomock.Len(0), gomock.Any(), revision, defaultNamespace).
 		DoAndReturn(func(ctx context.Context, resources []*unstructured.Unstructured, isManaged func(r *cache.Resource) bool, revision string, namespace string, opts ...sync.SyncOpt) ([]common.ResourceSyncResult, error) {
 			cancel() // all good, stop run()
 			return nil, nil
@@ -144,7 +143,7 @@ func TestRunHappyPath(t *testing.T) {
 			Return(nil, io.EOF),
 	)
 	engine.EXPECT().
-		Sync(gomock.Any(), matcher.K8sObjectEq(t, objs, kube_testing.IgnoreAnnotation(managedObjectAnnotationName)), gomock.Any(), revision, namespace, gomock.Any()).
+		Sync(gomock.Any(), matcher.K8sObjectEq(t, objs, kube_testing.IgnoreAnnotation(managedObjectAnnotationName)), gomock.Any(), revision, defaultNamespace, gomock.Any()).
 		DoAndReturn(func(ctx context.Context, resources []*unstructured.Unstructured, isManaged func(r *cache.Resource) bool, revision string, namespace string, opts ...sync.SyncOpt) ([]common.ResourceSyncResult, error) {
 			cancel() // all good, stop run()
 			return []common.ResourceSyncResult{
@@ -182,14 +181,14 @@ func TestRunHappyPathSyncCancellation(t *testing.T) {
 	)
 	gomock.InOrder(
 		engine.EXPECT().
-			Sync(gomock.Any(), matcher.K8sObjectEq(t, objs, kube_testing.IgnoreAnnotation(managedObjectAnnotationName)), gomock.Any(), revision, namespace, gomock.Any()).
+			Sync(gomock.Any(), matcher.K8sObjectEq(t, objs, kube_testing.IgnoreAnnotation(managedObjectAnnotationName)), gomock.Any(), revision, defaultNamespace, gomock.Any()).
 			DoAndReturn(func(ctx context.Context, resources []*unstructured.Unstructured, isManaged func(r *cache.Resource) bool, revision string, namespace string, opts ...sync.SyncOpt) ([]common.ResourceSyncResult, error) {
 				close(job1started) // signal that this job has been started
 				<-ctx.Done()       // block until the job is cancelled
 				return nil, ctx.Err()
 			}),
 		engine.EXPECT().
-			Sync(gomock.Any(), gomock.Len(0), gomock.Any(), revision, namespace, gomock.Any()).
+			Sync(gomock.Any(), gomock.Len(0), gomock.Any(), revision, defaultNamespace, gomock.Any()).
 			DoAndReturn(func(ctx context.Context, resources []*unstructured.Unstructured, isManaged func(r *cache.Resource) bool, revision string, namespace string, opts ...sync.SyncOpt) ([]common.ResourceSyncResult, error) {
 				cancel() // all good, stop run()
 				return nil, nil
@@ -254,7 +253,8 @@ func setupWorker(t *testing.T) (*gitopsWorker, *mock_engine.MockGitOpsEngine, *m
 		synchronizerConfig: synchronizerConfig{
 			log: logrus.New().WithFields(nil),
 			projectConfiguration: &agentcfg.ManifestProjectCF{
-				Id: projectId,
+				Id:               projectId,
+				DefaultNamespace: defaultNamespace, // as if user didn't specify configuration so it's the default value
 			},
 			k8sClientGetter: genericclioptions.NewTestConfigFlags(),
 		},

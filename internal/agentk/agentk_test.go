@@ -18,6 +18,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_engine"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
@@ -30,7 +31,6 @@ func TestGetConfigurationResumeConnection(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	a, mockCtrl, client, _ := setupBasicAgent(t)
-	t.Cleanup(mockCtrl.Finish)
 	configStream1 := mock_agentrpc.NewMockKas_GetConfigurationClient(mockCtrl)
 	configStream2 := mock_agentrpc.NewMockKas_GetConfigurationClient(mockCtrl)
 	gomock.InOrder(
@@ -171,6 +171,8 @@ func assertWorkersMatchConfiguration(t *testing.T, a *Agent, config *agentcfg.Ag
 			success = false
 			continue
 		}
+		project = proto.Clone(project).(*agentcfg.ManifestProjectCF)
+		applyDefaultsToManifestProject(project)
 		success = assert.Empty(t, cmp.Diff(a.workers[project.Id].worker.projectConfiguration, project, protocmp.Transform())) || success
 	}
 	return success
@@ -195,6 +197,7 @@ func setupAgentWithConfigs(t *testing.T, configs ...*agentcfg.AgentConfiguration
 	configStream := mock_agentrpc.NewMockKas_GetConfigurationClient(mockCtrl)
 	var calls []*gomock.Call
 	for _, config := range configs {
+		config = proto.Clone(config).(*agentcfg.AgentConfiguration)
 		configResp := &agentrpc.ConfigurationResponse{
 			Configuration: config,
 		}

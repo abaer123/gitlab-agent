@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/resource"
@@ -25,6 +26,8 @@ import (
 const (
 	defaultRefreshConfigurationRetryPeriod    = 10 * time.Second
 	defaultGetObjectsToSynchronizeRetryPeriod = 10 * time.Second
+
+	defaultNamespace = metav1.NamespaceDefault
 )
 
 type GitOpsEngineFactory interface {
@@ -134,6 +137,7 @@ func (a *Agent) configureWorkers(projects []*agentcfg.ManifestProjectCF) error {
 			log.WithField(api.ProjectId, project.Id).Error()
 			return fmt.Errorf("duplicate project id: %s", project.Id)
 		}
+		applyDefaultsToManifestProject(project)
 		newSetOfProjects.Insert(project.Id)
 		workerHolder := a.workers[project.Id]
 		if workerHolder == nil { // New project added
@@ -207,4 +211,10 @@ type DefaultGitOpsEngineFactory struct {
 
 func (f *DefaultGitOpsEngineFactory) New(opts ...cache.UpdateSettingsFunc) engine.GitOpsEngine {
 	return engine.NewEngine(f.KubeClientConfig, cache.NewClusterCache(f.KubeClientConfig, opts...))
+}
+
+func applyDefaultsToManifestProject(project *agentcfg.ManifestProjectCF) {
+	if project.DefaultNamespace == "" {
+		project.DefaultNamespace = defaultNamespace
+	}
 }
