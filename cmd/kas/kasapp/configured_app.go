@@ -24,6 +24,7 @@ import (
 	"gitlab.com/gitlab-org/gitaly/client"
 	"gitlab.com/gitlab-org/labkit/log"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/stats"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -60,19 +61,20 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 	// TODO use an independent registry with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	// reg := prometheus.NewPedanticRegistry()
 	reg := prometheus.DefaultRegisterer
+	gatherer := prometheus.DefaultGatherer
+	ssh := metric.ServerStatsHandler()
+	csh := metric.ClientStatsHandler()
 	//goCollector := prometheus.NewGoCollector()
-	//cleanup, err := metric.Register(reg, goCollector)
-	//if err != nil {
-	//	return err
-	//}
-	//defer cleanup()
+	cleanup, err := metric.Register(reg, ssh, csh)
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 
 	// Start things up
 	st := stager.New()
-	// TODO use an independent registry with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
-	gatherer := prometheus.DefaultGatherer
 	a.startMetricsServer(st, gatherer)
-	a.startGrpcServer(st, reg)
+	a.startGrpcServer(st, reg, ssh, csh)
 	return st.Run(ctx)
 }
 
@@ -109,7 +111,7 @@ func (a *ConfiguredApp) startMetricsServer(st stager.Stager, gatherer prometheus
 	})
 }
 
-func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.Registerer) {
+func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.Registerer, ssh, csh stats.Handler) {
 	stage := st.NextStage()
 	stage.Go(func(ctx context.Context) error {
 		ctx, cancel := context.WithCancel(ctx)
@@ -149,6 +151,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		ver := kasVersionString()
 		gitalyClientPool := client.NewPool(
 			grpc.WithUserAgent(ver),
+			grpc.WithStatsHandler(csh),
 			// TODO construct independent interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 			grpc.WithChainStreamInterceptor(grpc_prometheus.StreamClientInterceptor),
 			grpc.WithChainUnaryInterceptor(grpc_prometheus.UnaryClientInterceptor),
@@ -178,6 +181,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		}
 		defer cleanup()
 		grpcServer := grpc.NewServer(
+			grpc.StatsHandler(ssh),
 			// TODO construct independent interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 			grpc.ChainStreamInterceptor(grpc_prometheus.StreamServerInterceptor),
 			grpc.ChainUnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
