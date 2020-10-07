@@ -39,7 +39,7 @@ func (s *syncWorker) run(jobs <-chan syncJob) {
 }
 
 func (s *syncWorker) synchronize(job syncJob) error {
-	result, err := s.engine.Sync(job.ctx, job.objects, s.isManaged, job.commitId, "" /*TODO namespace*/)
+	result, err := s.engine.Sync(job.ctx, job.objects, s.isManaged, job.commitId, s.projectConfiguration.DefaultNamespace)
 	if err != nil {
 		// TODO check ctx.Err() https://github.com/argoproj/gitops-engine/pull/140
 		return fmt.Errorf("engine.Sync failed: %v", err)
