@@ -3,7 +3,7 @@
 
 listen:
   network: tcp
-  address: 127.0.0.1:0
+  address: 127.0.0.1:8150
   websocket: false
 gitlab:
   address: http://localhost:8080
@@ -19,3 +19,8 @@ agent:
   info_cache_error_ttl: "60s"
 metrics:
   usage_reporting_period: "60s"
+  prometheus_listen:
+    disabled: false
+    network: tcp
+    address: 127.0.0.1:8151
+    url_path: /metrics
