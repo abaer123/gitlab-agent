@@ -12,9 +12,9 @@ openAPI:
           setBy: package-default
           count: 1
     io.k8s.cli.setters.kas-address:
-      description: kas address. Use grpc://host.docker.internal:5005 if connecting
+      description: kas address. Use grpc://host.docker.internal:8150 if connecting
         from within Docker e.g. from kind.
       x-k8s-cli:
         setter:
           name: kas-address
-          value: grpc://127.0.0.1:5005
+          value: grpc://127.0.0.1:8150

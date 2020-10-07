@@ -34,7 +34,7 @@ const (
 	defaultMaxMessageSize = 10 * 1024 * 1024
 
 	defaultListenNetwork = "tcp"
-	defaultListenAddress = "127.0.0.1:0"
+	defaultListenAddress = "127.0.0.1:8150"
 	defaultGitLabAddress = "http://localhost:8080"
 
 	defaultAgentConfigurationPollPeriod = 20 * time.Second
@@ -48,7 +48,7 @@ const (
 
 	defaultUsageReportingPeriod    = 1 * time.Minute
 	defaultPrometheusListenNetwork = "tcp"
-	defaultPrometheusListenAddress = "127.0.0.1:9091"
+	defaultPrometheusListenAddress = "127.0.0.1:8151"
 	defaultPrometheusListenUrlPath = "/metrics"
 )
 

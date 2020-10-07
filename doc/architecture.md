@@ -18,10 +18,9 @@
 
 ```mermaid
 graph TB
-  agentk -- gRPC bidirectional streaming --> nginx
+  agentk -- gRPC bidirectional streaming --> kas
 
   subgraph "GitLab"
-  nginx -- proxy pass port 5005 --> kas
   kas[kas]
   GitLabRoR[GitLab RoR] -- gRPC --> kas
   kas -- gRPC --> Gitaly[Gitaly]

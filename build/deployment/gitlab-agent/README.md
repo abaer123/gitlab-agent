@@ -16,7 +16,7 @@ GitLab Kubernetes Agent needs two pieces of configuration to connect to a GitLab
 1. URL. The agent can use WebSockets or gRPC protocols to connect to GitLab. Depending
    on how your GitLab instance is configured, you may need to use one or the other.
 
-   - Specify `grpc` scheme (e.g. `grpc://127.0.0.1:5005`) to use gRPC directly. The connection is not encrypted.
+   - Specify `grpc` scheme (e.g. `grpc://127.0.0.1:8150`) to use gRPC directly. The connection is not encrypted.
    - Encrypted gRPC is not supported yet. See the issue
      [Support TLS for gRPC communication](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/7).
    - Specify `ws` scheme to use WebSocket connection. The connection is not encrypted.
@@ -56,8 +56,8 @@ you use `kpt`, but `kpt` makes cloning and updating the package more convenient.
     # in gitlab-agent directory
     kustomize cfg list-setters .
      NAME               VALUE               SET BY                  DESCRIPTION              COUNT
-     kas-address   grpc://127.0.0.1:5005                     kas address. Use                   1
-                                                             grpc://host.docker.internal:5005
+     kas-address   grpc://127.0.0.1:8150                     kas address. Use                   1
+                                                             grpc://host.docker.internal:8150
                                                              if connecting from within Docker
                                                              e.g. from kind.
      namespace     gitlab-agent            package-default   Namespace to install GitLab        1
