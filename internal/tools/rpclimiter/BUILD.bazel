@@ -1,0 +1,13 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "rpclimiter",
+    srcs = ["ratelimit.go"],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/rpclimiter",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+    ],
+)

@@ -70,6 +70,21 @@ message MetricsCF {
     PrometheusListenCF prometheus_listen = 2 [json_name = "prometheus_listen"];
 }
 
+// See https://pkg.go.dev/golang.org/x/time/rate#Limiter.
+message TokenBucketRateLimitCF {
+    // Number of events per second. A zero allows no events.
+    // How fast the "token bucket" is refilled.
+    double refill_rate_per_second = 1 [json_name = "refill_rate_per_second"];
+    // Maximum number of events that are allowed to happen in succession.
+    // Size of the "token bucket".
+    int32 bucket_size = 2 [json_name = "bucket_size"];
+}
+
+message GitalyCF {
+    // Rate limit that is enforced across all Gitaly servers.
+    TokenBucketRateLimitCF global_api_rate_limit = 1 [json_name = "global_api_rate_limit"];
+}
+
 // ConfigurationFile represents kas configuration file.
 message ConfigurationFile {
     // RPC listener configuration.
@@ -80,4 +95,6 @@ message ConfigurationFile {
     AgentCF agent = 3 [json_name = "agent"];
     // Configuration related to the metrics, including usage metrics.
     MetricsCF metrics = 4 [json_name = "metrics"];
+    // Configuration related to interaction with Gitaly.
+    GitalyCF gitaly = 5 [json_name = "gitaly"];
 }
