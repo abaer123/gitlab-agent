@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
+	"time"
 
 	"github.com/spf13/pflag"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
@@ -13,6 +14,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/wstunnel"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/resource"
 	"nhooyr.io/websocket"
@@ -56,6 +58,12 @@ func (a *App) kasConnection(ctx context.Context, token string) (*grpc.ClientConn
 	}
 	opts := []grpc.DialOption{
 		grpc.WithUserAgent(fmt.Sprintf("agentk/%s/%s", cmd.Version, cmd.Commit)),
+		// grpc.KeepaliveParams must be specified at least as large as what is allowed by the
+		// server-side grpc.KeepaliveEnforcementPolicy
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                20 * time.Second,
+			PermitWithoutStream: true,
+		}),
 	}
 	var addressToDial string
 	// "grpcs" is the only scheme where encryption is done by gRPC.

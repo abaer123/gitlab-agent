@@ -16,5 +16,6 @@ go_library(
         "@io_k8s_cli_runtime//pkg/resource",
         "@io_nhooyr_websocket//:websocket",
         "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//keepalive",
     ],
 )
