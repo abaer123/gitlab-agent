@@ -1,0 +1,17 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_test")
+
+go_test(
+    name = "doc_test",
+    size = "small",
+    srcs = ["config_example_test.go"],
+    data = ["kas_config_example.yaml"],
+    race = "on",
+    deps = [
+        "//cmd/kas/kasapp",
+        "//pkg/kascfg",
+        "@com_github_google_go_cmp//cmp",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_protobuf//testing/protocmp",
+    ],
+)

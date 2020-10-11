@@ -452,6 +452,108 @@ func (x *MetricsCF) GetPrometheusListen() *PrometheusListenCF {
 	return nil
 }
 
+type TokenBucketRateLimitCF struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	RefillRatePerSecond float64 `protobuf:"fixed64,1,opt,name=refill_rate_per_second,proto3" json:"refill_rate_per_second,omitempty"`
+	BucketSize          int32   `protobuf:"varint,2,opt,name=bucket_size,proto3" json:"bucket_size,omitempty"`
+}
+
+func (x *TokenBucketRateLimitCF) Reset() {
+	*x = TokenBucketRateLimitCF{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_pkg_kascfg_kascfg_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *TokenBucketRateLimitCF) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TokenBucketRateLimitCF) ProtoMessage() {}
+
+func (x *TokenBucketRateLimitCF) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_kascfg_kascfg_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TokenBucketRateLimitCF.ProtoReflect.Descriptor instead.
+func (*TokenBucketRateLimitCF) Descriptor() ([]byte, []int) {
+	return file_pkg_kascfg_kascfg_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *TokenBucketRateLimitCF) GetRefillRatePerSecond() float64 {
+	if x != nil {
+		return x.RefillRatePerSecond
+	}
+	return 0
+}
+
+func (x *TokenBucketRateLimitCF) GetBucketSize() int32 {
+	if x != nil {
+		return x.BucketSize
+	}
+	return 0
+}
+
+type GitalyCF struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	GlobalApiRateLimit *TokenBucketRateLimitCF `protobuf:"bytes,1,opt,name=global_api_rate_limit,proto3" json:"global_api_rate_limit,omitempty"`
+}
+
+func (x *GitalyCF) Reset() {
+	*x = GitalyCF{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_pkg_kascfg_kascfg_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GitalyCF) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GitalyCF) ProtoMessage() {}
+
+func (x *GitalyCF) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_kascfg_kascfg_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GitalyCF.ProtoReflect.Descriptor instead.
+func (*GitalyCF) Descriptor() ([]byte, []int) {
+	return file_pkg_kascfg_kascfg_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GitalyCF) GetGlobalApiRateLimit() *TokenBucketRateLimitCF {
+	if x != nil {
+		return x.GlobalApiRateLimit
+	}
+	return nil
+}
+
 type ConfigurationFile struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -461,12 +563,13 @@ type ConfigurationFile struct {
 	Gitlab  *GitLabCF  `protobuf:"bytes,2,opt,name=gitlab,proto3" json:"gitlab,omitempty"`
 	Agent   *AgentCF   `protobuf:"bytes,3,opt,name=agent,proto3" json:"agent,omitempty"`
 	Metrics *MetricsCF `protobuf:"bytes,4,opt,name=metrics,proto3" json:"metrics,omitempty"`
+	Gitaly  *GitalyCF  `protobuf:"bytes,5,opt,name=gitaly,proto3" json:"gitaly,omitempty"`
 }
 
 func (x *ConfigurationFile) Reset() {
 	*x = ConfigurationFile{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_kascfg_kascfg_proto_msgTypes[7]
+		mi := &file_pkg_kascfg_kascfg_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -479,7 +582,7 @@ func (x *ConfigurationFile) String() string {
 func (*ConfigurationFile) ProtoMessage() {}
 
 func (x *ConfigurationFile) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_kascfg_kascfg_proto_msgTypes[7]
+	mi := &file_pkg_kascfg_kascfg_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -492,7 +595,7 @@ func (x *ConfigurationFile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfigurationFile.ProtoReflect.Descriptor instead.
 func (*ConfigurationFile) Descriptor() ([]byte, []int) {
-	return file_pkg_kascfg_kascfg_proto_rawDescGZIP(), []int{7}
+	return file_pkg_kascfg_kascfg_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ConfigurationFile) GetListen() *ListenCF {
@@ -519,6 +622,13 @@ func (x *ConfigurationFile) GetAgent() *AgentCF {
 func (x *ConfigurationFile) GetMetrics() *MetricsCF {
 	if x != nil {
 		return x.Metrics
+	}
+	return nil
+}
+
+func (x *ConfigurationFile) GetGitaly() *GitalyCF {
+	if x != nil {
+		return x.Gitaly
 	}
 	return nil
 }
@@ -599,18 +709,34 @@ var file_pkg_kascfg_kascfg_proto_rawDesc = []byte{
 	0x0b, 0x32, 0x1a, 0x2e, 0x6b, 0x61, 0x73, 0x63, 0x66, 0x67, 0x2e, 0x50, 0x72, 0x6f, 0x6d, 0x65,
 	0x74, 0x68, 0x65, 0x75, 0x73, 0x4c, 0x69, 0x73, 0x74, 0x65, 0x6e, 0x43, 0x46, 0x52, 0x11, 0x70,
 	0x72, 0x6f, 0x6d, 0x65, 0x74, 0x68, 0x65, 0x75, 0x73, 0x5f, 0x6c, 0x69, 0x73, 0x74, 0x65, 0x6e,
-	0x22, 0xbb, 0x01, 0x0a, 0x11, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69,
-	0x6f, 0x6e, 0x46, 0x69, 0x6c, 0x65, 0x12, 0x28, 0x0a, 0x06, 0x6c, 0x69, 0x73, 0x74, 0x65, 0x6e,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x10, 0x2e, 0x6b, 0x61, 0x73, 0x63, 0x66, 0x67, 0x2e,
-	0x4c, 0x69, 0x73, 0x74, 0x65, 0x6e, 0x43, 0x46, 0x52, 0x06, 0x6c, 0x69, 0x73, 0x74, 0x65, 0x6e,
-	0x12, 0x28, 0x0a, 0x06, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b,
-	0x32, 0x10, 0x2e, 0x6b, 0x61, 0x73, 0x63, 0x66, 0x67, 0x2e, 0x47, 0x69, 0x74, 0x4c, 0x61, 0x62,
-	0x43, 0x46, 0x52, 0x06, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x12, 0x25, 0x0a, 0x05, 0x61, 0x67,
-	0x65, 0x6e, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0f, 0x2e, 0x6b, 0x61, 0x73, 0x63,
-	0x66, 0x67, 0x2e, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x43, 0x46, 0x52, 0x05, 0x61, 0x67, 0x65, 0x6e,
-	0x74, 0x12, 0x2b, 0x0a, 0x07, 0x6d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x18, 0x04, 0x20, 0x01,
-	0x28, 0x0b, 0x32, 0x11, 0x2e, 0x6b, 0x61, 0x73, 0x63, 0x66, 0x67, 0x2e, 0x4d, 0x65, 0x74, 0x72,
-	0x69, 0x63, 0x73, 0x43, 0x46, 0x52, 0x07, 0x6d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x42, 0x43,
+	0x22, 0x72, 0x0a, 0x16, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x42, 0x75, 0x63, 0x6b, 0x65, 0x74, 0x52,
+	0x61, 0x74, 0x65, 0x4c, 0x69, 0x6d, 0x69, 0x74, 0x43, 0x46, 0x12, 0x36, 0x0a, 0x16, 0x72, 0x65,
+	0x66, 0x69, 0x6c, 0x6c, 0x5f, 0x72, 0x61, 0x74, 0x65, 0x5f, 0x70, 0x65, 0x72, 0x5f, 0x73, 0x65,
+	0x63, 0x6f, 0x6e, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x01, 0x52, 0x16, 0x72, 0x65, 0x66, 0x69,
+	0x6c, 0x6c, 0x5f, 0x72, 0x61, 0x74, 0x65, 0x5f, 0x70, 0x65, 0x72, 0x5f, 0x73, 0x65, 0x63, 0x6f,
+	0x6e, 0x64, 0x12, 0x20, 0x0a, 0x0b, 0x62, 0x75, 0x63, 0x6b, 0x65, 0x74, 0x5f, 0x73, 0x69, 0x7a,
+	0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x0b, 0x62, 0x75, 0x63, 0x6b, 0x65, 0x74, 0x5f,
+	0x73, 0x69, 0x7a, 0x65, 0x22, 0x60, 0x0a, 0x08, 0x47, 0x69, 0x74, 0x61, 0x6c, 0x79, 0x43, 0x46,
+	0x12, 0x54, 0x0a, 0x15, 0x67, 0x6c, 0x6f, 0x62, 0x61, 0x6c, 0x5f, 0x61, 0x70, 0x69, 0x5f, 0x72,
+	0x61, 0x74, 0x65, 0x5f, 0x6c, 0x69, 0x6d, 0x69, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x1e, 0x2e, 0x6b, 0x61, 0x73, 0x63, 0x66, 0x67, 0x2e, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x42, 0x75,
+	0x63, 0x6b, 0x65, 0x74, 0x52, 0x61, 0x74, 0x65, 0x4c, 0x69, 0x6d, 0x69, 0x74, 0x43, 0x46, 0x52,
+	0x15, 0x67, 0x6c, 0x6f, 0x62, 0x61, 0x6c, 0x5f, 0x61, 0x70, 0x69, 0x5f, 0x72, 0x61, 0x74, 0x65,
+	0x5f, 0x6c, 0x69, 0x6d, 0x69, 0x74, 0x22, 0xe5, 0x01, 0x0a, 0x11, 0x43, 0x6f, 0x6e, 0x66, 0x69,
+	0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x46, 0x69, 0x6c, 0x65, 0x12, 0x28, 0x0a, 0x06,
+	0x6c, 0x69, 0x73, 0x74, 0x65, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x10, 0x2e, 0x6b,
+	0x61, 0x73, 0x63, 0x66, 0x67, 0x2e, 0x4c, 0x69, 0x73, 0x74, 0x65, 0x6e, 0x43, 0x46, 0x52, 0x06,
+	0x6c, 0x69, 0x73, 0x74, 0x65, 0x6e, 0x12, 0x28, 0x0a, 0x06, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x10, 0x2e, 0x6b, 0x61, 0x73, 0x63, 0x66, 0x67, 0x2e,
+	0x47, 0x69, 0x74, 0x4c, 0x61, 0x62, 0x43, 0x46, 0x52, 0x06, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62,
+	0x12, 0x25, 0x0a, 0x05, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x0f, 0x2e, 0x6b, 0x61, 0x73, 0x63, 0x66, 0x67, 0x2e, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x43, 0x46,
+	0x52, 0x05, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x12, 0x2b, 0x0a, 0x07, 0x6d, 0x65, 0x74, 0x72, 0x69,
+	0x63, 0x73, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x11, 0x2e, 0x6b, 0x61, 0x73, 0x63, 0x66,
+	0x67, 0x2e, 0x4d, 0x65, 0x74, 0x72, 0x69, 0x63, 0x73, 0x43, 0x46, 0x52, 0x07, 0x6d, 0x65, 0x74,
+	0x72, 0x69, 0x63, 0x73, 0x12, 0x28, 0x0a, 0x06, 0x67, 0x69, 0x74, 0x61, 0x6c, 0x79, 0x18, 0x05,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x10, 0x2e, 0x6b, 0x61, 0x73, 0x63, 0x66, 0x67, 0x2e, 0x47, 0x69,
+	0x74, 0x61, 0x6c, 0x79, 0x43, 0x46, 0x52, 0x06, 0x67, 0x69, 0x74, 0x61, 0x6c, 0x79, 0x42, 0x43,
 	0x5a, 0x41, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x67, 0x69, 0x74,
 	0x6c, 0x61, 0x62, 0x2d, 0x6f, 0x72, 0x67, 0x2f, 0x63, 0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x2d,
 	0x69, 0x6e, 0x74, 0x65, 0x67, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2f, 0x67, 0x69, 0x74, 0x6c,
@@ -630,38 +756,42 @@ func file_pkg_kascfg_kascfg_proto_rawDescGZIP() []byte {
 	return file_pkg_kascfg_kascfg_proto_rawDescData
 }
 
-var file_pkg_kascfg_kascfg_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_pkg_kascfg_kascfg_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_pkg_kascfg_kascfg_proto_goTypes = []interface{}{
-	(*ListenCF)(nil),             // 0: kascfg.ListenCF
-	(*PrometheusListenCF)(nil),   // 1: kascfg.PrometheusListenCF
-	(*GitLabCF)(nil),             // 2: kascfg.GitLabCF
-	(*GitopsCF)(nil),             // 3: kascfg.GitopsCF
-	(*AgentCF)(nil),              // 4: kascfg.AgentCF
-	(*AgentConfigurationCF)(nil), // 5: kascfg.AgentConfigurationCF
-	(*MetricsCF)(nil),            // 6: kascfg.MetricsCF
-	(*ConfigurationFile)(nil),    // 7: kascfg.ConfigurationFile
-	(*duration.Duration)(nil),    // 8: google.protobuf.Duration
+	(*ListenCF)(nil),               // 0: kascfg.ListenCF
+	(*PrometheusListenCF)(nil),     // 1: kascfg.PrometheusListenCF
+	(*GitLabCF)(nil),               // 2: kascfg.GitLabCF
+	(*GitopsCF)(nil),               // 3: kascfg.GitopsCF
+	(*AgentCF)(nil),                // 4: kascfg.AgentCF
+	(*AgentConfigurationCF)(nil),   // 5: kascfg.AgentConfigurationCF
+	(*MetricsCF)(nil),              // 6: kascfg.MetricsCF
+	(*TokenBucketRateLimitCF)(nil), // 7: kascfg.TokenBucketRateLimitCF
+	(*GitalyCF)(nil),               // 8: kascfg.GitalyCF
+	(*ConfigurationFile)(nil),      // 9: kascfg.ConfigurationFile
+	(*duration.Duration)(nil),      // 10: google.protobuf.Duration
 }
 var file_pkg_kascfg_kascfg_proto_depIdxs = []int32{
-	8,  // 0: kascfg.GitopsCF.poll_period:type_name -> google.protobuf.Duration
-	8,  // 1: kascfg.GitopsCF.project_info_cache_ttl:type_name -> google.protobuf.Duration
-	8,  // 2: kascfg.GitopsCF.project_info_cache_error_ttl:type_name -> google.protobuf.Duration
+	10, // 0: kascfg.GitopsCF.poll_period:type_name -> google.protobuf.Duration
+	10, // 1: kascfg.GitopsCF.project_info_cache_ttl:type_name -> google.protobuf.Duration
+	10, // 2: kascfg.GitopsCF.project_info_cache_error_ttl:type_name -> google.protobuf.Duration
 	5,  // 3: kascfg.AgentCF.configuration:type_name -> kascfg.AgentConfigurationCF
 	3,  // 4: kascfg.AgentCF.gitops:type_name -> kascfg.GitopsCF
-	8,  // 5: kascfg.AgentCF.info_cache_ttl:type_name -> google.protobuf.Duration
-	8,  // 6: kascfg.AgentCF.info_cache_error_ttl:type_name -> google.protobuf.Duration
-	8,  // 7: kascfg.AgentConfigurationCF.poll_period:type_name -> google.protobuf.Duration
-	8,  // 8: kascfg.MetricsCF.usage_reporting_period:type_name -> google.protobuf.Duration
+	10, // 5: kascfg.AgentCF.info_cache_ttl:type_name -> google.protobuf.Duration
+	10, // 6: kascfg.AgentCF.info_cache_error_ttl:type_name -> google.protobuf.Duration
+	10, // 7: kascfg.AgentConfigurationCF.poll_period:type_name -> google.protobuf.Duration
+	10, // 8: kascfg.MetricsCF.usage_reporting_period:type_name -> google.protobuf.Duration
 	1,  // 9: kascfg.MetricsCF.prometheus_listen:type_name -> kascfg.PrometheusListenCF
-	0,  // 10: kascfg.ConfigurationFile.listen:type_name -> kascfg.ListenCF
-	2,  // 11: kascfg.ConfigurationFile.gitlab:type_name -> kascfg.GitLabCF
-	4,  // 12: kascfg.ConfigurationFile.agent:type_name -> kascfg.AgentCF
-	6,  // 13: kascfg.ConfigurationFile.metrics:type_name -> kascfg.MetricsCF
-	14, // [14:14] is the sub-list for method output_type
-	14, // [14:14] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	7,  // 10: kascfg.GitalyCF.global_api_rate_limit:type_name -> kascfg.TokenBucketRateLimitCF
+	0,  // 11: kascfg.ConfigurationFile.listen:type_name -> kascfg.ListenCF
+	2,  // 12: kascfg.ConfigurationFile.gitlab:type_name -> kascfg.GitLabCF
+	4,  // 13: kascfg.ConfigurationFile.agent:type_name -> kascfg.AgentCF
+	6,  // 14: kascfg.ConfigurationFile.metrics:type_name -> kascfg.MetricsCF
+	8,  // 15: kascfg.ConfigurationFile.gitaly:type_name -> kascfg.GitalyCF
+	16, // [16:16] is the sub-list for method output_type
+	16, // [16:16] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_pkg_kascfg_kascfg_proto_init() }
@@ -755,6 +885,30 @@ func file_pkg_kascfg_kascfg_proto_init() {
 			}
 		}
 		file_pkg_kascfg_kascfg_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*TokenBucketRateLimitCF); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_pkg_kascfg_kascfg_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GitalyCF); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_pkg_kascfg_kascfg_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ConfigurationFile); i {
 			case 0:
 				return &v.state
@@ -773,7 +927,7 @@ func file_pkg_kascfg_kascfg_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_pkg_kascfg_kascfg_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

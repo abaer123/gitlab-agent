@@ -60,11 +60,14 @@ func (a *App) Run(ctx context.Context) error {
 }
 
 func (a *App) maybeLoadConfigurationFile() (*kascfg.ConfigurationFile, error) {
-	cfg := &kascfg.ConfigurationFile{}
 	if a.ConfigurationFile == "" {
-		return cfg, nil
+		return &kascfg.ConfigurationFile{}, nil
 	}
-	configYAML, err := ioutil.ReadFile(a.ConfigurationFile)
+	return LoadConfigurationFile(a.ConfigurationFile)
+}
+
+func LoadConfigurationFile(configFile string) (*kascfg.ConfigurationFile, error) {
+	configYAML, err := ioutil.ReadFile(configFile) // nolint: gosec
 	if err != nil {
 		return nil, fmt.Errorf("configuration file: %v", err)
 	}
@@ -72,6 +75,7 @@ func (a *App) maybeLoadConfigurationFile() (*kascfg.ConfigurationFile, error) {
 	if err != nil {
 		return nil, fmt.Errorf("YAMLToJSON: %v", err)
 	}
+	cfg := &kascfg.ConfigurationFile{}
 	err = protojson.Unmarshal(configJSON, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("protojson.Unmarshal: %v", err)

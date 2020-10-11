@@ -3785,8 +3785,8 @@ def go_repositories():
         name = "org_golang_x_time",
         build_file_proto_mode = "disable_global",
         importpath = "golang.org/x/time",
-        sum = "h1:/5xXl8Y5W96D+TtHSlonuFqGHIWVuyCkGJLwGh9JJFs=",
-        version = "v0.0.0-20191024005414-555d28b269f0",
+        sum = "h1:EHBhcS0mlXEAVwNyO2dLfjToGsyY4j24pTs2ScHnX7s=",
+        version = "v0.0.0-20200630173020-3af7569d3a1e",
     )
     go_repository(
         name = "org_golang_x_xerrors",

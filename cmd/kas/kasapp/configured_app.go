@@ -19,10 +19,12 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/kas"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/rpclimiter"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/wstunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"gitlab.com/gitlab-org/gitaly/client"
 	"gitlab.com/gitlab-org/labkit/log"
+	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/stats"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -50,6 +52,9 @@ const (
 	defaultPrometheusListenNetwork = "tcp"
 	defaultPrometheusListenAddress = "127.0.0.1:8151"
 	defaultPrometheusListenUrlPath = "/metrics"
+
+	defaultGitalyGlobalApiRefillRate float64 = 10.0 // type matches protobuf type from kascfg.RateLimitCF
+	defaultGitalyGlobalApiBucketSize int32   = 50   // type matches protobuf type from kascfg.RateLimitCF
 )
 
 type ConfiguredApp struct {
@@ -149,12 +154,21 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		}
 
 		ver := kasVersionString()
+		globalGitalyRpcLimiter := rate.NewLimiter(rate.Limit(cfg.Gitaly.GlobalApiRateLimit.RefillRatePerSecond), int(cfg.Gitaly.GlobalApiRateLimit.BucketSize))
 		gitalyClientPool := client.NewPool(
 			grpc.WithUserAgent(ver),
 			grpc.WithStatsHandler(csh),
 			// TODO construct independent interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
-			grpc.WithChainStreamInterceptor(grpc_prometheus.StreamClientInterceptor),
-			grpc.WithChainUnaryInterceptor(grpc_prometheus.UnaryClientInterceptor),
+			grpc.WithChainStreamInterceptor(
+				// This one should be the first one to limit asap
+				rpclimiter.StreamClientInterceptor(globalGitalyRpcLimiter),
+				grpc_prometheus.StreamClientInterceptor,
+			),
+			grpc.WithChainUnaryInterceptor(
+				// This one should be the first one to limit asap
+				rpclimiter.UnaryClientInterceptor(globalGitalyRpcLimiter),
+				grpc_prometheus.UnaryClientInterceptor,
+			),
 		)
 		defer gitalyClientPool.Close() // nolint: errcheck
 		gitLabClient := gitlab.NewClient(gitLabUrl, decodedAuthSecret, ver)
@@ -254,6 +268,15 @@ func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) error {
 	defaultString(&cfg.Metrics.PrometheusListen.Network, defaultPrometheusListenNetwork)
 	defaultString(&cfg.Metrics.PrometheusListen.Address, defaultPrometheusListenAddress)
 	defaultString(&cfg.Metrics.PrometheusListen.UrlPath, defaultPrometheusListenUrlPath)
+
+	if cfg.Gitaly == nil {
+		cfg.Gitaly = &kascfg.GitalyCF{}
+	}
+	if cfg.Gitaly.GlobalApiRateLimit == nil {
+		cfg.Gitaly.GlobalApiRateLimit = &kascfg.TokenBucketRateLimitCF{}
+	}
+	defaultFloat64(&cfg.Gitaly.GlobalApiRateLimit.RefillRatePerSecond, defaultGitalyGlobalApiRefillRate)
+	defaultInt32(&cfg.Gitaly.GlobalApiRateLimit.BucketSize, defaultGitalyGlobalApiBucketSize)
 	return nil
 }
 
@@ -265,6 +288,18 @@ func defaultDuration(d **duration.Duration, defaultValue time.Duration) {
 
 func defaultString(s *string, defaultValue string) {
 	if *s == "" {
+		*s = defaultValue
+	}
+}
+
+func defaultFloat64(s *float64, defaultValue float64) {
+	if *s == 0 {
+		*s = defaultValue
+	}
+}
+
+func defaultInt32(s *int32, defaultValue int32) {
+	if *s == 0 {
 		*s = defaultValue
 	}
 }
