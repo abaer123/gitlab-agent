@@ -26,6 +26,7 @@ import (
 	"gitlab.com/gitlab-org/labkit/log"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/stats"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -199,6 +200,10 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			// TODO construct independent interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 			grpc.ChainStreamInterceptor(grpc_prometheus.StreamServerInterceptor),
 			grpc.ChainUnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
+			grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+				MinTime:             20 * time.Second,
+				PermitWithoutStream: true,
+			}),
 		)
 		agentrpc.RegisterKasServer(grpcServer, srv)
 
