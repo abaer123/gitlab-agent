@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/kas"
@@ -198,8 +199,14 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		grpcServer := grpc.NewServer(
 			grpc.StatsHandler(ssh),
 			// TODO construct independent interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
-			grpc.ChainStreamInterceptor(grpc_prometheus.StreamServerInterceptor),
-			grpc.ChainUnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
+			grpc.ChainStreamInterceptor(
+				grpc_prometheus.StreamServerInterceptor, // This one should be the first one to measure all invocations
+				apiutil.StreamAgentMetaInterceptor(),    // This one should be the second one to ensure agent presents a token
+			),
+			grpc.ChainUnaryInterceptor(
+				grpc_prometheus.UnaryServerInterceptor, // This one should be the first one to measure all invocations
+				apiutil.UnaryAgentMetaInterceptor(),    // This one should be the second one to ensure agent presents a token
+			),
 			grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 				MinTime:             20 * time.Second,
 				PermitWithoutStream: true,

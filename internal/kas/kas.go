@@ -80,10 +80,7 @@ func (s *Server) Run(ctx context.Context) {
 
 func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream agentrpc.Kas_GetConfigurationServer) error {
 	ctx := stream.Context()
-	agentMeta, err := apiutil.AgentMetaFromContext(ctx)
-	if err != nil {
-		return err
-	}
+	agentMeta := apiutil.AgentMetaFromContext(ctx)
 	agentInfo, err := s.gitLabClient.GetAgentInfo(ctx, agentMeta)
 	if err != nil {
 		return fmt.Errorf("GetAgentInfo(): %v", err)
@@ -176,10 +173,7 @@ func (s *Server) fetchSingleFile(ctx context.Context, gInfo *api.GitalyInfo, rep
 
 func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeRequest, stream agentrpc.Kas_GetObjectsToSynchronizeServer) error {
 	ctx := stream.Context()
-	agentMeta, err := apiutil.AgentMetaFromContext(ctx)
-	if err != nil {
-		return err
-	}
+	agentMeta := apiutil.AgentMetaFromContext(ctx)
 	agentInfo, err := s.gitLabClient.GetAgentInfo(ctx, agentMeta)
 	if err != nil {
 		return fmt.Errorf("GetAgentInfo(): %v", err)

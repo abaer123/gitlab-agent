@@ -414,7 +414,10 @@ func incomingCtx(ctx context.Context, t *testing.T) context.Context {
 	creds := apiutil.NewTokenCredentials(token, false)
 	meta, err := creds.GetRequestMetadata(context.Background())
 	require.NoError(t, err)
-	return metadata.NewIncomingContext(ctx, metadata.New(meta))
+	ctx = metadata.NewIncomingContext(ctx, metadata.New(meta))
+	agentMeta, err := apiutil.AgentMetaFromRawContext(ctx)
+	require.NoError(t, err)
+	return apiutil.InjectAgentMeta(ctx, agentMeta)
 }
 
 func configToBytes(t *testing.T, configFile *agentcfg.ConfigurationFile) []byte {
