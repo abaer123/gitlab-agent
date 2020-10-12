@@ -76,6 +76,18 @@ graph TB
 
   **A**: To benefit from all the [good things gRPC provides or enables](https://grpc.io/faq/) and avoid any pitfalls of a hand-rolled client implementation. GitLab already uses gRPC to talk to Gitaly, it's an existing dependency.
 
+- **Q**: Why poll Git repositories from `kas` and not from `agentk`?
+
+  **A**: There are several reasons:
+
+  - Allows the GitLab instance operator to configure polling frequency and any other relevant parameters. Makes it harder for the user to misuse/abuse the system.
+
+  - Fewer knobs for the user to tweak means more straightforward configuration experience.
+
+  - Makes it easier to implement pub/sub / push-based notifications about changes to the repo to reduce polling frequency.
+
+  - It follows the "smart `kas`, dumb `agentk`" principle described above.
+
 - **Q**: Why use Gitaly directly to fetch data from repositories instead of the usual "front door" (HTTPS or SSH)?
 
   **A**: There are several reasons:
@@ -83,8 +95,6 @@ graph TB
   - Polling cost is higher for the "front door". For GitLab.com, HTTPS traffic access via the "front door" goes via CloudFlare, HAProxy, and [GitLab Workhorse](https://gitlab.com/gitlab-org/gitlab-workhorse/). For SSH traffic - CloudFlare and GitLab Shell. Only then a request reaches Gitaly. Using the "front door" would mean more traffic for the infrastructure to handle. More load means higher running cost because more hardware/VMs and bandwidth is needed.
 
   - Accessing Gitaly via gRPC is a better development experience vs invoking Git for repository access. It's essentially the difference between calling a function vs invoking a binary. Better development experience means faster iterations.
-
-  - Putting polling into `kas` follows the "smart `kas`, dumb `agentk`" principle described above.
 
 - **Q**: If there is no middlemen between `kas` and Gitaly, how do we prevent `kas` overloading Gitaly?
 
