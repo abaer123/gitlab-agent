@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
@@ -41,6 +42,7 @@ type ServerConfig struct {
 	GitopsPollPeriod             time.Duration
 	UsageReportingPeriod         time.Duration
 	Registerer                   prometheus.Registerer
+	Sentry                       *sentry.Hub
 }
 
 type Server struct {
@@ -53,6 +55,7 @@ type Server struct {
 	agentConfigurationPollPeriod time.Duration
 	gitopsPollPeriod             time.Duration
 	usageReportingPeriod         time.Duration
+	sentry                       *sentry.Hub
 }
 
 func NewServer(config ServerConfig) (*Server, func(), error) {
@@ -70,6 +73,7 @@ func NewServer(config ServerConfig) (*Server, func(), error) {
 		agentConfigurationPollPeriod: config.AgentConfigurationPollPeriod,
 		gitopsPollPeriod:             config.GitopsPollPeriod,
 		usageReportingPeriod:         config.UsageReportingPeriod,
+		sentry:                       config.Sentry,
 	}
 	return s, cleanup, nil
 }
@@ -260,6 +264,7 @@ func (s *Server) sendUsage(ctx context.Context) {
 		case <-ticker.C:
 			if err := s.sendUsageInternal(ctx); err != nil {
 				log.WithError(err).Error("Failed to send usage data")
+				s.sentry.CaptureException(err)
 			}
 		}
 	}
