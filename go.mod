@@ -14,14 +14,14 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.1-0.20200507082539-9abf3eb82b4a
 	github.com/piotrkowalczuk/promgrpc/v4 v4.0.2
 	github.com/prometheus/client_golang v1.7.1
-	github.com/sirupsen/logrus v1.6.0
+	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
 	gitlab.com/gitlab-org/gitaly v1.87.1-0.20200731181045-a6091637dcb4
 	gitlab.com/gitlab-org/labkit v0.0.0-20200908084045-45895e129029
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	golang.org/x/tools v0.0.0-20200823205832-c024452afbcd
-	google.golang.org/grpc v1.32.0
+	google.golang.org/grpc v1.33.0
 	google.golang.org/grpc/examples v0.0.0-20200828165940-d8ef479ab79a // indirect
 	google.golang.org/protobuf v1.25.0
 	k8s.io/api v0.18.8

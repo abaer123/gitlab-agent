@@ -7,19 +7,19 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 # Also update to the same version/commit in go.mod.
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "08c3cd71857d58af3cda759112437d9e63339ac9c6e0042add43f4d94caf632d",
+    sha256 = "b725e6497741d7fc2d55fcc29a276627d10e43fa5d0bb692692890ae30d98d00",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.24.2/rules_go-v0.24.2.tar.gz",
-        "https://github.com/bazelbuild/rules_go/releases/download/v0.24.2/rules_go-v0.24.2.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.24.3/rules_go-v0.24.3.tar.gz",
+        "https://github.com/bazelbuild/rules_go/releases/download/v0.24.3/rules_go-v0.24.3.tar.gz",
     ],
 )
 
 http_archive(
     name = "bazel_gazelle",
-    sha256 = "d4113967ab451dd4d2d767c3ca5f927fec4b30f3b2c6f8135a2033b9c05a5687",
+    sha256 = "b85f48fa105c4403326e9525ad2b2cc437babaa6e15a3fc0b1dbab0ab064bc7c",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.22.0/bazel-gazelle-v0.22.0.tar.gz",
-        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.22.0/bazel-gazelle-v0.22.0.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.22.2/bazel-gazelle-v0.22.2.tar.gz",
+        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.22.2/bazel-gazelle-v0.22.2.tar.gz",
     ],
 )
 
@@ -32,16 +32,16 @@ http_archive(
 
 http_archive(
     name = "com_github_bazelbuild_buildtools",
-    sha256 = "315dad13406928011b467ca7f2748a59ae817477f9129e1edaae75deb73e9b78",
-    strip_prefix = "buildtools-3.4.0",
-    urls = ["https://github.com/bazelbuild/buildtools/archive/3.4.0.tar.gz"],
+    sha256 = "a02ba93b96a8151b5d8d3466580f6c1f7e77212c4eb181cba53eb2cae7752a23",
+    strip_prefix = "buildtools-3.5.0",
+    urls = ["https://github.com/bazelbuild/buildtools/archive/3.5.0.tar.gz"],
 )
 
 http_archive(
     name = "com_github_atlassian_bazel_tools",
-    sha256 = "47f05775787fe8f7cde87cbf2eeb98df0b15b6c1969d7e651f4ee42bbd3ebb7a",
-    strip_prefix = "bazel-tools-dc5e715035b6b17f24f1d40a7eac08f8f2ac8a11",
-    urls = ["https://github.com/atlassian/bazel-tools/archive/dc5e715035b6b17f24f1d40a7eac08f8f2ac8a11.tar.gz"],
+    sha256 = "cdeb6f8454b6dabe084afbb82b160bad0444d288f708f90eeeeed9a895e5ed58",
+    strip_prefix = "bazel-tools-7fd8d2567c69670b280966cacae72c7c6f267fe7",
+    urls = ["https://github.com/atlassian/bazel-tools/archive/7fd8d2567c69670b280966cacae72c7c6f267fe7.tar.gz"],
 )
 
 http_archive(
@@ -55,9 +55,9 @@ http_archive(
 
 http_archive(
     name = "rules_proto_grpc",
-    sha256 = "5f0f2fc0199810c65a2de148a52ba0aff14d631d4e8202f41aff6a9d590a471b",
-    strip_prefix = "rules_proto_grpc-1.0.2",
-    urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/archive/1.0.2.tar.gz"],
+    sha256 = "d771584bbff98698e7cb3cb31c132ee206a972569f4dc8b65acbdd934d156b33",
+    strip_prefix = "rules_proto_grpc-2.0.0",
+    urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/archive/2.0.0.tar.gz"],
 )
 
 http_archive(

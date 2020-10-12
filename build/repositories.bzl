@@ -1468,8 +1468,8 @@ def go_repositories():
         name = "com_github_google_uuid",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/google/uuid",
-        sum = "h1:Gkbcsh/GbpXz7lPftLA3P6TYMwjCLYm83jiFQZF/3gY=",
-        version = "v1.1.1",
+        sum = "h1:EVhdT+1Kseyi1/pUmXKaFxYsDNy9RQYkMWRH68J/W7Y=",
+        version = "v1.1.2",
     )
     go_repository(
         name = "com_github_googleapis_gax_go_v2",
@@ -2728,8 +2728,8 @@ def go_repositories():
         name = "com_github_sirupsen_logrus",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/sirupsen/logrus",
-        sum = "h1:UBcNElsrwanuuMsnGSlYmtmgbb23qDR5dG+6X6Oo89I=",
-        version = "v1.6.0",
+        sum = "h1:ShrD1U9pZB12TX0cVy0DtePoCH97K8EtX+mg7ZARUtM=",
+        version = "v1.7.0",
     )
     go_repository(
         name = "com_github_smartystreets_assertions",
@@ -3673,8 +3673,8 @@ def go_repositories():
         name = "org_golang_google_grpc",
         build_file_proto_mode = "disable_global",
         importpath = "google.golang.org/grpc",
-        sum = "h1:zWTV+LMdc3kaiJMSTOFz2UgSBgx8RNQoTGiZu3fR9S0=",
-        version = "v1.32.0",
+        sum = "h1:IBKSUNL2uBS2DkJBncPP+TwT0sp9tgA8A75NjHt6umg=",
+        version = "v1.33.0",
     )
     go_repository(
         name = "org_golang_google_grpc_examples",
