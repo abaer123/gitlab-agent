@@ -193,7 +193,7 @@ func assertCommonRequestParams(t *testing.T, r *http.Request, correlationId stri
 }
 
 func assertJWTSignature(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
-	token, err := jwt.Parse(r.Header.Get(kasRequestHeader), func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(r.Header.Get(jwtRequestHeader), func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -209,7 +209,9 @@ func assertJWTSignature(t *testing.T, w http.ResponseWriter, r *http.Request) bo
 		return false
 	}
 	claims := token.Claims.(jwt.MapClaims)
-	assert.True(t, claims.VerifyIssuer(kasJWTIssuer, true))
+	assert.NoError(t, claims.Valid())
+	assert.True(t, claims.VerifyIssuer(jwtIssuer, true))
+	assert.True(t, claims.VerifyAudience(jwtGitLabAudience, true))
 	return true
 }
 
