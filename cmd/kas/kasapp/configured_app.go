@@ -90,13 +90,13 @@ func kasVersionString() string {
 }
 
 func (a *ConfiguredApp) startMetricsServer(st stager.Stager, gatherer prometheus.Gatherer) {
-	promCfg := a.Configuration.Metrics.PrometheusListen
-	if promCfg.Disabled {
+	obsCfg := a.Configuration.Observability
+	if obsCfg.Prometheus.Disabled {
 		return
 	}
 	stage := st.NextStage()
 	stage.Go(func(ctx context.Context) error {
-		lis, err := net.Listen(promCfg.Network, promCfg.Address)
+		lis, err := net.Listen(obsCfg.Listen.Network, obsCfg.Listen.Address)
 		if err != nil {
 			return err
 		}
@@ -105,13 +105,13 @@ func (a *ConfiguredApp) startMetricsServer(st stager.Stager, gatherer prometheus
 		log.WithFields(log.Fields{
 			"address":  lis.Addr().String(),
 			"network":  lis.Addr().Network(),
-			"url_path": promCfg.UrlPath,
+			"url_path": obsCfg.Prometheus.UrlPath,
 		}).Info("Listening for Prometheus connections")
 
 		metricSrv := &metric.Server{
 			Name:     kasVersionString(),
 			Listener: lis,
-			UrlPath:  promCfg.UrlPath,
+			UrlPath:  obsCfg.Prometheus.UrlPath,
 			Gatherer: gatherer,
 		}
 		return metricSrv.Run(ctx)
@@ -189,7 +189,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			GitLabClient:                 gitLabCachingClient,
 			AgentConfigurationPollPeriod: cfg.Agent.Configuration.PollPeriod.AsDuration(),
 			GitopsPollPeriod:             cfg.Agent.Gitops.PollPeriod.AsDuration(),
-			UsageReportingPeriod:         cfg.Metrics.UsageReportingPeriod.AsDuration(),
+			UsageReportingPeriod:         cfg.Observability.UsageReportingPeriod.AsDuration(),
 			Registerer:                   registerer,
 		})
 		if err != nil {
@@ -269,17 +269,19 @@ func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) error {
 	defaultDuration(&cfg.Agent.InfoCacheTtl, defaultAgentInfoCacheTTL)
 	defaultDuration(&cfg.Agent.InfoCacheErrorTtl, defaultAgentInfoCacheErrorTTL)
 
-	if cfg.Metrics == nil {
-		cfg.Metrics = &kascfg.MetricsCF{}
+	if cfg.Observability == nil {
+		cfg.Observability = &kascfg.ObservabilityCF{}
 	}
-	defaultDuration(&cfg.Metrics.UsageReportingPeriod, defaultUsageReportingPeriod)
-	if cfg.Metrics.PrometheusListen == nil {
-		cfg.Metrics.PrometheusListen = &kascfg.PrometheusListenCF{}
+	defaultDuration(&cfg.Observability.UsageReportingPeriod, defaultUsageReportingPeriod)
+	if cfg.Observability.Listen == nil {
+		cfg.Observability.Listen = &kascfg.ObservabilityListenCF{}
 	}
-
-	defaultString(&cfg.Metrics.PrometheusListen.Network, defaultPrometheusListenNetwork)
-	defaultString(&cfg.Metrics.PrometheusListen.Address, defaultPrometheusListenAddress)
-	defaultString(&cfg.Metrics.PrometheusListen.UrlPath, defaultPrometheusListenUrlPath)
+	defaultString(&cfg.Observability.Listen.Network, defaultPrometheusListenNetwork)
+	defaultString(&cfg.Observability.Listen.Address, defaultPrometheusListenAddress)
+	if cfg.Observability.Prometheus == nil {
+		cfg.Observability.Prometheus = &kascfg.PrometheusListenCF{}
+	}
+	defaultString(&cfg.Observability.Prometheus.UrlPath, defaultPrometheusListenUrlPath)
 
 	if cfg.Gitaly == nil {
 		cfg.Gitaly = &kascfg.GitalyCF{}

@@ -17,12 +17,13 @@ agent:
     project_info_cache_error_ttl: "60s"
   info_cache_ttl: "300s"
   info_cache_error_ttl: "60s"
-metrics:
+observability:
   usage_reporting_period: "60s"
-  prometheus_listen:
-    disabled: false
+  listen:
     network: tcp
     address: 127.0.0.1:8151
+  prometheus:
+    disabled: false
     url_path: /metrics
 gitaly:
   global_api_rate_limit:

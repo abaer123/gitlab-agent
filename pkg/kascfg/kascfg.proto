@@ -22,12 +22,15 @@ message ListenCF {
 
 message PrometheusListenCF {
     bool disabled = 1 [json_name = "disabled"];
-    // Network type to listen on. Supported values: tcp, tcp4, tcp6, unix.
-    string network = 2 [json_name = "network"];
-    // Address to listen on.
-    string address = 3 [json_name = "address"];
     // Expected URL path for requests.
-    string url_path = 4 [json_name = "url_path"];
+    string url_path = 2 [json_name = "url_path"];
+}
+
+message ObservabilityListenCF {
+    // Network type to listen on. Supported values: tcp, tcp4, tcp6, unix.
+    string network = 1 [json_name = "network"];
+    // Address to listen on.
+    string address = 2 [json_name = "address"];
 }
 
 message GitLabCF {
@@ -62,12 +65,18 @@ message AgentConfigurationCF {
     google.protobuf.Duration poll_period = 1 [json_name = "poll_period"];
 }
 
-message MetricsCF {
+message ObservabilityCF {
     // How often to send usage metrics to the main application. /api/v4/internal/kubernetes/usage_ping
     // Set to zero to disable.
     google.protobuf.Duration usage_reporting_period = 1 [json_name = "usage_reporting_period"];
-    // Listener configuration for Prometheus metrics endpoint.
-    PrometheusListenCF prometheus_listen = 2 [json_name = "prometheus_listen"];
+    // Listener configuration for HTTP endpoint that exposes Prometheus and pprof.
+    ObservabilityListenCF listen = 2 [json_name = "listen"];
+    PrometheusListenCF prometheus = 3 [json_name = "prometheus"];
+    // TODO pprof
+    // TODO Google profiler
+    // TODO Sentry
+    // TODO OpenTracing
+    // TODO Logging
 }
 
 // See https://pkg.go.dev/golang.org/x/time/rate#Limiter.
@@ -93,8 +102,8 @@ message ConfigurationFile {
     GitLabCF gitlab = 2 [json_name = "gitlab"];
     // Configuration related to the agent. Generally all configuration for user-facing features should be here.
     AgentCF agent = 3 [json_name = "agent"];
-    // Configuration related to the metrics, including usage metrics.
-    MetricsCF metrics = 4 [json_name = "metrics"];
+    // Configuration related to all things observability: metrics, tracing, monitoring, logging, usage metrics, profiling.
+    ObservabilityCF observability = 4 [json_name = "observability"];
     // Configuration related to interaction with Gitaly.
     GitalyCF gitaly = 5 [json_name = "gitaly"];
 }
