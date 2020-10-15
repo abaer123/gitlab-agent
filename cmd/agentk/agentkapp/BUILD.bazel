@@ -12,6 +12,7 @@ go_library(
         "//internal/api/apiutil",
         "//internal/tools/wstunnel",
         "@com_github_spf13_pflag//:pflag",
+        "@com_gitlab_gitlab_org_labkit//correlation/grpc",
         "@io_k8s_cli_runtime//pkg/genericclioptions",
         "@io_k8s_cli_runtime//pkg/resource",
         "@io_nhooyr_websocket//:websocket",

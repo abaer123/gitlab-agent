@@ -13,6 +13,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/wstunnel"
+	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -22,6 +23,7 @@ import (
 
 const (
 	defaultMaxMessageSize = 10 * 1024 * 1024
+	correlationClientName = "gitlab-agent"
 )
 
 type App struct {
@@ -58,12 +60,18 @@ func (a *App) kasConnection(ctx context.Context, token string) (*grpc.ClientConn
 	}
 	opts := []grpc.DialOption{
 		grpc.WithUserAgent(fmt.Sprintf("agentk/%s/%s", cmd.Version, cmd.Commit)),
-		// grpc.KeepaliveParams must be specified at least as large as what is allowed by the
+		// keepalive.ClientParameters must be specified at least as large as what is allowed by the
 		// server-side grpc.KeepaliveEnforcementPolicy
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                20 * time.Second,
 			PermitWithoutStream: true,
 		}),
+		grpc.WithChainStreamInterceptor(
+			grpccorrelation.StreamClientCorrelationInterceptor(grpccorrelation.WithClientName(correlationClientName)),
+		),
+		grpc.WithChainUnaryInterceptor(
+			grpccorrelation.UnaryClientCorrelationInterceptor(grpccorrelation.WithClientName(correlationClientName)),
+		),
 	}
 	var addressToDial string
 	// "grpcs" is the only scheme where encryption is done by gRPC.

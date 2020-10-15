@@ -9,16 +9,15 @@ import (
 	"io"
 	"io/ioutil"
 	"mime"
-	"net"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/tracing"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"gitlab.com/gitlab-org/labkit/correlation"
-	"gitlab.com/gitlab-org/labkit/tracing"
 )
 
 const (
@@ -88,33 +87,32 @@ type getAgentInfoResponse struct {
 	GitalyRepository gitalyRepository `json:"gitaly_repository"`
 }
 
-func NewClient(backend *url.URL, authSecret []byte, userAgent string) *Client {
-	dialer := &net.Dialer{
-		Timeout:   30 * time.Second,
-		KeepAlive: 30 * time.Second,
-	}
+func NewClient(backend *url.URL, authSecret []byte, opts ...ClientOption) *Client {
+	o := applyClientOptions(opts)
 	return &Client{
 		Backend: backend,
 		HTTPClient: &http.Client{
 			Transport: tracing.NewRoundTripper(
 				correlation.NewInstrumentedRoundTripper(
 					&http.Transport{
-						Proxy:                 http.ProxyFromEnvironment,
-						DialContext:           dialer.DialContext,
+						Proxy:                 o.proxy,
+						DialContext:           o.dialContext,
 						MaxIdleConns:          100,
 						IdleConnTimeout:       90 * time.Second,
 						TLSHandshakeTimeout:   10 * time.Second,
 						ResponseHeaderTimeout: 20 * time.Second,
 						ExpectContinueTimeout: 1 * time.Second,
 					},
+					correlation.WithClientName(o.clientName),
 				),
+				tracing.WithRoundTripperTracer(o.tracer),
 			),
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				return http.ErrUseLastResponse
 			},
 		},
 		AuthSecret: authSecret,
-		UserAgent:  userAgent,
+		UserAgent:  o.userAgent,
 	}
 }
 
@@ -192,7 +190,9 @@ func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta,
 		r.Header.Set("Authorization", "Bearer "+string(meta.Token))
 	}
 	r.Header.Set(kasRequestHeader, signedClaims)
-	r.Header.Set("User-Agent", c.UserAgent)
+	if c.UserAgent != "" {
+		r.Header.Set("User-Agent", c.UserAgent)
+	}
 	if response != nil {
 		r.Header.Set("Accept", "application/json")
 	}

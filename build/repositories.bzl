@@ -2154,8 +2154,8 @@ def go_repositories():
         name = "com_github_opentracing_opentracing_go",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/opentracing/opentracing-go",
-        sum = "h1:pWlfV3Bxv7k65HYwkikxat0+s3pV4bsqf19k25Ur8rU=",
-        version = "v1.1.0",
+        sum = "h1:uEJPy/1a5RIPAJ0Ov+OIO8OxWu77jEv+1B0VhjKrZUs=",
+        version = "v1.2.0",
     )
     go_repository(
         name = "com_github_otiai10_copy",
@@ -2744,13 +2744,6 @@ def go_repositories():
         importpath = "gitlab.com/gitlab-org/gitlab-shell",
         sum = "h1:gZwXV5WLPmJ3NDmH+zAZkgWLVhgKvamGAjLXU5W0GiU=",
         version = "v1.9.8-0.20200506213341-716e30c55e89",
-    )
-    go_repository(
-        name = "com_gitlab_gitlab_org_labkit",
-        build_file_proto_mode = "disable_global",
-        importpath = "gitlab.com/gitlab-org/labkit",
-        sum = "h1:L7b9YLsU3zBfTShAPl4fjhgFdfSvuo9tu4VobJdcKDs=",
-        version = "v0.0.0-20200908084045-45895e129029",
     )
     go_repository(
         name = "com_google_cloud_go",

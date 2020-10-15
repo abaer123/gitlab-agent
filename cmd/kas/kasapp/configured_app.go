@@ -11,6 +11,7 @@ import (
 
 	"github.com/ash2k/stager"
 	"github.com/golang/protobuf/ptypes/duration"
+	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
@@ -21,9 +22,11 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/kas"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/rpclimiter"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/tracing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/wstunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"gitlab.com/gitlab-org/gitaly/client"
+	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
 	"gitlab.com/gitlab-org/labkit/log"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
@@ -57,6 +60,9 @@ const (
 
 	defaultGitalyGlobalApiRefillRate float64 = 10.0 // type matches protobuf type from kascfg.RateLimitCF
 	defaultGitalyGlobalApiBucketSize int32   = 50   // type matches protobuf type from kascfg.RateLimitCF
+
+	correlationClientName = "gitlab-kas"
+	tracingServiceName    = "gitlab-kas"
 )
 
 type ConfiguredApp struct {
@@ -134,6 +140,13 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		if err != nil {
 			return fmt.Errorf("authentication secret: %v", err)
 		}
+		// Tracing
+		tracer, closer, err := tracing.ConstructTracer(tracingServiceName, cfg.Observability.Tracing.ConnectionString)
+		if err != nil {
+			return fmt.Errorf("tracing: %v", err)
+		}
+		defer closer.Close() // nolint: errcheck
+
 		// gRPC listener
 		lis, err := net.Listen(cfg.Listen.Network, cfg.Listen.Address)
 		if err != nil {
@@ -162,18 +175,26 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			grpc.WithStatsHandler(csh),
 			// TODO construct independent interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 			grpc.WithChainStreamInterceptor(
-				// This one should be the first one to limit asap
-				rpclimiter.StreamClientInterceptor(globalGitalyRpcLimiter),
 				grpc_prometheus.StreamClientInterceptor,
+				rpclimiter.StreamClientInterceptor(globalGitalyRpcLimiter),
+				grpccorrelation.StreamClientCorrelationInterceptor(grpccorrelation.WithClientName(correlationClientName)),
+				grpc_opentracing.StreamClientInterceptor(grpc_opentracing.WithTracer(tracer)),
 			),
 			grpc.WithChainUnaryInterceptor(
-				// This one should be the first one to limit asap
-				rpclimiter.UnaryClientInterceptor(globalGitalyRpcLimiter),
 				grpc_prometheus.UnaryClientInterceptor,
+				rpclimiter.UnaryClientInterceptor(globalGitalyRpcLimiter),
+				grpccorrelation.UnaryClientCorrelationInterceptor(grpccorrelation.WithClientName(correlationClientName)),
+				grpc_opentracing.UnaryClientInterceptor(grpc_opentracing.WithTracer(tracer)),
 			),
 		)
 		defer gitalyClientPool.Close() // nolint: errcheck
-		gitLabClient := gitlab.NewClient(gitLabUrl, decodedAuthSecret, ver)
+		gitLabClient := gitlab.NewClient(
+			gitLabUrl,
+			decodedAuthSecret,
+			gitlab.WithCorrelationClientName(correlationClientName),
+			gitlab.WithUserAgent(ver),
+			gitlab.WithTracer(tracer),
+		)
 		gitLabCachingClient := gitlab.NewCachingClient(gitLabClient, gitlab.CacheOptions{
 			CacheTTL:      cfg.Agent.InfoCacheTtl.AsDuration(),
 			CacheErrorTTL: cfg.Agent.InfoCacheErrorTtl.AsDuration(),
@@ -202,10 +223,14 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			grpc.ChainStreamInterceptor(
 				grpc_prometheus.StreamServerInterceptor, // This one should be the first one to measure all invocations
 				apiutil.StreamAgentMetaInterceptor(),    // This one should be the second one to ensure agent presents a token
+				grpccorrelation.StreamServerCorrelationInterceptor(),
+				grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 			),
 			grpc.ChainUnaryInterceptor(
 				grpc_prometheus.UnaryServerInterceptor, // This one should be the first one to measure all invocations
 				apiutil.UnaryAgentMetaInterceptor(),    // This one should be the second one to ensure agent presents a token
+				grpccorrelation.UnaryServerCorrelationInterceptor(),
+				grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 			),
 			grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 				MinTime:             20 * time.Second,
@@ -279,9 +304,13 @@ func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) error {
 	defaultString(&cfg.Observability.Listen.Network, defaultPrometheusListenNetwork)
 	defaultString(&cfg.Observability.Listen.Address, defaultPrometheusListenAddress)
 	if cfg.Observability.Prometheus == nil {
-		cfg.Observability.Prometheus = &kascfg.PrometheusListenCF{}
+		cfg.Observability.Prometheus = &kascfg.PrometheusCF{}
 	}
 	defaultString(&cfg.Observability.Prometheus.UrlPath, defaultPrometheusListenUrlPath)
+
+	if cfg.Observability.Tracing == nil {
+		cfg.Observability.Tracing = &kascfg.TracingCF{}
+	}
 
 	if cfg.Gitaly == nil {
 		cfg.Gitaly = &kascfg.GitalyCF{}
