@@ -18,12 +18,17 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
+	"gitlab.com/gitlab-org/labkit/correlation"
 )
 
 const (
-	kasUserAgent                 = "kas/v0.1-blabla/asdwd"
-	agentkToken   api.AgentToken = "123123"
-	authSecretKey                = "blablabla"
+	kasUserAgent                            = "kas/v0.1-blabla/asdwd"
+	kasCorrelationClientName                = "gitlab-kas-test"
+	agentkToken              api.AgentToken = "123123"
+	authSecretKey                           = "blablabla"
+
+	correlationIdHeader         = "X-Request-ID"
+	correlationClientNameHeader = "X-GitLab-Client-Name"
 )
 
 var (
@@ -31,6 +36,7 @@ var (
 )
 
 func TestGetAgentInfo(t *testing.T) {
+	ctx, correlationId := ctxWithCorrelation(t)
 	response := getAgentInfoResponse{
 		ProjectId: 234,
 		AgentId:   555,
@@ -51,7 +57,7 @@ func TestGetAgentInfo(t *testing.T) {
 	}
 	r := mux.NewRouter()
 	r.Methods(http.MethodGet).Path(agentInfoApiPath).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !assertRequestIsCorrect(t, w, r) {
+		if !assertGetRequestIsCorrect(t, w, r, correlationId) {
 			return
 		}
 
@@ -62,9 +68,7 @@ func TestGetAgentInfo(t *testing.T) {
 
 	u, err := url.Parse(s.URL)
 	require.NoError(t, err)
-	c := NewClient(u, []byte(authSecretKey), kasUserAgent)
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-	defer cancel()
+	c := NewClient(u, []byte(authSecretKey), clientOptionsForTest()...)
 	meta := &api.AgentMeta{
 		Token: agentkToken,
 	}
@@ -83,6 +87,7 @@ func TestGetProjectInfo(t *testing.T) {
 	const (
 		projectId = "bla/bla"
 	)
+	ctx, correlationId := ctxWithCorrelation(t)
 	response := projectInfoResponse{
 		ProjectId: 234,
 		GitalyInfo: gitalyInfo{
@@ -101,7 +106,7 @@ func TestGetProjectInfo(t *testing.T) {
 	}
 	r := mux.NewRouter()
 	r.Methods(http.MethodGet).Path(projectInfoApiPath).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !assertRequestIsCorrect(t, w, r) {
+		if !assertGetRequestIsCorrect(t, w, r, correlationId) {
 			return
 		}
 		assert.Equal(t, projectId, r.URL.Query().Get(projectIdQueryParam))
@@ -113,9 +118,7 @@ func TestGetProjectInfo(t *testing.T) {
 
 	u, err := url.Parse(s.URL)
 	require.NoError(t, err)
-	c := NewClient(u, []byte(authSecretKey), kasUserAgent)
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-	defer cancel()
+	c := NewClient(u, []byte(authSecretKey), clientOptionsForTest()...)
 	meta := &api.AgentMeta{
 		Token: agentkToken,
 	}
@@ -128,11 +131,13 @@ func TestGetProjectInfo(t *testing.T) {
 }
 
 func TestSendUsage(t *testing.T) {
+	ctx, correlationId := ctxWithCorrelation(t)
 	usageData := UsageData{
 		GitopsSyncCount: 123,
 	}
 	r := mux.NewRouter()
 	r.Methods(http.MethodPost).Path(usagePingApiPath).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertCommonRequestParams(t, r, correlationId)
 		if !assertJWTSignature(t, w, r) {
 			return
 		}
@@ -158,9 +163,7 @@ func TestSendUsage(t *testing.T) {
 
 	u, err := url.Parse(s.URL)
 	require.NoError(t, err)
-	c := NewClient(u, []byte(authSecretKey), kasUserAgent)
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-	defer cancel()
+	c := NewClient(u, []byte(authSecretKey), clientOptionsForTest()...)
 	err = c.SendUsage(ctx, &usageData)
 	require.NoError(t, err)
 }
@@ -175,15 +178,21 @@ func respondWithJSON(t *testing.T, w http.ResponseWriter, response interface{}) 
 	w.Write(data)
 }
 
-func assertRequestIsCorrect(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
+func assertGetRequestIsCorrect(t *testing.T, w http.ResponseWriter, r *http.Request, correlationId string) bool {
 	assert.Equal(t, "Bearer "+string(agentkToken), r.Header.Get("Authorization"))
 	assert.Empty(t, r.Header.Values("Content-Type"))
 	assert.Equal(t, "application/json", r.Header.Get("Accept"))
+	assertCommonRequestParams(t, r, correlationId)
 	return assertJWTSignature(t, w, r)
 }
 
-func assertJWTSignature(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
+func assertCommonRequestParams(t *testing.T, r *http.Request, correlationId string) {
 	assert.Equal(t, kasUserAgent, r.Header.Get("User-Agent"))
+	assert.Equal(t, correlationId, r.Header.Get(correlationIdHeader))
+	assert.Equal(t, kasCorrelationClientName, r.Header.Get(correlationClientNameHeader))
+}
+
+func assertJWTSignature(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
 	token, err := jwt.Parse(r.Header.Get(kasRequestHeader), func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -215,4 +224,20 @@ func assertGitalyInfo(t *testing.T, gitalyInfo gitalyInfo, apiGitalyInfo api.Git
 	assert.Equal(t, gitalyInfo.Address, apiGitalyInfo.Address)
 	assert.Equal(t, gitalyInfo.Token, apiGitalyInfo.Token)
 	assert.Equal(t, gitalyInfo.Features, apiGitalyInfo.Features)
+}
+
+func clientOptionsForTest() []ClientOption {
+	return []ClientOption{
+		WithUserAgent(kasUserAgent),
+		WithCorrelationClientName(kasCorrelationClientName),
+	}
+}
+
+func ctxWithCorrelation(t *testing.T) (context.Context, string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	t.Cleanup(cancel)
+	correlationId, err := correlation.RandomID()
+	require.NoError(t, err)
+	ctx = correlation.ContextWithCorrelation(ctx, correlationId)
+	return ctx, correlationId
 }

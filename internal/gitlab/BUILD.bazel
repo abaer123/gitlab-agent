@@ -5,16 +5,18 @@ go_library(
     srcs = [
         "cache.go",
         "client.go",
+        "client_options.go",
         "types.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",
+        "//internal/tools/tracing",
         "@com_github_dgrijalva_jwt_go//:jwt-go",
+        "@com_github_opentracing_opentracing_go//:opentracing-go",
         "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",
         "@com_gitlab_gitlab_org_labkit//correlation",
-        "@com_gitlab_gitlab_org_labkit//tracing",
     ],
 )
 
@@ -32,5 +34,6 @@ go_test(
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",
+        "@com_gitlab_gitlab_org_labkit//correlation",
     ],
 )

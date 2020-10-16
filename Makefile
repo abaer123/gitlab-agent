@@ -1,3 +1,9 @@
+# The same list of go build tags must be in three places:
+# - Makefile
+# - Workspace
+# - .bazelrc
+GO_BUILD_TAGS := tracer_static,tracer_static_jaeger
+
 # Install using your package manager, as recommended by
 # https://golangci-lint.run/usage/install/#local-installation
 .PHONY: lint
@@ -212,10 +218,13 @@ endif
 .PHONY: kas
 kas:
 	go build \
+		-tags "${GO_BUILD_TAGS}" \
 		-ldflags "-X gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.Version=$(GIT_TAG) -X gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.Commit=$(GIT_COMMIT)" \
 		-o "$(TARGET_DIRECTORY)" ./cmd/kas
 
 # https://github.com/golang/go/wiki/Modules#how-to-upgrade-and-downgrade-dependencies
 .PHONY: show-go-dependency-updates
 show-go-dependency-updates:
-	go list -u -f '{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}}: {{.Version}} -> {{.Update.Version}}{{end}}' -m all 2> /dev/null
+	go list \
+		-tags "${GO_BUILD_TAGS}" \
+		-u -f '{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}}: {{.Version}} -> {{.Update.Version}}{{end}}' -m all 2> /dev/null

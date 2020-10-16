@@ -25,6 +25,8 @@ observability:
   prometheus:
     disabled: false
     url_path: /metrics
+  tracing:
+    connection_string: ""
 gitaly:
   global_api_rate_limit:
     refill_rate_per_second: 10.0

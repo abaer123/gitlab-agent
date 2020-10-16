@@ -1,5 +1,11 @@
 build --workspace_status_command build/print_workspace_status.sh
 build --stamp
 
+# The same list of go build tags must be in three places:
+# - Makefile
+# - Workspace
+# - .bazelrc
+build --define gotags=tracer_static,tracer_static_jaeger
+
 test --test_output=errors
 test --test_verbose_timeout_warnings

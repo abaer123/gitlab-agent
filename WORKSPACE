@@ -84,6 +84,23 @@ go_repository(
     version = "v1.19.2",
 )
 
+# It's here to add build tags
+go_repository(
+    name = "com_gitlab_gitlab_org_labkit",
+    build_file_proto_mode = "disable_global",
+    # The same list of go build tags must be in three places:
+    # - Makefile
+    # - Workspace
+    # - .bazelrc
+    build_tags = [
+        "tracer_static",
+        "tracer_static_jaeger",
+    ],  # keep
+    importpath = "gitlab.com/gitlab-org/labkit",
+    sum = "h1:3xX/pl8dQjEtBZzHPCkex4Bwr7SGmVea/Zu4JdbZrKs=",
+    version = "v0.0.0-20201014124351-eb1fe6499318",
+)
+
 # Copied from rules_go to keep patches in place
 # https://github.com/bazelbuild/rules_go/blob/master/go/private/repositories.bzl
 http_archive(

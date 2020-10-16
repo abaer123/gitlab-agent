@@ -20,7 +20,7 @@ message ListenCF {
     bool websocket = 3 [json_name = "websocket"];
 }
 
-message PrometheusListenCF {
+message PrometheusCF {
     bool disabled = 1 [json_name = "disabled"];
     // Expected URL path for requests.
     string url_path = 2 [json_name = "url_path"];
@@ -31,6 +31,14 @@ message ObservabilityListenCF {
     string network = 1 [json_name = "network"];
     // Address to listen on.
     string address = 2 [json_name = "address"];
+}
+
+message TracingCF {
+    // Connection string to configure LabKit's tracing support. Examples:
+    // * opentracing://jaeger
+    // * opentracing://datadog
+    // * opentracing://lightstep?access_key=12345
+    string connection_string = 1 [json_name = "connection_string"];
 }
 
 message GitLabCF {
@@ -71,7 +79,8 @@ message ObservabilityCF {
     google.protobuf.Duration usage_reporting_period = 1 [json_name = "usage_reporting_period"];
     // Listener configuration for HTTP endpoint that exposes Prometheus and pprof.
     ObservabilityListenCF listen = 2 [json_name = "listen"];
-    PrometheusListenCF prometheus = 3 [json_name = "prometheus"];
+    PrometheusCF prometheus = 3 [json_name = "prometheus"];
+    TracingCF tracing = 4 [json_name = "tracing"];
     // TODO pprof
     // TODO Google profiler
     // TODO Sentry

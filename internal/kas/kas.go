@@ -79,13 +79,13 @@ func (s *Server) Run(ctx context.Context) {
 }
 
 func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream agentrpc.Kas_GetConfigurationServer) error {
-	ctx := stream.Context()
+	ctx := joinDone(stream.Context(), s.context)
 	agentMeta := apiutil.AgentMetaFromContext(ctx)
 	agentInfo, err := s.gitLabClient.GetAgentInfo(ctx, agentMeta)
 	if err != nil {
 		return fmt.Errorf("GetAgentInfo(): %v", err)
 	}
-	err = wait.PollImmediateUntil(s.agentConfigurationPollPeriod, s.sendConfiguration(agentInfo, req.CommitId, stream), joinDone(s.context, ctx).Done())
+	err = wait.PollImmediateUntil(s.agentConfigurationPollPeriod, s.sendConfiguration(agentInfo, req.CommitId, stream), ctx.Done())
 	if err == wait.ErrWaitTimeout {
 		return nil // all good, ctx is done
 	}
@@ -172,13 +172,13 @@ func (s *Server) fetchSingleFile(ctx context.Context, gInfo *api.GitalyInfo, rep
 }
 
 func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeRequest, stream agentrpc.Kas_GetObjectsToSynchronizeServer) error {
-	ctx := stream.Context()
+	ctx := joinDone(stream.Context(), s.context)
 	agentMeta := apiutil.AgentMetaFromContext(ctx)
 	agentInfo, err := s.gitLabClient.GetAgentInfo(ctx, agentMeta)
 	if err != nil {
 		return fmt.Errorf("GetAgentInfo(): %v", err)
 	}
-	err = wait.PollImmediateUntil(s.gitopsPollPeriod, s.sendObjectsToSynchronize(agentInfo, stream, req.ProjectId, req.CommitId), joinDone(s.context, ctx).Done())
+	err = wait.PollImmediateUntil(s.gitopsPollPeriod, s.sendObjectsToSynchronize(agentInfo, stream, req.ProjectId, req.CommitId), ctx.Done())
 	if err == wait.ErrWaitTimeout {
 		return nil // all good, ctx is done
 	}
@@ -323,21 +323,19 @@ func extractAgentConfiguration(file *agentcfg.ConfigurationFile) *agentcfg.Agent
 	}
 }
 
-// joinDone returns a context that is cancelled when c1 or c2 signal done.
-// The returned context does not use c1 or c2 as a parent context to avoid inheriting any attached values,
-// as this function is only meant to be used to join the done signal, not anything else. Also, it would be not
-// clear which of the two to use.
+// joinDone returns a context that is cancelled when main or aux signal done.
+// The returned context uses main as the parent context to inherit attached values.
 //
 // This helper is used here to propagate done signal from both gRPC stream's context (stream is closed/broken) and
 // main program's context (program needs to stop). Polling should stop when one of this conditions happens so using
 // only one of these two contexts is not good enough.
-func joinDone(c1, c2 context.Context) context.Context {
-	ctx, cancel := context.WithCancel(context.Background())
+func joinDone(main, aux context.Context) context.Context {
+	ctx, cancel := context.WithCancel(main)
 	go func() {
 		defer cancel()
 		select {
-		case <-c1.Done():
-		case <-c2.Done():
+		case <-main.Done():
+		case <-aux.Done():
 		}
 	}()
 	return ctx
