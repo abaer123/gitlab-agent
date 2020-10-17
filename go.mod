@@ -12,13 +12,17 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.1-0.20200507082539-9abf3eb82b4a
+	// Pick up https://github.com/moby/term/commit/3e73b07ecbf5dc7b59fcecc783c4988c6b5aa767 which fixes the breakage
+	// caused by https://github.com/golang/sys/commit/6fcdbc0bbc04
+	// This can be removed once Kubernetes bumps the dependency.
+	github.com/moby/term v0.0.0-20200915141129-7f0af18e79f2 // indirect
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/piotrkowalczuk/promgrpc/v4 v4.0.2
 	github.com/prometheus/client_golang v1.7.1
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
-	gitlab.com/gitlab-org/gitaly v1.87.1-0.20200731181045-a6091637dcb4
+	gitlab.com/gitlab-org/gitaly v1.87.1-0.20201016033652-3bdd23173595
 	gitlab.com/gitlab-org/labkit v0.0.0-20201014124351-eb1fe6499318
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	golang.org/x/tools v0.0.0-20200823205832-c024452afbcd

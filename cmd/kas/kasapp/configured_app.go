@@ -13,6 +13,7 @@ import (
 	"github.com/golang/protobuf/ptypes/duration"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
@@ -58,8 +59,10 @@ const (
 	defaultPrometheusListenAddress = "127.0.0.1:8151"
 	defaultPrometheusListenUrlPath = "/metrics"
 
-	defaultGitalyGlobalApiRefillRate float64 = 10.0 // type matches protobuf type from kascfg.RateLimitCF
-	defaultGitalyGlobalApiBucketSize int32   = 50   // type matches protobuf type from kascfg.RateLimitCF
+	defaultGitalyGlobalApiRefillRate    float64 = 10.0 // type matches protobuf type from kascfg.TokenBucketRateLimitCF
+	defaultGitalyGlobalApiBucketSize    int32   = 50   // type matches protobuf type from kascfg.TokenBucketRateLimitCF
+	defaultGitalyPerServerApiRate       float64 = 5.0  // type matches protobuf type from kascfg.TokenBucketRateLimitCF
+	defaultGitalyPerServerApiBucketSize int32   = 10   // type matches protobuf type from kascfg.TokenBucketRateLimitCF
 
 	correlationClientName = "gitlab-kas"
 	tracingServiceName    = "gitlab-kas"
@@ -91,7 +94,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 	return st.Run(ctx)
 }
 
-func kasVersionString() string {
+func kasUserAgent() string {
 	return fmt.Sprintf("gitlab-kas/%s/%s", cmd.Version, cmd.Commit)
 }
 
@@ -115,7 +118,7 @@ func (a *ConfiguredApp) startMetricsServer(st stager.Stager, gatherer prometheus
 		}).Info("Listening for Prometheus connections")
 
 		metricSrv := &metric.Server{
-			Name:     kasVersionString(),
+			Name:     kasUserAgent(),
 			Listener: lis,
 			UrlPath:  obsCfg.Prometheus.UrlPath,
 			Gatherer: gatherer,
@@ -168,31 +171,14 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			lis = wsWrapper.Wrap(lis)
 		}
 
-		ver := kasVersionString()
-		globalGitalyRpcLimiter := rate.NewLimiter(rate.Limit(cfg.Gitaly.GlobalApiRateLimit.RefillRatePerSecond), int(cfg.Gitaly.GlobalApiRateLimit.BucketSize))
-		gitalyClientPool := client.NewPool(
-			grpc.WithUserAgent(ver),
-			grpc.WithStatsHandler(csh),
-			// TODO construct independent interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
-			grpc.WithChainStreamInterceptor(
-				grpc_prometheus.StreamClientInterceptor,
-				rpclimiter.StreamClientInterceptor(globalGitalyRpcLimiter),
-				grpccorrelation.StreamClientCorrelationInterceptor(grpccorrelation.WithClientName(correlationClientName)),
-				grpc_opentracing.StreamClientInterceptor(grpc_opentracing.WithTracer(tracer)),
-			),
-			grpc.WithChainUnaryInterceptor(
-				grpc_prometheus.UnaryClientInterceptor,
-				rpclimiter.UnaryClientInterceptor(globalGitalyRpcLimiter),
-				grpccorrelation.UnaryClientCorrelationInterceptor(grpccorrelation.WithClientName(correlationClientName)),
-				grpc_opentracing.UnaryClientInterceptor(grpc_opentracing.WithTracer(tracer)),
-			),
-		)
+		userAgent := kasUserAgent()
+		gitalyClientPool := constructGitalyPool(cfg.Gitaly, csh, tracer, userAgent)
 		defer gitalyClientPool.Close() // nolint: errcheck
 		gitLabClient := gitlab.NewClient(
 			gitLabUrl,
 			decodedAuthSecret,
 			gitlab.WithCorrelationClientName(correlationClientName),
-			gitlab.WithUserAgent(ver),
+			gitlab.WithUserAgent(userAgent),
 			gitlab.WithTracer(tracer),
 		)
 		gitLabCachingClient := gitlab.NewCachingClient(gitLabClient, gitlab.CacheOptions{
@@ -320,7 +306,50 @@ func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) error {
 	}
 	defaultFloat64(&cfg.Gitaly.GlobalApiRateLimit.RefillRatePerSecond, defaultGitalyGlobalApiRefillRate)
 	defaultInt32(&cfg.Gitaly.GlobalApiRateLimit.BucketSize, defaultGitalyGlobalApiBucketSize)
+	if cfg.Gitaly.PerServerApiRateLimit == nil {
+		cfg.Gitaly.PerServerApiRateLimit = &kascfg.TokenBucketRateLimitCF{}
+	}
+	defaultFloat64(&cfg.Gitaly.PerServerApiRateLimit.RefillRatePerSecond, defaultGitalyPerServerApiRate)
+	defaultInt32(&cfg.Gitaly.PerServerApiRateLimit.BucketSize, defaultGitalyPerServerApiBucketSize)
 	return nil
+}
+
+func constructGitalyPool(g *kascfg.GitalyCF, csh stats.Handler, tracer opentracing.Tracer, userAgent string) *client.Pool {
+	globalGitalyRpcLimiter := rate.NewLimiter(
+		rate.Limit(g.GlobalApiRateLimit.RefillRatePerSecond),
+		int(g.GlobalApiRateLimit.BucketSize),
+	)
+	return client.NewPoolWithOptions(
+		client.WithDialOptions(
+			grpc.WithUserAgent(userAgent),
+			grpc.WithStatsHandler(csh),
+			// Don't put interceptors here as order is important. Put them below.
+		),
+		client.WithDialer(func(ctx context.Context, address string, dialOptions []grpc.DialOption) (*grpc.ClientConn, error) {
+			perServerGitalyRpcLimiter := rate.NewLimiter(
+				rate.Limit(g.PerServerApiRateLimit.RefillRatePerSecond),
+				int(g.PerServerApiRateLimit.BucketSize))
+			// TODO construct independent interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
+			opts := []grpc.DialOption{
+				grpc.WithChainStreamInterceptor(
+					grpc_prometheus.StreamClientInterceptor,
+					grpccorrelation.StreamClientCorrelationInterceptor(grpccorrelation.WithClientName(correlationClientName)),
+					grpc_opentracing.StreamClientInterceptor(grpc_opentracing.WithTracer(tracer)),
+					rpclimiter.StreamClientInterceptor(globalGitalyRpcLimiter),
+					rpclimiter.StreamClientInterceptor(perServerGitalyRpcLimiter),
+				),
+				grpc.WithChainUnaryInterceptor(
+					grpc_prometheus.UnaryClientInterceptor,
+					grpccorrelation.UnaryClientCorrelationInterceptor(grpccorrelation.WithClientName(correlationClientName)),
+					grpc_opentracing.UnaryClientInterceptor(grpc_opentracing.WithTracer(tracer)),
+					rpclimiter.UnaryClientInterceptor(globalGitalyRpcLimiter),
+					rpclimiter.UnaryClientInterceptor(perServerGitalyRpcLimiter),
+				),
+			}
+			opts = append(opts, dialOptions...)
+			return client.DialContext(ctx, address, opts)
+		}),
+	)
 }
 
 func defaultDuration(d **duration.Duration, defaultValue time.Duration) {
