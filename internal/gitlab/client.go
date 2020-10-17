@@ -22,8 +22,11 @@ import (
 
 const (
 	// This header carries the JWT token for gitlab-rails
-	kasRequestHeader = "Gitlab-Kas-Api-Request"
-	kasJWTIssuer     = "gitlab-kas"
+	jwtRequestHeader  = "Gitlab-Kas-Api-Request"
+	jwtValidFor       = 5 * time.Second
+	jwtNotBefore      = 5 * time.Second
+	jwtIssuer         = "gitlab-kas"
+	jwtGitLabAudience = "gitlab"
 
 	projectIdQueryParam = "id"
 
@@ -180,7 +183,15 @@ func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta,
 	if err != nil {
 		return fmt.Errorf("NewRequestWithContext: %v", err)
 	}
-	signedClaims, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{Issuer: "gitlab-kas"}).
+	now := time.Now()
+	claims := jwt.StandardClaims{
+		Audience:  jwtGitLabAudience,
+		ExpiresAt: now.Add(jwtValidFor).Unix(),
+		IssuedAt:  now.Unix(),
+		Issuer:    jwtIssuer,
+		NotBefore: now.Add(-jwtNotBefore).Unix(),
+	}
+	signedClaims, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).
 		SignedString(c.AuthSecret)
 	if err != nil {
 		return fmt.Errorf("sign JWT: %v", err)
@@ -189,7 +200,7 @@ func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta,
 	if meta != nil {
 		r.Header.Set("Authorization", "Bearer "+string(meta.Token))
 	}
-	r.Header.Set(kasRequestHeader, signedClaims)
+	r.Header.Set(jwtRequestHeader, signedClaims)
 	if c.UserAgent != "" {
 		r.Header.Set("User-Agent", c.UserAgent)
 	}
