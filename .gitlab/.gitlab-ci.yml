@@ -139,7 +139,7 @@ container_scanning_kas:
   image: $SECURE_ANALYZERS_PREFIX/klar:$CS_MAJOR_VERSION
   variables:
     CI_APPLICATION_REPOSITORY: gitlab-org/cluster-integration/gitlab-agent/kas
-    CI_APPLICATION_TAG: master
+    CI_APPLICATION_TAG: latest
     # By default, use the latest clair vulnerabilities database, however, allow it to be overridden here with a specific image
     # to enable container scanning to run offline, or to provide a consistent list of vulnerabilities for integration testing purposes
     CLAIR_DB_IMAGE_TAG: "latest"
@@ -171,7 +171,7 @@ container_scanning_agentk:
   image: $SECURE_ANALYZERS_PREFIX/klar:$CS_MAJOR_VERSION
   variables:
     CI_APPLICATION_REPOSITORY: gitlab-org/cluster-integration/gitlab-agent/agentk
-    CI_APPLICATION_TAG: master
+    CI_APPLICATION_TAG: latest
     # By default, use the latest clair vulnerabilities database, however, allow it to be overridden here with a specific image
     # to enable container scanning to run offline, or to provide a consistent list of vulnerabilities for integration testing purposes
     CLAIR_DB_IMAGE_TAG: "latest"
