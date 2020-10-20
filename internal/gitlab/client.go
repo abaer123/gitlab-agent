@@ -13,7 +13,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go/v4"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/tracing"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
@@ -185,11 +185,11 @@ func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta,
 	}
 	now := time.Now()
 	claims := jwt.StandardClaims{
-		Audience:  jwtGitLabAudience,
-		ExpiresAt: now.Add(jwtValidFor).Unix(),
-		IssuedAt:  now.Unix(),
+		Audience:  jwt.ClaimStrings{jwtGitLabAudience},
+		ExpiresAt: jwt.At(now.Add(jwtValidFor)),
+		IssuedAt:  jwt.At(now),
 		Issuer:    jwtIssuer,
-		NotBefore: now.Add(-jwtNotBefore).Unix(),
+		NotBefore: jwt.At(now.Add(-jwtNotBefore)),
 	}
 	signedClaims, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).
 		SignedString(c.AuthSecret)

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go/v4"
 	"github.com/google/go-cmp/cmp"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -193,25 +193,17 @@ func assertCommonRequestParams(t *testing.T, r *http.Request, correlationId stri
 }
 
 func assertJWTSignature(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
-	token, err := jwt.Parse(r.Header.Get(jwtRequestHeader), func(token *jwt.Token) (interface{}, error) {
+	_, err := jwt.Parse(r.Header.Get(jwtRequestHeader), func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(authSecretKey), nil
-	})
+	}, jwt.WithAudience(jwtGitLabAudience), jwt.WithIssuer(jwtIssuer))
 	if !assert.NoError(t, err) {
-		http.Error(w, "invalid token", http.StatusBadRequest)
+		http.Error(w, "invalid token", http.StatusUnauthorized)
 		return false
 	}
 
-	if !assert.IsType(t, jwt.MapClaims(nil), token.Claims) {
-		http.Error(w, "invalid token claims type", http.StatusBadRequest)
-		return false
-	}
-	claims := token.Claims.(jwt.MapClaims)
-	assert.NoError(t, claims.Valid())
-	assert.True(t, claims.VerifyIssuer(jwtIssuer, true))
-	assert.True(t, claims.VerifyAudience(jwtGitLabAudience, true))
 	return true
 }
 
