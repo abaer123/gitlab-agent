@@ -618,6 +618,13 @@ def go_repositories():
         version = "v3.2.0+incompatible",
     )
     go_repository(
+        name = "com_github_dgrijalva_jwt_go_v4",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/dgrijalva/jwt-go/v4",
+        sum = "h1:BXgXhYJInnV2k1BbHUI4tRoAYEDQevlS1e0ifEzAMrU=",
+        version = "v4.0.0-preview1.0.20200107205605-c66185887605",
+    )
+    go_repository(
         name = "com_github_dgryski_go_farm",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/dgryski/go-farm",
