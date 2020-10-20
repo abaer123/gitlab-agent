@@ -1,6 +1,11 @@
 # https://docs.gitlab.com/ee/ci/yaml/README.html#workflowrules-templates
 include:
-  - template: 'Workflows/MergeRequest-Pipelines.gitlab-ci.yml'
+  - template: Workflows/MergeRequest-Pipelines.gitlab-ci.yml
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Dependency-Scanning.gitlab-ci.yml
+  - template: Container-Scanning.gitlab-ci.yml
+  - template: Secret-Detection.gitlab-ci.yml
+  - template: Security/License-Scanning.gitlab-ci.yml
 
 default:
   tags:
@@ -113,3 +118,14 @@ code_navigation:
   artifacts:
     reports:
       lsif: dump.lsif
+
+# You can override the included template(s) by including variable overrides
+# See https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
+# Note that environment variables can be set in several places
+# See https://docs.gitlab.com/ee/ci/variables/#priority-of-environment-variables
+sast:
+  variables:
+    # We already run gosec as part of the lint job, no point in running it again here.
+    SAST_DEFAULT_ANALYZERS: kubesec
+    SCAN_KUBERNETES_MANIFESTS: "true"
+  stage: test
