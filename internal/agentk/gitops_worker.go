@@ -9,6 +9,7 @@ import (
 	"github.com/ash2k/stager"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -37,7 +38,7 @@ func (d *gitopsWorker) Run(ctx context.Context) {
 		var err error
 		stopEngine, err = eng.Run()
 		if err != nil {
-			d.log.WithError(err).Warn("engine.Run() failed")
+			d.log.Warn("engine.Run() failed", zap.Error(err))
 			return false, nil // nil error to keep polling
 		}
 		return true, nil
@@ -71,7 +72,7 @@ func (d *gitopsWorker) getObjectsToSynchronize(s *synchronizer) func(context.Con
 		}
 		res, err := d.kasClient.GetObjectsToSynchronize(ctx, req)
 		if err != nil {
-			d.log.WithError(err).Warn("GetObjectsToSynchronize failed")
+			d.log.Warn("GetObjectsToSynchronize failed", zap.Error(err))
 			return
 		}
 		for {
@@ -82,7 +83,7 @@ func (d *gitopsWorker) getObjectsToSynchronize(s *synchronizer) func(context.Con
 				case status.Code(err) == codes.DeadlineExceeded:
 				case status.Code(err) == codes.Canceled:
 				default:
-					d.log.WithError(err).Warn("GetObjectsToSynchronize.Recv failed")
+					d.log.Warn("GetObjectsToSynchronize.Recv failed", zap.Error(err))
 				}
 				return
 			}

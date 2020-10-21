@@ -25,6 +25,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
+	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	corev1 "k8s.io/api/core/v1"
@@ -301,6 +302,7 @@ func TestSendUsage(t *testing.T) {
 
 	s, cleanup, err := NewServer(ServerConfig{
 		Context:                      ctx,
+		Log:                          zaptest.NewLogger(t),
 		GitalyPool:                   gitalyPool,
 		GitLabClient:                 gitlabClient,
 		AgentConfigurationPollPeriod: 10 * time.Minute,
@@ -337,6 +339,7 @@ func TestSendUsageRetry(t *testing.T) {
 
 	s, cleanup, err := NewServer(ServerConfig{
 		Context:                      ctx,
+		Log:                          zaptest.NewLogger(t),
 		GitalyPool:                   gitalyPool,
 		GitLabClient:                 gitlabClient,
 		AgentConfigurationPollPeriod: 10 * time.Minute,
@@ -493,6 +496,7 @@ func setupKas(ctx context.Context, t *testing.T) (*Server, *api.AgentInfo, *gomo
 
 	k, cleanup, err := NewServer(ServerConfig{
 		Context:                      ctx,
+		Log:                          zaptest.NewLogger(t),
 		GitalyPool:                   gitalyPool,
 		GitLabClient:                 gitlabClient,
 		AgentConfigurationPollPeriod: 10 * time.Minute,

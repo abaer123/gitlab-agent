@@ -6,8 +6,7 @@ import (
 
 	"github.com/argoproj/gitops-engine/pkg/cache"
 	"github.com/argoproj/gitops-engine/pkg/engine"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
-	"gitlab.com/gitlab-org/labkit/log"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -33,7 +32,7 @@ func (s *syncWorker) run(jobs <-chan syncJob) {
 	for job := range jobs {
 		err := s.synchronize(job)
 		if err != nil {
-			s.log.WithError(err).Warn("Synchronization failed")
+			s.log.Warn("Synchronization failed", zap.Error(err))
 		}
 	}
 }
@@ -45,10 +44,7 @@ func (s *syncWorker) synchronize(job syncJob) error {
 		return fmt.Errorf("engine.Sync failed: %v", err)
 	}
 	for _, res := range result {
-		s.log.WithFields(log.Fields{
-			api.ResourceKey: res.ResourceKey.String(),
-			api.SyncResult:  res.Message,
-		}).Info("Synced")
+		s.log.Info("Synced", engineResourceKey(res.ResourceKey), engineSyncResult(res.Message))
 	}
 	return nil
 }

@@ -7,11 +7,13 @@ import (
 	"time"
 
 	redigo "github.com/gomodule/redigo/redis"
-	"gitlab.com/gitlab-org/labkit/log"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
+	"go.uber.org/zap"
 )
 
 // TokenLimiter is a redis-based rate limiter implementing the algorithm in https://redislabs.com/redis-best-practices/basic-rate-limiting/
 type TokenLimiter struct {
+	log            *zap.Logger
 	redisPool      Pool
 	keyPrefix      string
 	limitPerMinute uint64
@@ -19,8 +21,9 @@ type TokenLimiter struct {
 }
 
 // NewTokenLimiter returns a new TokenLimiter
-func NewTokenLimiter(redisPool Pool, keyPrefix string, limitPerMinute uint64, getToken func(ctx context.Context) string) *TokenLimiter {
+func NewTokenLimiter(log *zap.Logger, redisPool Pool, keyPrefix string, limitPerMinute uint64, getToken func(ctx context.Context) string) *TokenLimiter {
 	return &TokenLimiter{
+		log:            log,
 		redisPool:      redisPool,
 		keyPrefix:      keyPrefix,
 		limitPerMinute: limitPerMinute,
@@ -34,7 +37,7 @@ func (l *TokenLimiter) Allow(ctx context.Context) bool {
 	conn, err := l.redisPool.GetContext(ctx)
 	if err != nil {
 		// FIXME: Handle error.
-		log.WithError(err).Error("redis.TokenLimiter: Error connecting to redis")
+		l.log.Error("redis.TokenLimiter: Error connecting to redis", zap.Error(err))
 		return false
 	}
 	defer conn.Close() // nolint: errcheck
@@ -45,17 +48,14 @@ func (l *TokenLimiter) Allow(ctx context.Context) bool {
 	if err != nil {
 		if err != redigo.ErrNil {
 			// FIXME: Handle error
-			log.WithError(err).Error("redis.TokenLimiter: Error retrieving minute bucket count")
+			l.log.Error("redis.TokenLimiter: Error retrieving minute bucket count", zap.Error(err))
 			return false
 		}
 		count = 0
 	}
 	if count >= l.limitPerMinute {
-		log.WithFields(log.Fields{
-			"key":   string(key),
-			"count": count,
-			"limit": l.limitPerMinute,
-		}).Warn("redis.TokenLimiter: Rate limit exceeded")
+		l.log.Debug("redis.TokenLimiter: Rate limit exceeded",
+			logz.RedisKey(key), logz.U64Count(count), logz.TokenLimit(l.limitPerMinute))
 		return false
 	}
 
@@ -74,7 +74,7 @@ func (l *TokenLimiter) Allow(ctx context.Context) bool {
 	}
 	_, err = conn.Do("EXEC")
 	if err != nil {
-		log.WithError(err).Error("redis.TokenLimiter: Error wile incrementing token key count")
+		l.log.Error("redis.TokenLimiter: Error wile incrementing token key count", zap.Error(err))
 		// FIXME: Handle error
 		return false
 	}

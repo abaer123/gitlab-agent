@@ -8,6 +8,7 @@ require (
 	github.com/ash2k/stager v0.2.0
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1.0.20200107205605-c66185887605
 	github.com/getsentry/sentry-go v0.7.0
+	github.com/go-logr/zapr v0.2.0
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.2
 	github.com/gomodule/redigo v1.8.2
@@ -22,11 +23,12 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/piotrkowalczuk/promgrpc/v4 v4.0.2
 	github.com/prometheus/client_golang v1.7.1
-	github.com/sirupsen/logrus v1.7.0
+	github.com/sirupsen/logrus v1.7.0 // indirect
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
 	gitlab.com/gitlab-org/gitaly v1.87.1-0.20201016033652-3bdd23173595
 	gitlab.com/gitlab-org/labkit v0.0.0-20201014124351-eb1fe6499318
+	go.uber.org/zap v1.10.0
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	golang.org/x/tools v0.0.0-20200823205832-c024452afbcd
 	google.golang.org/grpc v1.33.0
@@ -36,6 +38,7 @@ require (
 	k8s.io/apimachinery v0.19.2
 	k8s.io/cli-runtime v0.19.2
 	k8s.io/client-go v0.19.2
+	k8s.io/klog/v2 v2.2.0
 	nhooyr.io/websocket v1.8.6
 	sigs.k8s.io/yaml v1.2.0
 )

@@ -9,9 +9,10 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/redis",
     visibility = ["//:__subpackages__"],
     deps = [
+        "//internal/tools/logz",
         "@com_github_fzambia_sentinel//:sentinel",
         "@com_github_gomodule_redigo//redis",
-        "@com_gitlab_gitlab_org_labkit//log",
+        "@org_uber_go_zap//:zap",
     ],
 )
 
@@ -30,5 +31,6 @@ go_test(
         "//internal/tools/testing/mock_redis",
         "@com_github_golang_mock//gomock",
         "@com_github_stretchr_testify//require",
+        "@org_uber_go_zap//zaptest",
     ],
 )

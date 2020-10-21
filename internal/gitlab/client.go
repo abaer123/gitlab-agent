@@ -109,6 +109,7 @@ func NewClient(backend *url.URL, authSecret []byte, opts ...ClientOption) *Clien
 					correlation.WithClientName(o.clientName),
 				),
 				tracing.WithRoundTripperTracer(o.tracer),
+				tracing.WithLogger(o.log),
 			),
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				return http.ErrUseLastResponse

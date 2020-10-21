@@ -2,10 +2,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "api",
-    srcs = [
-        "log.go",
-        "types.go",
-    ],
+    srcs = ["types.go"],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api",
     visibility = ["//:__subpackages__"],
     deps = ["@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb"],

@@ -6,11 +6,15 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/go-logr/zapr"
 	"github.com/spf13/pflag"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
+	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 )
 
@@ -53,8 +57,16 @@ func (a *App) Run(ctx context.Context) error {
 	if a.ReloadConfigurationPeriod != defaultAgentConfigurationPollPeriod {
 		cfg.Agent.Configuration.PollPeriod = durationpb.New(a.ReloadConfigurationPeriod)
 	}
+	logger, err := loggerFromConfig(cfg.Observability.Logging)
+	if err != nil {
+		return err
+	}
+	defer logger.Sync() // nolint: errcheck
+	// Kubernetes uses klog so here we pipe all logs from it to our logger via an adapter.
+	klog.SetLogger(zapr.NewLogger(logger))
 	app := ConfiguredApp{
 		Configuration: cfg,
+		Log:           logger,
 	}
 	return app.Run(ctx)
 }
@@ -96,4 +108,12 @@ func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, err
 		return nil, err
 	}
 	return app, nil
+}
+
+func loggerFromConfig(loggingCfg *kascfg.LoggingCF) (*zap.Logger, error) {
+	level, err := logz.LevelFromString(loggingCfg.Level)
+	if err != nil {
+		return nil, err
+	}
+	return logz.LoggerWithLevel(level), nil
 }

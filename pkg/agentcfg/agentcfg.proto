@@ -37,9 +37,20 @@ message GitopsCF {
     repeated ManifestProjectCF manifest_projects = 1 [json_name = "manifest_projects"];
 }
 
+message ObservabilityCF {
+    LoggingCF logging = 1 [json_name = "logging"];
+}
+
+message LoggingCF {
+    // Supported logging levels are: debug, info, warn, error.
+    string level = 1 [json_name = "level"];
+}
+
 // ConfigurationFile represents user-facing configuration file.
 message ConfigurationFile {
     GitopsCF gitops = 1 [json_name = "gitops"];
+    // Configuration related to all things observability. This is about the agent itself, not any observability-related features.
+    ObservabilityCF observability = 2 [json_name = "observability"];
 }
 
 // AgentConfiguration represents configuration for agentk.
@@ -47,4 +58,5 @@ message ConfigurationFile {
 // relevant for the agent. For example, some additional config for kas.
 message AgentConfiguration {
     GitopsCF gitops = 1;
+    ObservabilityCF observability = 2;
 }

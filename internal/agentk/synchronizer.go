@@ -5,9 +5,9 @@ import (
 	"context"
 
 	"github.com/argoproj/gitops-engine/pkg/engine"
-	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/resource"
@@ -19,7 +19,7 @@ const (
 
 // synchronizerConfig holds configuration for a synchronizer.
 type synchronizerConfig struct {
-	log                  *logrus.Entry
+	log                  *zap.Logger
 	projectConfiguration *agentcfg.ManifestProjectCF
 	k8sClientGetter      resource.RESTClientGetter
 }
@@ -79,7 +79,7 @@ func (s *synchronizer) run(ctx context.Context) {
 		case desiredState := <-s.desiredState:
 			objs, err := s.decodeObjectsToSynchronize(desiredState.Objects)
 			if err != nil {
-				s.log.WithError(err).Warning("Failed to decode GitOps objects")
+				s.log.Warn("Failed to decode GitOps objects", zap.Error(err))
 				continue
 			}
 			if jobCancel != nil {

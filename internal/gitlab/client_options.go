@@ -8,11 +8,13 @@ import (
 	"time"
 
 	"github.com/opentracing/opentracing-go"
+	"go.uber.org/zap"
 )
 
 // clientConfig holds configuration for the client.
 type clientConfig struct {
 	tracer      opentracing.Tracer
+	log         *zap.Logger
 	dialContext func(ctx context.Context, network, address string) (net.Conn, error)
 	proxy       func(*http.Request) (*url.URL, error)
 	clientName  string
@@ -29,6 +31,7 @@ func applyClientOptions(opts []ClientOption) clientConfig {
 	}
 	config := clientConfig{
 		tracer:      opentracing.GlobalTracer(),
+		log:         zap.NewNop(),
 		dialContext: dialer.DialContext,
 		proxy:       http.ProxyFromEnvironment,
 		clientName:  "",
@@ -59,5 +62,12 @@ func WithCorrelationClientName(clientName string) ClientOption {
 func WithUserAgent(userAgent string) ClientOption {
 	return func(config *clientConfig) {
 		config.userAgent = userAgent
+	}
+}
+
+// WithLogger sets the log to use.
+func WithLogger(log *zap.Logger) ClientOption {
+	return func(config *clientConfig) {
+		config.log = log
 	}
 }

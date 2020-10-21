@@ -11,15 +11,16 @@ go_library(
         "//internal/api/apiutil",
         "//internal/gitaly",
         "//internal/gitlab",
+        "//internal/tools/logz",
         "//internal/tools/metric",
         "//pkg/agentcfg",
         "@com_github_getsentry_sentry_go//:sentry-go",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",
-        "@com_gitlab_gitlab_org_labkit//log",
         "@io_k8s_apimachinery//pkg/util/wait",
         "@io_k8s_sigs_yaml//:yaml",
         "@org_golang_google_protobuf//encoding/protojson",
+        "@org_uber_go_zap//:zap",
     ],
 )
 
@@ -53,5 +54,6 @@ go_test(
         "@io_k8s_sigs_yaml//:yaml",
         "@org_golang_google_grpc//metadata",
         "@org_golang_google_protobuf//encoding/protojson",
+        "@org_uber_go_zap//zaptest",
     ],
 )

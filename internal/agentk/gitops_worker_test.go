@@ -10,7 +10,6 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/sync"
 	"github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/golang/mock/gomock"
-	"github.com/sirupsen/logrus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc/mock_agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/kube_testing"
@@ -18,6 +17,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_engine"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_misc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
+	"go.uber.org/zap/zaptest"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -93,7 +93,7 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 		engineFactory:                      engineFactory,
 		getObjectsToSynchronizeRetryPeriod: 10 * time.Second,
 		synchronizerConfig: synchronizerConfig{
-			log: logrus.New().WithFields(nil),
+			log: zaptest.NewLogger(t),
 			projectConfiguration: &agentcfg.ManifestProjectCF{
 				Id:               projectId,
 				DefaultNamespace: defaultNamespace, // as if user didn't specify configuration so it's the default value
@@ -251,7 +251,7 @@ func setupWorker(t *testing.T) (*gitopsWorker, *mock_engine.MockGitOpsEngine, *m
 		engineFactory:                      engineFactory,
 		getObjectsToSynchronizeRetryPeriod: 10 * time.Second,
 		synchronizerConfig: synchronizerConfig{
-			log: logrus.New().WithFields(nil),
+			log: zaptest.NewLogger(t),
 			projectConfiguration: &agentcfg.ManifestProjectCF{
 				Id:               projectId,
 				DefaultNamespace: defaultNamespace, // as if user didn't specify configuration so it's the default value

@@ -7,26 +7,35 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/go-logr/zapr"
 	"github.com/spf13/pflag"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentk"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/wstunnel"
 	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/resource"
+	"k8s.io/klog/v2"
 	"nhooyr.io/websocket"
 )
 
 const (
+	defaultRefreshConfigurationRetryPeriod    = 10 * time.Second
+	defaultGetObjectsToSynchronizeRetryPeriod = 10 * time.Second
+
 	defaultMaxMessageSize = 10 * 1024 * 1024
 	correlationClientName = "gitlab-agent"
 )
 
 type App struct {
+	Log      *zap.Logger
+	LogLevel zap.AtomicLevel
 	// KasAddress specifies the address of kas.
 	KasAddress      string
 	TokenFile       string
@@ -34,6 +43,9 @@ type App struct {
 }
 
 func (a *App) Run(ctx context.Context) error {
+	defer a.Log.Sync() // nolint: errcheck
+	// Kubernetes uses klog so here we pipe all logs from it to our logger via an adapter.
+	klog.SetLogger(zapr.NewLogger(a.Log))
 	restConfig, err := a.K8sClientGetter.ToRESTConfig()
 	if err != nil {
 		return fmt.Errorf("ToRESTConfig: %v", err)
@@ -47,9 +59,17 @@ func (a *App) Run(ctx context.Context) error {
 		return err
 	}
 	defer conn.Close() // nolint: errcheck
-	agent := agentk.New(agentrpc.NewKasClient(conn), &agentk.DefaultGitOpsEngineFactory{
-		KubeClientConfig: restConfig,
-	}, a.K8sClientGetter)
+	agent := agentk.New(agentk.Config{
+		Log:       a.Log,
+		LogLevel:  a.LogLevel,
+		KasClient: agentrpc.NewKasClient(conn),
+		EngineFactory: &agentk.DefaultGitOpsEngineFactory{
+			KubeClientConfig: restConfig,
+		},
+		K8sClientGetter:                    a.K8sClientGetter,
+		RefreshConfigurationRetryPeriod:    defaultRefreshConfigurationRetryPeriod,
+		GetObjectsToSynchronizeRetryPeriod: defaultGetObjectsToSynchronizeRetryPeriod,
+	})
 	return agent.Run(ctx)
 }
 
@@ -102,7 +122,11 @@ func (a *App) kasConnection(ctx context.Context, token string) (*grpc.ClientConn
 }
 
 func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, error) {
-	app := &App{}
+	log, level := logger()
+	app := &App{
+		Log:      log,
+		LogLevel: level,
+	}
 	flagset.StringVar(&app.KasAddress, "kas-address", "", "GitLab Kubernetes Agent Server address")
 	flagset.StringVar(&app.TokenFile, "token-file", "", "File with access token")
 	kubeConfigFlags := genericclioptions.NewConfigFlags(true)
@@ -112,4 +136,9 @@ func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, err
 	}
 	app.K8sClientGetter = kubeConfigFlags
 	return app, nil
+}
+
+func logger() (*zap.Logger, zap.AtomicLevel) {
+	level := zap.NewAtomicLevelAt(agentk.DefaultLogLevel)
+	return logz.LoggerWithLevel(level), level
 }

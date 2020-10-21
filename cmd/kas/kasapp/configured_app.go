@@ -23,6 +23,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/kas"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/redis"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/rpclimiter"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/tracing"
@@ -30,8 +31,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"gitlab.com/gitlab-org/gitaly/client"
 	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
-	"gitlab.com/gitlab-org/labkit/log"
-	"gitlab.com/gitlab-org/labkit/mask"
+	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
@@ -64,6 +64,7 @@ const (
 	defaultPrometheusListenNetwork = "tcp"
 	defaultPrometheusListenAddress = "127.0.0.1:8151"
 	defaultPrometheusListenUrlPath = "/metrics"
+	defaultLoggingLevel            = zap.InfoLevel
 
 	defaultGitalyGlobalApiRefillRate    float64 = 10.0 // type matches protobuf type from kascfg.TokenBucketRateLimitCF
 	defaultGitalyGlobalApiBucketSize    int32   = 50   // type matches protobuf type from kascfg.TokenBucketRateLimitCF
@@ -82,6 +83,7 @@ const (
 
 type ConfiguredApp struct {
 	Configuration *kascfg.ConfigurationFile
+	Log           *zap.Logger
 }
 
 func (a *ConfiguredApp) Run(ctx context.Context) error {
@@ -110,23 +112,6 @@ func kasUserAgent() string {
 	return fmt.Sprintf("gitlab-kas/%s/%s", cmd.Version, cmd.Commit)
 }
 
-// This should be in https://gitlab.com/gitlab-org/labkit/-/blob/master/mask/url.go
-func maskURL(s string) string {
-	u, err := url.Parse(s)
-	if err != nil {
-		return "<invalid URL>"
-	}
-
-	ru := u
-	_, hasPassword := ru.User.Password()
-
-	if hasPassword || ru.User.Username() != "" {
-		ru.User = url.User(mask.RedactionString)
-	}
-
-	return mask.URL(ru.String())
-}
-
 func (a *ConfiguredApp) constructSentryHub() (*sentry.Hub, error) {
 	s := a.Configuration.Observability.Sentry
 	if s.Dsn == "" {
@@ -135,10 +120,7 @@ func (a *ConfiguredApp) constructSentryHub() (*sentry.Hub, error) {
 
 	version := kasUserAgent()
 
-	log.WithFields(log.Fields{
-		"sentryDSN": maskURL(s.Dsn),
-		"sentryEnv": s.Environment,
-	}).Info("Initializing Sentry error tracking")
+	a.Log.Debug("Initializing Sentry error tracking", logz.SentryDSN(s.Dsn), logz.SentryEnv(s.Environment))
 	c, err := sentry.NewClient(sentry.ClientOptions{
 		Dsn:         s.Dsn,
 		Release:     version,
@@ -163,11 +145,11 @@ func (a *ConfiguredApp) startMetricsServer(st stager.Stager, gatherer prometheus
 		}
 		defer lis.Close() // nolint: errcheck
 
-		log.WithFields(log.Fields{
-			"address":  lis.Addr().String(),
-			"network":  lis.Addr().Network(),
-			"url_path": obsCfg.Prometheus.UrlPath,
-		}).Info("Listening for Prometheus connections")
+		a.Log.Info("Listening for Prometheus connections",
+			logz.NetNetworkFromAddr(lis.Addr()),
+			logz.NetAddressFromAddr(lis.Addr()),
+			logz.UrlPath(obsCfg.Prometheus.UrlPath),
+		)
 
 		metricSrv := &metric.Server{
 			Name:     kasUserAgent(),
@@ -215,11 +197,11 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		}
 		defer lis.Close() // nolint: errcheck
 
-		log.WithFields(log.Fields{
-			"address":   lis.Addr().String(),
-			"network":   lis.Addr().Network(),
-			"websocket": cfg.GetListen().GetWebsocket(),
-		}).Info("Listening for agentk connections")
+		a.Log.Info("Listening for agentk connections",
+			logz.NetNetworkFromAddr(lis.Addr()),
+			logz.NetAddressFromAddr(lis.Addr()),
+			logz.IsWebSocket(cfg.Listen.Websocket),
+		)
 
 		if cfg.GetListen().GetWebsocket() {
 			wsWrapper := wstunnel.ListenerWrapper{
@@ -238,6 +220,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			gitlab.WithCorrelationClientName(correlationClientName),
 			gitlab.WithUserAgent(userAgent),
 			gitlab.WithTracer(tracer),
+			gitlab.WithLogger(a.Log),
 		)
 		gitLabCachingClient := gitlab.NewCachingClient(gitLabClient, gitlab.CacheOptions{
 			CacheTTL:      cfg.Agent.InfoCacheTtl.AsDuration(),
@@ -249,6 +232,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 
 		srv, cleanup, err := kas.NewServer(kas.ServerConfig{
 			Context: ctx,
+			Log:     a.Log,
 			GitalyPool: &gitaly.Pool{
 				ClientPool: gitalyClientPool,
 			},
@@ -304,6 +288,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			}
 			redisPool := redis.NewPool(redisCfg)
 			agentConnectionLimiter := redis.NewTokenLimiter(
+				a.Log,
 				redisPool,
 				cfg.Agent.Limits.RedisKeyPrefix,
 				uint64(cfg.Agent.Limits.ConnectionsPerTokenPerMinute),
@@ -406,6 +391,11 @@ func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) error {
 	if cfg.Observability.Tracing == nil {
 		cfg.Observability.Tracing = &kascfg.TracingCF{}
 	}
+
+	if cfg.Observability.Logging == nil {
+		cfg.Observability.Logging = &kascfg.LoggingCF{}
+	}
+	defaultString(&cfg.Observability.Logging.Level, defaultLoggingLevel.String())
 
 	if cfg.Gitaly == nil {
 		cfg.Gitaly = &kascfg.GitalyCF{}
