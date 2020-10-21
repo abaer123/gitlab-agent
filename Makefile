@@ -30,7 +30,9 @@ internal-regenerate-mocks:
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_gitalypool" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_engine" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_gitaly" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_misc"
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_misc" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_grpc" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_redis"
 
 .PHONY: regenerate-mocks
 regenerate-mocks: internal-regenerate-mocks fmt update-bazel

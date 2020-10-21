@@ -22,6 +22,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/kas"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/redis"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/rpclimiter"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/tracing"
@@ -52,6 +53,9 @@ const (
 	defaultAgentInfoCacheTTL      = 5 * time.Minute
 	defaultAgentInfoCacheErrorTTL = 1 * time.Minute
 
+	defaultAgentLimitsRedisKeyPrefix               = "kas:agent_limits"
+	defaultAgentLimitsConnectionsPerTokenPerMinute = 100
+
 	defaultGitOpsPollPeriod               = 20 * time.Second
 	defaultGitOpsProjectInfoCacheTTL      = 5 * time.Minute
 	defaultGitOpsProjectInfoCacheErrorTTL = 1 * time.Minute
@@ -65,6 +69,12 @@ const (
 	defaultGitalyGlobalApiBucketSize    int32   = 50   // type matches protobuf type from kascfg.TokenBucketRateLimitCF
 	defaultGitalyPerServerApiRate       float64 = 5.0  // type matches protobuf type from kascfg.TokenBucketRateLimitCF
 	defaultGitalyPerServerApiBucketSize int32   = 10   // type matches protobuf type from kascfg.TokenBucketRateLimitCF
+
+	defaultRedisMaxIdle      = 1
+	defaultRedisMaxActive    = 1
+	defaultRedisReadTimeout  = 1 * time.Second
+	defaultRedisWriteTimeout = 1 * time.Second
+	defaultRedisKeepAlive    = 5 * time.Minute
 
 	correlationClientName = "gitlab-kas"
 	tracingServiceName    = "gitlab-kas"
@@ -236,6 +246,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			CacheTTL:      cfg.Agent.Gitops.ProjectInfoCacheTtl.AsDuration(),
 			CacheErrorTTL: cfg.Agent.Gitops.ProjectInfoCacheErrorTtl.AsDuration(),
 		})
+
 		srv, cleanup, err := kas.NewServer(kas.ServerConfig{
 			Context: ctx,
 			GitalyPool: &gitaly.Pool{
@@ -252,21 +263,60 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			return fmt.Errorf("kas.NewServer: %v", err)
 		}
 		defer cleanup()
+
+		// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
+		grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
+			grpc_prometheus.StreamServerInterceptor, // This one should be the first one to measure all invocations
+			apiutil.StreamAgentMetaInterceptor(),    // This one should be the second one to ensure agent presents a token
+			grpccorrelation.StreamServerCorrelationInterceptor(),
+			grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		}
+		grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
+			grpc_prometheus.UnaryServerInterceptor, // This one should be the first one to measure all invocations
+			apiutil.UnaryAgentMetaInterceptor(),    // This one should be the second one to ensure agent presents a token
+			grpccorrelation.UnaryServerCorrelationInterceptor(),
+			grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		}
+		if cfg.Redis != nil {
+			redisCfg := &redis.Config{
+				// Url is parsed below
+				Password:       cfg.Redis.Password,
+				MaxIdle:        cfg.Redis.MaxIdle,
+				MaxActive:      cfg.Redis.MaxActive,
+				ReadTimeout:    cfg.Redis.ReadTimeout.AsDuration(),
+				WriteTimeout:   cfg.Redis.WriteTimeout.AsDuration(),
+				KeepAlive:      cfg.Redis.Keepalive.AsDuration(),
+				SentinelMaster: cfg.Redis.SentinelMaster,
+				// Sentinels is parsed below
+			}
+			if cfg.Redis.Url != "" {
+				redisCfg.URL, err = url.Parse(cfg.Redis.Url)
+				if err != nil {
+					return fmt.Errorf("kas.redis.NewPool: redis.url is not a valid URL: %v", err)
+				}
+			}
+			for i, addr := range cfg.Redis.Sentinels {
+				u, err := url.Parse(addr)
+				if err != nil {
+					return fmt.Errorf("kas.redis.NewPool: redis.sentinels[%d] is not a valid URL: %v", i, err)
+				}
+				redisCfg.Sentinels = append(redisCfg.Sentinels, u)
+			}
+			redisPool := redis.NewPool(redisCfg)
+			agentConnectionLimiter := redis.NewTokenLimiter(
+				redisPool,
+				cfg.Agent.Limits.RedisKeyPrefix,
+				uint64(cfg.Agent.Limits.ConnectionsPerTokenPerMinute),
+				func(ctx context.Context) string { return string(apiutil.AgentTokenFromContext(ctx)) },
+			)
+			grpcStreamServerInterceptors = append(grpcStreamServerInterceptors, rpclimiter.StreamServerInterceptor(agentConnectionLimiter))
+			grpcUnaryServerInterceptors = append(grpcUnaryServerInterceptors, rpclimiter.UnaryServerInterceptor(agentConnectionLimiter))
+		}
+
 		grpcServer := grpc.NewServer(
 			grpc.StatsHandler(ssh),
-			// TODO construct independent interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
-			grpc.ChainStreamInterceptor(
-				grpc_prometheus.StreamServerInterceptor, // This one should be the first one to measure all invocations
-				apiutil.StreamAgentMetaInterceptor(),    // This one should be the second one to ensure agent presents a token
-				grpccorrelation.StreamServerCorrelationInterceptor(),
-				grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
-			),
-			grpc.ChainUnaryInterceptor(
-				grpc_prometheus.UnaryServerInterceptor, // This one should be the first one to measure all invocations
-				apiutil.UnaryAgentMetaInterceptor(),    // This one should be the second one to ensure agent presents a token
-				grpccorrelation.UnaryServerCorrelationInterceptor(),
-				grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
-			),
+			grpc.ChainStreamInterceptor(grpcStreamServerInterceptors...),
+			grpc.ChainUnaryInterceptor(grpcUnaryServerInterceptors...),
 			grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 				MinTime:             20 * time.Second,
 				PermitWithoutStream: true,
@@ -330,6 +380,12 @@ func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) error {
 	defaultDuration(&cfg.Agent.InfoCacheTtl, defaultAgentInfoCacheTTL)
 	defaultDuration(&cfg.Agent.InfoCacheErrorTtl, defaultAgentInfoCacheErrorTTL)
 
+	if cfg.Agent.Limits == nil {
+		cfg.Agent.Limits = &kascfg.AgentLimitsCF{}
+	}
+	defaultString(&cfg.Agent.Limits.RedisKeyPrefix, defaultAgentLimitsRedisKeyPrefix)
+	defaultUint32(&cfg.Agent.Limits.ConnectionsPerTokenPerMinute, defaultAgentLimitsConnectionsPerTokenPerMinute)
+
 	if cfg.Observability == nil {
 		cfg.Observability = &kascfg.ObservabilityCF{}
 	}
@@ -364,6 +420,15 @@ func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) error {
 	}
 	defaultFloat64(&cfg.Gitaly.PerServerApiRateLimit.RefillRatePerSecond, defaultGitalyPerServerApiRate)
 	defaultInt32(&cfg.Gitaly.PerServerApiRateLimit.BucketSize, defaultGitalyPerServerApiBucketSize)
+
+	if cfg.Redis != nil {
+		defaultInt32(&cfg.Redis.MaxIdle, defaultRedisMaxIdle)
+		defaultInt32(&cfg.Redis.MaxActive, defaultRedisMaxActive)
+		defaultDuration(&cfg.Redis.ReadTimeout, defaultRedisReadTimeout)
+		defaultDuration(&cfg.Redis.WriteTimeout, defaultRedisWriteTimeout)
+		defaultDuration(&cfg.Redis.Keepalive, defaultRedisKeepAlive)
+	}
+
 	return nil
 }
 
@@ -426,5 +491,11 @@ func defaultFloat64(s *float64, defaultValue float64) {
 func defaultInt32(s *int32, defaultValue int32) {
 	if *s == 0 {
 		*s = defaultValue
+	}
+}
+
+func defaultUint32(d *uint32, defaultValue uint32) {
+	if *d == 0 {
+		*d = defaultValue
 	}
 }

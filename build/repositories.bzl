@@ -821,6 +821,13 @@ def go_repositories():
         version = "v1.4.9",
     )
     go_repository(
+        name = "com_github_fzambia_sentinel",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/FZambia/sentinel",
+        sum = "h1:qrCBfxc8SvJihYNjBWgwUI93ZCvFe/PJIPTHKmlp8a8=",
+        version = "v1.1.0",
+    )
+    go_repository(
         name = "com_github_gavv_httpexpect",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/gavv/httpexpect",
@@ -1237,8 +1244,8 @@ def go_repositories():
         name = "com_github_gomodule_redigo",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/gomodule/redigo",
-        sum = "h1:y0Wmhvml7cGnzPa9nocn/fMraMH/lMDdeG+rkx4VgYY=",
-        version = "v1.7.1-0.20190724094224-574c33c3df38",
+        sum = "h1:H5XSIre1MB5NbPYFp+i1NBbb5qN1W8Y8YAQoAYbkm8k=",
+        version = "v1.8.2",
     )
     go_repository(
         name = "com_github_google_btree",

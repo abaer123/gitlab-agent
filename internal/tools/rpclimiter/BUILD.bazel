@@ -1,13 +1,30 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "rpclimiter",
-    srcs = ["ratelimit.go"],
+    srcs = [
+        "client.go",
+        "server.go",
+    ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/rpclimiter",
     visibility = ["//:__subpackages__"],
     deps = [
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
+    ],
+)
+
+go_test(
+    name = "rpclimiter_test",
+    size = "small",
+    srcs = ["server_test.go"],
+    embed = [":rpclimiter"],
+    race = "on",
+    deps = [
+        "//internal/tools/testing/mock_grpc",
+        "@com_github_golang_mock//gomock",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_grpc//:grpc",
     ],
 )

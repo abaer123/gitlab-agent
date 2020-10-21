@@ -35,6 +35,11 @@ func AgentMetaFromRawContext(ctx context.Context) (*api.AgentMeta, error) {
 	}, nil
 }
 
+// AgentTokenFromContext extracts the agent token from the given context
+func AgentTokenFromContext(ctx context.Context) api.AgentToken {
+	return AgentMetaFromContext(ctx).Token
+}
+
 func InjectAgentMeta(ctx context.Context, agentMeta *api.AgentMeta) context.Context {
 	return context.WithValue(ctx, agentMetaKey, agentMeta)
 }
