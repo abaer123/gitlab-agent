@@ -228,6 +228,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		var wg wait.Group
 		defer wg.Wait() // wait for grpcServer to shutdown
 		defer cancel()  // cancel ctx
+		wg.StartWithContext(ctx, srv.Run)
 		wg.Start(func() {
 			<-ctx.Done() // can be cancelled because Serve() failed or because main ctx was cancelled
 			grpcServer.GracefulStop()
