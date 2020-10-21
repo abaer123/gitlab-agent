@@ -26,6 +26,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/rpclimiter"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/sentryapi"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/tracing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/wstunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
@@ -112,10 +113,10 @@ func kasUserAgent() string {
 	return fmt.Sprintf("gitlab-kas/%s/%s", cmd.Version, cmd.Commit)
 }
 
-func (a *ConfiguredApp) constructSentryHub() (*sentry.Hub, error) {
+func (a *ConfiguredApp) constructSentryHub() (sentryapi.Hub, error) {
 	s := a.Configuration.Observability.Sentry
 	if s.Dsn == "" {
-		return sentry.NewHub(nil, sentry.NewScope()), nil
+		return sentryapi.NewHub(nil, sentry.NewScope()), nil
 	}
 
 	version := kasUserAgent()
@@ -129,7 +130,7 @@ func (a *ConfiguredApp) constructSentryHub() (*sentry.Hub, error) {
 	if err != nil {
 		return nil, err
 	}
-	return sentry.NewHub(c, sentry.NewScope()), nil
+	return sentryapi.NewHub(c, sentry.NewScope()), nil
 }
 
 func (a *ConfiguredApp) startMetricsServer(st stager.Stager, gatherer prometheus.Gatherer) {

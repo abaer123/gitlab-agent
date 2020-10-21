@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
@@ -17,6 +16,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/sentryapi"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"go.uber.org/zap"
@@ -44,7 +44,7 @@ type ServerConfig struct {
 	GitopsPollPeriod             time.Duration
 	UsageReportingPeriod         time.Duration
 	Registerer                   prometheus.Registerer
-	Sentry                       *sentry.Hub
+	Sentry                       sentryapi.Hub
 }
 
 type Server struct {
@@ -58,7 +58,7 @@ type Server struct {
 	agentConfigurationPollPeriod time.Duration
 	gitopsPollPeriod             time.Duration
 	usageReportingPeriod         time.Duration
-	sentry                       *sentry.Hub
+	sentry                       sentryapi.Hub
 }
 
 func NewServer(config ServerConfig) (*Server, func(), error) {
