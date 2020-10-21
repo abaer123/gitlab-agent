@@ -13,6 +13,7 @@ go_library(
         "//internal/gitlab",
         "//internal/tools/metric",
         "//pkg/agentcfg",
+        "@com_github_getsentry_sentry_go//:sentry-go",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",
         "@com_gitlab_gitlab_org_labkit//log",

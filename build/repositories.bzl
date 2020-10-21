@@ -838,8 +838,8 @@ def go_repositories():
         name = "com_github_getsentry_sentry_go",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/getsentry/sentry-go",
-        sum = "h1:MIPe7ScHADsrK2vznqmhksIUFxq7m0JfTh+ZIMkI+VQ=",
-        version = "v0.5.1",
+        sum = "h1:MR2yfR4vFfv/2+iBuSnkdQwVg7N9cJzihZ6KJu7srwQ=",
+        version = "v0.7.0",
     )
     go_repository(
         name = "com_github_ghodss_yaml",

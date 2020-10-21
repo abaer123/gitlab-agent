@@ -56,6 +56,13 @@ message GitopsCF {
     google.protobuf.Duration project_info_cache_error_ttl = 3 [json_name = "project_info_cache_error_ttl"];
 }
 
+message SentryCF {
+    // Sentry DSN https://docs.sentry.io/platforms/go/#configure
+    string dsn = 1 [json_name = "dsn"];
+    // Sentry environment https://docs.sentry.io/product/sentry-basics/environments/
+    string environment = 2 [json_name = "environment"];
+}
+
 message AgentCF {
     // Configuration for agent's configuration repository.
     AgentConfigurationCF configuration = 1 [json_name = "configuration"];
@@ -81,10 +88,9 @@ message ObservabilityCF {
     ObservabilityListenCF listen = 2 [json_name = "listen"];
     PrometheusCF prometheus = 3 [json_name = "prometheus"];
     TracingCF tracing = 4 [json_name = "tracing"];
+    SentryCF sentry = 5 [json_name = "sentry"];
     // TODO pprof
     // TODO Google profiler
-    // TODO Sentry
-    // TODO OpenTracing
     // TODO Logging
 }
 

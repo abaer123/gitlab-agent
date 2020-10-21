@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ash2k/stager"
+	"github.com/getsentry/sentry-go"
 	"github.com/golang/protobuf/ptypes/duration"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
@@ -29,6 +30,7 @@ import (
 	"gitlab.com/gitlab-org/gitaly/client"
 	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
 	"gitlab.com/gitlab-org/labkit/log"
+	"gitlab.com/gitlab-org/labkit/mask"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
@@ -98,6 +100,46 @@ func kasUserAgent() string {
 	return fmt.Sprintf("gitlab-kas/%s/%s", cmd.Version, cmd.Commit)
 }
 
+// This should be in https://gitlab.com/gitlab-org/labkit/-/blob/master/mask/url.go
+func maskURL(s string) string {
+	u, err := url.Parse(s)
+	if err != nil {
+		return "<invalid URL>"
+	}
+
+	ru := u
+	_, hasPassword := ru.User.Password()
+
+	if hasPassword || ru.User.Username() != "" {
+		ru.User = url.User(mask.RedactionString)
+	}
+
+	return mask.URL(ru.String())
+}
+
+func (a *ConfiguredApp) constructSentryHub() (*sentry.Hub, error) {
+	s := a.Configuration.Observability.Sentry
+	if s.Dsn == "" {
+		return sentry.NewHub(nil, sentry.NewScope()), nil
+	}
+
+	version := kasUserAgent()
+
+	log.WithFields(log.Fields{
+		"sentryDSN": maskURL(s.Dsn),
+		"sentryEnv": s.Environment,
+	}).Info("Initializing Sentry error tracking")
+	c, err := sentry.NewClient(sentry.ClientOptions{
+		Dsn:         s.Dsn,
+		Release:     version,
+		Environment: s.Environment,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return sentry.NewHub(c, sentry.NewScope()), nil
+}
+
 func (a *ConfiguredApp) startMetricsServer(st stager.Stager, gatherer prometheus.Gatherer) {
 	obsCfg := a.Configuration.Observability
 	if obsCfg.Prometheus.Disabled {
@@ -150,6 +192,12 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		}
 		defer closer.Close() // nolint: errcheck
 
+		// Sentry
+		hub, err := a.constructSentryHub()
+		if err != nil {
+			return fmt.Errorf("Sentry: %v", err)
+		}
+
 		// gRPC listener
 		lis, err := net.Listen(cfg.Listen.Network, cfg.Listen.Address)
 		if err != nil {
@@ -198,6 +246,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			GitopsPollPeriod:             cfg.Agent.Gitops.PollPeriod.AsDuration(),
 			UsageReportingPeriod:         cfg.Observability.UsageReportingPeriod.AsDuration(),
 			Registerer:                   registerer,
+			Sentry:                       hub,
 		})
 		if err != nil {
 			return fmt.Errorf("kas.NewServer: %v", err)
@@ -293,6 +342,9 @@ func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) error {
 		cfg.Observability.Prometheus = &kascfg.PrometheusCF{}
 	}
 	defaultString(&cfg.Observability.Prometheus.UrlPath, defaultPrometheusListenUrlPath)
+	if cfg.Observability.Sentry == nil {
+		cfg.Observability.Sentry = &kascfg.SentryCF{}
+	}
 
 	if cfg.Observability.Tracing == nil {
 		cfg.Observability.Tracing = &kascfg.TracingCF{}
