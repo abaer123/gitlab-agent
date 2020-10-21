@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
@@ -20,6 +21,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_gitalypool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab/mock_gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/sentryapi/mock_sentryapi"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_gitaly"
@@ -299,6 +301,7 @@ func TestSendUsage(t *testing.T) {
 	gitlabClient.EXPECT().
 		SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
 		Return(nil)
+	sentryHub := mock_sentryapi.NewMockHub(mockCtrl)
 
 	s, cleanup, err := NewServer(ServerConfig{
 		Context:                      ctx,
@@ -309,6 +312,7 @@ func TestSendUsage(t *testing.T) {
 		GitopsPollPeriod:             10 * time.Minute,
 		UsageReportingPeriod:         10 * time.Millisecond,
 		Registerer:                   prometheus.NewPedanticRegistry(),
+		Sentry:                       sentryHub,
 	})
 	require.NoError(t, err)
 	defer cleanup()
@@ -319,6 +323,43 @@ func TestSendUsage(t *testing.T) {
 
 	// Should not call SendUsage again
 	require.NoError(t, s.sendUsageInternal(ctx))
+}
+
+func TestSendUsageFailure(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	mockCtrl := gomock.NewController(t)
+	gitalyPool := mock_gitalypool.NewMockPoolInterface(mockCtrl)
+	gitlabClient := mock_gitlab.NewMockClientInterface(mockCtrl)
+	expectedErr := errors.New("expected error")
+	gitlabClient.EXPECT().
+		SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
+		Return(expectedErr)
+	sentryHub := mock_sentryapi.NewMockHub(mockCtrl)
+	sentryHub.EXPECT().
+		CaptureException(expectedErr).
+		DoAndReturn(func(err error) *sentry.EventID {
+			cancel() // exception captured, cancel the context to stop the test
+			return nil
+		})
+
+	s, cleanup, err := NewServer(ServerConfig{
+		Context:                      ctx,
+		Log:                          zaptest.NewLogger(t),
+		GitalyPool:                   gitalyPool,
+		GitLabClient:                 gitlabClient,
+		AgentConfigurationPollPeriod: 10 * time.Minute,
+		GitopsPollPeriod:             10 * time.Minute,
+		UsageReportingPeriod:         10 * time.Millisecond,
+		Registerer:                   prometheus.NewPedanticRegistry(),
+		Sentry:                       sentryHub,
+	})
+	require.NoError(t, err)
+	defer cleanup()
+	s.usageMetrics.gitopsSyncCount = 5
+
+	s.sendUsage(ctx)
 }
 
 func TestSendUsageRetry(t *testing.T) {
@@ -336,6 +377,7 @@ func TestSendUsageRetry(t *testing.T) {
 			SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 6})).
 			Return(nil),
 	)
+	sentryHub := mock_sentryapi.NewMockHub(mockCtrl)
 
 	s, cleanup, err := NewServer(ServerConfig{
 		Context:                      ctx,
@@ -346,6 +388,7 @@ func TestSendUsageRetry(t *testing.T) {
 		GitopsPollPeriod:             10 * time.Minute,
 		UsageReportingPeriod:         10 * time.Millisecond,
 		Registerer:                   prometheus.NewPedanticRegistry(),
+		Sentry:                       sentryHub,
 	})
 	require.NoError(t, err)
 	defer cleanup()
@@ -493,6 +536,7 @@ func setupKas(ctx context.Context, t *testing.T) (*Server, *api.AgentInfo, *gomo
 	gitlabClient.EXPECT().
 		GetAgentInfo(gomock.Any(), &agentMeta).
 		Return(agentInfo, nil)
+	sentryHub := mock_sentryapi.NewMockHub(mockCtrl)
 
 	k, cleanup, err := NewServer(ServerConfig{
 		Context:                      ctx,
@@ -502,6 +546,7 @@ func setupKas(ctx context.Context, t *testing.T) (*Server, *api.AgentInfo, *gomo
 		AgentConfigurationPollPeriod: 10 * time.Minute,
 		GitopsPollPeriod:             10 * time.Minute,
 		Registerer:                   prometheus.NewPedanticRegistry(),
+		Sentry:                       sentryHub,
 	})
 	require.NoError(t, err)
 	t.Cleanup(cleanup)
