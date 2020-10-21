@@ -17,6 +17,9 @@ agent:
     project_info_cache_error_ttl: "60s"
   info_cache_ttl: "300s"
   info_cache_error_ttl: "60s"
+  limits:
+    connections_per_token_per_minute: 100
+    redis_key_prefix: kas:agent_limits
 observability:
   usage_reporting_period: "60s"
   listen:
@@ -37,3 +40,13 @@ gitaly:
   per_server_api_rate_limit:
     refill_rate_per_second: 5.0
     bucket_size: 10
+# redis:
+#   url: unix:///tmp/redis.sock
+#   # password: my-password
+#   max_idle: 1
+#   max_active: 1
+#   read_timeout: "1s"
+#   write_timeout: "1s"
+#   keepalive: "300s"
+#   # sentinel_master: my-master
+#   # sentinels: [ tcp://host-1, tcp://host-2]

@@ -3,12 +3,14 @@ module gitlab.com/gitlab-org/cluster-integration/gitlab-agent
 go 1.15
 
 require (
+	github.com/FZambia/sentinel v1.1.0
 	github.com/argoproj/gitops-engine v0.1.3-0.20201013235340-a1dc4c598b93
 	github.com/ash2k/stager v0.2.0
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1.0.20200107205605-c66185887605
 	github.com/getsentry/sentry-go v0.7.0
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.2
+	github.com/gomodule/redigo v1.8.2
 	github.com/google/go-cmp v0.5.2
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
