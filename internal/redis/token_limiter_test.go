@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"go.uber.org/zap/zaptest"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
@@ -19,7 +21,9 @@ func TestTokenLimiter(t *testing.T) {
 	mockPool := mock_redis.NewMockPool(ctrl)
 
 	limitPerMinute := uint64(1)
-	limiter := NewTokenLimiter(mockPool, "key_prefix", limitPerMinute, func(ctx context.Context) string { return string(apiutil.AgentTokenFromContext(ctx)) })
+	limiter := NewTokenLimiter(zaptest.NewLogger(t), mockPool, "key_prefix", limitPerMinute,
+		func(ctx context.Context) string { return string(apiutil.AgentTokenFromContext(ctx)) },
+	)
 	token := api.AgentToken("0123456789")
 	meta := &api.AgentMeta{Token: token}
 	ctx := apiutil.InjectAgentMeta(context.Background(), meta)

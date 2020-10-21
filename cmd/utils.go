@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
-	"gitlab.com/gitlab-org/labkit/log"
 )
 
 // CancelOnInterrupt calls f when os.Interrupt or SIGTERM is received.
@@ -37,7 +36,7 @@ type RunnableFactory func(flagset *pflag.FlagSet, arguments []string) (Runnable,
 func Run(factory RunnableFactory) {
 	rand.Seed(time.Now().UnixNano())
 	if err := run(factory); err != nil && err != context.Canceled && err != context.DeadlineExceeded && err != pflag.ErrHelp {
-		log.WithError(err).Error("Program aborted")
+		fmt.Fprintf(os.Stderr, "Program aborted: %v\n", err)
 		os.Exit(1)
 	}
 }

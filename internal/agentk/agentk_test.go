@@ -18,6 +18,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_engine"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -183,10 +185,18 @@ func setupBasicAgent(t *testing.T) (*Agent, *gomock.Controller, *mock_agentrpc.M
 	client := mock_agentrpc.NewMockKasClient(mockCtrl)
 	factory := mock_engine.NewMockGitOpsEngineFactory(mockCtrl)
 	configFlags := genericclioptions.NewTestConfigFlags()
-	agent := New(client, &mock_engine.ThreadSafeGitOpsEngineFactory{
-		EngineFactory: factory,
-	}, configFlags)
-	agent.refreshConfigurationRetryPeriod = 10 * time.Millisecond
+	level := zap.NewAtomicLevelAt(zap.DebugLevel)
+	agent := New(Config{
+		Log:       zaptest.NewLogger(t, zaptest.Level(level)),
+		LogLevel:  level,
+		KasClient: client,
+		EngineFactory: &mock_engine.ThreadSafeGitOpsEngineFactory{
+			EngineFactory: factory,
+		},
+		K8sClientGetter:                    configFlags,
+		RefreshConfigurationRetryPeriod:    10 * time.Millisecond,
+		GetObjectsToSynchronizeRetryPeriod: 10 * time.Second,
+	})
 	return agent, mockCtrl, client, factory
 }
 

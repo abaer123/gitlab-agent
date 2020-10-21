@@ -199,18 +199,113 @@ func (x *GitopsCF) GetManifestProjects() []*ManifestProjectCF {
 	return nil
 }
 
+type ObservabilityCF struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Logging *LoggingCF `protobuf:"bytes,1,opt,name=logging,proto3" json:"logging,omitempty"`
+}
+
+func (x *ObservabilityCF) Reset() {
+	*x = ObservabilityCF{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ObservabilityCF) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ObservabilityCF) ProtoMessage() {}
+
+func (x *ObservabilityCF) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ObservabilityCF.ProtoReflect.Descriptor instead.
+func (*ObservabilityCF) Descriptor() ([]byte, []int) {
+	return file_pkg_agentcfg_agentcfg_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ObservabilityCF) GetLogging() *LoggingCF {
+	if x != nil {
+		return x.Logging
+	}
+	return nil
+}
+
+type LoggingCF struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Level string `protobuf:"bytes,1,opt,name=level,proto3" json:"level,omitempty"`
+}
+
+func (x *LoggingCF) Reset() {
+	*x = LoggingCF{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *LoggingCF) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoggingCF) ProtoMessage() {}
+
+func (x *LoggingCF) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoggingCF.ProtoReflect.Descriptor instead.
+func (*LoggingCF) Descriptor() ([]byte, []int) {
+	return file_pkg_agentcfg_agentcfg_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *LoggingCF) GetLevel() string {
+	if x != nil {
+		return x.Level
+	}
+	return ""
+}
+
 type ConfigurationFile struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Gitops *GitopsCF `protobuf:"bytes,1,opt,name=gitops,proto3" json:"gitops,omitempty"`
+	Gitops        *GitopsCF        `protobuf:"bytes,1,opt,name=gitops,proto3" json:"gitops,omitempty"`
+	Observability *ObservabilityCF `protobuf:"bytes,2,opt,name=observability,proto3" json:"observability,omitempty"`
 }
 
 func (x *ConfigurationFile) Reset() {
 	*x = ConfigurationFile{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[3]
+		mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -223,7 +318,7 @@ func (x *ConfigurationFile) String() string {
 func (*ConfigurationFile) ProtoMessage() {}
 
 func (x *ConfigurationFile) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[3]
+	mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -236,7 +331,7 @@ func (x *ConfigurationFile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfigurationFile.ProtoReflect.Descriptor instead.
 func (*ConfigurationFile) Descriptor() ([]byte, []int) {
-	return file_pkg_agentcfg_agentcfg_proto_rawDescGZIP(), []int{3}
+	return file_pkg_agentcfg_agentcfg_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ConfigurationFile) GetGitops() *GitopsCF {
@@ -246,18 +341,26 @@ func (x *ConfigurationFile) GetGitops() *GitopsCF {
 	return nil
 }
 
+func (x *ConfigurationFile) GetObservability() *ObservabilityCF {
+	if x != nil {
+		return x.Observability
+	}
+	return nil
+}
+
 type AgentConfiguration struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Gitops *GitopsCF `protobuf:"bytes,1,opt,name=gitops,proto3" json:"gitops,omitempty"`
+	Gitops        *GitopsCF        `protobuf:"bytes,1,opt,name=gitops,proto3" json:"gitops,omitempty"`
+	Observability *ObservabilityCF `protobuf:"bytes,2,opt,name=observability,proto3" json:"observability,omitempty"`
 }
 
 func (x *AgentConfiguration) Reset() {
 	*x = AgentConfiguration{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[4]
+		mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -270,7 +373,7 @@ func (x *AgentConfiguration) String() string {
 func (*AgentConfiguration) ProtoMessage() {}
 
 func (x *AgentConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[4]
+	mi := &file_pkg_agentcfg_agentcfg_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -283,12 +386,19 @@ func (x *AgentConfiguration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentConfiguration.ProtoReflect.Descriptor instead.
 func (*AgentConfiguration) Descriptor() ([]byte, []int) {
-	return file_pkg_agentcfg_agentcfg_proto_rawDescGZIP(), []int{4}
+	return file_pkg_agentcfg_agentcfg_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *AgentConfiguration) GetGitops() *GitopsCF {
 	if x != nil {
 		return x.Gitops
+	}
+	return nil
+}
+
+func (x *AgentConfiguration) GetObservability() *ObservabilityCF {
+	if x != nil {
+		return x.Observability
 	}
 	return nil
 }
@@ -323,20 +433,35 @@ var file_pkg_agentcfg_agentcfg_proto_rawDesc = []byte{
 	0x74, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74,
 	0x63, 0x66, 0x67, 0x2e, 0x4d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x50, 0x72, 0x6f, 0x6a,
 	0x65, 0x63, 0x74, 0x43, 0x46, 0x52, 0x11, 0x6d, 0x61, 0x6e, 0x69, 0x66, 0x65, 0x73, 0x74, 0x5f,
-	0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x22, 0x3f, 0x0a, 0x11, 0x43, 0x6f, 0x6e, 0x66,
-	0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x46, 0x69, 0x6c, 0x65, 0x12, 0x2a, 0x0a,
-	0x06, 0x67, 0x69, 0x74, 0x6f, 0x70, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e,
-	0x61, 0x67, 0x65, 0x6e, 0x74, 0x63, 0x66, 0x67, 0x2e, 0x47, 0x69, 0x74, 0x6f, 0x70, 0x73, 0x43,
-	0x46, 0x52, 0x06, 0x67, 0x69, 0x74, 0x6f, 0x70, 0x73, 0x22, 0x40, 0x0a, 0x12, 0x41, 0x67, 0x65,
-	0x6e, 0x74, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12,
-	0x2a, 0x0a, 0x06, 0x67, 0x69, 0x74, 0x6f, 0x70, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
-	0x12, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x63, 0x66, 0x67, 0x2e, 0x47, 0x69, 0x74, 0x6f, 0x70,
-	0x73, 0x43, 0x46, 0x52, 0x06, 0x67, 0x69, 0x74, 0x6f, 0x70, 0x73, 0x42, 0x45, 0x5a, 0x43, 0x67,
-	0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62,
-	0x2d, 0x6f, 0x72, 0x67, 0x2f, 0x63, 0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x2d, 0x69, 0x6e, 0x74,
-	0x65, 0x67, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2d,
-	0x61, 0x67, 0x65, 0x6e, 0x74, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x63,
-	0x66, 0x67, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x22, 0x40, 0x0a, 0x0f, 0x4f, 0x62, 0x73, 0x65,
+	0x72, 0x76, 0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x79, 0x43, 0x46, 0x12, 0x2d, 0x0a, 0x07, 0x6c,
+	0x6f, 0x67, 0x67, 0x69, 0x6e, 0x67, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x61,
+	0x67, 0x65, 0x6e, 0x74, 0x63, 0x66, 0x67, 0x2e, 0x4c, 0x6f, 0x67, 0x67, 0x69, 0x6e, 0x67, 0x43,
+	0x46, 0x52, 0x07, 0x6c, 0x6f, 0x67, 0x67, 0x69, 0x6e, 0x67, 0x22, 0x21, 0x0a, 0x09, 0x4c, 0x6f,
+	0x67, 0x67, 0x69, 0x6e, 0x67, 0x43, 0x46, 0x12, 0x14, 0x0a, 0x05, 0x6c, 0x65, 0x76, 0x65, 0x6c,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x6c, 0x65, 0x76, 0x65, 0x6c, 0x22, 0x80, 0x01,
+	0x0a, 0x11, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x46,
+	0x69, 0x6c, 0x65, 0x12, 0x2a, 0x0a, 0x06, 0x67, 0x69, 0x74, 0x6f, 0x70, 0x73, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x63, 0x66, 0x67, 0x2e, 0x47,
+	0x69, 0x74, 0x6f, 0x70, 0x73, 0x43, 0x46, 0x52, 0x06, 0x67, 0x69, 0x74, 0x6f, 0x70, 0x73, 0x12,
+	0x3f, 0x0a, 0x0d, 0x6f, 0x62, 0x73, 0x65, 0x72, 0x76, 0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x79,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x19, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x63, 0x66,
+	0x67, 0x2e, 0x4f, 0x62, 0x73, 0x65, 0x72, 0x76, 0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x79, 0x43,
+	0x46, 0x52, 0x0d, 0x6f, 0x62, 0x73, 0x65, 0x72, 0x76, 0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x79,
+	0x22, 0x81, 0x01, 0x0a, 0x12, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67,
+	0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x2a, 0x0a, 0x06, 0x67, 0x69, 0x74, 0x6f, 0x70,
+	0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x63,
+	0x66, 0x67, 0x2e, 0x47, 0x69, 0x74, 0x6f, 0x70, 0x73, 0x43, 0x46, 0x52, 0x06, 0x67, 0x69, 0x74,
+	0x6f, 0x70, 0x73, 0x12, 0x3f, 0x0a, 0x0d, 0x6f, 0x62, 0x73, 0x65, 0x72, 0x76, 0x61, 0x62, 0x69,
+	0x6c, 0x69, 0x74, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x19, 0x2e, 0x61, 0x67, 0x65,
+	0x6e, 0x74, 0x63, 0x66, 0x67, 0x2e, 0x4f, 0x62, 0x73, 0x65, 0x72, 0x76, 0x61, 0x62, 0x69, 0x6c,
+	0x69, 0x74, 0x79, 0x43, 0x46, 0x52, 0x0d, 0x6f, 0x62, 0x73, 0x65, 0x72, 0x76, 0x61, 0x62, 0x69,
+	0x6c, 0x69, 0x74, 0x79, 0x42, 0x45, 0x5a, 0x43, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x63,
+	0x6f, 0x6d, 0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2d, 0x6f, 0x72, 0x67, 0x2f, 0x63, 0x6c,
+	0x75, 0x73, 0x74, 0x65, 0x72, 0x2d, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x72, 0x61, 0x74, 0x69, 0x6f,
+	0x6e, 0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2d, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2f, 0x70,
+	0x6b, 0x67, 0x2f, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x63, 0x66, 0x67, 0x62, 0x06, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x33,
 }
 
 var (
@@ -351,25 +476,30 @@ func file_pkg_agentcfg_agentcfg_proto_rawDescGZIP() []byte {
 	return file_pkg_agentcfg_agentcfg_proto_rawDescData
 }
 
-var file_pkg_agentcfg_agentcfg_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_pkg_agentcfg_agentcfg_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_pkg_agentcfg_agentcfg_proto_goTypes = []interface{}{
 	(*ResourceFilterCF)(nil),   // 0: agentcfg.ResourceFilterCF
 	(*ManifestProjectCF)(nil),  // 1: agentcfg.ManifestProjectCF
 	(*GitopsCF)(nil),           // 2: agentcfg.GitopsCF
-	(*ConfigurationFile)(nil),  // 3: agentcfg.ConfigurationFile
-	(*AgentConfiguration)(nil), // 4: agentcfg.AgentConfiguration
+	(*ObservabilityCF)(nil),    // 3: agentcfg.ObservabilityCF
+	(*LoggingCF)(nil),          // 4: agentcfg.LoggingCF
+	(*ConfigurationFile)(nil),  // 5: agentcfg.ConfigurationFile
+	(*AgentConfiguration)(nil), // 6: agentcfg.AgentConfiguration
 }
 var file_pkg_agentcfg_agentcfg_proto_depIdxs = []int32{
 	0, // 0: agentcfg.ManifestProjectCF.resource_inclusions:type_name -> agentcfg.ResourceFilterCF
 	0, // 1: agentcfg.ManifestProjectCF.resource_exclusions:type_name -> agentcfg.ResourceFilterCF
 	1, // 2: agentcfg.GitopsCF.manifest_projects:type_name -> agentcfg.ManifestProjectCF
-	2, // 3: agentcfg.ConfigurationFile.gitops:type_name -> agentcfg.GitopsCF
-	2, // 4: agentcfg.AgentConfiguration.gitops:type_name -> agentcfg.GitopsCF
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	4, // 3: agentcfg.ObservabilityCF.logging:type_name -> agentcfg.LoggingCF
+	2, // 4: agentcfg.ConfigurationFile.gitops:type_name -> agentcfg.GitopsCF
+	3, // 5: agentcfg.ConfigurationFile.observability:type_name -> agentcfg.ObservabilityCF
+	2, // 6: agentcfg.AgentConfiguration.gitops:type_name -> agentcfg.GitopsCF
+	3, // 7: agentcfg.AgentConfiguration.observability:type_name -> agentcfg.ObservabilityCF
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_pkg_agentcfg_agentcfg_proto_init() }
@@ -415,7 +545,7 @@ func file_pkg_agentcfg_agentcfg_proto_init() {
 			}
 		}
 		file_pkg_agentcfg_agentcfg_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ConfigurationFile); i {
+			switch v := v.(*ObservabilityCF); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -427,6 +557,30 @@ func file_pkg_agentcfg_agentcfg_proto_init() {
 			}
 		}
 		file_pkg_agentcfg_agentcfg_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*LoggingCF); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_pkg_agentcfg_agentcfg_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ConfigurationFile); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_pkg_agentcfg_agentcfg_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AgentConfiguration); i {
 			case 0:
 				return &v.state
@@ -445,7 +599,7 @@ func file_pkg_agentcfg_agentcfg_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_pkg_agentcfg_agentcfg_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

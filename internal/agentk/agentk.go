@@ -9,10 +9,10 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/cache"
 	"github.com/argoproj/gitops-engine/pkg/engine"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
-	"gitlab.com/gitlab-org/labkit/log"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -24,22 +24,34 @@ import (
 )
 
 const (
-	defaultRefreshConfigurationRetryPeriod    = 10 * time.Second
-	defaultGetObjectsToSynchronizeRetryPeriod = 10 * time.Second
-
 	defaultNamespace = metav1.NamespaceDefault
+
+	DefaultLogLevel = zap.InfoLevel
 )
 
 type GitOpsEngineFactory interface {
 	New(...cache.UpdateSettingsFunc) engine.GitOpsEngine
 }
 
+type Config struct {
+	Log                                *zap.Logger
+	LogLevel                           zap.AtomicLevel
+	KasClient                          agentrpc.KasClient
+	EngineFactory                      GitOpsEngineFactory
+	K8sClientGetter                    resource.RESTClientGetter
+	RefreshConfigurationRetryPeriod    time.Duration
+	GetObjectsToSynchronizeRetryPeriod time.Duration
+}
+
 type Agent struct {
-	kasClient                       agentrpc.KasClient
-	engineFactory                   GitOpsEngineFactory
-	k8sClientGetter                 resource.RESTClientGetter
-	workers                         map[string]*gitopsWorkerHolder // project id -> worker holder instance
-	refreshConfigurationRetryPeriod time.Duration
+	log                                *zap.Logger
+	logLevel                           zap.AtomicLevel
+	kasClient                          agentrpc.KasClient
+	engineFactory                      GitOpsEngineFactory
+	k8sClientGetter                    resource.RESTClientGetter
+	refreshConfigurationRetryPeriod    time.Duration
+	getObjectsToSynchronizeRetryPeriod time.Duration
+	workers                            map[string]*gitopsWorkerHolder // project id -> worker holder instance
 }
 
 type gitopsWorkerHolder struct {
@@ -48,13 +60,16 @@ type gitopsWorkerHolder struct {
 	stop   context.CancelFunc
 }
 
-func New(kasClient agentrpc.KasClient, engineFactory GitOpsEngineFactory, k8sClientGetter resource.RESTClientGetter) *Agent {
+func New(config Config) *Agent {
 	return &Agent{
-		kasClient:                       kasClient,
-		engineFactory:                   engineFactory,
-		k8sClientGetter:                 k8sClientGetter,
-		workers:                         make(map[string]*gitopsWorkerHolder),
-		refreshConfigurationRetryPeriod: defaultRefreshConfigurationRetryPeriod,
+		log:                                config.Log,
+		logLevel:                           config.LogLevel,
+		kasClient:                          config.KasClient,
+		engineFactory:                      config.EngineFactory,
+		k8sClientGetter:                    config.K8sClientGetter,
+		refreshConfigurationRetryPeriod:    config.RefreshConfigurationRetryPeriod,
+		getObjectsToSynchronizeRetryPeriod: config.GetObjectsToSynchronizeRetryPeriod,
+		workers:                            make(map[string]*gitopsWorkerHolder),
 	}
 }
 
@@ -83,7 +98,7 @@ func (a *Agent) refreshConfiguration() func(context.Context) {
 		}
 		res, err := a.kasClient.GetConfiguration(ctx, req)
 		if err != nil {
-			log.WithError(err).Warn("GetConfiguration failed")
+			a.log.Warn("GetConfiguration failed", zap.Error(err))
 			return
 		}
 		for {
@@ -94,30 +109,45 @@ func (a *Agent) refreshConfiguration() func(context.Context) {
 				case status.Code(err) == codes.DeadlineExceeded:
 				case status.Code(err) == codes.Canceled:
 				default:
-					log.WithError(err).Warn("GetConfiguration.Recv failed")
+					a.log.Warn("GetConfiguration.Recv failed", zap.Error(err))
 				}
 				return
 			}
 			lastProcessedCommitId = config.CommitId
+			applyDefaultsToConfiguration(config.Configuration)
 			err = a.applyConfiguration(config.Configuration)
 			if err != nil {
-				log.WithError(err).Error("Failed to apply configuration")
+				a.log.Error("Failed to apply configuration", zap.Error(err))
+				continue
 			}
 		}
 	}
 }
 
 func (a *Agent) applyConfiguration(config *agentcfg.AgentConfiguration) error {
-	log.WithField("config", config).Debug("Applying configuration")
-	err := a.applyGitOpsConfiguration(config.Gitops)
+	a.log.Debug("Applying configuration", agentConfig(config))
+	err := a.applyObservabilityConfiguration(config.Observability) // Should be called first to configure logging ASAP
+	if err != nil {
+		return fmt.Errorf("logging: %v", err)
+	}
+	err = a.applyGitOpsConfiguration(config.Gitops)
 	if err != nil {
 		return fmt.Errorf("gitops: %v", err)
 	}
 	return nil
 }
 
+func (a *Agent) applyObservabilityConfiguration(obs *agentcfg.ObservabilityCF) error {
+	level, err := logz.LevelFromString(obs.Logging.Level)
+	if err != nil {
+		return err
+	}
+	a.logLevel.SetLevel(level)
+	return nil
+}
+
 func (a *Agent) applyGitOpsConfiguration(gitops *agentcfg.GitopsCF) error {
-	err := a.configureWorkers(gitops.GetManifestProjects())
+	err := a.configureWorkers(gitops.ManifestProjects)
 	if err != nil {
 		return fmt.Errorf("manifest projects: %v", err)
 	}
@@ -134,10 +164,8 @@ func (a *Agent) configureWorkers(projects []*agentcfg.ManifestProjectCF) error {
 	// Collect projects without workers or with updated configuration.
 	for _, project := range projects {
 		if newSetOfProjects.Has(project.Id) {
-			log.WithField(api.ProjectId, project.Id).Error()
 			return fmt.Errorf("duplicate project id: %s", project.Id)
 		}
-		applyDefaultsToManifestProject(project)
 		newSetOfProjects.Insert(project.Id)
 		workerHolder := a.workers[project.Id]
 		if workerHolder == nil { // New project added
@@ -147,7 +175,7 @@ func (a *Agent) configureWorkers(projects []*agentcfg.ManifestProjectCF) error {
 				// Worker's configuration hasn't changed, nothing to do here
 				continue
 			}
-			log.WithField(api.ProjectId, project.Id).Info("Configuration has been updated, restarting synchronization worker")
+			a.log.Info("Configuration has been updated, restarting synchronization worker", logz.ProjectId(project.Id))
 			workersToStop = append(workersToStop, workerHolder)
 			projectsToStartWorkersFor = append(projectsToStartWorkersFor, project)
 		}
@@ -164,7 +192,7 @@ func (a *Agent) configureWorkers(projects []*agentcfg.ManifestProjectCF) error {
 	// Tell workers that should be stopped to stop.
 	for _, workerHolder := range workersToStop {
 		projectId := workerHolder.worker.projectConfiguration.Id
-		log.WithField(api.ProjectId, projectId).Info("Stopping synchronization worker")
+		a.log.Info("Stopping synchronization worker", logz.ProjectId(projectId))
 		workerHolder.stop()
 		delete(a.workers, projectId)
 	}
@@ -172,7 +200,7 @@ func (a *Agent) configureWorkers(projects []*agentcfg.ManifestProjectCF) error {
 	// Wait for stopped workers to finish.
 	for _, workerHolder := range workersToStop {
 		projectId := workerHolder.worker.projectConfiguration.Id
-		log.WithField(api.ProjectId, projectId).Info("Waiting for synchronization worker to stop")
+		a.log.Info("Waiting for synchronization worker to stop", logz.ProjectId(projectId))
 		workerHolder.wg.Wait()
 	}
 
@@ -184,14 +212,14 @@ func (a *Agent) configureWorkers(projects []*agentcfg.ManifestProjectCF) error {
 }
 
 func (a *Agent) startNewWorker(project *agentcfg.ManifestProjectCF) {
-	logger := log.WithField(api.ProjectId, project.Id)
-	logger.Info("Starting synchronization worker")
+	l := a.log.With(logz.ProjectId(project.Id))
+	l.Info("Starting synchronization worker")
 	worker := &gitopsWorker{
 		kasClient:                          a.kasClient,
 		engineFactory:                      a.engineFactory,
-		getObjectsToSynchronizeRetryPeriod: defaultGetObjectsToSynchronizeRetryPeriod,
+		getObjectsToSynchronizeRetryPeriod: a.getObjectsToSynchronizeRetryPeriod,
 		synchronizerConfig: synchronizerConfig{
-			log:                  logger,
+			log:                  l,
 			projectConfiguration: project,
 			k8sClientGetter:      a.k8sClientGetter,
 		},
@@ -213,8 +241,28 @@ func (f *DefaultGitOpsEngineFactory) New(opts ...cache.UpdateSettingsFunc) engin
 	return engine.NewEngine(f.KubeClientConfig, cache.NewClusterCache(f.KubeClientConfig, opts...))
 }
 
+func applyDefaultsToConfiguration(config *agentcfg.AgentConfiguration) {
+	if config.Observability == nil {
+		config.Observability = &agentcfg.ObservabilityCF{}
+	}
+	if config.Observability.Logging == nil {
+		config.Observability.Logging = &agentcfg.LoggingCF{}
+	}
+	defaultString(&config.Observability.Logging.Level, DefaultLogLevel.String())
+	if config.Gitops == nil {
+		config.Gitops = &agentcfg.GitopsCF{}
+	}
+	for _, project := range config.Gitops.ManifestProjects {
+		applyDefaultsToManifestProject(project)
+	}
+}
+
 func applyDefaultsToManifestProject(project *agentcfg.ManifestProjectCF) {
-	if project.DefaultNamespace == "" {
-		project.DefaultNamespace = defaultNamespace
+	defaultString(&project.DefaultNamespace, defaultNamespace)
+}
+
+func defaultString(s *string, defaultValue string) {
+	if *s == "" {
+		*s = defaultValue
 	}
 }

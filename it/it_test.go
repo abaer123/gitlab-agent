@@ -17,6 +17,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/agentk/agentkapp"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kas/kasapp"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -51,6 +53,7 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 				AuthenticationSecretFile: kasAuthSecretFile,
 			},
 		},
+		Log: zaptest.NewLogger(t),
 	}
 	require.NoError(t, kasapp.ApplyDefaultsToKasConfigurationFile(ag.Configuration))
 	if websocket {
@@ -65,7 +68,10 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 	require.NoError(t, ioutil.WriteFile(agentkTokenFile, []byte(agentkToken), 0o644))
 	configFlags := genericclioptions.NewTestConfigFlags()
 	configFlags.WithClientConfig(getKubeConfig())
+	level := zap.NewAtomicLevelAt(zap.DebugLevel)
 	ak := agentkapp.App{
+		Log:             zaptest.NewLogger(t, zaptest.Level(level)),
+		LogLevel:        level,
 		KasAddress:      address,
 		TokenFile:       agentkTokenFile,
 		K8sClientGetter: configFlags,

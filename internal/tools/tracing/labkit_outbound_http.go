@@ -8,7 +8,8 @@ import (
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 	otlog "github.com/opentracing/opentracing-go/log"
-	logkit "gitlab.com/gitlab-org/labkit/log"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
+	"go.uber.org/zap"
 )
 
 type tracingRoundTripper struct {
@@ -47,7 +48,7 @@ func (c tracingRoundTripper) RoundTrip(req *http.Request) (res *http.Response, e
 	err := span.Tracer().Inject(span.Context(), opentracing.HTTPHeaders, carrier)
 
 	if err != nil {
-		logkit.ContextLogger(ctx).WithError(err).Error("tracing span injection failed")
+		c.config.log.Warn("tracing span injection failed", zap.Error(err), logz.CorrelationIdFromContext(ctx))
 	}
 
 	response, err := c.delegate.RoundTrip(req)

@@ -33,6 +33,8 @@ observability:
   sentry:
     dsn: ""
     environment: ""
+  logging:
+    level: info
 gitaly:
   global_api_rate_limit:
     refill_rate_per_second: 10.0

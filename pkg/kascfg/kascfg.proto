@@ -41,6 +41,11 @@ message TracingCF {
     string connection_string = 1 [json_name = "connection_string"];
 }
 
+message LoggingCF {
+    // Supported logging levels are: debug, info, warn, error.
+    string level = 1 [json_name = "level"];
+}
+
 message GitLabCF {
     string address = 1 [json_name = "address"];
     string authentication_secret_file = 2 [json_name = "authentication_secret_file"];
@@ -91,9 +96,9 @@ message ObservabilityCF {
     PrometheusCF prometheus = 3 [json_name = "prometheus"];
     TracingCF tracing = 4 [json_name = "tracing"];
     SentryCF sentry = 5 [json_name = "sentry"];
+    LoggingCF logging = 6 [json_name = "logging"];
     // TODO pprof
     // TODO Google profiler
-    // TODO Logging
 }
 
 // See https://pkg.go.dev/golang.org/x/time/rate#Limiter.

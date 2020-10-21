@@ -15,10 +15,11 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
-	"gitlab.com/gitlab-org/labkit/log"
+	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/yaml"
@@ -36,6 +37,7 @@ const (
 
 type ServerConfig struct {
 	Context                      context.Context
+	Log                          *zap.Logger
 	GitalyPool                   gitaly.PoolInterface
 	GitLabClient                 gitlab.ClientInterface
 	AgentConfigurationPollPeriod time.Duration
@@ -50,6 +52,7 @@ type Server struct {
 	// See https://github.com/golang/go/blob/95df156e6ac53f98efd6c57e4586c1dfb43066dd/src/sync/atomic/doc.go#L46-L54
 	usageMetrics                 usageMetrics
 	context                      context.Context
+	log                          *zap.Logger
 	gitalyPool                   gitaly.PoolInterface
 	gitLabClient                 gitlab.ClientInterface
 	agentConfigurationPollPeriod time.Duration
@@ -68,6 +71,7 @@ func NewServer(config ServerConfig) (*Server, func(), error) {
 	}
 	s := &Server{
 		context:                      config.Context,
+		log:                          config.Log,
 		gitalyPool:                   config.GitalyPool,
 		gitLabClient:                 config.GitLabClient,
 		agentConfigurationPollPeriod: config.AgentConfigurationPollPeriod,
@@ -100,22 +104,22 @@ func (s *Server) sendConfiguration(agentInfo *api.AgentInfo, lastProcessedCommit
 	p := gitaly.Poller{
 		GitalyPool: s.gitalyPool,
 	}
-	logger := log.WithField(api.AgentId, agentInfo.Id)
+	l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectPath(agentInfo.Repository.GlProjectPath))
 	ctx := stream.Context()
 	return func() (bool /*done*/, error) {
 		info, err := p.Poll(ctx, &agentInfo.GitalyInfo, &agentInfo.Repository, lastProcessedCommitId, gitaly.DefaultBranch)
 		if err != nil {
-			logger.WithError(err).Warn("Config: repository poll failed")
+			l.Warn("Config: repository poll failed", zap.Error(err))
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		if !info.UpdateAvailable {
-			logger.WithField(api.CommitId, lastProcessedCommitId).Debug("Config: no updates")
+			l.Debug("Config: no updates", logz.CommitId(lastProcessedCommitId))
 			return false, nil
 		}
-		logger.WithField(api.CommitId, info.CommitId).Info("Config: new commit")
+		l.Info("Config: new commit", logz.CommitId(info.CommitId))
 		config, err := s.fetchConfiguration(ctx, agentInfo, info.CommitId)
 		if err != nil {
-			logger.WithError(err).Warn("Config: failed to fetch")
+			l.Warn("Config: failed to fetch", zap.Error(err))
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		lastProcessedCommitId = info.CommitId
@@ -193,7 +197,7 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agent
 	p := gitaly.Poller{
 		GitalyPool: s.gitalyPool,
 	}
-	logger := log.WithField(api.AgentId, agentInfo.Id)
+	l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(projectId))
 	ctx := stream.Context()
 	return func() (bool /*done*/, error) {
 		// This call is made on each poll because:
@@ -201,23 +205,24 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agent
 		// - repository location in Gitaly might have changed
 		repoInfo, err := s.gitLabClient.GetProjectInfo(ctx, &agentInfo.Meta, projectId)
 		if err != nil {
-			logger.WithError(err).Warn("GitOps: failed to get project info")
+			l.Warn("GitOps: failed to get project info", zap.Error(err))
 			return false, nil // don't want to close the response stream, so report no error
 		}
+		l = l.With(logz.ProjectPath(repoInfo.Repository.GlRepository))
 		revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
 		info, err := p.Poll(ctx, &repoInfo.GitalyInfo, &repoInfo.Repository, lastProcessedCommitId, revision)
 		if err != nil {
-			logger.WithError(err).Warn("GitOps: repository poll failed")
+			l.Warn("GitOps: repository poll failed", zap.Error(err))
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		if !info.UpdateAvailable {
-			logger.WithField(api.CommitId, lastProcessedCommitId).Debug("GitOps: no updates")
+			l.Debug("GitOps: no updates", logz.CommitId(lastProcessedCommitId))
 			return false, nil
 		}
-		logger.WithField(api.CommitId, info.CommitId).Info("GitOps: new commit")
+		l.Info("GitOps: new commit", logz.CommitId(info.CommitId))
 		objects, err := s.fetchObjectsToSynchronize(ctx, repoInfo, info.CommitId)
 		if err != nil {
-			logger.WithError(err).Warn("GitOps: failed to get objects to synchronize")
+			l.Warn("GitOps: failed to get objects to synchronize", zap.Error(err))
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		lastProcessedCommitId = info.CommitId
@@ -263,7 +268,7 @@ func (s *Server) sendUsage(ctx context.Context) {
 			return
 		case <-ticker.C:
 			if err := s.sendUsageInternal(ctx); err != nil {
-				log.WithError(err).Error("Failed to send usage data")
+				s.log.Warn("Failed to send usage data", zap.Error(err))
 				s.sentry.CaptureException(err)
 			}
 		}
@@ -324,7 +329,8 @@ func parseYAMLToConfiguration(configYAML []byte) (*agentcfg.ConfigurationFile, e
 
 func extractAgentConfiguration(file *agentcfg.ConfigurationFile) *agentcfg.AgentConfiguration {
 	return &agentcfg.AgentConfiguration{
-		Gitops: file.Gitops,
+		Gitops:        file.Gitops,
+		Observability: file.Observability,
 	}
 }
 
