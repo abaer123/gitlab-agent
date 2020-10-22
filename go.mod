@@ -3,6 +3,7 @@ module gitlab.com/gitlab-org/cluster-integration/gitlab-agent
 go 1.15
 
 require (
+	cloud.google.com/go v0.70.0
 	github.com/FZambia/sentinel v1.1.0
 	github.com/argoproj/gitops-engine v0.1.3-0.20201013235340-a1dc4c598b93
 	github.com/ash2k/stager v0.2.0
@@ -10,7 +11,7 @@ require (
 	github.com/getsentry/sentry-go v0.7.0
 	github.com/go-logr/zapr v0.2.0
 	github.com/golang/mock v1.4.4
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.4.3
 	github.com/gomodule/redigo v1.8.2
 	github.com/google/go-cmp v0.5.2
 	github.com/gorilla/mux v1.8.0
@@ -30,7 +31,8 @@ require (
 	gitlab.com/gitlab-org/labkit v0.0.0-20201014124351-eb1fe6499318
 	go.uber.org/zap v1.10.0
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
-	golang.org/x/tools v0.0.0-20200823205832-c024452afbcd
+	golang.org/x/tools v0.0.0-20201017001424-6003fad69a88
+	google.golang.org/api v0.33.0
 	google.golang.org/grpc v1.33.0
 	google.golang.org/grpc/examples v0.0.0-20200828165940-d8ef479ab79a // indirect
 	google.golang.org/protobuf v1.25.0

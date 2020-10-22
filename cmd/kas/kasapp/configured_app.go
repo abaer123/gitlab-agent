@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"time"
 
+	"cloud.google.com/go/profiler"
 	"github.com/ash2k/stager"
 	"github.com/getsentry/sentry-go"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
@@ -33,6 +34,7 @@ import (
 	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
+	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/stats"
@@ -43,8 +45,9 @@ const (
 	authSecretLength      = 32
 	defaultMaxMessageSize = 10 * 1024 * 1024
 
-	correlationClientName = "gitlab-kas"
-	tracingServiceName    = "gitlab-kas"
+	correlationClientName     = "gitlab-kas"
+	tracingServiceName        = "gitlab-kas"
+	googleProfilerServiceName = "gitlab-kas"
 )
 
 type ConfiguredApp struct {
@@ -69,6 +72,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 
 	// Start things up
 	st := stager.New()
+	a.startGoogleProfiler(st)
 	a.startMetricsServer(st, gatherer)
 	a.startGrpcServer(st, reg, ssh, csh)
 	return st.Run(ctx)
@@ -96,6 +100,31 @@ func (a *ConfiguredApp) constructSentryHub() (sentryapi.Hub, error) {
 		return nil, err
 	}
 	return sentryapi.NewHub(c, sentry.NewScope()), nil
+}
+
+func (a *ConfiguredApp) startGoogleProfiler(st stager.Stager) {
+	cfg := a.Configuration.Observability.GoogleProfiler
+	if !cfg.Enabled {
+		return
+	}
+	stage := st.NextStage()
+	stage.Go(func(ctx context.Context) error {
+		config := profiler.Config{
+			Service:        googleProfilerServiceName,
+			ServiceVersion: cmd.Version,
+			MutexProfiling: true, // like in LabKit
+			ProjectID:      cfg.ProjectId,
+		}
+		var opts []option.ClientOption
+		if cfg.CredentialsFile != "" {
+			opts = append(opts, option.WithCredentialsFile(cfg.CredentialsFile))
+		}
+		err := profiler.Start(config, opts...)
+		if err != nil {
+			return fmt.Errorf("google profiler: %v", err)
+		}
+		return nil
+	})
 }
 
 func (a *ConfiguredApp) startMetricsServer(st stager.Stager, gatherer prometheus.Gatherer) {

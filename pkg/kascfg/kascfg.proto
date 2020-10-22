@@ -87,6 +87,12 @@ message AgentConfigurationCF {
     google.protobuf.Duration poll_period = 1 [json_name = "poll_period"];
 }
 
+message GoogleProfilerCF {
+    bool enabled = 1 [json_name = "enabled"];
+    string project_id = 2 [json_name = "project_id"];
+    string credentials_file = 3 [json_name = "credentials_file"];
+}
+
 message ObservabilityCF {
     // How often to send usage metrics to the main application. /api/v4/internal/kubernetes/usage_ping
     // Set to zero to disable.
@@ -97,8 +103,9 @@ message ObservabilityCF {
     TracingCF tracing = 4 [json_name = "tracing"];
     SentryCF sentry = 5 [json_name = "sentry"];
     LoggingCF logging = 6 [json_name = "logging"];
+    // Configuration for the Google Cloud Profiler. See https://pkg.go.dev/cloud.google.com/go/profiler.
+    GoogleProfilerCF google_profiler = 7 [json_name = "google_profiler"];
     // TODO pprof
-    // TODO Google profiler
 }
 
 // See https://pkg.go.dev/golang.org/x/time/rate#Limiter.
@@ -161,4 +168,3 @@ message ConfigurationFile {
     // Redis configurations available to kas
     RedisCF redis = 6 [json_name = "redis"];
 }
-
