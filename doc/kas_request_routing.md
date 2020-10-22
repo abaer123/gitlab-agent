@@ -100,7 +100,7 @@ sequenceDiagram
 
 Each `kas` instance keeps track of agents connected to it in Redis. For each agent it stores a serialized protobuf object with information about the agent. When an agent disconnects, `kas` removes all corresponding information from Redis. For both events `kas` publishes a notification to a [pub-sub channel](https://redis.io/topics/pubsub) in Redis.
 
-Each agent, while logically a single entity, can have multiple replicas (multiple `Pod`s) in a cluster. `kas` needs to accommodate for that and record per-replica (essentially per-connection) information.
+Each agent, while logically a single entity, can have multiple replicas (multiple `Pod`s) in a cluster. `kas` needs to accommodate for that and record per-replica (essentially per-connection) information. Each connection is given a unique identified that is used together with agent id to identify a particular `agentk` instance.
 
 gRPC can keep more than one tcp connection open for a single target host. When we say "connection" above, we mean an open `GetConfiguration()` streaming request, not a tcp connection. `agentk` only ever has at most one `GetConfiguration()` streaming request running and that is what `kas` cares about, it does not "see" idle tcp connections as that is handled by the gRPC framework.
 
@@ -141,15 +141,17 @@ message KasAddress {
 message ConnectedAgentInfo {
     // Agent id.
     int64 id = 1;
-    string version = 2;
-    string commit = 3;
+    // Identifies a particular agentk->kas connection. Randomly generated when agent connects.
+    int64 connection_id = 2;
+    string version = 3;
+    string commit = 4;
     // Pod namespace.
-    string pod_namespace = 4;
+    string pod_namespace = 5;
     // Pod name.
-    string pod_name = 5;
+    string pod_name = 6;
     // When the connection was established.
-    google.protobuf.Timestamp connected_at = 6;
-    KasAddress kas_address = 7;
+    google.protobuf.Timestamp connected_at = 7;
+    KasAddress kas_address = 8;
     // What else do we need?
 }
 
@@ -160,36 +162,52 @@ message KasInstanceInfo {
     // What else do we need?
 }
 
-message AgentsForProjectRequest {
+message ConnectedAgentsForProjectRequest {
     int64 project_id = 1;
 }
 
-message AgentsForProjectResponse {
+message ConnectedAgentsForProjectResponse {
     // There may 0 or more agents with the same id, depending on the number of running Pods.
     repeated ConnectedAgentInfo agents = 1;
 }
 
-message AgentsByIdRequest {
+message ConnectedAgentsByIdRequest {
     int64 agent_id = 1;
 }
 
-message AgentsByIdResponse {
+message ConnectedAgentsByIdResponse {
     repeated ConnectedAgentInfo agents = 1;
 }
 
 // API for use by GitLab.
 service KasApi {
     // Connected agents for a particular configuration project.
-    rpc AgentsForProject (AgentsForProjectRequest) returns (AgentsForProjectResponse) {
+    rpc ConnectedAgentsForProject (ConnectedAgentsForProjectRequest) returns (ConnectedAgentsForProjectResponse) {
     }
     // Connected agents for a particular agent id.
-    rpc AgentsById (AgentsByIdRequest) returns (AgentsByIdResponse) {
+    rpc ConnectedAgentsById (ConnectedAgentsByIdRequest) returns (ConnectedAgentsByIdResponse) {
     }
+}
+
+message Pod {
+    string namespace = 1;
+    string name = 2;
+}
+
+message GetPodsRequest {
+    int64 agent_id = 1;
+    int64 connection_id = 2;
+}
+
+message GetPodsResponse {
+    repeated Pod pods = 1;
 }
 
 // Internal API for use by kas for kas -> kas calls.
 service KasInternal {
-    // Depends on the need.
+    // Depends on the need, but here is the call from the example above.
+    rpc GetPods (GetPodsRequest) returns (GetPodsResponse) {
+    }
 }
 ```
 
