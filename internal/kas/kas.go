@@ -88,25 +88,27 @@ func (s *Server) Run(ctx context.Context) {
 
 func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream agentrpc.Kas_GetConfigurationServer) error {
 	ctx := joinDone(stream.Context(), s.context)
-	agentMeta := apiutil.AgentMetaFromContext(ctx)
-	agentInfo, err := s.gitLabClient.GetAgentInfo(ctx, agentMeta)
-	if err != nil {
-		return fmt.Errorf("GetAgentInfo(): %v", err)
-	}
-	err = wait.PollImmediateUntil(s.agentConfigurationPollPeriod, s.sendConfiguration(agentInfo, req.CommitId, stream), ctx.Done())
+	err := wait.PollImmediateUntil(s.agentConfigurationPollPeriod, s.sendConfiguration(ctx, req.CommitId, stream), ctx.Done())
 	if err == wait.ErrWaitTimeout {
 		return nil // all good, ctx is done
 	}
 	return err
 }
 
-func (s *Server) sendConfiguration(agentInfo *api.AgentInfo, lastProcessedCommitId string, stream agentrpc.Kas_GetConfigurationServer) wait.ConditionFunc {
+func (s *Server) sendConfiguration(ctx context.Context, lastProcessedCommitId string, stream agentrpc.Kas_GetConfigurationServer) wait.ConditionFunc {
 	p := gitaly.Poller{
 		GitalyPool: s.gitalyPool,
 	}
-	l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectPath(agentInfo.Repository.GlProjectPath))
-	ctx := stream.Context()
+	agentMeta := apiutil.AgentMetaFromContext(ctx)
 	return func() (bool /*done*/, error) {
+		// This call is made on each poll because:
+		// - it checks that the agent's token is still valid
+		// - repository location in Gitaly might have changed
+		agentInfo, err := s.gitLabClient.GetAgentInfo(ctx, agentMeta)
+		if err != nil {
+			return false, fmt.Errorf("GetAgentInfo(): %v", err) // TODO only disconnect on 403 401
+		}
+		l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectPath(agentInfo.Repository.GlProjectPath))
 		info, err := p.Poll(ctx, &agentInfo.GitalyInfo, &agentInfo.Repository, lastProcessedCommitId, gitaly.DefaultBranch)
 		if err != nil {
 			l.Warn("Config: repository poll failed", zap.Error(err))
@@ -184,21 +186,20 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 	agentMeta := apiutil.AgentMetaFromContext(ctx)
 	agentInfo, err := s.gitLabClient.GetAgentInfo(ctx, agentMeta)
 	if err != nil {
-		return fmt.Errorf("GetAgentInfo(): %v", err)
+		return fmt.Errorf("GetAgentInfo(): %v", err) // TODO set error code depending on the error type
 	}
-	err = wait.PollImmediateUntil(s.gitopsPollPeriod, s.sendObjectsToSynchronize(agentInfo, stream, req.ProjectId, req.CommitId), ctx.Done())
+	err = wait.PollImmediateUntil(s.gitopsPollPeriod, s.sendObjectsToSynchronize(ctx, agentInfo, stream, req.ProjectId, req.CommitId), ctx.Done())
 	if err == wait.ErrWaitTimeout {
 		return nil // all good, ctx is done
 	}
 	return err
 }
 
-func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agentrpc.Kas_GetObjectsToSynchronizeServer, projectId, lastProcessedCommitId string) wait.ConditionFunc {
+func (s *Server) sendObjectsToSynchronize(ctx context.Context, agentInfo *api.AgentInfo, stream agentrpc.Kas_GetObjectsToSynchronizeServer, projectId, lastProcessedCommitId string) wait.ConditionFunc {
 	p := gitaly.Poller{
 		GitalyPool: s.gitalyPool,
 	}
 	l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(projectId))
-	ctx := stream.Context()
 	return func() (bool /*done*/, error) {
 		// This call is made on each poll because:
 		// - it checks that the agent's token is still valid
