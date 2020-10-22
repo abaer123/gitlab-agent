@@ -170,6 +170,35 @@ func TestSendUsage(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestErrorCodes(t *testing.T) {
+	r := http.NewServeMux()
+	r.HandleFunc("/forbidden", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	})
+	r.HandleFunc("/unauthorized", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	})
+	s := httptest.NewServer(r)
+	defer s.Close()
+
+	u, err := url.Parse(s.URL)
+	require.NoError(t, err)
+	c := NewClient(u, []byte(authSecretKey), clientOptionsForTest()...)
+	meta := &api.AgentMeta{
+		Token: agentkToken,
+	}
+
+	u.Path = "/forbidden"
+	err = c.doJSON(context.Background(), http.MethodGet, meta, u, nil, nil)
+	require.Error(t, err)
+	assert.True(t, IsForbidden(err))
+
+	u.Path = "/unauthorized"
+	err = c.doJSON(context.Background(), http.MethodGet, meta, u, nil, nil)
+	require.Error(t, err)
+	assert.True(t, IsUnauthorized(err))
+}
+
 func respondWithJSON(t *testing.T, w http.ResponseWriter, response interface{}) {
 	data, err := json.Marshal(response)
 	if !assert.NoError(t, err) {

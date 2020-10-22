@@ -236,7 +236,12 @@ func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta,
 		return nil
 	case resp.StatusCode == http.StatusNoContent && response == nil:
 		return nil
-	case resp.StatusCode == http.StatusForbidden: // Invalid or revoked token
+	case resp.StatusCode == http.StatusUnauthorized: // No token, invalid token, revoked token
+		return &ClientError{
+			Kind:       ErrorKindUnauthorized,
+			StatusCode: http.StatusUnauthorized,
+		}
+	case resp.StatusCode == http.StatusForbidden: // Access denied
 		return &ClientError{
 			Kind:       ErrorKindForbidden,
 			StatusCode: http.StatusForbidden,
@@ -264,6 +269,7 @@ type ErrorKind int
 const (
 	ErrorKindOther ErrorKind = iota
 	ErrorKindForbidden
+	ErrorKindUnauthorized
 )
 
 type ClientError struct {
@@ -281,4 +287,28 @@ func IsForbidden(err error) bool {
 		return false
 	}
 	return e.Kind == ErrorKindForbidden
+}
+
+func IsUnauthorized(err error) bool {
+	var e *ClientError
+	if !errors.As(err, &e) {
+		return false
+	}
+	return e.Kind == ErrorKindUnauthorized
+}
+
+func IsClientError(err error) bool {
+	var e *ClientError
+	if !errors.As(err, &e) {
+		return false
+	}
+	return e.StatusCode >= 400 && e.StatusCode < 500
+}
+
+func IsServerError(err error) bool {
+	var e *ClientError
+	if !errors.As(err, &e) {
+		return false
+	}
+	return e.StatusCode >= 500 && e.StatusCode < 600
 }

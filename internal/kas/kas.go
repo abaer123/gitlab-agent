@@ -20,6 +20,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/yaml"
@@ -105,8 +107,15 @@ func (s *Server) sendConfiguration(ctx context.Context, lastProcessedCommitId st
 		// - it checks that the agent's token is still valid
 		// - repository location in Gitaly might have changed
 		agentInfo, err := s.gitLabClient.GetAgentInfo(ctx, agentMeta)
-		if err != nil {
-			return false, fmt.Errorf("GetAgentInfo(): %v", err) // TODO only disconnect on 403 401
+		switch {
+		case err == nil:
+		case gitlab.IsForbidden(err):
+			return false, status.Error(codes.PermissionDenied, "forbidden")
+		case gitlab.IsUnauthorized(err):
+			return false, status.Error(codes.Unauthenticated, "unauthenticated")
+		default:
+			s.log.Error("GetAgentInfo()", zap.Error(err))
+			return false, nil // don't want to close the response stream, so report no error
 		}
 		l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectPath(agentInfo.Repository.GlProjectPath))
 		info, err := p.Poll(ctx, &agentInfo.GitalyInfo, &agentInfo.Repository, lastProcessedCommitId, gitaly.DefaultBranch)
@@ -185,8 +194,15 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 	ctx := joinDone(stream.Context(), s.context)
 	agentMeta := apiutil.AgentMetaFromContext(ctx)
 	agentInfo, err := s.gitLabClient.GetAgentInfo(ctx, agentMeta)
-	if err != nil {
-		return fmt.Errorf("GetAgentInfo(): %v", err) // TODO set error code depending on the error type
+	switch {
+	case err == nil:
+	case gitlab.IsForbidden(err):
+		return status.Error(codes.PermissionDenied, "forbidden")
+	case gitlab.IsUnauthorized(err):
+		return status.Error(codes.Unauthenticated, "unauthenticated")
+	default:
+		s.log.Error("GetAgentInfo()", zap.Error(err))
+		return status.Error(codes.Unavailable, "unavailable")
 	}
 	err = wait.PollImmediateUntil(s.gitopsPollPeriod, s.sendObjectsToSynchronize(ctx, agentInfo, stream, req.ProjectId, req.CommitId), ctx.Done())
 	if err == wait.ErrWaitTimeout {
@@ -205,7 +221,13 @@ func (s *Server) sendObjectsToSynchronize(ctx context.Context, agentInfo *api.Ag
 		// - it checks that the agent's token is still valid
 		// - repository location in Gitaly might have changed
 		repoInfo, err := s.gitLabClient.GetProjectInfo(ctx, &agentInfo.Meta, projectId)
-		if err != nil {
+		switch {
+		case err == nil:
+		case gitlab.IsForbidden(err):
+			return false, status.Error(codes.PermissionDenied, "forbidden")
+		case gitlab.IsUnauthorized(err):
+			return false, status.Error(codes.Unauthenticated, "unauthenticated")
+		default:
 			l.Warn("GitOps: failed to get project info", zap.Error(err))
 			return false, nil // don't want to close the response stream, so report no error
 		}
