@@ -39,6 +39,8 @@ observability:
     enabled: false
     # project_id: ""
     # credentials_file: /some/file
+  pprof:
+    disabled: false
 gitaly:
   global_api_rate_limit:
     refill_rate_per_second: 10.0

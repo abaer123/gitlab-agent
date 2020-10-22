@@ -31,7 +31,6 @@ go_test(
         "//internal/api",
         "@com_github_dgrijalva_jwt_go_v4//:jwt-go",
         "@com_github_google_go_cmp//cmp",
-        "@com_github_gorilla_mux//:mux",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",

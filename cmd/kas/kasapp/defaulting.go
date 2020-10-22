@@ -96,15 +96,20 @@ func defaultObservability(o *kascfg.ObservabilityCF) {
 	protodefault.NotNil(&o.Listen)
 	protodefault.String(&o.Listen.Network, defaultPrometheusListenNetwork)
 	protodefault.String(&o.Listen.Address, defaultPrometheusListenAddress)
+
 	protodefault.NotNil(&o.Prometheus)
 	protodefault.String(&o.Prometheus.UrlPath, defaultPrometheusListenUrlPath)
+
 	protodefault.NotNil(&o.Tracing)
+
 	protodefault.NotNil(&o.Sentry)
 
 	protodefault.NotNil(&o.Logging)
 	protodefault.String(&o.Logging.Level, defaultLoggingLevel.String())
 
 	protodefault.NotNil(&o.GoogleProfiler)
+
+	protodefault.NotNil(&o.Pprof)
 }
 
 func defaultGitaly(g *kascfg.GitalyCF) {

@@ -73,7 +73,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 	// Start things up
 	st := stager.New()
 	a.startGoogleProfiler(st)
-	a.startMetricsServer(st, gatherer)
+	a.startMetricsServer(st, gatherer, reg)
 	a.startGrpcServer(st, reg, ssh, csh)
 	return st.Run(ctx)
 }
@@ -127,30 +127,37 @@ func (a *ConfiguredApp) startGoogleProfiler(st stager.Stager) {
 	})
 }
 
-func (a *ConfiguredApp) startMetricsServer(st stager.Stager, gatherer prometheus.Gatherer) {
-	obsCfg := a.Configuration.Observability
-	if obsCfg.Prometheus.Disabled {
+func (a *ConfiguredApp) startMetricsServer(st stager.Stager, gatherer prometheus.Gatherer, registerer prometheus.Registerer) {
+	cfg := a.Configuration.Observability
+	if cfg.Prometheus.Disabled && cfg.Pprof.Disabled {
 		return
+	}
+	if cfg.Prometheus.Disabled {
+		// Do not expose Prometheus if it is disabled
+		gatherer = nil
+		registerer = nil
 	}
 	stage := st.NextStage()
 	stage.Go(func(ctx context.Context) error {
-		lis, err := net.Listen(obsCfg.Listen.Network, obsCfg.Listen.Address)
+		lis, err := net.Listen(cfg.Listen.Network, cfg.Listen.Address)
 		if err != nil {
 			return err
 		}
 		defer lis.Close() // nolint: errcheck
 
-		a.Log.Info("Listening for Prometheus connections",
+		a.Log.Info(fmt.Sprintf("Observability endpoint is up. Prometheus enabled: %t, pprof enabled: %t", !cfg.Prometheus.Disabled, !cfg.Pprof.Disabled),
 			logz.NetNetworkFromAddr(lis.Addr()),
 			logz.NetAddressFromAddr(lis.Addr()),
-			logz.UrlPath(obsCfg.Prometheus.UrlPath),
+			logz.UrlPath(cfg.Prometheus.UrlPath),
 		)
 
 		metricSrv := &metric.Server{
-			Name:     kasUserAgent(),
-			Listener: lis,
-			UrlPath:  obsCfg.Prometheus.UrlPath,
-			Gatherer: gatherer,
+			Name:          kasUserAgent(),
+			Listener:      lis,
+			UrlPath:       cfg.Prometheus.UrlPath,
+			Gatherer:      gatherer,
+			Registerer:    registerer,
+			PprofDisabled: cfg.Pprof.Disabled,
 		}
 		return metricSrv.Run(ctx)
 	})
