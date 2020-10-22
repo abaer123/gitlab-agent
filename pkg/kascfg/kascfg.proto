@@ -93,6 +93,10 @@ message GoogleProfilerCF {
     string credentials_file = 3 [json_name = "credentials_file"];
 }
 
+message PprofCF {
+    bool disabled = 1 [json_name = "disabled"];
+}
+
 message ObservabilityCF {
     // How often to send usage metrics to the main application. /api/v4/internal/kubernetes/usage_ping
     // Set to zero to disable.
@@ -105,7 +109,7 @@ message ObservabilityCF {
     LoggingCF logging = 6 [json_name = "logging"];
     // Configuration for the Google Cloud Profiler. See https://pkg.go.dev/cloud.google.com/go/profiler.
     GoogleProfilerCF google_profiler = 7 [json_name = "google_profiler"];
-    // TODO pprof
+    PprofCF pprof = 8 [json_name = "pprof"];
 }
 
 // See https://pkg.go.dev/golang.org/x/time/rate#Limiter.

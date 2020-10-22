@@ -13,7 +13,6 @@ import (
 
 	"github.com/dgrijalva/jwt-go/v4"
 	"github.com/google/go-cmp/cmp"
-	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
@@ -55,8 +54,9 @@ func TestGetAgentInfo(t *testing.T) {
 			GlProjectPath: "64662",
 		},
 	}
-	r := mux.NewRouter()
-	r.Methods(http.MethodGet).Path(agentInfoApiPath).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	r := http.NewServeMux()
+	r.HandleFunc(agentInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
 		if !assertGetRequestIsCorrect(t, w, r, correlationId) {
 			return
 		}
@@ -104,8 +104,9 @@ func TestGetProjectInfo(t *testing.T) {
 			GlProjectPath: "64662",
 		},
 	}
-	r := mux.NewRouter()
-	r.Methods(http.MethodGet).Path(projectInfoApiPath).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	r := http.NewServeMux()
+	r.HandleFunc(projectInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
 		if !assertGetRequestIsCorrect(t, w, r, correlationId) {
 			return
 		}
@@ -135,8 +136,9 @@ func TestSendUsage(t *testing.T) {
 	usageData := UsageData{
 		GitopsSyncCount: 123,
 	}
-	r := mux.NewRouter()
-	r.Methods(http.MethodPost).Path(usagePingApiPath).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	r := http.NewServeMux()
+	r.HandleFunc(usagePingApiPath, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
 		assertCommonRequestParams(t, r, correlationId)
 		if !assertJWTSignature(t, w, r) {
 			return
