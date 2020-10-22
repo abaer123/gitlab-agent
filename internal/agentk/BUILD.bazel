@@ -15,6 +15,7 @@ go_library(
     deps = [
         "//internal/agentrpc",
         "//internal/tools/logz",
+        "//internal/tools/protodefault",
         "//internal/tools/retry",
         "//pkg/agentcfg",
         "@com_github_argoproj_gitops_engine//pkg/cache",

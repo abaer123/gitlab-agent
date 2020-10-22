@@ -10,6 +10,7 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/engine"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/protodefault"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
@@ -242,27 +243,15 @@ func (f *DefaultGitOpsEngineFactory) New(opts ...cache.UpdateSettingsFunc) engin
 }
 
 func applyDefaultsToConfiguration(config *agentcfg.AgentConfiguration) {
-	if config.Observability == nil {
-		config.Observability = &agentcfg.ObservabilityCF{}
-	}
-	if config.Observability.Logging == nil {
-		config.Observability.Logging = &agentcfg.LoggingCF{}
-	}
-	defaultString(&config.Observability.Logging.Level, DefaultLogLevel.String())
-	if config.Gitops == nil {
-		config.Gitops = &agentcfg.GitopsCF{}
-	}
+	protodefault.NotNil(&config.Observability)
+	protodefault.NotNil(&config.Observability.Logging)
+	protodefault.String(&config.Observability.Logging.Level, DefaultLogLevel.String())
+	protodefault.NotNil(&config.Gitops)
 	for _, project := range config.Gitops.ManifestProjects {
 		applyDefaultsToManifestProject(project)
 	}
 }
 
 func applyDefaultsToManifestProject(project *agentcfg.ManifestProjectCF) {
-	defaultString(&project.DefaultNamespace, defaultNamespace)
-}
-
-func defaultString(s *string, defaultValue string) {
-	if *s == "" {
-		*s = defaultValue
-	}
+	protodefault.String(&project.DefaultNamespace, defaultNamespace)
 }

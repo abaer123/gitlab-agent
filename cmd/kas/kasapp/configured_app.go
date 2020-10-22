@@ -11,7 +11,6 @@ import (
 
 	"github.com/ash2k/stager"
 	"github.com/getsentry/sentry-go"
-	"github.com/golang/protobuf/ptypes/duration"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/opentracing/opentracing-go"
@@ -37,46 +36,12 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/stats"
-	"google.golang.org/protobuf/types/known/durationpb"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
 	authSecretLength      = 32
 	defaultMaxMessageSize = 10 * 1024 * 1024
-
-	defaultListenNetwork = "tcp"
-	defaultListenAddress = "127.0.0.1:8150"
-	defaultGitLabAddress = "http://localhost:8080"
-
-	defaultAgentConfigurationPollPeriod = 20 * time.Second
-
-	defaultAgentInfoCacheTTL      = 5 * time.Minute
-	defaultAgentInfoCacheErrorTTL = 1 * time.Minute
-
-	defaultAgentLimitsRedisKeyPrefix               = "kas:agent_limits"
-	defaultAgentLimitsConnectionsPerTokenPerMinute = 100
-
-	defaultGitOpsPollPeriod               = 20 * time.Second
-	defaultGitOpsProjectInfoCacheTTL      = 5 * time.Minute
-	defaultGitOpsProjectInfoCacheErrorTTL = 1 * time.Minute
-
-	defaultUsageReportingPeriod    = 1 * time.Minute
-	defaultPrometheusListenNetwork = "tcp"
-	defaultPrometheusListenAddress = "127.0.0.1:8151"
-	defaultPrometheusListenUrlPath = "/metrics"
-	defaultLoggingLevel            = zap.InfoLevel
-
-	defaultGitalyGlobalApiRefillRate    float64 = 10.0 // type matches protobuf type from kascfg.TokenBucketRateLimitCF
-	defaultGitalyGlobalApiBucketSize    int32   = 50   // type matches protobuf type from kascfg.TokenBucketRateLimitCF
-	defaultGitalyPerServerApiRate       float64 = 5.0  // type matches protobuf type from kascfg.TokenBucketRateLimitCF
-	defaultGitalyPerServerApiBucketSize int32   = 10   // type matches protobuf type from kascfg.TokenBucketRateLimitCF
-
-	defaultRedisMaxIdle      = 1
-	defaultRedisMaxActive    = 1
-	defaultRedisReadTimeout  = 1 * time.Second
-	defaultRedisWriteTimeout = 1 * time.Second
-	defaultRedisKeepAlive    = 5 * time.Minute
 
 	correlationClientName = "gitlab-kas"
 	tracingServiceName    = "gitlab-kas"
@@ -339,90 +304,6 @@ func (a *ConfiguredApp) loadAuthSecret() ([]byte, error) {
 	return decodedAuthSecret, nil
 }
 
-func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) error {
-	if cfg.Listen == nil {
-		cfg.Listen = &kascfg.ListenCF{}
-	}
-	defaultString(&cfg.Listen.Network, defaultListenNetwork)
-	defaultString(&cfg.Listen.Address, defaultListenAddress)
-	if cfg.Gitlab == nil {
-		cfg.Gitlab = &kascfg.GitLabCF{}
-	}
-	defaultString(&cfg.Gitlab.Address, defaultGitLabAddress)
-	if cfg.Agent == nil {
-		cfg.Agent = &kascfg.AgentCF{}
-	}
-	if cfg.Agent.Configuration == nil {
-		cfg.Agent.Configuration = &kascfg.AgentConfigurationCF{}
-	}
-	defaultDuration(&cfg.Agent.Configuration.PollPeriod, defaultAgentConfigurationPollPeriod)
-	if cfg.Agent.Gitops == nil {
-		cfg.Agent.Gitops = &kascfg.GitopsCF{}
-	}
-	defaultDuration(&cfg.Agent.Gitops.PollPeriod, defaultGitOpsPollPeriod)
-	defaultDuration(&cfg.Agent.Gitops.ProjectInfoCacheTtl, defaultGitOpsProjectInfoCacheTTL)
-	defaultDuration(&cfg.Agent.Gitops.ProjectInfoCacheErrorTtl, defaultGitOpsProjectInfoCacheErrorTTL)
-
-	defaultDuration(&cfg.Agent.InfoCacheTtl, defaultAgentInfoCacheTTL)
-	defaultDuration(&cfg.Agent.InfoCacheErrorTtl, defaultAgentInfoCacheErrorTTL)
-
-	if cfg.Agent.Limits == nil {
-		cfg.Agent.Limits = &kascfg.AgentLimitsCF{}
-	}
-	defaultString(&cfg.Agent.Limits.RedisKeyPrefix, defaultAgentLimitsRedisKeyPrefix)
-	defaultUint32(&cfg.Agent.Limits.ConnectionsPerTokenPerMinute, defaultAgentLimitsConnectionsPerTokenPerMinute)
-
-	if cfg.Observability == nil {
-		cfg.Observability = &kascfg.ObservabilityCF{}
-	}
-	defaultDuration(&cfg.Observability.UsageReportingPeriod, defaultUsageReportingPeriod)
-	if cfg.Observability.Listen == nil {
-		cfg.Observability.Listen = &kascfg.ObservabilityListenCF{}
-	}
-	defaultString(&cfg.Observability.Listen.Network, defaultPrometheusListenNetwork)
-	defaultString(&cfg.Observability.Listen.Address, defaultPrometheusListenAddress)
-	if cfg.Observability.Prometheus == nil {
-		cfg.Observability.Prometheus = &kascfg.PrometheusCF{}
-	}
-	defaultString(&cfg.Observability.Prometheus.UrlPath, defaultPrometheusListenUrlPath)
-	if cfg.Observability.Sentry == nil {
-		cfg.Observability.Sentry = &kascfg.SentryCF{}
-	}
-
-	if cfg.Observability.Tracing == nil {
-		cfg.Observability.Tracing = &kascfg.TracingCF{}
-	}
-
-	if cfg.Observability.Logging == nil {
-		cfg.Observability.Logging = &kascfg.LoggingCF{}
-	}
-	defaultString(&cfg.Observability.Logging.Level, defaultLoggingLevel.String())
-
-	if cfg.Gitaly == nil {
-		cfg.Gitaly = &kascfg.GitalyCF{}
-	}
-	if cfg.Gitaly.GlobalApiRateLimit == nil {
-		cfg.Gitaly.GlobalApiRateLimit = &kascfg.TokenBucketRateLimitCF{}
-	}
-	defaultFloat64(&cfg.Gitaly.GlobalApiRateLimit.RefillRatePerSecond, defaultGitalyGlobalApiRefillRate)
-	defaultInt32(&cfg.Gitaly.GlobalApiRateLimit.BucketSize, defaultGitalyGlobalApiBucketSize)
-	if cfg.Gitaly.PerServerApiRateLimit == nil {
-		cfg.Gitaly.PerServerApiRateLimit = &kascfg.TokenBucketRateLimitCF{}
-	}
-	defaultFloat64(&cfg.Gitaly.PerServerApiRateLimit.RefillRatePerSecond, defaultGitalyPerServerApiRate)
-	defaultInt32(&cfg.Gitaly.PerServerApiRateLimit.BucketSize, defaultGitalyPerServerApiBucketSize)
-
-	if cfg.Redis != nil {
-		defaultInt32(&cfg.Redis.MaxIdle, defaultRedisMaxIdle)
-		defaultInt32(&cfg.Redis.MaxActive, defaultRedisMaxActive)
-		defaultDuration(&cfg.Redis.ReadTimeout, defaultRedisReadTimeout)
-		defaultDuration(&cfg.Redis.WriteTimeout, defaultRedisWriteTimeout)
-		defaultDuration(&cfg.Redis.Keepalive, defaultRedisKeepAlive)
-	}
-
-	return nil
-}
-
 func constructGitalyPool(g *kascfg.GitalyCF, csh stats.Handler, tracer opentracing.Tracer, userAgent string) *client.Pool {
 	globalGitalyRpcLimiter := rate.NewLimiter(
 		rate.Limit(g.GlobalApiRateLimit.RefillRatePerSecond),
@@ -459,34 +340,4 @@ func constructGitalyPool(g *kascfg.GitalyCF, csh stats.Handler, tracer opentraci
 			return client.DialContext(ctx, address, opts)
 		}),
 	)
-}
-
-func defaultDuration(d **duration.Duration, defaultValue time.Duration) {
-	if *d == nil {
-		*d = durationpb.New(defaultValue)
-	}
-}
-
-func defaultString(s *string, defaultValue string) {
-	if *s == "" {
-		*s = defaultValue
-	}
-}
-
-func defaultFloat64(s *float64, defaultValue float64) {
-	if *s == 0 {
-		*s = defaultValue
-	}
-}
-
-func defaultInt32(s *int32, defaultValue int32) {
-	if *s == 0 {
-		*s = defaultValue
-	}
-}
-
-func defaultUint32(d *uint32, defaultValue uint32) {
-	if *d == 0 {
-		*d = defaultValue
-	}
 }

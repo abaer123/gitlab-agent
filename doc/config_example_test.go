@@ -20,8 +20,7 @@ const (
 
 func TestExampleConfigHasCorrectDefaults(t *testing.T) {
 	cfgDefaulted := &kascfg.ConfigurationFile{}
-	err := kasapp.ApplyDefaultsToKasConfigurationFile(cfgDefaulted)
-	require.NoError(t, err)
+	kasapp.ApplyDefaultsToKasConfigurationFile(cfgDefaulted)
 
 	cfgFromFile, err := kasapp.LoadConfigurationFile(kasConfigExampleFile)
 	if assert.NoError(t, err) {

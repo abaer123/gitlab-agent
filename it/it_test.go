@@ -55,7 +55,7 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 		},
 		Log: zaptest.NewLogger(t),
 	}
-	require.NoError(t, kasapp.ApplyDefaultsToKasConfigurationFile(ag.Configuration))
+	kasapp.ApplyDefaultsToKasConfigurationFile(ag.Configuration)
 	if websocket {
 		address = "ws://" + address
 	} else {
