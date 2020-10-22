@@ -35,6 +35,10 @@ observability:
     environment: ""
   logging:
     level: info
+  google_profiler:
+    enabled: false
+    # project_id: ""
+    # credentials_file: /some/file
 gitaly:
   global_api_rate_limit:
     refill_rate_per_second: 10.0
