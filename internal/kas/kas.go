@@ -37,7 +37,7 @@ const (
 	agentConfigurationFileName  = "config.yaml"
 )
 
-type ServerConfig struct {
+type Config struct {
 	Log                          *zap.Logger
 	GitalyPool                   gitaly.PoolInterface
 	GitLabClient                 gitlab.ClientInterface
@@ -61,7 +61,7 @@ type Server struct {
 	sentry                       sentryapi.Hub
 }
 
-func NewServer(config ServerConfig) (*Server, func(), error) {
+func NewServer(config Config) (*Server, func(), error) {
 	toRegister := []prometheus.Collector{
 		// TODO add actual metrics
 	}

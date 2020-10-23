@@ -588,7 +588,7 @@ func setupKasBare(t *testing.T) (*Server, *gomock.Controller, *mock_gitalypool.M
 	gitlabClient := mock_gitlab.NewMockClientInterface(mockCtrl)
 	sentryHub := mock_sentryapi.NewMockHub(mockCtrl)
 
-	k, cleanup, err := NewServer(ServerConfig{
+	k, cleanup, err := NewServer(Config{
 		Log:                          zaptest.NewLogger(t),
 		GitalyPool:                   gitalyPool,
 		GitLabClient:                 gitlabClient,

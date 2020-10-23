@@ -232,7 +232,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			CacheErrorTTL: cfg.Agent.Gitops.ProjectInfoCacheErrorTtl.AsDuration(),
 		})
 
-		srv, cleanup, err := kas.NewServer(kas.ServerConfig{
+		srv, cleanup, err := kas.NewServer(kas.Config{
 			Log: a.Log,
 			GitalyPool: &gitaly.Pool{
 				ClientPool: gitalyClientPool,
