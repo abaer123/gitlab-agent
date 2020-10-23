@@ -116,11 +116,10 @@ func TestGetConfiguration(t *testing.T) {
 		Repository: &agentInfo.Repository,
 	}
 	configFile := sampleConfig()
-	ctx = incomingCtx(ctx, t)
 	resp := mock_agentrpc.NewMockKas_GetConfigurationServer(mockCtrl)
 	resp.EXPECT().
 		Context().
-		Return(ctx).
+		Return(incomingCtx(ctx, t)).
 		MinTimes(1)
 	resp.EXPECT().
 		Send(matcher.ProtoEq(t, &agentrpc.ConfigurationResponse{
@@ -156,11 +155,10 @@ func TestGetConfigurationResumeConnection(t *testing.T) {
 	infoRefsReq := &gitalypb.InfoRefsRequest{
 		Repository: &agentInfo.Repository,
 	}
-	ctx = incomingCtx(ctx, t)
 	resp := mock_agentrpc.NewMockKas_GetConfigurationServer(mockCtrl)
 	resp.EXPECT().
 		Context().
-		Return(ctx).
+		Return(incomingCtx(ctx, t)).
 		MinTimes(1)
 	httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(mockCtrl)
 	gitalyPool.EXPECT().
@@ -233,11 +231,10 @@ func TestGetObjectsToSynchronizeGitLabClientFailures(t *testing.T) {
 				}),
 		)
 
-		ctx = incomingCtx(ctx, t)
 		resp := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
 		resp.EXPECT().
 			Context().
-			Return(ctx).
+			Return(incomingCtx(ctx, t)).
 			MinTimes(1)
 		err := k.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, resp)
 		require.Error(t, err)
@@ -333,11 +330,10 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	infoRefsReq := &gitalypb.InfoRefsRequest{
 		Repository: &projectInfo.Repository,
 	}
-	ctx = incomingCtx(ctx, t)
 	resp := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
 	resp.EXPECT().
 		Context().
-		Return(ctx).
+		Return(incomingCtx(ctx, t)).
 		MinTimes(1)
 	resp.EXPECT().
 		Send(matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeResponse{
@@ -385,11 +381,10 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 	infoRefsReq := &gitalypb.InfoRefsRequest{
 		Repository: &projectInfo.Repository,
 	}
-	ctx = incomingCtx(ctx, t)
 	resp := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
 	resp.EXPECT().
 		Context().
-		Return(ctx).
+		Return(incomingCtx(ctx, t)).
 		MinTimes(1)
 	gitlabClient.EXPECT().
 		GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
@@ -414,80 +409,47 @@ func TestSendUsage(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	mockCtrl := gomock.NewController(t)
-	gitalyPool := mock_gitalypool.NewMockPoolInterface(mockCtrl)
-	gitlabClient := mock_gitlab.NewMockClientInterface(mockCtrl)
+
+	k, _, _, gitlabClient, _ := setupKasBare(ctx, t)
 	gitlabClient.EXPECT().
 		SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
 		Return(nil)
-	sentryHub := mock_sentryapi.NewMockHub(mockCtrl)
-
-	s, cleanup, err := NewServer(ServerConfig{
-		Context:                      ctx,
-		Log:                          zaptest.NewLogger(t),
-		GitalyPool:                   gitalyPool,
-		GitLabClient:                 gitlabClient,
-		AgentConfigurationPollPeriod: 10 * time.Minute,
-		GitopsPollPeriod:             10 * time.Minute,
-		UsageReportingPeriod:         10 * time.Millisecond,
-		Registerer:                   prometheus.NewPedanticRegistry(),
-		Sentry:                       sentryHub,
-	})
-	require.NoError(t, err)
-	defer cleanup()
-	s.usageMetrics.gitopsSyncCount = 5
+	k.usageMetrics.gitopsSyncCount = 5
 
 	// Send accumulated counters
-	require.NoError(t, s.sendUsageInternal(ctx))
+	require.NoError(t, k.sendUsageInternal(ctx))
 
 	// Should not call SendUsage again
-	require.NoError(t, s.sendUsageInternal(ctx))
+	require.NoError(t, k.sendUsageInternal(ctx))
 }
 
 func TestSendUsageFailure(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	mockCtrl := gomock.NewController(t)
-	gitalyPool := mock_gitalypool.NewMockPoolInterface(mockCtrl)
-	gitlabClient := mock_gitlab.NewMockClientInterface(mockCtrl)
+
 	expectedErr := errors.New("expected error")
-	gitlabClient.EXPECT().
-		SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
-		Return(expectedErr)
-	sentryHub := mock_sentryapi.NewMockHub(mockCtrl)
+	k, _, _, gitlabClient, sentryHub := setupKasBare(ctx, t)
 	sentryHub.EXPECT().
 		CaptureException(expectedErr).
 		DoAndReturn(func(err error) *sentry.EventID {
 			cancel() // exception captured, cancel the context to stop the test
 			return nil
 		})
+	gitlabClient.EXPECT().
+		SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
+		Return(expectedErr)
+	k.usageMetrics.gitopsSyncCount = 5
 
-	s, cleanup, err := NewServer(ServerConfig{
-		Context:                      ctx,
-		Log:                          zaptest.NewLogger(t),
-		GitalyPool:                   gitalyPool,
-		GitLabClient:                 gitlabClient,
-		AgentConfigurationPollPeriod: 10 * time.Minute,
-		GitopsPollPeriod:             10 * time.Minute,
-		UsageReportingPeriod:         10 * time.Millisecond,
-		Registerer:                   prometheus.NewPedanticRegistry(),
-		Sentry:                       sentryHub,
-	})
-	require.NoError(t, err)
-	defer cleanup()
-	s.usageMetrics.gitopsSyncCount = 5
-
-	s.sendUsage(ctx)
+	k.sendUsage(ctx)
 }
 
 func TestSendUsageRetry(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	mockCtrl := gomock.NewController(t)
-	gitalyPool := mock_gitalypool.NewMockPoolInterface(mockCtrl)
-	gitlabClient := mock_gitlab.NewMockClientInterface(mockCtrl)
+
+	k, _, _, gitlabClient, _ := setupKasBare(ctx, t)
 	gomock.InOrder(
 		gitlabClient.EXPECT().
 			SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
@@ -496,33 +458,18 @@ func TestSendUsageRetry(t *testing.T) {
 			SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 6})).
 			Return(nil),
 	)
-	sentryHub := mock_sentryapi.NewMockHub(mockCtrl)
-
-	s, cleanup, err := NewServer(ServerConfig{
-		Context:                      ctx,
-		Log:                          zaptest.NewLogger(t),
-		GitalyPool:                   gitalyPool,
-		GitLabClient:                 gitlabClient,
-		AgentConfigurationPollPeriod: 10 * time.Minute,
-		GitopsPollPeriod:             10 * time.Minute,
-		UsageReportingPeriod:         10 * time.Millisecond,
-		Registerer:                   prometheus.NewPedanticRegistry(),
-		Sentry:                       sentryHub,
-	})
-	require.NoError(t, err)
-	defer cleanup()
-	s.usageMetrics.gitopsSyncCount = 5
+	k.usageMetrics.gitopsSyncCount = 5
 
 	// Try to send accumulated counters, fail
-	require.EqualError(t, s.sendUsageInternal(ctx), "expected error")
+	require.EqualError(t, k.sendUsageInternal(ctx), "expected error")
 
-	s.usageMetrics.gitopsSyncCount++
+	k.usageMetrics.gitopsSyncCount++
 
 	// Try again and succeed
-	require.NoError(t, s.sendUsageInternal(ctx))
+	require.NoError(t, k.sendUsageInternal(ctx))
 
 	// Should not call SendUsage again
-	require.NoError(t, s.sendUsageInternal(ctx))
+	require.NoError(t, k.sendUsageInternal(ctx))
 }
 
 func mockTreeEntry(t *testing.T, mockCtrl *gomock.Controller, commitClient *mock_gitaly.MockCommitServiceClient, req *gitalypb.TreeEntryRequest, data []byte) {

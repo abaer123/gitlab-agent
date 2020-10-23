@@ -147,13 +147,13 @@ func TestSendUsage(t *testing.T) {
 
 		data, err := ioutil.ReadAll(r.Body)
 		if !assert.NoError(t, err) {
-			http.Error(w, "", http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		var req UsageData
 		err = json.Unmarshal(data, &req)
 		if !assert.NoError(t, err) {
-			http.Error(w, "", http.StatusInternalServerError)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		assert.Empty(t, cmp.Diff(req, usageData))
@@ -202,7 +202,7 @@ func TestErrorCodes(t *testing.T) {
 func respondWithJSON(t *testing.T, w http.ResponseWriter, response interface{}) {
 	data, err := json.Marshal(response)
 	if !assert.NoError(t, err) {
-		http.Error(w, "json", http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -231,7 +231,7 @@ func assertJWTSignature(t *testing.T, w http.ResponseWriter, r *http.Request) bo
 		return []byte(authSecretKey), nil
 	}, jwt.WithAudience(jwtGitLabAudience), jwt.WithIssuer(jwtIssuer))
 	if !assert.NoError(t, err) {
-		http.Error(w, "invalid token", http.StatusUnauthorized)
+		w.WriteHeader(http.StatusUnauthorized)
 		return false
 	}
 
