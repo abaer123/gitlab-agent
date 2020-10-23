@@ -1,4 +1,4 @@
-package rpclimiter
+package grpctools
 
 import (
 	"context"
@@ -17,8 +17,8 @@ type ClientLimiter interface {
 	Wait(context.Context) error
 }
 
-// UnaryClientInterceptor returns a new unary client interceptors that performs request rate limiting.
-func UnaryClientInterceptor(limiter ClientLimiter) grpc.UnaryClientInterceptor {
+// UnaryClientLimitingInterceptor returns a new unary client interceptor that performs request rate limiting.
+func UnaryClientLimitingInterceptor(limiter ClientLimiter) grpc.UnaryClientInterceptor {
 	return func(parentCtx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		if err := limiter.Wait(parentCtx); err != nil {
 			return status.Errorf(codes.ResourceExhausted, "%s is rejected by rpclimiter middleware, please retry later", method)
@@ -27,8 +27,8 @@ func UnaryClientInterceptor(limiter ClientLimiter) grpc.UnaryClientInterceptor {
 	}
 }
 
-// StreamClientInterceptor returns a new stream server interceptor that performs rate limiting on the request.
-func StreamClientInterceptor(limiter ClientLimiter) grpc.StreamClientInterceptor {
+// StreamClientLimitingInterceptor returns a new stream server interceptor that performs rate limiting on the request.
+func StreamClientLimitingInterceptor(limiter ClientLimiter) grpc.StreamClientInterceptor {
 	return func(parentCtx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
 		if err := limiter.Wait(parentCtx); err != nil {
 			return nil, status.Errorf(codes.ResourceExhausted, "%s is rejected by rpclimiter middleware, please retry later", method)

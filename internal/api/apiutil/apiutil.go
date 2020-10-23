@@ -3,9 +3,9 @@ package apiutil
 import (
 	"context"
 
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctools"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -46,26 +46,24 @@ func InjectAgentMeta(ctx context.Context, agentMeta *api.AgentMeta) context.Cont
 
 // UnaryAgentMetaInterceptor is a gRPC server-side interceptor that populates context with api.AgentMeta for unary RPCs.
 func UnaryAgentMetaInterceptor() func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	return grpctools.UnaryServerCtxAugmentingInterceptor(func(ctx context.Context) (context.Context, error) {
 		agentMeta, err := AgentMetaFromRawContext(ctx)
 		if err != nil {
 			return nil, err // err is already a status.Error
 		}
-		return handler(InjectAgentMeta(ctx, agentMeta), req)
-	}
+		return InjectAgentMeta(ctx, agentMeta), nil
+	})
 }
 
 // StreamAgentMetaInterceptor is a gRPC server-side interceptor that populates context with api.AgentMeta for streaming RPCs.
 func StreamAgentMetaInterceptor() func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		agentMeta, err := AgentMetaFromRawContext(ss.Context())
+	return grpctools.StreamServerCtxAugmentingInterceptor(func(ctx context.Context) (context.Context, error) {
+		agentMeta, err := AgentMetaFromRawContext(ctx)
 		if err != nil {
-			return err // err is already a status.Error
+			return nil, err // err is already a status.Error
 		}
-		wrapper := grpc_middleware.WrapServerStream(ss)
-		wrapper.WrappedContext = InjectAgentMeta(wrapper.Context(), agentMeta)
-		return handler(srv, wrapper)
-	}
+		return InjectAgentMeta(ctx, agentMeta), nil
+	})
 }
 
 func NewTokenCredentials(token string, insecure bool) credentials.PerRPCCredentials {
