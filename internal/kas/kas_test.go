@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/http"
 	"strconv"
 	"testing"
 	"time"
@@ -28,7 +29,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"go.uber.org/zap/zaptest"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -102,7 +105,7 @@ func TestGetConfiguration(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	a, agentInfo, mockCtrl, gitalyPool, _ := setupKas(ctx, t)
+	a, agentInfo, mockCtrl, gitalyPool, _, _ := setupKas(ctx, t)
 	treeEntryReq := &gitalypb.TreeEntryRequest{
 		Repository: &agentInfo.Repository,
 		Revision:   []byte(revision),
@@ -149,7 +152,7 @@ func TestGetConfigurationResumeConnection(t *testing.T) {
 	// so we just wait to see that nothing happens
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	a, agentInfo, mockCtrl, gitalyPool, _ := setupKas(ctx, t)
+	a, agentInfo, mockCtrl, gitalyPool, _, _ := setupKas(ctx, t)
 	infoRefsReq := &gitalypb.InfoRefsRequest{
 		Repository: &agentInfo.Repository,
 	}
@@ -170,11 +173,127 @@ func TestGetConfigurationResumeConnection(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetConfigurationGitLabClientFailures(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	agentMeta := api.AgentMeta{
+		Token: token,
+	}
+	k, mockCtrl, _, gitlabClient, _ := setupKasBare(ctx, t)
+	gomock.InOrder(
+		gitlabClient.EXPECT().
+			GetAgentInfo(gomock.Any(), &agentMeta).
+			Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindForbidden, StatusCode: http.StatusForbidden}),
+		gitlabClient.EXPECT().
+			GetAgentInfo(gomock.Any(), &agentMeta).
+			Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindUnauthorized, StatusCode: http.StatusUnauthorized}),
+		gitlabClient.EXPECT().
+			GetAgentInfo(gomock.Any(), &agentMeta).
+			DoAndReturn(func(ctx context.Context, agentMeta *api.AgentMeta) (*api.AgentInfo, error) {
+				cancel()
+				return nil, &gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}
+			}),
+	)
+	resp := mock_agentrpc.NewMockKas_GetConfigurationServer(mockCtrl)
+	resp.EXPECT().
+		Context().
+		Return(incomingCtx(ctx, t)).
+		MinTimes(1)
+	err := k.GetConfiguration(&agentrpc.ConfigurationRequest{}, resp)
+	require.Error(t, err)
+	assert.Equal(t, codes.PermissionDenied, status.Code(err))
+	err = k.GetConfiguration(&agentrpc.ConfigurationRequest{}, resp)
+	require.Error(t, err)
+	assert.Equal(t, codes.Unauthenticated, status.Code(err))
+	err = k.GetConfiguration(&agentrpc.ConfigurationRequest{}, resp)
+	require.NoError(t, err)
+}
+
+func TestGetObjectsToSynchronizeGitLabClientFailures(t *testing.T) {
+	t.Parallel()
+	t.Run("GetAgentInfo failures", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		k, mockCtrl, _, gitlabClient, _ := setupKasBare(ctx, t)
+		agentInfo := agentInfoObj()
+
+		gomock.InOrder(
+			gitlabClient.EXPECT().
+				GetAgentInfo(gomock.Any(), &agentInfo.Meta).
+				Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindForbidden, StatusCode: http.StatusForbidden}),
+			gitlabClient.EXPECT().
+				GetAgentInfo(gomock.Any(), &agentInfo.Meta).
+				Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindUnauthorized, StatusCode: http.StatusUnauthorized}),
+			gitlabClient.EXPECT().
+				GetAgentInfo(gomock.Any(), &agentInfo.Meta).
+				DoAndReturn(func(ctx context.Context, agentMeta *api.AgentMeta) (*api.AgentInfo, error) {
+					cancel()
+					return nil, &gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}
+				}),
+		)
+
+		ctx = incomingCtx(ctx, t)
+		resp := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
+		resp.EXPECT().
+			Context().
+			Return(ctx).
+			MinTimes(1)
+		err := k.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, resp)
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+		err = k.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, resp)
+		require.Error(t, err)
+		assert.Equal(t, codes.Unauthenticated, status.Code(err))
+		err = k.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, resp)
+		require.Error(t, err)
+		assert.Equal(t, codes.Unavailable, status.Code(err))
+	})
+	t.Run("GetProjectInfo failures", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		k, mockCtrl, _, gitlabClient, _ := setupKasBare(ctx, t)
+		agentInfo := agentInfoObj()
+		gitlabClient.EXPECT().
+			GetAgentInfo(gomock.Any(), &agentInfo.Meta).
+			Return(agentInfo, nil).
+			Times(3)
+
+		gomock.InOrder(
+			gitlabClient.EXPECT().
+				GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
+				Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindForbidden, StatusCode: http.StatusForbidden}),
+			gitlabClient.EXPECT().
+				GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
+				Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindUnauthorized, StatusCode: http.StatusUnauthorized}),
+			gitlabClient.EXPECT().
+				GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
+				DoAndReturn(func(ctx context.Context, agentMeta *api.AgentMeta, projectId string) (*api.ProjectInfo, error) {
+					cancel()
+					return nil, &gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}
+				}),
+		)
+		resp := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
+		resp.EXPECT().
+			Context().
+			Return(incomingCtx(ctx, t)).
+			MinTimes(1)
+		err := k.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, resp)
+		require.Error(t, err)
+		assert.Equal(t, codes.PermissionDenied, status.Code(err))
+		err = k.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, resp)
+		require.Error(t, err)
+		assert.Equal(t, codes.Unauthenticated, status.Code(err))
+		err = k.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, resp)
+		require.NoError(t, err)
+	})
+}
+
 func TestGetObjectsToSynchronize(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	a, agentInfo, mockCtrl, gitalyPool, gitlabClient := setupKas(ctx, t)
+	a, agentInfo, mockCtrl, gitalyPool, gitlabClient, _ := setupKas(ctx, t)
 	gitlabClient.EXPECT().
 		SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 1})).
 		Return(nil)
@@ -261,7 +380,7 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 	// so we just wait to see that nothing happens
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	a, agentInfo, mockCtrl, gitalyPool, gitlabClient := setupKas(ctx, t)
+	a, agentInfo, mockCtrl, gitalyPool, gitlabClient, _ := setupKas(ctx, t)
 	projectInfo := projectInfo()
 	infoRefsReq := &gitalypb.InfoRefsRequest{
 		Repository: &projectInfo.Repository,
@@ -506,12 +625,43 @@ func projectInfo() *api.ProjectInfo {
 	}
 }
 
-func setupKas(ctx context.Context, t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_gitalypool.MockPoolInterface, *mock_gitlab.MockClientInterface) {
-	agentMeta := api.AgentMeta{
-		Token: token,
-	}
-	agentInfo := &api.AgentInfo{
-		Meta: agentMeta,
+func setupKas(ctx context.Context, t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_gitalypool.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) { // nolint: unparam
+	k, mockCtrl, gitalyPool, gitlabClient, sentryHub := setupKasBare(ctx, t)
+	agentInfo := agentInfoObj()
+	gitlabClient.EXPECT().
+		GetAgentInfo(gomock.Any(), &agentInfo.Meta).
+		Return(agentInfo, nil)
+
+	return k, agentInfo, mockCtrl, gitalyPool, gitlabClient, sentryHub
+}
+
+func setupKasBare(ctx context.Context, t *testing.T) (*Server, *gomock.Controller, *mock_gitalypool.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) {
+	mockCtrl := gomock.NewController(t)
+	gitalyPool := mock_gitalypool.NewMockPoolInterface(mockCtrl)
+	gitlabClient := mock_gitlab.NewMockClientInterface(mockCtrl)
+	sentryHub := mock_sentryapi.NewMockHub(mockCtrl)
+
+	k, cleanup, err := NewServer(ServerConfig{
+		Context:                      ctx,
+		Log:                          zaptest.NewLogger(t),
+		GitalyPool:                   gitalyPool,
+		GitLabClient:                 gitlabClient,
+		AgentConfigurationPollPeriod: 10 * time.Minute,
+		GitopsPollPeriod:             10 * time.Minute,
+		Registerer:                   prometheus.NewPedanticRegistry(),
+		Sentry:                       sentryHub,
+	})
+	require.NoError(t, err)
+	t.Cleanup(cleanup)
+
+	return k, mockCtrl, gitalyPool, gitlabClient, sentryHub
+}
+
+func agentInfoObj() *api.AgentInfo {
+	return &api.AgentInfo{
+		Meta: api.AgentMeta{
+			Token: token,
+		},
 		Id:   123,
 		Name: "agent1",
 		GitalyInfo: api.GitalyInfo{
@@ -529,27 +679,4 @@ func setupKas(ctx context.Context, t *testing.T) (*Server, *api.AgentInfo, *gomo
 			GlProjectPath:      "GlProjectPath",
 		},
 	}
-
-	mockCtrl := gomock.NewController(t)
-	gitalyPool := mock_gitalypool.NewMockPoolInterface(mockCtrl)
-	gitlabClient := mock_gitlab.NewMockClientInterface(mockCtrl)
-	gitlabClient.EXPECT().
-		GetAgentInfo(gomock.Any(), &agentMeta).
-		Return(agentInfo, nil)
-	sentryHub := mock_sentryapi.NewMockHub(mockCtrl)
-
-	k, cleanup, err := NewServer(ServerConfig{
-		Context:                      ctx,
-		Log:                          zaptest.NewLogger(t),
-		GitalyPool:                   gitalyPool,
-		GitLabClient:                 gitlabClient,
-		AgentConfigurationPollPeriod: 10 * time.Minute,
-		GitopsPollPeriod:             10 * time.Minute,
-		Registerer:                   prometheus.NewPedanticRegistry(),
-		Sentry:                       sentryHub,
-	})
-	require.NoError(t, err)
-	t.Cleanup(cleanup)
-
-	return k, agentInfo, mockCtrl, gitalyPool, gitlabClient
 }
