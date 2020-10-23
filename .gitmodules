@@ -1,0 +1,3 @@
+[submodule "examples/kubernetes-agent"]
+	path = examples/kubernetes-agent
+	url = https://gitlab.com/gitlab-org/configure/examples/kubernetes-agent.git
