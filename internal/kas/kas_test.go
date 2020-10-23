@@ -105,7 +105,7 @@ func TestGetConfiguration(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	a, agentInfo, mockCtrl, gitalyPool, _, _ := setupKas(ctx, t)
+	a, agentInfo, mockCtrl, gitalyPool, _, _ := setupKas(t)
 	treeEntryReq := &gitalypb.TreeEntryRequest{
 		Repository: &agentInfo.Repository,
 		Revision:   []byte(revision),
@@ -151,7 +151,7 @@ func TestGetConfigurationResumeConnection(t *testing.T) {
 	// so we just wait to see that nothing happens
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	a, agentInfo, mockCtrl, gitalyPool, _, _ := setupKas(ctx, t)
+	a, agentInfo, mockCtrl, gitalyPool, _, _ := setupKas(t)
 	infoRefsReq := &gitalypb.InfoRefsRequest{
 		Repository: &agentInfo.Repository,
 	}
@@ -178,7 +178,7 @@ func TestGetConfigurationGitLabClientFailures(t *testing.T) {
 	agentMeta := api.AgentMeta{
 		Token: token,
 	}
-	k, mockCtrl, _, gitlabClient, _ := setupKasBare(ctx, t)
+	k, mockCtrl, _, gitlabClient, _ := setupKasBare(t)
 	gomock.InOrder(
 		gitlabClient.EXPECT().
 			GetAgentInfo(gomock.Any(), &agentMeta).
@@ -213,7 +213,7 @@ func TestGetObjectsToSynchronizeGitLabClientFailures(t *testing.T) {
 	t.Run("GetAgentInfo failures", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		k, mockCtrl, _, gitlabClient, _ := setupKasBare(ctx, t)
+		k, mockCtrl, _, gitlabClient, _ := setupKasBare(t)
 		agentInfo := agentInfoObj()
 
 		gomock.InOrder(
@@ -249,7 +249,7 @@ func TestGetObjectsToSynchronizeGitLabClientFailures(t *testing.T) {
 	t.Run("GetProjectInfo failures", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		k, mockCtrl, _, gitlabClient, _ := setupKasBare(ctx, t)
+		k, mockCtrl, _, gitlabClient, _ := setupKasBare(t)
 		agentInfo := agentInfoObj()
 		gitlabClient.EXPECT().
 			GetAgentInfo(gomock.Any(), &agentInfo.Meta).
@@ -290,7 +290,7 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	a, agentInfo, mockCtrl, gitalyPool, gitlabClient, _ := setupKas(ctx, t)
+	a, agentInfo, mockCtrl, gitalyPool, gitlabClient, _ := setupKas(t)
 	gitlabClient.EXPECT().
 		SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 1})).
 		Return(nil)
@@ -376,7 +376,7 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 	// so we just wait to see that nothing happens
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	a, agentInfo, mockCtrl, gitalyPool, gitlabClient, _ := setupKas(ctx, t)
+	a, agentInfo, mockCtrl, gitalyPool, gitlabClient, _ := setupKas(t)
 	projectInfo := projectInfo()
 	infoRefsReq := &gitalypb.InfoRefsRequest{
 		Repository: &projectInfo.Repository,
@@ -410,7 +410,7 @@ func TestSendUsage(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	k, _, _, gitlabClient, _ := setupKasBare(ctx, t)
+	k, _, _, gitlabClient, _ := setupKasBare(t)
 	gitlabClient.EXPECT().
 		SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
 		Return(nil)
@@ -429,7 +429,7 @@ func TestSendUsageFailure(t *testing.T) {
 	defer cancel()
 
 	expectedErr := errors.New("expected error")
-	k, _, _, gitlabClient, sentryHub := setupKasBare(ctx, t)
+	k, _, _, gitlabClient, sentryHub := setupKasBare(t)
 	sentryHub.EXPECT().
 		CaptureException(expectedErr).
 		DoAndReturn(func(err error) *sentry.EventID {
@@ -449,7 +449,7 @@ func TestSendUsageRetry(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	k, _, _, gitlabClient, _ := setupKasBare(ctx, t)
+	k, _, _, gitlabClient, _ := setupKasBare(t)
 	gomock.InOrder(
 		gitlabClient.EXPECT().
 			SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
@@ -572,8 +572,8 @@ func projectInfo() *api.ProjectInfo {
 	}
 }
 
-func setupKas(ctx context.Context, t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_gitalypool.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) { // nolint: unparam
-	k, mockCtrl, gitalyPool, gitlabClient, sentryHub := setupKasBare(ctx, t)
+func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_gitalypool.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) { // nolint: unparam
+	k, mockCtrl, gitalyPool, gitlabClient, sentryHub := setupKasBare(t)
 	agentInfo := agentInfoObj()
 	gitlabClient.EXPECT().
 		GetAgentInfo(gomock.Any(), &agentInfo.Meta).
@@ -582,14 +582,13 @@ func setupKas(ctx context.Context, t *testing.T) (*Server, *api.AgentInfo, *gomo
 	return k, agentInfo, mockCtrl, gitalyPool, gitlabClient, sentryHub
 }
 
-func setupKasBare(ctx context.Context, t *testing.T) (*Server, *gomock.Controller, *mock_gitalypool.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) {
+func setupKasBare(t *testing.T) (*Server, *gomock.Controller, *mock_gitalypool.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) {
 	mockCtrl := gomock.NewController(t)
 	gitalyPool := mock_gitalypool.NewMockPoolInterface(mockCtrl)
 	gitlabClient := mock_gitlab.NewMockClientInterface(mockCtrl)
 	sentryHub := mock_sentryapi.NewMockHub(mockCtrl)
 
 	k, cleanup, err := NewServer(ServerConfig{
-		Context:                      ctx,
 		Log:                          zaptest.NewLogger(t),
 		GitalyPool:                   gitalyPool,
 		GitLabClient:                 gitlabClient,

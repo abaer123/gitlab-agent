@@ -23,9 +23,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/kas"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/redis"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctools"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/rpclimiter"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/sentryapi"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/tracing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/wstunnel"
@@ -233,8 +233,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		})
 
 		srv, cleanup, err := kas.NewServer(kas.ServerConfig{
-			Context: ctx,
-			Log:     a.Log,
+			Log: a.Log,
 			GitalyPool: &gitaly.Pool{
 				ClientPool: gitalyClientPool,
 			},
@@ -256,12 +255,14 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			apiutil.StreamAgentMetaInterceptor(),    // This one should be the second one to ensure agent presents a token
 			grpccorrelation.StreamServerCorrelationInterceptor(),
 			grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+			grpctools.StreamServerCtxAugmentingInterceptor(grpctools.JoinContexts(ctx)),
 		}
 		grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
 			grpc_prometheus.UnaryServerInterceptor, // This one should be the first one to measure all invocations
 			apiutil.UnaryAgentMetaInterceptor(),    // This one should be the second one to ensure agent presents a token
 			grpccorrelation.UnaryServerCorrelationInterceptor(),
 			grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+			grpctools.UnaryServerCtxAugmentingInterceptor(grpctools.JoinContexts(ctx)),
 		}
 		if cfg.Redis != nil {
 			redisCfg := &redis.Config{
@@ -296,8 +297,8 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 				uint64(cfg.Agent.Limits.ConnectionsPerTokenPerMinute),
 				func(ctx context.Context) string { return string(apiutil.AgentTokenFromContext(ctx)) },
 			)
-			grpcStreamServerInterceptors = append(grpcStreamServerInterceptors, rpclimiter.StreamServerInterceptor(agentConnectionLimiter))
-			grpcUnaryServerInterceptors = append(grpcUnaryServerInterceptors, rpclimiter.UnaryServerInterceptor(agentConnectionLimiter))
+			grpcStreamServerInterceptors = append(grpcStreamServerInterceptors, grpctools.StreamServerLimitingInterceptor(agentConnectionLimiter))
+			grpcUnaryServerInterceptors = append(grpcUnaryServerInterceptors, grpctools.UnaryServerLimitingInterceptor(agentConnectionLimiter))
 		}
 
 		grpcServer := grpc.NewServer(
@@ -361,15 +362,15 @@ func constructGitalyPool(g *kascfg.GitalyCF, csh stats.Handler, tracer opentraci
 					grpc_prometheus.StreamClientInterceptor,
 					grpccorrelation.StreamClientCorrelationInterceptor(grpccorrelation.WithClientName(correlationClientName)),
 					grpc_opentracing.StreamClientInterceptor(grpc_opentracing.WithTracer(tracer)),
-					rpclimiter.StreamClientInterceptor(globalGitalyRpcLimiter),
-					rpclimiter.StreamClientInterceptor(perServerGitalyRpcLimiter),
+					grpctools.StreamClientLimitingInterceptor(globalGitalyRpcLimiter),
+					grpctools.StreamClientLimitingInterceptor(perServerGitalyRpcLimiter),
 				),
 				grpc.WithChainUnaryInterceptor(
 					grpc_prometheus.UnaryClientInterceptor,
 					grpccorrelation.UnaryClientCorrelationInterceptor(grpccorrelation.WithClientName(correlationClientName)),
 					grpc_opentracing.UnaryClientInterceptor(grpc_opentracing.WithTracer(tracer)),
-					rpclimiter.UnaryClientInterceptor(globalGitalyRpcLimiter),
-					rpclimiter.UnaryClientInterceptor(perServerGitalyRpcLimiter),
+					grpctools.UnaryClientLimitingInterceptor(globalGitalyRpcLimiter),
+					grpctools.UnaryClientLimitingInterceptor(perServerGitalyRpcLimiter),
 				),
 			}
 			opts = append(opts, dialOptions...)

@@ -38,7 +38,6 @@ const (
 )
 
 type ServerConfig struct {
-	Context                      context.Context
 	Log                          *zap.Logger
 	GitalyPool                   gitaly.PoolInterface
 	GitLabClient                 gitlab.ClientInterface
@@ -53,7 +52,6 @@ type Server struct {
 	// usageMetrics must be the very first field to ensure 64-bit alignment.
 	// See https://github.com/golang/go/blob/95df156e6ac53f98efd6c57e4586c1dfb43066dd/src/sync/atomic/doc.go#L46-L54
 	usageMetrics                 usageMetrics
-	context                      context.Context
 	log                          *zap.Logger
 	gitalyPool                   gitaly.PoolInterface
 	gitLabClient                 gitlab.ClientInterface
@@ -72,7 +70,6 @@ func NewServer(config ServerConfig) (*Server, func(), error) {
 		return nil, nil, err
 	}
 	s := &Server{
-		context:                      config.Context,
 		log:                          config.Log,
 		gitalyPool:                   config.GitalyPool,
 		gitLabClient:                 config.GitLabClient,
@@ -89,18 +86,18 @@ func (s *Server) Run(ctx context.Context) {
 }
 
 func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream agentrpc.Kas_GetConfigurationServer) error {
-	ctx := joinDone(stream.Context(), s.context)
-	err := wait.PollImmediateUntil(s.agentConfigurationPollPeriod, s.sendConfiguration(ctx, req.CommitId, stream), ctx.Done())
+	err := wait.PollImmediateUntil(s.agentConfigurationPollPeriod, s.sendConfiguration(req.CommitId, stream), stream.Context().Done())
 	if err == wait.ErrWaitTimeout {
 		return nil // all good, ctx is done
 	}
 	return err
 }
 
-func (s *Server) sendConfiguration(ctx context.Context, lastProcessedCommitId string, stream agentrpc.Kas_GetConfigurationServer) wait.ConditionFunc {
+func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc.Kas_GetConfigurationServer) wait.ConditionFunc {
 	p := gitaly.Poller{
 		GitalyPool: s.gitalyPool,
 	}
+	ctx := stream.Context()
 	agentMeta := apiutil.AgentMetaFromContext(ctx)
 	return func() (bool /*done*/, error) {
 		// This call is made on each poll because:
@@ -191,7 +188,7 @@ func (s *Server) fetchSingleFile(ctx context.Context, gInfo *api.GitalyInfo, rep
 }
 
 func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeRequest, stream agentrpc.Kas_GetObjectsToSynchronizeServer) error {
-	ctx := joinDone(stream.Context(), s.context)
+	ctx := stream.Context()
 	agentMeta := apiutil.AgentMetaFromContext(ctx)
 	agentInfo, err := s.gitLabClient.GetAgentInfo(ctx, agentMeta)
 	switch {
@@ -204,17 +201,18 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 		s.log.Error("GetAgentInfo()", zap.Error(err))
 		return status.Error(codes.Unavailable, "unavailable")
 	}
-	err = wait.PollImmediateUntil(s.gitopsPollPeriod, s.sendObjectsToSynchronize(ctx, agentInfo, stream, req.ProjectId, req.CommitId), ctx.Done())
+	err = wait.PollImmediateUntil(s.gitopsPollPeriod, s.sendObjectsToSynchronize(agentInfo, stream, req.ProjectId, req.CommitId), ctx.Done())
 	if err == wait.ErrWaitTimeout {
 		return nil // all good, ctx is done
 	}
 	return err
 }
 
-func (s *Server) sendObjectsToSynchronize(ctx context.Context, agentInfo *api.AgentInfo, stream agentrpc.Kas_GetObjectsToSynchronizeServer, projectId, lastProcessedCommitId string) wait.ConditionFunc {
+func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agentrpc.Kas_GetObjectsToSynchronizeServer, projectId, lastProcessedCommitId string) wait.ConditionFunc {
 	p := gitaly.Poller{
 		GitalyPool: s.gitalyPool,
 	}
+	ctx := stream.Context()
 	l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(projectId))
 	return func() (bool /*done*/, error) {
 		// This call is made on each poll because:
@@ -355,22 +353,4 @@ func extractAgentConfiguration(file *agentcfg.ConfigurationFile) *agentcfg.Agent
 		Gitops:        file.Gitops,
 		Observability: file.Observability,
 	}
-}
-
-// joinDone returns a context that is cancelled when main or aux signal done.
-// The returned context uses main as the parent context to inherit attached values.
-//
-// This helper is used here to propagate done signal from both gRPC stream's context (stream is closed/broken) and
-// main program's context (program needs to stop). Polling should stop when one of this conditions happens so using
-// only one of these two contexts is not good enough.
-func joinDone(main, aux context.Context) context.Context {
-	ctx, cancel := context.WithCancel(main)
-	go func() {
-		defer cancel()
-		select {
-		case <-main.Done():
-		case <-aux.Done():
-		}
-	}()
-	return ctx
 }

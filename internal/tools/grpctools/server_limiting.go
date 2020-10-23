@@ -1,4 +1,4 @@
-package rpclimiter
+package grpctools
 
 import (
 	"context"
@@ -15,8 +15,8 @@ type ServerLimiter interface {
 	Allow(ctx context.Context) bool
 }
 
-// UnaryServerInterceptor returns a new unary server interceptor that performs limiting based on the given context
-func UnaryServerInterceptor(limiter ServerLimiter) grpc.UnaryServerInterceptor {
+// UnaryServerLimitingInterceptor returns a new unary server interceptor that performs limiting based on the given context
+func UnaryServerLimitingInterceptor(limiter ServerLimiter) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		if !limiter.Allow(ctx) {
 			return nil, status.Error(codes.ResourceExhausted, "new connection rate limit exhausted for this agent, try again later")
@@ -25,8 +25,8 @@ func UnaryServerInterceptor(limiter ServerLimiter) grpc.UnaryServerInterceptor {
 	}
 }
 
-// StreamServerInterceptor returns a new stream server interceptor that performs limiting based on the given context
-func StreamServerInterceptor(limiter ServerLimiter) grpc.StreamServerInterceptor {
+// StreamServerLimitingInterceptor returns a new stream server interceptor that performs limiting based on the given context
+func StreamServerLimitingInterceptor(limiter ServerLimiter) grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		if !limiter.Allow(ss.Context()) {
 			return status.Error(codes.ResourceExhausted, "new connection rate limit exhausted for this agent, try again later")

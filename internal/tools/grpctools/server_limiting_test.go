@@ -1,4 +1,4 @@
-package rpclimiter
+package grpctools
 
 import (
 	"context"
@@ -29,11 +29,11 @@ func TestServerInterceptors(t *testing.T) {
 	t.Run("It lets the connection through when allowed", func(t *testing.T) {
 		limiter := &testServerLimiter{allow: true}
 
-		usi := UnaryServerInterceptor(limiter)
+		usi := UnaryServerLimitingInterceptor(limiter)
 		_, err := usi(context.Background(), struct{}{}, nil, usHandler)
 		require.NoError(t, err)
 
-		ssi := StreamServerInterceptor(limiter)
+		ssi := StreamServerLimitingInterceptor(limiter)
 		ss := mock_grpc.NewMockServerStream(ctrl)
 		ss.EXPECT().Context().Return(context.Background())
 		err = ssi(struct{}{}, ss, nil, ssHandler)
@@ -43,11 +43,11 @@ func TestServerInterceptors(t *testing.T) {
 	t.Run("It blocks the connection when not allowed", func(t *testing.T) {
 		limiter := &testServerLimiter{false}
 
-		usi := UnaryServerInterceptor(limiter)
+		usi := UnaryServerLimitingInterceptor(limiter)
 		_, err := usi(context.Background(), struct{}{}, nil, usHandler)
 		require.Error(t, err)
 
-		ssi := StreamServerInterceptor(limiter)
+		ssi := StreamServerLimitingInterceptor(limiter)
 		ss := mock_grpc.NewMockServerStream(ctrl)
 		ss.EXPECT().Context().Return(context.Background())
 		err = ssi(struct{}{}, ss, nil, ssHandler)
