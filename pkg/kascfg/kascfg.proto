@@ -7,12 +7,14 @@ package kascfg;
 option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg";
 
 import "google/protobuf/duration.proto";
+//import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
+import "validate/validate.proto";
 
 // CF suffix stands for Configuration File, meaning a message is part of ConfigurationFile.
 
 message ListenCF {
     // Network type to listen on. Supported values: tcp, tcp4, tcp6, unix.
-    string network = 1 [json_name = "network"];
+    string network = 1 [json_name = "network", (validate.rules).string = {in: ["tcp", "tcp4", "tcp6", "unix"]}];
     // Address to listen on.
     string address = 2 [json_name = "address"];
     // Enable "gRPC through WebSocket" listening mode. Rather than expecting gRPC directly, expect a WebSocket
@@ -28,7 +30,7 @@ message PrometheusCF {
 
 message ObservabilityListenCF {
     // Network type to listen on. Supported values: tcp, tcp4, tcp6, unix.
-    string network = 1 [json_name = "network"];
+    string network = 1 [json_name = "network", (validate.rules).string = {in: ["tcp", "tcp4", "tcp6", "unix"]}];
     // Address to listen on.
     string address = 2 [json_name = "address"];
 }
@@ -43,7 +45,7 @@ message TracingCF {
 
 message LoggingCF {
     // Supported logging levels are: debug, info, warn, error.
-    string level = 1 [json_name = "level"];
+    string level = 1 [json_name = "level", (validate.rules).string = {in: ["debug", "info", "warn", "error"]}];
 }
 
 message GitLabCF {
@@ -53,12 +55,12 @@ message GitLabCF {
 
 message GitopsCF {
     // How often to poll GitOps manifest repositories for changes.
-    google.protobuf.Duration poll_period = 1 [json_name = "poll_period"];
+    google.protobuf.Duration poll_period = 1 [json_name = "poll_period", (validate.rules).duration = {gt: {}}];
     // TTL for successful project info lookups. /api/v4/internal/kubernetes/project_info
     // Set to zero to disable.
-    google.protobuf.Duration project_info_cache_ttl = 2 [json_name = "project_info_cache_ttl"];
+    google.protobuf.Duration project_info_cache_ttl = 2 [json_name = "project_info_cache_ttl", (validate.rules).duration = {gte: {}}];
     // TTL for failed project info lookups. /api/v4/internal/kubernetes/project_info
-    google.protobuf.Duration project_info_cache_error_ttl = 3 [json_name = "project_info_cache_error_ttl"];
+    google.protobuf.Duration project_info_cache_error_ttl = 3 [json_name = "project_info_cache_error_ttl", (validate.rules).duration = {gt: {}}];
 }
 
 message SentryCF {
@@ -75,16 +77,16 @@ message AgentCF {
     GitopsCF gitops = 2 [json_name = "gitops"];
     // TTL for successful agent info lookups. /api/v4/internal/kubernetes/agent_info
     // Set to zero to disable.
-    google.protobuf.Duration info_cache_ttl = 3 [json_name = "info_cache_ttl"];
+    google.protobuf.Duration info_cache_ttl = 3 [json_name = "info_cache_ttl", (validate.rules).duration = {gte: {}}];
     // TTL for failed agent info lookups. /api/v4/internal/kubernetes/agent_info
-    google.protobuf.Duration info_cache_error_ttl = 4 [json_name = "info_cache_error_ttl"];
+    google.protobuf.Duration info_cache_error_ttl = 4 [json_name = "info_cache_error_ttl", (validate.rules).duration = {gt: {}}];
     // Various limiter configurations
     AgentLimitsCF limits = 5 [json_name = "limits"];
 }
 
 message AgentConfigurationCF {
     // How often to poll agent's configuration repository for changes.
-    google.protobuf.Duration poll_period = 1 [json_name = "poll_period"];
+    google.protobuf.Duration poll_period = 1 [json_name = "poll_period", (validate.rules).duration = {gt: {}}];
 }
 
 message GoogleProfilerCF {
@@ -100,7 +102,7 @@ message PprofCF {
 message ObservabilityCF {
     // How often to send usage metrics to the main application. /api/v4/internal/kubernetes/usage_ping
     // Set to zero to disable.
-    google.protobuf.Duration usage_reporting_period = 1 [json_name = "usage_reporting_period"];
+    google.protobuf.Duration usage_reporting_period = 1 [json_name = "usage_reporting_period", (validate.rules).duration = {gte: {}}];
     // Listener configuration for HTTP endpoint that exposes Prometheus and pprof.
     ObservabilityListenCF listen = 2 [json_name = "listen"];
     PrometheusCF prometheus = 3 [json_name = "prometheus"];
@@ -116,10 +118,10 @@ message ObservabilityCF {
 message TokenBucketRateLimitCF {
     // Number of events per second. A zero allows no events.
     // How fast the "token bucket" is refilled.
-    double refill_rate_per_second = 1 [json_name = "refill_rate_per_second"];
+    double refill_rate_per_second = 1 [json_name = "refill_rate_per_second", (validate.rules).double.gt = 0];
     // Maximum number of events that are allowed to happen in succession.
     // Size of the "token bucket".
-    int32 bucket_size = 2 [json_name = "bucket_size"];
+    uint32 bucket_size = 2 [json_name = "bucket_size", (validate.rules).uint32.gt = 0];
 }
 
 message GitalyCF {
@@ -135,15 +137,16 @@ message RedisCF {
     // The password to use for all connections
     string password = 2 [json_name = "password"];
     // The max number of idle connections
-    int32 max_idle = 3 [json_name = "max_idle"];
+    uint32 max_idle = 3 [json_name = "max_idle", (validate.rules).uint32.gt = 0];
     // The max number of active connections
-    int32 max_active = 4 [json_name = "max_active"];
+    uint32 max_active = 4 [json_name = "max_active", (validate.rules).uint32.gt = 0];
     // Read timeout
-    google.protobuf.Duration read_timeout = 5 [json_name = "read_timeout"];
+    google.protobuf.Duration read_timeout = 5 [json_name = "read_timeout", (validate.rules).duration = {gt: {}}];
     // Write timeout
-    google.protobuf.Duration write_timeout = 6 [json_name = "write_timeout"];
+    google.protobuf.Duration write_timeout = 6 [json_name = "write_timeout", (validate.rules).duration = {gt: {}}];
     // How long to keep TCP connections alive before being killed
-    google.protobuf.Duration keepalive = 7 [json_name = "keepalive"];
+    // Set to zero to disable.
+    google.protobuf.Duration keepalive = 7 [json_name = "keepalive", (validate.rules).duration = {gte: {}}];
     // The name of the sentinel master to use
     string sentinel_master = 8 [json_name = "sentinel_master"];
     // The URLs for the sentinels
@@ -151,8 +154,8 @@ message RedisCF {
 }
 
 message AgentLimitsCF {
-    // Maximum number of connections to allow per agent token per minue
-    uint32 connections_per_token_per_minute = 1 [json_name = "connections_per_token_per_minute"];
+    // Maximum number of connections to allow per agent token per minute
+    uint32 connections_per_token_per_minute = 1 [json_name = "connections_per_token_per_minute", (validate.rules).uint32.gt = 0];
     // Prefix to use for agent limit keys in redis
     string redis_key_prefix = 2 [json_name = "redis_key_prefix"];
 }

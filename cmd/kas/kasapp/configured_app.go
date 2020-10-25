@@ -268,8 +268,8 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			redisCfg := &redis.Config{
 				// Url is parsed below
 				Password:       cfg.Redis.Password,
-				MaxIdle:        cfg.Redis.MaxIdle,
-				MaxActive:      cfg.Redis.MaxActive,
+				MaxIdle:        int32(cfg.Redis.MaxIdle),
+				MaxActive:      int32(cfg.Redis.MaxActive),
 				ReadTimeout:    cfg.Redis.ReadTimeout.AsDuration(),
 				WriteTimeout:   cfg.Redis.WriteTimeout.AsDuration(),
 				KeepAlive:      cfg.Redis.Keepalive.AsDuration(),

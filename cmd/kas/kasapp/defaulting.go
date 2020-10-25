@@ -31,10 +31,10 @@ const (
 	defaultPrometheusListenUrlPath = "/metrics"
 	defaultLoggingLevel            = zap.InfoLevel
 
-	defaultGitalyGlobalApiRefillRate    float64 = 10.0 // type matches protobuf type from kascfg.TokenBucketRateLimitCF
-	defaultGitalyGlobalApiBucketSize    int32   = 50   // type matches protobuf type from kascfg.TokenBucketRateLimitCF
-	defaultGitalyPerServerApiRate       float64 = 5.0  // type matches protobuf type from kascfg.TokenBucketRateLimitCF
-	defaultGitalyPerServerApiBucketSize int32   = 10   // type matches protobuf type from kascfg.TokenBucketRateLimitCF
+	defaultGitalyGlobalApiRefillRate    = 10.0
+	defaultGitalyGlobalApiBucketSize    = 50
+	defaultGitalyPerServerApiRate       = 5.0
+	defaultGitalyPerServerApiBucketSize = 10
 
 	defaultRedisMaxIdle      = 1
 	defaultRedisMaxActive    = 1
@@ -115,16 +115,16 @@ func defaultObservability(o *kascfg.ObservabilityCF) {
 func defaultGitaly(g *kascfg.GitalyCF) {
 	protodefault.NotNil(&g.GlobalApiRateLimit)
 	protodefault.Float64(&g.GlobalApiRateLimit.RefillRatePerSecond, defaultGitalyGlobalApiRefillRate)
-	protodefault.Int32(&g.GlobalApiRateLimit.BucketSize, defaultGitalyGlobalApiBucketSize)
+	protodefault.Uint32(&g.GlobalApiRateLimit.BucketSize, defaultGitalyGlobalApiBucketSize)
 
 	protodefault.NotNil(&g.PerServerApiRateLimit)
 	protodefault.Float64(&g.PerServerApiRateLimit.RefillRatePerSecond, defaultGitalyPerServerApiRate)
-	protodefault.Int32(&g.PerServerApiRateLimit.BucketSize, defaultGitalyPerServerApiBucketSize)
+	protodefault.Uint32(&g.PerServerApiRateLimit.BucketSize, defaultGitalyPerServerApiBucketSize)
 }
 
 func defaultRedis(r *kascfg.RedisCF) {
-	protodefault.Int32(&r.MaxIdle, defaultRedisMaxIdle)
-	protodefault.Int32(&r.MaxActive, defaultRedisMaxActive)
+	protodefault.Uint32(&r.MaxIdle, defaultRedisMaxIdle)
+	protodefault.Uint32(&r.MaxActive, defaultRedisMaxActive)
 	protodefault.Duration(&r.ReadTimeout, defaultRedisReadTimeout)
 	protodefault.Duration(&r.WriteTimeout, defaultRedisWriteTimeout)
 	protodefault.Duration(&r.Keepalive, defaultRedisKeepAlive)

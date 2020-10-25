@@ -1,8 +1,26 @@
 load("@com_github_atlassian_bazel_tools//multirun:def.bzl", "multirun")
+load("@rules_proto_grpc//:plugin.bzl", "proto_plugin")
 
 exports_files([
     "buildozer_commands.txt",
 ])
+
+# See https://github.com/rules-proto-grpc/rules_proto_grpc#developing-custom-plugins
+# See https://github.com/rules-proto-grpc/rules_proto_grpc/issues/16
+proto_plugin(
+    name = "go_validate_plugin",
+    exclusions = [
+        "google/protobuf",
+        "validate",
+    ],
+    options = [
+        "lang=go",
+        "paths=source_relative",
+    ],
+    outputs = ["{protopath}.pb.validate.go"],
+    tool = "@com_github_envoyproxy_protoc_gen_validate//:protoc-gen-validate",
+    visibility = ["//visibility:public"],
+)
 
 sh_binary(
     name = "copy_absolute",
@@ -22,6 +40,7 @@ multirun(
         "//pkg/agentcfg:extract_generated",
         "//internal/agentrpc:extract_generated",
         "//pkg/kascfg:extract_generated",
+        "//pkg/kascfg:extract_generated_validator",
     ],
 )
 
