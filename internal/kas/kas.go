@@ -150,6 +150,10 @@ func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInf
 	if err != nil {
 		return nil, fmt.Errorf("parse agent configuration: %v", err)
 	}
+	err = configFile.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("invalid agent configuration: %v", err)
+	}
 	agentConfig := extractAgentConfiguration(configFile)
 	return &agentrpc.ConfigurationResponse{
 		Configuration: agentConfig,

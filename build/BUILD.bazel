@@ -3,6 +3,7 @@ load("@rules_proto_grpc//:plugin.bzl", "proto_plugin")
 
 exports_files([
     "buildozer_commands.txt",
+    "validate_dependency.patch",
 ])
 
 # See https://github.com/rules-proto-grpc/rules_proto_grpc#developing-custom-plugins
@@ -38,6 +39,7 @@ multirun(
     name = "extract_generated_proto",
     commands = [
         "//pkg/agentcfg:extract_generated",
+        "//pkg/agentcfg:extract_generated_validator",
         "//internal/agentrpc:extract_generated",
         "//pkg/kascfg:extract_generated",
         "//pkg/kascfg:extract_generated_validator",

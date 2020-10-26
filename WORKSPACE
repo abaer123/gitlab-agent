@@ -106,6 +106,12 @@ go_repository(
     build_file_proto_mode = "disable_global",
     build_naming_convention = "go_default_library",
     importpath = "github.com/envoyproxy/protoc-gen-validate",
+    patch_args = ["-p1"],
+    # patch addresses https://github.com/bazelbuild/bazel-gazelle/issues/941
+    # patch created by manually editing the build file and running `diff -urN dir_original dir_modified`
+    patches = [
+        "@gitlab_k8s_agent//build:validate_dependency.patch",
+    ],
     sum = "h1:A9nAQ7H0O/o654GnqyDZtNAdbvXIl5hf+OsYAzBfDx0=",
     version = "v0.4.2-0.20200930220426-ec9cd95372b9",
 )

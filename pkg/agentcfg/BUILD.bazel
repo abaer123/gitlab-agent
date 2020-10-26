@@ -2,16 +2,26 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@rules_proto_grpc//go:defs.bzl", "go_proto_compile")
 load("//build:build.bzl", "copy_to_workspace")
+load("//build:validate.bzl", "go_validate_compile")
 
 proto_library(
     name = "agentcfg_proto",
     srcs = ["agentcfg.proto"],
     tags = ["manual"],
     visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
+    ],
 )
 
 go_proto_compile(
     name = "agent_cfg",
+    tags = ["manual"],
+    deps = [":agentcfg_proto"],
+)
+
+go_validate_compile(
+    name = "agent_cfg_validate",
     tags = ["manual"],
     deps = [":agentcfg_proto"],
 )
@@ -23,13 +33,25 @@ copy_to_workspace(
     workspace_relative_target_directory = "pkg/agentcfg",
 )
 
+copy_to_workspace(
+    name = "extract_generated_validator",
+    file_to_copy = "agentcfg.pb.validate.go",
+    label = ":agent_cfg_validate",
+    workspace_relative_target_directory = "pkg/agentcfg",
+)
+
 go_library(
     name = "agentcfg",
-    srcs = ["agentcfg.pb.go"],
+    srcs = [
+        "agentcfg.pb.go",
+        "agentcfg.pb.validate.go",
+    ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg",
     visibility = ["//visibility:public"],
     deps = [
+        "@com_github_envoyproxy_protoc_gen_validate//validate:go_default_library",
         "@com_github_golang_protobuf//proto",
+        "@com_github_golang_protobuf//ptypes",
         "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_golang_google_protobuf//runtime/protoimpl",
     ],
@@ -38,7 +60,10 @@ go_library(
 go_test(
     name = "agentcfg_test",
     size = "small",
-    srcs = ["roundtrip_test.go"],
+    srcs = [
+        "roundtrip_test.go",
+        "validation_test.go",
+    ],
     embed = [":agentcfg"],
     race = "on",
     deps = [
