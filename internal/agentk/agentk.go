@@ -32,7 +32,7 @@ const (
 )
 
 type GitOpsEngineFactory interface {
-	New(...cache.UpdateSettingsFunc) engine.GitOpsEngine
+	New(engineOpts []engine.Option, cacheOpts []cache.UpdateSettingsFunc) engine.GitOpsEngine
 }
 
 type Config struct {
@@ -239,8 +239,12 @@ type DefaultGitOpsEngineFactory struct {
 	KubeClientConfig *rest.Config
 }
 
-func (f *DefaultGitOpsEngineFactory) New(opts ...cache.UpdateSettingsFunc) engine.GitOpsEngine {
-	return engine.NewEngine(f.KubeClientConfig, cache.NewClusterCache(f.KubeClientConfig, opts...))
+func (f *DefaultGitOpsEngineFactory) New(engineOpts []engine.Option, cacheOpts []cache.UpdateSettingsFunc) engine.GitOpsEngine {
+	return engine.NewEngine(
+		f.KubeClientConfig,
+		cache.NewClusterCache(f.KubeClientConfig, cacheOpts...),
+		engineOpts...,
+	)
 }
 
 func applyDefaultsToConfiguration(config *agentcfg.AgentConfiguration) {

@@ -2,7 +2,6 @@ package mock_engine
 
 import (
 	"context"
-	"io"
 	"sync"
 
 	"github.com/argoproj/gitops-engine/pkg/cache"
@@ -14,7 +13,7 @@ import (
 
 // GitOpsEngineFactory is a copy of agentk.GitOpsEngineFactory to break cyclic dependency.
 type GitOpsEngineFactory interface {
-	New(...cache.UpdateSettingsFunc) engine.GitOpsEngine
+	New(engineOpts []engine.Option, cacheOpts []cache.UpdateSettingsFunc) engine.GitOpsEngine
 }
 
 var (
@@ -29,12 +28,12 @@ type ThreadSafeGitOpsEngineFactory struct {
 	EngineFactory GitOpsEngineFactory
 }
 
-func (f *ThreadSafeGitOpsEngineFactory) New(opts ...cache.UpdateSettingsFunc) engine.GitOpsEngine {
+func (f *ThreadSafeGitOpsEngineFactory) New(engineOpts []engine.Option, cacheOpts []cache.UpdateSettingsFunc) engine.GitOpsEngine {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 	return &ThreadSafeGitOpsEngine{
 		Mutex:  &f.mutex,
-		Engine: f.EngineFactory.New(opts...),
+		Engine: f.EngineFactory.New(engineOpts, cacheOpts),
 	}
 }
 
@@ -45,7 +44,7 @@ type ThreadSafeGitOpsEngine struct {
 	Engine engine.GitOpsEngine
 }
 
-func (f *ThreadSafeGitOpsEngine) Run() (io.Closer, error) {
+func (f *ThreadSafeGitOpsEngine) Run() (engine.StopFunc, error) {
 	f.Mutex.Lock()
 	defer f.Mutex.Unlock()
 	return f.Engine.Run()

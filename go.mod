@@ -5,7 +5,7 @@ go 1.15
 require (
 	cloud.google.com/go v0.70.0
 	github.com/FZambia/sentinel v1.1.0
-	github.com/argoproj/gitops-engine v0.1.3-0.20201013235340-a1dc4c598b93
+	github.com/argoproj/gitops-engine v0.1.3-0.20201027001456-31311943a57a
 	github.com/ash2k/stager v0.2.0
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1.0.20200107205605-c66185887605
 	github.com/envoyproxy/protoc-gen-validate v0.4.2-0.20200930220426-ec9cd95372b9
@@ -23,24 +23,24 @@ require (
 	github.com/moby/term v0.0.0-20200915141129-7f0af18e79f2 // indirect
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/piotrkowalczuk/promgrpc/v4 v4.0.2
-	github.com/prometheus/client_golang v1.7.1
+	github.com/prometheus/client_golang v1.8.0
 	github.com/sirupsen/logrus v1.7.0 // indirect
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
 	gitlab.com/gitlab-org/gitaly v1.87.1-0.20201016033652-3bdd23173595
-	gitlab.com/gitlab-org/labkit v0.0.0-20201014124351-eb1fe6499318
-	go.uber.org/zap v1.10.0
+	gitlab.com/gitlab-org/labkit v0.0.0-20201021103929-24e6f6eaad7a
+	go.uber.org/zap v1.16.0
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	golang.org/x/tools v0.0.0-20201017001424-6003fad69a88
-	google.golang.org/api v0.33.0
-	google.golang.org/grpc v1.33.0
+	google.golang.org/api v0.34.0
+	google.golang.org/grpc v1.33.1
 	google.golang.org/grpc/examples v0.0.0-20200828165940-d8ef479ab79a // indirect
 	google.golang.org/protobuf v1.25.0
 	k8s.io/api v0.19.2
 	k8s.io/apimachinery v0.19.2
 	k8s.io/cli-runtime v0.19.2
 	k8s.io/client-go v0.19.2
-	k8s.io/klog/v2 v2.2.0
+	k8s.io/klog/v2 v2.3.0
 	nhooyr.io/websocket v1.8.6
 	sigs.k8s.io/yaml v1.2.0
 )

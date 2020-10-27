@@ -36,19 +36,15 @@ func (m *MockGitOpsEngineFactory) EXPECT() *MockGitOpsEngineFactoryMockRecorder 
 }
 
 // New mocks base method
-func (m *MockGitOpsEngineFactory) New(arg0 ...cache.UpdateSettingsFunc) engine.GitOpsEngine {
+func (m *MockGitOpsEngineFactory) New(arg0 []engine.Option, arg1 []cache.UpdateSettingsFunc) engine.GitOpsEngine {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{}
-	for _, a := range arg0 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "New", varargs...)
+	ret := m.ctrl.Call(m, "New", arg0, arg1)
 	ret0, _ := ret[0].(engine.GitOpsEngine)
 	return ret0
 }
 
 // New indicates an expected call of New
-func (mr *MockGitOpsEngineFactoryMockRecorder) New(arg0 ...interface{}) *gomock.Call {
+func (mr *MockGitOpsEngineFactoryMockRecorder) New(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "New", reflect.TypeOf((*MockGitOpsEngineFactory)(nil).New), arg0...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "New", reflect.TypeOf((*MockGitOpsEngineFactory)(nil).New), arg0, arg1)
 }

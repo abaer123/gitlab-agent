@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/argoproj/gitops-engine/pkg/cache"
+	"github.com/argoproj/gitops-engine/pkg/engine"
 	"github.com/ash2k/stager"
+	"github.com/go-logr/zapr"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
 	"go.uber.org/zap"
@@ -28,13 +30,23 @@ type gitopsWorker struct {
 }
 
 func (d *gitopsWorker) Run(ctx context.Context) {
-	eng := d.engineFactory.New(cache.SetPopulateResourceInfoHandler(populateResourceInfoHandler), cache.SetSettings(cache.Settings{
-		ResourcesFilter: resourcesFilter{
-			resourceInclusions: d.synchronizerConfig.projectConfiguration.ResourceInclusions,
-			resourceExclusions: d.synchronizerConfig.projectConfiguration.ResourceExclusions,
+	l := zapr.NewLogger(d.log)
+	eng := d.engineFactory.New(
+		[]engine.Option{
+			engine.WithLogr(l),
 		},
-	}))
-	var stopEngine io.Closer
+		[]cache.UpdateSettingsFunc{
+			cache.SetPopulateResourceInfoHandler(populateResourceInfoHandler),
+			cache.SetSettings(cache.Settings{
+				ResourcesFilter: resourcesFilter{
+					resourceInclusions: d.synchronizerConfig.projectConfiguration.ResourceInclusions,
+					resourceExclusions: d.synchronizerConfig.projectConfiguration.ResourceExclusions,
+				},
+			}),
+			cache.SetLogr(l),
+		},
+	)
+	var stopEngine engine.StopFunc
 	err := wait.PollImmediateUntil(engineRunRetryPeriod, func() (bool /*done*/, error) {
 		var err error
 		stopEngine, err = eng.Run()
@@ -48,7 +60,7 @@ func (d *gitopsWorker) Run(ctx context.Context) {
 		// context is done
 		return
 	}
-	defer stopEngine.Close() // nolint: errcheck
+	defer stopEngine()
 	s := newSynchronizer(d.synchronizerConfig, eng)
 	st := stager.New()
 	stage := st.NextStage()

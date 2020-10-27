@@ -76,7 +76,7 @@ func TestRunStartsWorkersAccordingToConfiguration(t *testing.T) {
 					Return(nil, errors.New("i'm not ok, but that's ok")).
 					MinTimes(1)
 				factory.EXPECT().
-					New(gomock.Any()).
+					New(gomock.Any(), gomock.Any()).
 					Return(engine)
 			}
 			err := a.Run(ctx)
@@ -107,7 +107,7 @@ func testRunUpdatesWorkersAccordingToConfiguration(t *testing.T, configs []*agen
 		Return(nil, errors.New("i'm not ok, but that's ok")).
 		AnyTimes()
 	factory.EXPECT().
-		New(gomock.Any()).
+		New(gomock.Any(), gomock.Any()).
 		Return(engine).
 		AnyTimes()
 	err := a.Run(ctx)
