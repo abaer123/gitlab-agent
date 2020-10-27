@@ -139,7 +139,7 @@ func (a *ConfiguredApp) startMetricsServer(st stager.Stager, gatherer prometheus
 	}
 	stage := st.NextStage()
 	stage.Go(func(ctx context.Context) error {
-		lis, err := net.Listen(cfg.Listen.Network, cfg.Listen.Address)
+		lis, err := net.Listen(cfg.Listen.Network.String(), cfg.Listen.Address)
 		if err != nil {
 			return err
 		}
@@ -193,7 +193,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		}
 
 		// gRPC listener
-		lis, err := net.Listen(cfg.Listen.Network, cfg.Listen.Address)
+		lis, err := net.Listen(cfg.Listen.Network.String(), cfg.Listen.Address)
 		if err != nil {
 			return err
 		}

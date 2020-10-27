@@ -5,11 +5,11 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/protodefault"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
-	"go.uber.org/zap"
 )
 
 const (
-	defaultListenNetwork = "tcp"
+	defaultListenNetwork kascfg.ListenNetworkEnum = 0 // whatever is 0 is the default value
+
 	defaultListenAddress = "127.0.0.1:8150"
 	defaultGitLabAddress = "http://localhost:8080"
 
@@ -26,10 +26,8 @@ const (
 	defaultGitOpsProjectInfoCacheErrorTTL = 1 * time.Minute
 
 	defaultUsageReportingPeriod    = 1 * time.Minute
-	defaultPrometheusListenNetwork = "tcp"
 	defaultPrometheusListenAddress = "127.0.0.1:8151"
 	defaultPrometheusListenUrlPath = "/metrics"
-	defaultLoggingLevel            = zap.InfoLevel
 
 	defaultGitalyGlobalApiRefillRate    = 10.0
 	defaultGitalyGlobalApiBucketSize    = 50
@@ -65,7 +63,6 @@ func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
 }
 
 func defaultListen(l *kascfg.ListenCF) {
-	protodefault.String(&l.Network, defaultListenNetwork)
 	protodefault.String(&l.Address, defaultListenAddress)
 }
 
@@ -94,7 +91,6 @@ func defaultObservability(o *kascfg.ObservabilityCF) {
 	protodefault.Duration(&o.UsageReportingPeriod, defaultUsageReportingPeriod)
 
 	protodefault.NotNil(&o.Listen)
-	protodefault.String(&o.Listen.Network, defaultPrometheusListenNetwork)
 	protodefault.String(&o.Listen.Address, defaultPrometheusListenAddress)
 
 	protodefault.NotNil(&o.Prometheus)
@@ -105,7 +101,6 @@ func defaultObservability(o *kascfg.ObservabilityCF) {
 	protodefault.NotNil(&o.Sentry)
 
 	protodefault.NotNil(&o.Logging)
-	protodefault.String(&o.Logging.Level, defaultLoggingLevel.String())
 
 	protodefault.NotNil(&o.GoogleProfiler)
 

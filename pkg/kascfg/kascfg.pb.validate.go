@@ -43,12 +43,7 @@ func (m *ListenCF) Validate() error {
 		return nil
 	}
 
-	if _, ok := _ListenCF_Network_InLookup[m.GetNetwork()]; !ok {
-		return ListenCFValidationError{
-			field:  "Network",
-			reason: "value must be in list [tcp tcp4 tcp6 unix]",
-		}
-	}
+	// no validation rules for Network
 
 	// no validation rules for Address
 
@@ -110,13 +105,6 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = ListenCFValidationError{}
-
-var _ListenCF_Network_InLookup = map[string]struct{}{
-	"tcp":  {},
-	"tcp4": {},
-	"tcp6": {},
-	"unix": {},
-}
 
 // Validate checks the field values on PrometheusCF with the rules defined in
 // the proto definition for this message. If any rules are violated, an error
@@ -195,12 +183,7 @@ func (m *ObservabilityListenCF) Validate() error {
 		return nil
 	}
 
-	if _, ok := _ObservabilityListenCF_Network_InLookup[m.GetNetwork()]; !ok {
-		return ObservabilityListenCFValidationError{
-			field:  "Network",
-			reason: "value must be in list [tcp tcp4 tcp6 unix]",
-		}
-	}
+	// no validation rules for Network
 
 	// no validation rules for Address
 
@@ -262,13 +245,6 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = ObservabilityListenCFValidationError{}
-
-var _ObservabilityListenCF_Network_InLookup = map[string]struct{}{
-	"tcp":  {},
-	"tcp4": {},
-	"tcp6": {},
-	"unix": {},
-}
 
 // Validate checks the field values on TracingCF with the rules defined in the
 // proto definition for this message. If any rules are violated, an error is returned.
@@ -343,12 +319,7 @@ func (m *LoggingCF) Validate() error {
 		return nil
 	}
 
-	if _, ok := _LoggingCF_Level_InLookup[m.GetLevel()]; !ok {
-		return LoggingCFValidationError{
-			field:  "Level",
-			reason: "value must be in list [debug info warn error]",
-		}
-	}
+	// no validation rules for Level
 
 	return nil
 }
@@ -406,13 +377,6 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = LoggingCFValidationError{}
-
-var _LoggingCF_Level_InLookup = map[string]struct{}{
-	"debug": {},
-	"info":  {},
-	"warn":  {},
-	"error": {},
-}
 
 // Validate checks the field values on GitLabCF with the rules defined in the
 // proto definition for this message. If any rules are violated, an error is returned.

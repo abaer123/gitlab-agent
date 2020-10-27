@@ -27,8 +27,6 @@ import (
 
 const (
 	defaultNamespace = metav1.NamespaceDefault
-
-	DefaultLogLevel = zap.InfoLevel
 )
 
 type GitOpsEngineFactory interface {
@@ -140,7 +138,7 @@ func (a *Agent) applyConfiguration(config *agentcfg.AgentConfiguration) error {
 }
 
 func (a *Agent) applyObservabilityConfiguration(obs *agentcfg.ObservabilityCF) error {
-	level, err := logz.LevelFromString(obs.Logging.Level)
+	level, err := logz.LevelFromString(obs.Logging.Level.String())
 	if err != nil {
 		return err
 	}
@@ -250,7 +248,6 @@ func (f *DefaultGitOpsEngineFactory) New(engineOpts []engine.Option, cacheOpts [
 func applyDefaultsToConfiguration(config *agentcfg.AgentConfiguration) {
 	protodefault.NotNil(&config.Observability)
 	protodefault.NotNil(&config.Observability.Logging)
-	protodefault.String(&config.Observability.Logging.Level, DefaultLogLevel.String())
 	protodefault.NotNil(&config.Gitops)
 	for _, project := range config.Gitops.ManifestProjects {
 		applyDefaultsToManifestProject(project)

@@ -15,6 +15,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/wstunnel"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -28,6 +29,8 @@ import (
 const (
 	defaultRefreshConfigurationRetryPeriod    = 10 * time.Second
 	defaultGetObjectsToSynchronizeRetryPeriod = 10 * time.Second
+
+	defaultLoggingLevel agentcfg.LoggingLevelEnum = 0 // whatever is 0 is the default value
 
 	defaultMaxMessageSize = 10 * 1024 * 1024
 	correlationClientName = "gitlab-agent"
@@ -122,7 +125,10 @@ func (a *App) kasConnection(ctx context.Context, token string) (*grpc.ClientConn
 }
 
 func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, error) {
-	log, level := logger()
+	log, level, err := logger()
+	if err != nil {
+		return nil, err
+	}
 	app := &App{
 		Log:      log,
 		LogLevel: level,
@@ -138,7 +144,11 @@ func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, err
 	return app, nil
 }
 
-func logger() (*zap.Logger, zap.AtomicLevel) {
-	level := zap.NewAtomicLevelAt(agentk.DefaultLogLevel)
-	return logz.LoggerWithLevel(level), level
+func logger() (*zap.Logger, zap.AtomicLevel, error) {
+	level, err := logz.LevelFromString(defaultLoggingLevel.String())
+	if err != nil {
+		return nil, zap.NewAtomicLevel(), err
+	}
+	atomicLevel := zap.NewAtomicLevelAt(level)
+	return logz.LoggerWithLevel(atomicLevel), atomicLevel, nil
 }
