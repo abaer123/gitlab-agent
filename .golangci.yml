@@ -1,6 +1,9 @@
 # Default configuration copied from https://raw.githubusercontent.com/golangci/golangci-lint/master/.golangci.example.yml
 # and tweaked.
 
+# This file contains all available configuration options
+# with their default values.
+
 # options for analysis running
 run:
   # default concurrency is a available CPU number
@@ -104,6 +107,8 @@ linters-settings:
     # see https://github.com/kisielk/errcheck#excluding-functions for details
 #    exclude: /path/to/file.txt
   exhaustive:
+    # check switch statements in generated files also
+    check-generated: false
     # indicates that switch statements are to be considered exhaustive if a
     # 'default' case is present, even if all enum members aren't listed in the
     # switch
@@ -111,6 +116,11 @@ linters-settings:
   funlen:
     lines: 60
     statements: 40
+  gci:
+    # put imports beginning with prefix after 3rd-party packages;
+    # only support one prefix
+    # if not set, use goimports.local-prefixes
+#    local-prefixes: github.com/org/project
   gocognit:
     # minimal code complexity to report, 30 by default (but we recommend 10-20)
     min-complexity: 10
@@ -241,10 +251,14 @@ linters-settings:
     list-type: blacklist
     include-go-root: false
     packages:
-#      - github.com/sirupsen/logrus
+      - github.com/sirupsen/logrus
+      - gitlab.com/gitlab-org/labkit/log
+      - log
     packages-with-error-message:
       # specify an error message to output when a blacklisted package is used
-#      - github.com/sirupsen/logrus: "logging is allowed only by logutils.Log"
+      - github.com/sirupsen/logrus: "use zap"
+      - gitlab.com/gitlab-org/labkit/log: "use zap"
+      - log: "use zap"
   lll:
     # max line length, lines longer will be reported. Default is 120.
     # '\t' is counted as 1 character by default, and can be changed with the tab-width option
@@ -259,7 +273,7 @@ linters-settings:
     # Default is to use a neutral variety of English.
     # Setting locale to US will correct the British spelling of 'colour' to 'color'.
     locale: US
-    ignore-words:
+#    ignore-words:
 #      - someword
   nakedret:
     # make an issue if func has more lines of code than this setting and it has naked returns; default is 30
@@ -328,6 +342,9 @@ linters-settings:
     # Choose whether or not to use the extra rules that are disabled
     # by default
     extra-rules: false
+  errorlint:
+    # Report non-wrapping error creation using fmt.Errorf
+    errorf: false
 
   # The custom section can be used to define linter plugins to be loaded at runtime. See README doc
   #  for more info.
@@ -345,7 +362,8 @@ linters:
   enable:
     - megacheck
     - govet
-  disable:
+    - depguard
+#  disable:
 #    - maligned
 #    - prealloc
   disable-all: false

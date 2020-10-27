@@ -730,13 +730,6 @@ def go_repositories():
         version = "v0.9.4",
     )
     go_repository(
-        name = "com_github_envoyproxy_protoc_gen_validate",
-        build_file_proto_mode = "disable_global",
-        importpath = "github.com/envoyproxy/protoc-gen-validate",
-        sum = "h1:EQciDnbrYxy13PgWoY8AqoxGiPrpgBZ1R8UNe3ddc+A=",
-        version = "v0.1.0",
-    )
-    go_repository(
         name = "com_github_etcd_io_bbolt",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/etcd-io/bbolt",
@@ -1479,6 +1472,13 @@ def go_repositories():
         version = "v1.0.0",
     )
     go_repository(
+        name = "com_github_iancoleman_strcase",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/iancoleman/strcase",
+        sum = "h1:ux/56T2xqZO/3cP1I2F86qpeoYPCOzk+KF/UH/Ar+lk=",
+        version = "v0.0.0-20180726023541-3605ed457bf7",
+    )
+    go_repository(
         name = "com_github_ianlancetaylor_demangle",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/ianlancetaylor/demangle",
@@ -1738,6 +1738,13 @@ def go_repositories():
         version = "v1.0.3",
     )
     go_repository(
+        name = "com_github_kr_fs",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/kr/fs",
+        sum = "h1:Jskdu9ieNAYnjxsi0LbQp1ulIKZV1LAFgK1tWhpZgl8=",
+        version = "v0.1.0",
+    )
+    go_repository(
         name = "com_github_kr_logfmt",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/kr/logfmt",
@@ -1876,6 +1883,13 @@ def go_repositories():
         importpath = "github.com/lucas-clemente/quic-go-certificates",
         sum = "h1:zqEC1GJZFbGZA0tRyNZqRjep92K5fujFtFsu5ZW7Aug=",
         version = "v0.0.0-20160823095156-d2f86524cced",
+    )
+    go_repository(
+        name = "com_github_lyft_protoc_gen_star",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/lyft/protoc-gen-star",
+        sum = "h1:sImehRT+p7lW9n6R7MQc5hVgzWGEkDVZU4AsBQ4Isu8=",
+        version = "v0.5.1",
     )
     go_repository(
         name = "com_github_magiconair_properties",
@@ -2333,6 +2347,13 @@ def go_repositories():
         version = "v0.9.1",
     )
     go_repository(
+        name = "com_github_pkg_sftp",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/pkg/sftp",
+        sum = "h1:VasscCm72135zRysgrJDKsntdmPN+OuU3+nnHYA9wyc=",
+        version = "v1.10.1",
+    )
+    go_repository(
         name = "com_github_pmezard_go_difflib",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/pmezard/go-difflib",
@@ -2560,8 +2581,8 @@ def go_repositories():
         name = "com_github_spf13_afero",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/spf13/afero",
-        sum = "h1:5jhuqJyZCZf2JRofRvN/nIFgIWNzPa3/Vz8mYylgbWc=",
-        version = "v1.2.2",
+        sum = "h1:8q6vk3hthlpb2SouZcnBVKboxWQWMDNF38bwholZrJc=",
+        version = "v1.3.4",
     )
     go_repository(
         name = "com_github_spf13_cast",

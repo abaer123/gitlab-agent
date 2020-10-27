@@ -1,7 +1,8 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@rules_proto_grpc//go:defs.bzl", "go_proto_compile")
 load("//build:build.bzl", "copy_to_workspace")
+load("//build:validate.bzl", "go_validate_compile")
 
 proto_library(
     name = "kascfg_proto",
@@ -9,12 +10,19 @@ proto_library(
     tags = ["manual"],
     visibility = ["//visibility:public"],
     deps = [
+        "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
         "@com_google_protobuf//:duration_proto",
     ],
 )
 
 go_proto_compile(
     name = "kas_cfg",
+    tags = ["manual"],
+    deps = [":kascfg_proto"],
+)
+
+go_validate_compile(
+    name = "kas_cfg_validate",
     tags = ["manual"],
     deps = [":kascfg_proto"],
 )
@@ -26,15 +34,40 @@ copy_to_workspace(
     workspace_relative_target_directory = "pkg/kascfg",
 )
 
+copy_to_workspace(
+    name = "extract_generated_validator",
+    file_to_copy = "kascfg.pb.validate.go",
+    label = ":kas_cfg_validate",
+    workspace_relative_target_directory = "pkg/kascfg",
+)
+
 go_library(
     name = "kascfg",
-    srcs = ["kascfg.pb.go"],
+    srcs = [
+        "kascfg.pb.go",
+        "kascfg.pb.validate.go",
+    ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg",
     visibility = ["//visibility:public"],
     deps = [
+        "@com_github_envoyproxy_protoc_gen_validate//validate:go_default_library",
         "@com_github_golang_protobuf//proto",
+        "@com_github_golang_protobuf//ptypes",
         "@com_github_golang_protobuf//ptypes/duration",
         "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_golang_google_protobuf//runtime/protoimpl",
+    ],
+)
+
+go_test(
+    name = "kascfg_test",
+    size = "small",
+    srcs = ["validation_test.go"],
+    embed = [":kascfg"],
+    race = "on",
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_protobuf//types/known/durationpb",
     ],
 )

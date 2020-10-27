@@ -6,20 +6,23 @@ package agentcfg;
 
 option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg";
 
+//import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
+import "validate/validate.proto";
+
 // CF suffix stands for Configuration File, meaning a message is part of ConfigurationFile.
 
 message ResourceFilterCF {
     // Use '*' to match any group.
-    repeated string api_groups = 1 [json_name = "api_groups"];
+    repeated string api_groups = 1 [json_name = "api_groups", (validate.rules).repeated.min_items = 1];
     // Use '*' to match any kind.
-    repeated string kinds = 2 [json_name = "kinds"];
+    repeated string kinds = 2 [json_name = "kinds", (validate.rules).repeated.min_items = 1, (validate.rules).repeated.items.string.min_len = 1];
 }
 
 // Project with Kubernetes object manifests.
 message ManifestProjectCF {
     // Project id.
     // e.g. gitlab-org/cluster-integration/gitlab-agent
-    string id = 1 [json_name = "id"];
+    string id = 1 [json_name = "id", (validate.rules).string.min_len = 1];
     // Holds the only api groups and kinds of resources that gitops will monitor.
     // Inclusion rules are evaluated first, then exclusion rules. If there is still no match,
     // resource is monitored.

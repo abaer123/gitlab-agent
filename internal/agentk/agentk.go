@@ -2,6 +2,7 @@ package agentk
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -106,7 +107,7 @@ func (a *Agent) refreshConfiguration() func(context.Context) {
 			config, err := res.Recv()
 			if err != nil {
 				switch {
-				case err == io.EOF:
+				case errors.Is(err, io.EOF):
 				case status.Code(err) == codes.DeadlineExceeded:
 				case status.Code(err) == codes.Canceled:
 				default:

@@ -87,7 +87,7 @@ func (p *Poller) fetchRefs(ctx context.Context, gInfo *api.GitalyInfo, repo *git
 	for {
 		entry, err := uploadPackResp.Recv() // nolint: govet
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			return nil, fmt.Errorf("InfoRefsUploadPack.Recv: %v", err)

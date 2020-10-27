@@ -2,6 +2,7 @@ package kas
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"path"
@@ -87,7 +88,7 @@ func (s *Server) Run(ctx context.Context) {
 
 func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream agentrpc.Kas_GetConfigurationServer) error {
 	err := wait.PollImmediateUntil(s.agentConfigurationPollPeriod, s.sendConfiguration(req.CommitId, stream), stream.Context().Done())
-	if err == wait.ErrWaitTimeout {
+	if errors.Is(err, wait.ErrWaitTimeout) {
 		return nil // all good, ctx is done
 	}
 	return err
@@ -150,6 +151,10 @@ func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInf
 	if err != nil {
 		return nil, fmt.Errorf("parse agent configuration: %v", err)
 	}
+	err = configFile.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("invalid agent configuration: %v", err)
+	}
 	agentConfig := extractAgentConfiguration(configFile)
 	return &agentrpc.ConfigurationResponse{
 		Configuration: agentConfig,
@@ -177,7 +182,7 @@ func (s *Server) fetchSingleFile(ctx context.Context, gInfo *api.GitalyInfo, rep
 	for {
 		entry, err := teResp.Recv()
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			return nil, fmt.Errorf("TreeEntry.Recv: %v", err)
@@ -202,7 +207,7 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 		return status.Error(codes.Unavailable, "unavailable")
 	}
 	err = wait.PollImmediateUntil(s.gitopsPollPeriod, s.sendObjectsToSynchronize(agentInfo, stream, req.ProjectId, req.CommitId), ctx.Done())
-	if err == wait.ErrWaitTimeout {
+	if errors.Is(err, wait.ErrWaitTimeout) {
 		return nil // all good, ctx is done
 	}
 	return err

@@ -101,6 +101,21 @@ go_repository(
     version = "v0.0.0-20201014124351-eb1fe6499318",
 )
 
+go_repository(
+    name = "com_github_envoyproxy_protoc_gen_validate",
+    build_file_proto_mode = "disable_global",
+    build_naming_convention = "go_default_library",
+    importpath = "github.com/envoyproxy/protoc-gen-validate",
+    patch_args = ["-p1"],
+    # patch addresses https://github.com/bazelbuild/bazel-gazelle/issues/941
+    # patch created by manually editing the build file and running `diff -urN dir_original dir_modified`
+    patches = [
+        "@gitlab_k8s_agent//build:validate_dependency.patch",
+    ],
+    sum = "h1:A9nAQ7H0O/o654GnqyDZtNAdbvXIl5hf+OsYAzBfDx0=",
+    version = "v0.4.2-0.20200930220426-ec9cd95372b9",
+)
+
 # Copied from rules_go to keep patches in place
 # https://github.com/bazelbuild/rules_go/blob/master/go/private/repositories.bzl
 http_archive(
@@ -162,6 +177,7 @@ load(
 load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
 load("@rules_proto_grpc//:repositories.bzl", "rules_proto_grpc_toolchains")
 load("@rules_proto_grpc//go:repositories.bzl", rules_proto_grpc_go_repos = "go_repos")
+load("@com_github_envoyproxy_protoc_gen_validate//:dependencies.bzl", pgv_third_party = "go_third_party")
 
 go_image_repositories()
 
@@ -178,3 +194,5 @@ rules_proto_toolchains()
 rules_proto_grpc_toolchains()
 
 rules_proto_grpc_go_repos()
+
+pgv_third_party()
