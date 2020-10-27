@@ -12,6 +12,7 @@ go_library(
         "//internal/api/apiutil",
         "//internal/tools/logz",
         "//internal/tools/wstunnel",
+        "//pkg/agentcfg",
         "@com_github_go_logr_zapr//:zapr",
         "@com_github_spf13_pflag//:pflag",
         "@com_gitlab_gitlab_org_labkit//correlation/grpc",

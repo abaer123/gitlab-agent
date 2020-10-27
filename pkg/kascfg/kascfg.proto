@@ -12,9 +12,16 @@ import "validate/validate.proto";
 
 // CF suffix stands for Configuration File, meaning a message is part of ConfigurationFile.
 
+enum listen_network_enum {
+    tcp = 0; // default value must be 0
+    tcp4 = 1;
+    tcp6 = 2;
+    unix = 3;
+}
+
 message ListenCF {
     // Network type to listen on. Supported values: tcp, tcp4, tcp6, unix.
-    string network = 1 [json_name = "network", (validate.rules).string = {in: ["tcp", "tcp4", "tcp6", "unix"]}];
+    listen_network_enum network = 1 [json_name = "network"];
     // Address to listen on.
     string address = 2 [json_name = "address"];
     // Enable "gRPC through WebSocket" listening mode. Rather than expecting gRPC directly, expect a WebSocket
@@ -30,7 +37,7 @@ message PrometheusCF {
 
 message ObservabilityListenCF {
     // Network type to listen on. Supported values: tcp, tcp4, tcp6, unix.
-    string network = 1 [json_name = "network", (validate.rules).string = {in: ["tcp", "tcp4", "tcp6", "unix"]}];
+    listen_network_enum network = 1 [json_name = "network"];
     // Address to listen on.
     string address = 2 [json_name = "address"];
 }
@@ -43,9 +50,16 @@ message TracingCF {
     string connection_string = 1 [json_name = "connection_string"];
 }
 
+enum logging_level_enum {
+    info = 0; // default value must be 0
+    debug = 1;
+    warn = 2;
+    error = 3;
+}
+
 message LoggingCF {
     // Supported logging levels are: debug, info, warn, error.
-    string level = 1 [json_name = "level", (validate.rules).string = {in: ["debug", "info", "warn", "error"]}];
+    logging_level_enum level = 1 [json_name = "level"];
 }
 
 message GitLabCF {

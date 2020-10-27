@@ -44,9 +44,16 @@ message ObservabilityCF {
     LoggingCF logging = 1 [json_name = "logging"];
 }
 
+enum logging_level_enum {
+    info = 0; // default value must be 0
+    debug = 1;
+    warn = 2;
+    error = 3;
+}
+
 message LoggingCF {
     // Supported logging levels are: debug, info, warn, error.
-    string level = 1 [json_name = "level"];
+    logging_level_enum level = 1 [json_name = "level"];
 }
 
 // ConfigurationFile represents user-facing configuration file.
