@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -35,7 +36,7 @@ type RunnableFactory func(flagset *pflag.FlagSet, arguments []string) (Runnable,
 
 func Run(factory RunnableFactory) {
 	rand.Seed(time.Now().UnixNano())
-	if err := run(factory); err != nil && err != context.Canceled && err != context.DeadlineExceeded && err != pflag.ErrHelp {
+	if err := run(factory); err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, pflag.ErrHelp) {
 		fmt.Fprintf(os.Stderr, "Program aborted: %v\n", err)
 		os.Exit(1)
 	}

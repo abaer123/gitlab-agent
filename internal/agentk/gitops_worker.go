@@ -2,6 +2,7 @@ package agentk
 
 import (
 	"context"
+	"errors"
 	"io"
 	"time"
 
@@ -79,7 +80,7 @@ func (d *gitopsWorker) getObjectsToSynchronize(s *synchronizer) func(context.Con
 			objectsResp, err := res.Recv()
 			if err != nil {
 				switch {
-				case err == io.EOF:
+				case errors.Is(err, io.EOF):
 				case status.Code(err) == codes.DeadlineExceeded:
 				case status.Code(err) == codes.Canceled:
 				default:

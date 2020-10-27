@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
+	"errors"
 	"time"
 
 	redigo "github.com/gomodule/redigo/redis"
@@ -46,7 +47,7 @@ func (l *TokenLimiter) Allow(ctx context.Context) bool {
 
 	count, err := redigo.Uint64(conn.Do("GET", key))
 	if err != nil {
-		if err != redigo.ErrNil {
+		if !errors.Is(err, redigo.ErrNil) {
 			// FIXME: Handle error
 			l.log.Error("redis.TokenLimiter: Error retrieving minute bucket count", zap.Error(err))
 			return false

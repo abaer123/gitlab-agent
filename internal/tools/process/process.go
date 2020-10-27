@@ -2,6 +2,7 @@ package process
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/http"
 	"sync"
@@ -27,7 +28,7 @@ func RunServer(ctx context.Context, srv *http.Server, listener net.Listener, shu
 
 	err := srv.Serve(listener)
 
-	if err != http.ErrServerClosed {
+	if !errors.Is(err, http.ErrServerClosed) {
 		// Failed to start or dirty shutdown
 		return err
 	}

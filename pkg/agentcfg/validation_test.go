@@ -42,8 +42,8 @@ func TestValidation_Valid(t *testing.T) {
 		},
 	}
 	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			assert.NoError(t, tc.cfg.Validate())
+		t.Run(tc.name, func(t *testing.T) { // nolint: scopelint
+			assert.NoError(t, tc.cfg.Validate()) // nolint: scopelint
 		})
 	}
 }
@@ -181,10 +181,10 @@ func TestValidation_Invalid(t *testing.T) {
 		},
 	}
 	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			err := tc.cfg.Validate()
+		t.Run(tc.name, func(t *testing.T) { // nolint: scopelint
+			err := tc.cfg.Validate() // nolint: scopelint
 			require.Error(t, err)
-			assert.EqualError(t, err, tc.errString)
+			assert.EqualError(t, err, tc.errString) // nolint: scopelint
 		})
 	}
 }
