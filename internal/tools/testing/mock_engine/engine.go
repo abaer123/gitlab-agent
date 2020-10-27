@@ -6,10 +6,10 @@ package mock_engine
 
 import (
 	context "context"
-	io "io"
 	reflect "reflect"
 
 	cache "github.com/argoproj/gitops-engine/pkg/cache"
+	engine "github.com/argoproj/gitops-engine/pkg/engine"
 	sync "github.com/argoproj/gitops-engine/pkg/sync"
 	common "github.com/argoproj/gitops-engine/pkg/sync/common"
 	gomock "github.com/golang/mock/gomock"
@@ -40,10 +40,10 @@ func (m *MockGitOpsEngine) EXPECT() *MockGitOpsEngineMockRecorder {
 }
 
 // Run mocks base method
-func (m *MockGitOpsEngine) Run() (io.Closer, error) {
+func (m *MockGitOpsEngine) Run() (engine.StopFunc, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Run")
-	ret0, _ := ret[0].(io.Closer)
+	ret0, _ := ret[0].(engine.StopFunc)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

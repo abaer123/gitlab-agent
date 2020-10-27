@@ -10,12 +10,12 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/sync"
 	"github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc/mock_agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_engine"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_misc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
 	corev1 "k8s.io/api/core/v1"
@@ -34,7 +34,6 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 	defer cancel()
 	mockCtrl := gomock.NewController(t)
 	mockEngineCtrl := gomock.NewController(t)
-	engineCloser := mock_misc.NewMockCloser(mockCtrl)
 	// engine is used concurrently with other mocks. So use a separate mock controller to avoid data races because
 	// mock controllers are not thread safe.
 	engine := mock_engine.NewMockGitOpsEngine(mockEngineCtrl)
@@ -43,13 +42,19 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 	stream1 := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
 	job1started := make(chan struct{})
 	stream2 := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
+	engineWasStopped := false
+	defer func() {
+		assert.True(t, engineWasStopped)
+	}()
 	gomock.InOrder(
 		engineFactory.EXPECT().
-			New(gomock.Any()).
+			New(gomock.Any(), gomock.Any()).
 			Return(engine),
 		engine.EXPECT().
 			Run().
-			Return(engineCloser, nil),
+			Return(func() {
+				engineWasStopped = true
+			}, nil),
 		kasClient.EXPECT().
 			GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeRequest{
 				ProjectId: projectId,
@@ -76,9 +81,6 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 				cancel()
 				return nil, io.EOF
 			}),
-		engineCloser.EXPECT().
-			Close().
-			Return(nil),
 	)
 	engine.EXPECT().
 		Sync(gomock.Any(), gomock.Len(0), gomock.Any(), revision, defaultNamespace, gomock.Any()).
@@ -223,28 +225,30 @@ func objsAndResp(t *testing.T) ([]*unstructured.Unstructured, *agentrpc.ObjectsT
 func setupWorker(t *testing.T) (*gitopsWorker, *mock_engine.MockGitOpsEngine, *mock_agentrpc.MockKas_GetObjectsToSynchronizeClient) {
 	mockCtrl := gomock.NewController(t)
 	mockEngineCtrl := gomock.NewController(t)
-	engineCloser := mock_misc.NewMockCloser(mockCtrl)
 	// engine is used concurrently with other mocks. So use a separate mock controller to avoid data races because
 	// mock controllers are not thread safe.
 	engine := mock_engine.NewMockGitOpsEngine(mockEngineCtrl)
 	engineFactory := mock_engine.NewMockGitOpsEngineFactory(mockCtrl)
 	kasClient := mock_agentrpc.NewMockKasClient(mockCtrl)
 	stream := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
+	engineWasStopped := false
+	t.Cleanup(func() {
+		assert.True(t, engineWasStopped)
+	})
 	gomock.InOrder(
 		engineFactory.EXPECT().
-			New(gomock.Any()).
+			New(gomock.Any(), gomock.Any()).
 			Return(engine),
 		engine.EXPECT().
 			Run().
-			Return(engineCloser, nil),
+			Return(func() {
+				engineWasStopped = true
+			}, nil),
 		kasClient.EXPECT().
 			GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeRequest{
 				ProjectId: projectId,
 			}), gomock.Any()).
 			Return(stream, nil),
-		engineCloser.EXPECT().
-			Close().
-			Return(nil),
 	)
 	d := &gitopsWorker{
 		kasClient:                          kasClient,
