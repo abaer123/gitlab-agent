@@ -10,13 +10,12 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/cache"
 	"github.com/argoproj/gitops-engine/pkg/engine"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctools"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/protodefault"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -98,7 +97,9 @@ func (a *Agent) refreshConfiguration() func(context.Context) {
 		}
 		res, err := a.kasClient.GetConfiguration(ctx, req)
 		if err != nil {
-			a.log.Warn("GetConfiguration failed", zap.Error(err))
+			if !grpctools.RequestCanceled(err) {
+				a.log.Warn("GetConfiguration failed", zap.Error(err))
+			}
 			return
 		}
 		for {
@@ -106,8 +107,7 @@ func (a *Agent) refreshConfiguration() func(context.Context) {
 			if err != nil {
 				switch {
 				case errors.Is(err, io.EOF):
-				case status.Code(err) == codes.DeadlineExceeded:
-				case status.Code(err) == codes.Canceled:
+				case grpctools.RequestCanceled(err):
 				default:
 					a.log.Warn("GetConfiguration.Recv failed", zap.Error(err))
 				}

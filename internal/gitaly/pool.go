@@ -25,7 +25,7 @@ type Pool struct {
 func (p *Pool) CommitServiceClient(ctx context.Context, gInfo *api.GitalyInfo) (gitalypb.CommitServiceClient, error) {
 	conn, err := p.ClientPool.Dial(ctx, gInfo.Address, gInfo.Token)
 	if err != nil {
-		return nil, err
+		return nil, err // don't wrap
 	}
 	return gitalypb.NewCommitServiceClient(conn), nil
 }
@@ -33,7 +33,7 @@ func (p *Pool) CommitServiceClient(ctx context.Context, gInfo *api.GitalyInfo) (
 func (p *Pool) SmartHTTPServiceClient(ctx context.Context, gInfo *api.GitalyInfo) (gitalypb.SmartHTTPServiceClient, error) {
 	conn, err := p.ClientPool.Dial(ctx, gInfo.Address, gInfo.Token)
 	if err != nil {
-		return nil, err
+		return nil, err // don't wrap
 	}
 	return gitalypb.NewSmartHTTPServiceClient(conn), nil
 }

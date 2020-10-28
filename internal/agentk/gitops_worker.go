@@ -11,10 +11,9 @@ import (
 	"github.com/ash2k/stager"
 	"github.com/go-logr/zapr"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctools"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
 	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -85,7 +84,9 @@ func (d *gitopsWorker) getObjectsToSynchronize(s *synchronizer) func(context.Con
 		}
 		res, err := d.kasClient.GetObjectsToSynchronize(ctx, req)
 		if err != nil {
-			d.log.Warn("GetObjectsToSynchronize failed", zap.Error(err))
+			if !grpctools.RequestCanceled(err) {
+				d.log.Warn("GetObjectsToSynchronize failed", zap.Error(err))
+			}
 			return
 		}
 		for {
@@ -93,8 +94,7 @@ func (d *gitopsWorker) getObjectsToSynchronize(s *synchronizer) func(context.Con
 			if err != nil {
 				switch {
 				case errors.Is(err, io.EOF):
-				case status.Code(err) == codes.DeadlineExceeded:
-				case status.Code(err) == codes.Canceled:
+				case grpctools.RequestCanceled(err):
 				default:
 					d.log.Warn("GetObjectsToSynchronize.Recv failed", zap.Error(err))
 				}

@@ -14,6 +14,8 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/agentrpc",
+        "//internal/tools/errz",
+        "//internal/tools/grpctools",
         "//internal/tools/logz",
         "//internal/tools/protodefault",
         "//internal/tools/retry",
@@ -29,8 +31,6 @@ go_library(
         "@io_k8s_apimachinery//pkg/util/wait",
         "@io_k8s_cli_runtime//pkg/resource",
         "@io_k8s_client_go//rest",
-        "@org_golang_google_grpc//codes",
-        "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//proto",
         "@org_uber_go_zap//:zap",
     ],

@@ -2,10 +2,10 @@ package agentk
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/argoproj/gitops-engine/pkg/cache"
 	"github.com/argoproj/gitops-engine/pkg/engine"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/errz"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -32,7 +32,11 @@ func (s *syncWorker) run(jobs <-chan syncJob) {
 	for job := range jobs {
 		err := s.synchronize(job)
 		if err != nil {
-			s.log.Warn("Synchronization failed", zap.Error(err))
+			if errz.ContextDone(err) {
+				s.log.Info("Synchronization was canceled", zap.Error(err))
+			} else {
+				s.log.Warn("Synchronization failed", zap.Error(err))
+			}
 		}
 	}
 }
@@ -40,8 +44,7 @@ func (s *syncWorker) run(jobs <-chan syncJob) {
 func (s *syncWorker) synchronize(job syncJob) error {
 	result, err := s.engine.Sync(job.ctx, job.objects, s.isManaged, job.commitId, s.projectConfiguration.DefaultNamespace)
 	if err != nil {
-		// TODO check ctx.Err() https://github.com/argoproj/gitops-engine/pull/140
-		return fmt.Errorf("engine.Sync failed: %v", err)
+		return err // don't wrap
 	}
 	for _, res := range result {
 		s.log.Info("Synced", engineResourceKey(res.ResourceKey), engineSyncResult(res.Message))

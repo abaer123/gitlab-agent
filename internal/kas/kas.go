@@ -15,6 +15,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctools"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/sentryapi"
@@ -107,6 +109,8 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 		agentInfo, err := s.gitLabClient.GetAgentInfo(ctx, agentMeta)
 		switch {
 		case err == nil:
+		case errz.ContextDone(err):
+			return false, status.Error(codes.Canceled, "canceled")
 		case gitlab.IsForbidden(err):
 			return false, status.Error(codes.PermissionDenied, "forbidden")
 		case gitlab.IsUnauthorized(err):
@@ -118,7 +122,9 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 		l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectPath(agentInfo.Repository.GlProjectPath))
 		info, err := p.Poll(ctx, &agentInfo.GitalyInfo, &agentInfo.Repository, lastProcessedCommitId, gitaly.DefaultBranch)
 		if err != nil {
-			l.Warn("Config: repository poll failed", zap.Error(err))
+			if !grpctools.RequestCanceled(err) {
+				l.Warn("Config: repository poll failed", zap.Error(err))
+			}
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		if !info.UpdateAvailable {
@@ -128,7 +134,9 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 		l.Info("Config: new commit", logz.CommitId(info.CommitId))
 		config, err := s.fetchConfiguration(ctx, agentInfo, info.CommitId)
 		if err != nil {
-			l.Warn("Config: failed to fetch", zap.Error(err))
+			if !grpctools.RequestCanceled(err) {
+				l.Warn("Config: failed to fetch", zap.Error(err))
+			}
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		lastProcessedCommitId = info.CommitId
@@ -137,12 +145,13 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 }
 
 // fetchConfiguration fetches agent's configuration from a corresponding repository.
-// Assumes configuration is stored in "agents/<agent id>/config.yaml" file.
+// Assumes configuration is stored in ".gitlab/agents/<agent id>/config.yaml" file.
+// fetchConfiguration returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
 func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInfo, revision string) (*agentrpc.ConfigurationResponse, error) {
 	filename := path.Join(agentConfigurationDirectory, agentInfo.Name, agentConfigurationFileName)
 	configYAML, err := s.fetchSingleFile(ctx, &agentInfo.GitalyInfo, &agentInfo.Repository, filename, revision)
 	if err != nil {
-		return nil, fmt.Errorf("fetch agent configuration: %v", err)
+		return nil, fmt.Errorf("fetch agent configuration: %w", err) // wrap
 	}
 	if configYAML == nil {
 		return nil, fmt.Errorf("configuration file not found: %q", filename)
@@ -163,10 +172,11 @@ func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInf
 
 // fetchSingleFile fetches the latest revision of a single file.
 // Returned data slice is nil if file was not found and is empty if the file is empty.
+// fetchSingleFile returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
 func (s *Server) fetchSingleFile(ctx context.Context, gInfo *api.GitalyInfo, repo *gitalypb.Repository, filename, revision string) ([]byte, error) {
 	client, err := s.gitalyPool.CommitServiceClient(ctx, gInfo)
 	if err != nil {
-		return nil, fmt.Errorf("CommitServiceClient: %v", err)
+		return nil, fmt.Errorf("CommitServiceClient: %w", err) // wrap
 	}
 	treeEntryReq := &gitalypb.TreeEntryRequest{
 		Repository: repo,
@@ -176,7 +186,7 @@ func (s *Server) fetchSingleFile(ctx context.Context, gInfo *api.GitalyInfo, rep
 	}
 	teResp, err := client.TreeEntry(ctx, treeEntryReq)
 	if err != nil {
-		return nil, fmt.Errorf("TreeEntry: %v", err)
+		return nil, fmt.Errorf("TreeEntry: %w", err) // wrap
 	}
 	var fileData []byte
 	for {
@@ -185,7 +195,7 @@ func (s *Server) fetchSingleFile(ctx context.Context, gInfo *api.GitalyInfo, rep
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			return nil, fmt.Errorf("TreeEntry.Recv: %v", err)
+			return nil, fmt.Errorf("TreeEntry.Recv: %w", err) // wrap
 		}
 		fileData = append(fileData, entry.Data...)
 	}
@@ -198,6 +208,8 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 	agentInfo, err := s.gitLabClient.GetAgentInfo(ctx, agentMeta)
 	switch {
 	case err == nil:
+	case errz.ContextDone(err):
+		return status.Error(codes.Canceled, "canceled")
 	case gitlab.IsForbidden(err):
 		return status.Error(codes.PermissionDenied, "forbidden")
 	case gitlab.IsUnauthorized(err):
@@ -226,6 +238,8 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agent
 		repoInfo, err := s.gitLabClient.GetProjectInfo(ctx, &agentInfo.Meta, projectId)
 		switch {
 		case err == nil:
+		case errz.ContextDone(err):
+			return false, status.Error(codes.Canceled, "canceled")
 		case gitlab.IsForbidden(err):
 			return false, status.Error(codes.PermissionDenied, "forbidden")
 		case gitlab.IsUnauthorized(err):
@@ -238,7 +252,9 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agent
 		revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
 		info, err := p.Poll(ctx, &repoInfo.GitalyInfo, &repoInfo.Repository, lastProcessedCommitId, revision)
 		if err != nil {
-			l.Warn("GitOps: repository poll failed", zap.Error(err))
+			if !grpctools.RequestCanceled(err) {
+				l.Warn("GitOps: repository poll failed", zap.Error(err))
+			}
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		if !info.UpdateAvailable {
@@ -248,7 +264,9 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agent
 		l.Info("GitOps: new commit", logz.CommitId(info.CommitId))
 		objects, err := s.fetchObjectsToSynchronize(ctx, repoInfo, info.CommitId)
 		if err != nil {
-			l.Warn("GitOps: failed to get objects to synchronize", zap.Error(err))
+			if !grpctools.RequestCanceled(err) {
+				l.Warn("GitOps: failed to get objects to synchronize", zap.Error(err))
+			}
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		lastProcessedCommitId = info.CommitId
@@ -264,12 +282,13 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agent
 	}
 }
 
+// fetchObjectsToSynchronize returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
 func (s *Server) fetchObjectsToSynchronize(ctx context.Context, repoInfo *api.ProjectInfo, revision string) ([]*agentrpc.ObjectToSynchronize, error) {
 	// TODO fetching just one file with a hardcoded name is a shortcut to cut scope
 	filename := "manifest.yaml"
 	manifestYAML, err := s.fetchSingleFile(ctx, &repoInfo.GitalyInfo, &repoInfo.Repository, filename, revision)
 	if err != nil {
-		return nil, err
+		return nil, err // don't wrap
 	}
 	if manifestYAML == nil {
 		return nil, fmt.Errorf("manifest file not found: %q", filename)
@@ -294,8 +313,10 @@ func (s *Server) sendUsage(ctx context.Context) {
 			return
 		case <-ticker.C:
 			if err := s.sendUsageInternal(ctx); err != nil {
-				s.log.Warn("Failed to send usage data", zap.Error(err))
-				s.sentry.CaptureException(err)
+				if !errz.ContextDone(err) {
+					s.log.Warn("Failed to send usage data", zap.Error(err))
+					s.sentry.CaptureException(err)
+				}
 			}
 		}
 	}
@@ -311,7 +332,7 @@ func (s *Server) sendUsageInternal(ctx context.Context) error {
 		GitopsSyncCount: m.gitopsSyncCount,
 	})
 	if err != nil {
-		return err
+		return err // don't wrap
 	}
 	// Subtract the increments we've just sent
 	s.usageMetrics.Subtract(m)
