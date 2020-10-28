@@ -1,6 +1,13 @@
 package grpctools
 
-import "context"
+import (
+	"context"
+	"errors"
+
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/errz"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
 
 // JoinContexts returns a ContextAugmenter that alters the main context to propagate cancellation from the aux context.
 // The returned context uses main as the parent context to inherit attached values.
@@ -20,4 +27,18 @@ func JoinContexts(aux context.Context) ContextAugmenter {
 		}()
 		return ctx, nil
 	}
+}
+
+func RequestCanceled(err error) bool {
+	if errz.ContextDone(err) {
+		return true
+	}
+	for err != nil {
+		code := status.Code(err)
+		if code == codes.Canceled || code == codes.DeadlineExceeded {
+			return true
+		}
+		err = errors.Unwrap(err)
+	}
+	return false
 }

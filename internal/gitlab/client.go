@@ -214,7 +214,12 @@ func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta,
 
 	resp, err := c.HTTPClient.Do(r)
 	if err != nil {
-		return fmt.Errorf("GitLab request: %v", err)
+		select {
+		case <-ctx.Done(): // assume request errored out because of context
+			return ctx.Err()
+		default:
+			return fmt.Errorf("GitLab request: %v", err)
+		}
 	}
 	defer resp.Body.Close() // nolint: errcheck
 	switch {

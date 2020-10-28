@@ -31,10 +31,11 @@ type PollInfo struct {
 
 // Poll performs a poll on the repository.
 // revision can be a branch name or a tag.
+// Poll returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
 func (p *Poller) Poll(ctx context.Context, gInfo *api.GitalyInfo, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*PollInfo, error) {
 	r, err := p.fetchRefs(ctx, gInfo, repo)
 	if err != nil {
-		return nil, err
+		return nil, err // don't wrap
 	}
 	refNameTag := "refs/tags/" + refName
 	refNameBranch := "refs/heads/" + refName
@@ -71,17 +72,18 @@ loop:
 	}, nil
 }
 
+// fetchRefs returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
 func (p *Poller) fetchRefs(ctx context.Context, gInfo *api.GitalyInfo, repo *gitalypb.Repository) (*ReferenceDiscovery, error) {
 	client, err := p.GitalyPool.SmartHTTPServiceClient(ctx, gInfo)
 	if err != nil {
-		return nil, fmt.Errorf("SmartHTTPServiceClient: %v", err)
+		return nil, fmt.Errorf("SmartHTTPServiceClient: %w", err) // wrap
 	}
 	uploadPackReq := &gitalypb.InfoRefsRequest{
 		Repository: repo,
 	}
 	uploadPackResp, err := client.InfoRefsUploadPack(ctx, uploadPackReq)
 	if err != nil {
-		return nil, fmt.Errorf("InfoRefsUploadPack: %v", err)
+		return nil, fmt.Errorf("InfoRefsUploadPack: %w", err) // wrap
 	}
 	var inforefs []byte
 	for {
@@ -90,7 +92,7 @@ func (p *Poller) fetchRefs(ctx context.Context, gInfo *api.GitalyInfo, repo *git
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			return nil, fmt.Errorf("InfoRefsUploadPack.Recv: %v", err)
+			return nil, fmt.Errorf("InfoRefsUploadPack.Recv: %w", err) // wrap
 		}
 		inforefs = append(inforefs, entry.Data...)
 	}

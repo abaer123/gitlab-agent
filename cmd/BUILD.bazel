@@ -8,5 +8,8 @@ go_library(
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd",
     visibility = ["//visibility:public"],
-    deps = ["@com_github_spf13_pflag//:pflag"],
+    deps = [
+        "//internal/tools/errz",
+        "@com_github_spf13_pflag//:pflag",
+    ],
 )

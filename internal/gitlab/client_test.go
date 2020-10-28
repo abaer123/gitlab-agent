@@ -3,6 +3,7 @@ package gitlab
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -171,12 +172,20 @@ func TestSendUsage(t *testing.T) {
 }
 
 func TestErrorCodes(t *testing.T) {
+	ctxClient, cancelClient := context.WithCancel(context.Background())
+	defer cancelClient()
+	ctxServer, cancelServer := context.WithCancel(context.Background())
+	defer cancelServer()
 	r := http.NewServeMux()
 	r.HandleFunc("/forbidden", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 	})
 	r.HandleFunc("/unauthorized", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
+	})
+	r.HandleFunc("/cancel", func(w http.ResponseWriter, r *http.Request) {
+		cancelClient()     // unblock client
+		<-ctxServer.Done() // wait for client to get the error and unblock server
 	})
 	s := httptest.NewServer(r)
 	defer s.Close()
@@ -197,6 +206,12 @@ func TestErrorCodes(t *testing.T) {
 	err = c.doJSON(context.Background(), http.MethodGet, meta, u, nil, nil)
 	require.Error(t, err)
 	assert.True(t, IsUnauthorized(err))
+
+	u.Path = "/cancel"
+	err = c.doJSON(ctxClient, http.MethodGet, meta, u, nil, nil)
+	cancelServer() // unblock server
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, context.Canceled))
 }
 
 func respondWithJSON(t *testing.T, w http.ResponseWriter, response interface{}) {
