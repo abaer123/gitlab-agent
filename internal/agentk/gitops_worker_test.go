@@ -123,7 +123,7 @@ func TestRunHappyPathNoObjects(t *testing.T) {
 			Return(nil, io.EOF),
 	)
 	engine.EXPECT().
-		Sync(gomock.Any(), gomock.Len(0), gomock.Any(), revision, defaultNamespace).
+		Sync(gomock.Any(), gomock.Len(0), gomock.Any(), revision, defaultNamespace, gomock.Any()).
 		DoAndReturn(func(ctx context.Context, resources []*unstructured.Unstructured, isManaged func(r *cache.Resource) bool, revision string, namespace string, opts ...sync.SyncOpt) ([]common.ResourceSyncResult, error) {
 			cancel() // all good, stop run()
 			return nil, nil

@@ -5,6 +5,8 @@ import (
 
 	"github.com/argoproj/gitops-engine/pkg/cache"
 	"github.com/argoproj/gitops-engine/pkg/engine"
+	"github.com/argoproj/gitops-engine/pkg/sync"
+	"github.com/go-logr/zapr"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/errz"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -42,7 +44,14 @@ func (s *syncWorker) run(jobs <-chan syncJob) {
 }
 
 func (s *syncWorker) synchronize(job syncJob) error {
-	result, err := s.engine.Sync(job.ctx, job.objects, s.isManaged, job.commitId, s.projectConfiguration.DefaultNamespace)
+	result, err := s.engine.Sync(
+		job.ctx,
+		job.objects,
+		s.isManaged,
+		job.commitId,
+		s.projectConfiguration.DefaultNamespace,
+		sync.WithLogr(zapr.NewLogger(s.log)),
+	)
 	if err != nil {
 		return err // don't wrap
 	}
