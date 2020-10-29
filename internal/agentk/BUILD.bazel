@@ -22,6 +22,7 @@ go_library(
         "//pkg/agentcfg",
         "@com_github_argoproj_gitops_engine//pkg/cache",
         "@com_github_argoproj_gitops_engine//pkg/engine",
+        "@com_github_argoproj_gitops_engine//pkg/sync",
         "@com_github_argoproj_gitops_engine//pkg/utils/kube",
         "@com_github_ash2k_stager//:stager",
         "@com_github_go_logr_zapr//:zapr",
