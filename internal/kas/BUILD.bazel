@@ -39,7 +39,6 @@ go_test(
         "//internal/agentrpc/mock_agentrpc",
         "//internal/api",
         "//internal/api/apiutil",
-        "//internal/gitaly/mock_gitalypool",
         "//internal/gitlab",
         "//internal/gitlab/mock_gitlab",
         "//internal/tools/sentryapi/mock_sentryapi",
