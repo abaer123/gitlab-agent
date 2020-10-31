@@ -93,7 +93,7 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 	d := &gitopsWorker{
 		kasClient:                          kasClient,
 		engineFactory:                      engineFactory,
-		getObjectsToSynchronizeRetryPeriod: 10 * time.Second,
+		getObjectsToSynchronizeRetryPeriod: 10 * time.Millisecond, // must be small, to retry fast
 		synchronizerConfig: synchronizerConfig{
 			log: zaptest.NewLogger(t),
 			projectConfiguration: &agentcfg.ManifestProjectCF{
