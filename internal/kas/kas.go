@@ -119,7 +119,7 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 			s.log.Error("GetAgentInfo()", zap.Error(err))
 			return false, nil // don't want to close the response stream, so report no error
 		}
-		l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectPath(agentInfo.Repository.GlProjectPath))
+		l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath))
 		info, err := p.Poll(ctx, &agentInfo.GitalyInfo, &agentInfo.Repository, lastProcessedCommitId, gitaly.DefaultBranch)
 		if err != nil {
 			if !grpctools.RequestCanceled(err) {
@@ -248,7 +248,6 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agent
 			l.Warn("GitOps: failed to get project info", zap.Error(err))
 			return false, nil // don't want to close the response stream, so report no error
 		}
-		l = l.With(logz.ProjectPath(repoInfo.Repository.GlRepository))
 		revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
 		info, err := p.Poll(ctx, &repoInfo.GitalyInfo, &repoInfo.Repository, lastProcessedCommitId, revision)
 		if err != nil {
