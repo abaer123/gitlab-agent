@@ -173,7 +173,7 @@ func TestGetConfigurationResumeConnection(t *testing.T) {
 
 func TestGetConfigurationGitLabClientFailures(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	agentMeta := api.AgentMeta{
 		Token: token,
@@ -211,7 +211,7 @@ func TestGetConfigurationGitLabClientFailures(t *testing.T) {
 func TestGetObjectsToSynchronizeGitLabClientFailures(t *testing.T) {
 	t.Parallel()
 	t.Run("GetAgentInfo failures", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		k, mockCtrl, _, gitlabClient, _ := setupKasBare(t)
 		agentInfo := agentInfoObj()
@@ -247,7 +247,7 @@ func TestGetObjectsToSynchronizeGitLabClientFailures(t *testing.T) {
 		assert.Equal(t, codes.Unavailable, status.Code(err))
 	})
 	t.Run("GetProjectInfo failures", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		k, mockCtrl, _, gitlabClient, _ := setupKasBare(t)
 		agentInfo := agentInfoObj()

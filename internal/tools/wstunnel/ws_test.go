@@ -9,7 +9,6 @@ import (
 	"net"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -97,7 +96,7 @@ func testHarness(t *testing.T, test func(*testing.T, *testStuff)) {
 	require.NoError(t, err)
 	defer lis.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	wrapper := ListenerWrapper{
