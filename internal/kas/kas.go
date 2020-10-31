@@ -110,7 +110,7 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 		switch {
 		case err == nil:
 		case errz.ContextDone(err):
-			return false, status.Error(codes.Canceled, "canceled")
+			return false, status.Error(codes.Unavailable, "unavailable")
 		case gitlab.IsForbidden(err):
 			return false, status.Error(codes.PermissionDenied, "forbidden")
 		case gitlab.IsUnauthorized(err):
@@ -209,7 +209,7 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 	switch {
 	case err == nil:
 	case errz.ContextDone(err):
-		return status.Error(codes.Canceled, "canceled")
+		return status.Error(codes.Unavailable, "unavailable")
 	case gitlab.IsForbidden(err):
 		return status.Error(codes.PermissionDenied, "forbidden")
 	case gitlab.IsUnauthorized(err):
@@ -239,7 +239,7 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agent
 		switch {
 		case err == nil:
 		case errz.ContextDone(err):
-			return false, status.Error(codes.Canceled, "canceled")
+			return false, status.Error(codes.Unavailable, "unavailable")
 		case gitlab.IsForbidden(err):
 			return false, status.Error(codes.PermissionDenied, "forbidden")
 		case gitlab.IsUnauthorized(err):
