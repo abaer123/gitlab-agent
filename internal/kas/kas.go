@@ -140,14 +140,17 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		lastProcessedCommitId = info.CommitId
-		return false, stream.Send(config)
+		return false, stream.Send(&agentrpc.ConfigurationResponse{
+			Configuration: config,
+			CommitId:      lastProcessedCommitId,
+		})
 	}
 }
 
 // fetchConfiguration fetches agent's configuration from a corresponding repository.
 // Assumes configuration is stored in ".gitlab/agents/<agent id>/config.yaml" file.
 // fetchConfiguration returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
-func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInfo, revision string) (*agentrpc.ConfigurationResponse, error) {
+func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInfo, revision string) (*agentcfg.AgentConfiguration, error) {
 	filename := path.Join(agentConfigurationDirectory, agentInfo.Name, agentConfigurationFileName)
 	configYAML, err := s.fetchSingleFile(ctx, &agentInfo.GitalyInfo, &agentInfo.Repository, filename, revision)
 	if err != nil {
@@ -165,9 +168,7 @@ func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInf
 		return nil, fmt.Errorf("invalid agent configuration: %v", err)
 	}
 	agentConfig := extractAgentConfiguration(configFile)
-	return &agentrpc.ConfigurationResponse{
-		Configuration: agentConfig,
-	}, nil
+	return agentConfig, nil
 }
 
 // fetchSingleFile fetches the latest revision of a single file.

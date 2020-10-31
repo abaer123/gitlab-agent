@@ -125,6 +125,7 @@ func TestGetConfiguration(t *testing.T) {
 			Configuration: &agentcfg.AgentConfiguration{
 				Gitops: configFile.Gitops,
 			},
+			CommitId: revision,
 		})).
 		DoAndReturn(func(resp *agentrpc.ConfigurationResponse) error {
 			cancel() // stop streaming call after the first response has been sent
