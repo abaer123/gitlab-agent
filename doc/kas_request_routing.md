@@ -14,39 +14,6 @@ GitLab needs to be able to talk to GitLab Kubernetes Agent Server (`kas`) to:
 
 Each agent connects to an instance of `kas` and keeps an open connection. When GitLab needs to talk to a particular agent, a `kas` instance, that this agent is connected to, needs to be found and the request needs to be routed to it.
 
-Here is an architecture diagram that is more detailed and specific for this document.
-
-```mermaid
-flowchart LR
-  subgraph "Kubernetes 1"
-    agentk1p1["agentk 1, Pod1"]
-    agentk1p2["agentk 1, Pod2"]
-  end
-
-  subgraph "Kubernetes 2"
-    agentk2["agentk 2"]
-  end
-
-  subgraph "Kubernetes 3"
-    agentk3["agentk 3"]
-  end
-
-  subgraph kas
-    kas1["kas 1"]
-    kas2["kas 2"]
-    kas3["kas 3"]
-  end
-
-  GitLab["GitLab Rails"]
-
-  GitLab -- "gRPC to any kas" --> kas
-
-  agentk1p1 -- "gRPC" --> kas1
-  agentk1p2 -- "gRPC" --> kas2
-  agentk2 -- "gRPC" --> kas1
-  agentk3 -- "gRPC" --> kas2
-```
-
 ## Proposed system design
 
 ```mermaid
