@@ -44,7 +44,6 @@ flowchart LR
   kas1 -- register connected agents --> Redis
   kas2 -- register connected agents --> Redis
   kas1 -- lookup agent --> Redis
-  kas3 --> Redis
 
   agentk1p1 -- "gRPC" --> kas1
   agentk1p2 -- "gRPC" --> kas2
