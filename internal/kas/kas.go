@@ -110,7 +110,7 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 		switch {
 		case err == nil:
 		case errz.ContextDone(err):
-			return false, status.Error(codes.Canceled, "canceled")
+			return false, status.Error(codes.Unavailable, "unavailable")
 		case gitlab.IsForbidden(err):
 			return false, status.Error(codes.PermissionDenied, "forbidden")
 		case gitlab.IsUnauthorized(err):
@@ -119,7 +119,7 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 			s.log.Error("GetAgentInfo()", zap.Error(err))
 			return false, nil // don't want to close the response stream, so report no error
 		}
-		l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectPath(agentInfo.Repository.GlProjectPath))
+		l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath))
 		info, err := p.Poll(ctx, &agentInfo.GitalyInfo, &agentInfo.Repository, lastProcessedCommitId, gitaly.DefaultBranch)
 		if err != nil {
 			if !grpctools.RequestCanceled(err) {
@@ -140,14 +140,17 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		lastProcessedCommitId = info.CommitId
-		return false, stream.Send(config)
+		return false, stream.Send(&agentrpc.ConfigurationResponse{
+			Configuration: config,
+			CommitId:      lastProcessedCommitId,
+		})
 	}
 }
 
 // fetchConfiguration fetches agent's configuration from a corresponding repository.
 // Assumes configuration is stored in ".gitlab/agents/<agent id>/config.yaml" file.
 // fetchConfiguration returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
-func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInfo, revision string) (*agentrpc.ConfigurationResponse, error) {
+func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInfo, revision string) (*agentcfg.AgentConfiguration, error) {
 	filename := path.Join(agentConfigurationDirectory, agentInfo.Name, agentConfigurationFileName)
 	configYAML, err := s.fetchSingleFile(ctx, &agentInfo.GitalyInfo, &agentInfo.Repository, filename, revision)
 	if err != nil {
@@ -165,9 +168,7 @@ func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInf
 		return nil, fmt.Errorf("invalid agent configuration: %v", err)
 	}
 	agentConfig := extractAgentConfiguration(configFile)
-	return &agentrpc.ConfigurationResponse{
-		Configuration: agentConfig,
-	}, nil
+	return agentConfig, nil
 }
 
 // fetchSingleFile fetches the latest revision of a single file.
@@ -209,7 +210,7 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 	switch {
 	case err == nil:
 	case errz.ContextDone(err):
-		return status.Error(codes.Canceled, "canceled")
+		return status.Error(codes.Unavailable, "unavailable")
 	case gitlab.IsForbidden(err):
 		return status.Error(codes.PermissionDenied, "forbidden")
 	case gitlab.IsUnauthorized(err):
@@ -239,7 +240,7 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agent
 		switch {
 		case err == nil:
 		case errz.ContextDone(err):
-			return false, status.Error(codes.Canceled, "canceled")
+			return false, status.Error(codes.Unavailable, "unavailable")
 		case gitlab.IsForbidden(err):
 			return false, status.Error(codes.PermissionDenied, "forbidden")
 		case gitlab.IsUnauthorized(err):
@@ -248,7 +249,6 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, stream agent
 			l.Warn("GitOps: failed to get project info", zap.Error(err))
 			return false, nil // don't want to close the response stream, so report no error
 		}
-		l = l.With(logz.ProjectPath(repoInfo.Repository.GlRepository))
 		revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
 		info, err := p.Poll(ctx, &repoInfo.GitalyInfo, &repoInfo.Repository, lastProcessedCommitId, revision)
 		if err != nil {

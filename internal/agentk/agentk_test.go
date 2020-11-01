@@ -30,7 +30,7 @@ var (
 )
 
 func TestGetConfigurationResumeConnection(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	a, mockCtrl, client, _ := setupBasicAgent(t)
 	configStream1 := mock_agentrpc.NewMockKas_GetConfigurationClient(mockCtrl)
@@ -201,7 +201,7 @@ func setupBasicAgent(t *testing.T) (*Agent, *gomock.Controller, *mock_agentrpc.M
 }
 
 func setupAgentWithConfigs(t *testing.T, configs ...*agentcfg.AgentConfiguration) (context.Context, *Agent, *gomock.Controller, *mock_engine.MockGitOpsEngineFactory) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	agent, mockCtrl, client, factory := setupBasicAgent(t)
 	configStream := mock_agentrpc.NewMockKas_GetConfigurationClient(mockCtrl)

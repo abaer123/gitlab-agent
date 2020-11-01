@@ -30,7 +30,7 @@ const (
 )
 
 func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	mockCtrl := gomock.NewController(t)
 	mockEngineCtrl := gomock.NewController(t)
@@ -93,7 +93,7 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 	d := &gitopsWorker{
 		kasClient:                          kasClient,
 		engineFactory:                      engineFactory,
-		getObjectsToSynchronizeRetryPeriod: 10 * time.Second,
+		getObjectsToSynchronizeRetryPeriod: 10 * time.Millisecond, // must be small, to retry fast
 		synchronizerConfig: synchronizerConfig{
 			log: zaptest.NewLogger(t),
 			projectConfiguration: &agentcfg.ManifestProjectCF{
@@ -108,7 +108,7 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 
 func TestRunHappyPathNoObjects(t *testing.T) {
 	s, engine, stream := setupWorker(t)
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	resp := &agentrpc.ObjectsToSynchronizeResponse{
@@ -133,7 +133,7 @@ func TestRunHappyPathNoObjects(t *testing.T) {
 
 func TestRunHappyPath(t *testing.T) {
 	s, engine, stream := setupWorker(t)
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	objs, resp := objsAndResp(t)
 	gomock.InOrder(
@@ -160,7 +160,7 @@ func TestRunHappyPath(t *testing.T) {
 
 func TestRunHappyPathSyncCancellation(t *testing.T) {
 	s, engine, stream := setupWorker(t)
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	objs, resp1 := objsAndResp(t)
 	resp2 := &agentrpc.ObjectsToSynchronizeResponse{

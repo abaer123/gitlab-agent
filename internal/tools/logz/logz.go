@@ -53,14 +53,11 @@ func AgentId(agentId int64) zap.Field {
 	return zap.Int64("agent_id", agentId)
 }
 
-func ProjectPath(projectPath string) zap.Field {
-	return zap.String("project_path", projectPath)
-}
-
 func CommitId(commitId string) zap.Field {
 	return zap.String("commit_id", commitId)
 }
 
+// The human-readable GitLab project path (e.g. gitlab-org/gitlab).
 func ProjectId(projectId string) zap.Field {
 	return zap.String("project_id", projectId)
 }

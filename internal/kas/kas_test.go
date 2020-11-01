@@ -19,7 +19,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc/mock_agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_gitalypool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/sentryapi/mock_sentryapi"
@@ -126,6 +125,7 @@ func TestGetConfiguration(t *testing.T) {
 			Configuration: &agentcfg.AgentConfiguration{
 				Gitops: configFile.Gitops,
 			},
+			CommitId: revision,
 		})).
 		DoAndReturn(func(resp *agentrpc.ConfigurationResponse) error {
 			cancel() // stop streaming call after the first response has been sent
@@ -173,7 +173,7 @@ func TestGetConfigurationResumeConnection(t *testing.T) {
 
 func TestGetConfigurationGitLabClientFailures(t *testing.T) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	agentMeta := api.AgentMeta{
 		Token: token,
@@ -211,7 +211,7 @@ func TestGetConfigurationGitLabClientFailures(t *testing.T) {
 func TestGetObjectsToSynchronizeGitLabClientFailures(t *testing.T) {
 	t.Parallel()
 	t.Run("GetAgentInfo failures", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		k, mockCtrl, _, gitlabClient, _ := setupKasBare(t)
 		agentInfo := agentInfoObj()
@@ -247,7 +247,7 @@ func TestGetObjectsToSynchronizeGitLabClientFailures(t *testing.T) {
 		assert.Equal(t, codes.Unavailable, status.Code(err))
 	})
 	t.Run("GetProjectInfo failures", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		k, mockCtrl, _, gitlabClient, _ := setupKasBare(t)
 		agentInfo := agentInfoObj()
@@ -572,7 +572,7 @@ func projectInfo() *api.ProjectInfo {
 	}
 }
 
-func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_gitalypool.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) { // nolint: unparam
+func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_gitaly.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) { // nolint: unparam
 	k, mockCtrl, gitalyPool, gitlabClient, sentryHub := setupKasBare(t)
 	agentInfo := agentInfoObj()
 	gitlabClient.EXPECT().
@@ -582,9 +582,9 @@ func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_
 	return k, agentInfo, mockCtrl, gitalyPool, gitlabClient, sentryHub
 }
 
-func setupKasBare(t *testing.T) (*Server, *gomock.Controller, *mock_gitalypool.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) {
+func setupKasBare(t *testing.T) (*Server, *gomock.Controller, *mock_gitaly.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) {
 	mockCtrl := gomock.NewController(t)
-	gitalyPool := mock_gitalypool.NewMockPoolInterface(mockCtrl)
+	gitalyPool := mock_gitaly.NewMockPoolInterface(mockCtrl)
 	gitlabClient := mock_gitlab.NewMockClientInterface(mockCtrl)
 	sentryHub := mock_sentryapi.NewMockHub(mockCtrl)
 

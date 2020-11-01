@@ -10,7 +10,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
-	"time"
 
 	"github.com/dgrijalva/jwt-go/v4"
 	"github.com/google/go-cmp/cmp"
@@ -274,7 +273,7 @@ func clientOptionsForTest() []ClientOption {
 }
 
 func ctxWithCorrelation(t *testing.T) (context.Context, string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	correlationId, err := correlation.RandomID()
 	require.NoError(t, err)
