@@ -8,9 +8,9 @@ For an architecture overview please see [architecture.md](architecture.md).
 
 GitLab needs to be able to talk to GitLab Kubernetes Agent Server (`kas`) to:
 
-- get information about connected agents.
-- interact with agents.
-- interact with Kubernetes clusters.
+- get information about connected agents. E.g.: https://gitlab.com/gitlab-org/gitlab/-/issues/249560
+- interact with agents. E.g.: https://gitlab.com/gitlab-org/gitlab/-/issues/230571
+- interact with Kubernetes clusters. E.g.: https://gitlab.com/gitlab-org/gitlab/-/issues/240918
 
 Each agent connects to an instance of `kas` and keeps an open connection. When GitLab needs to talk to a particular agent, a `kas` instance, that this agent is connected to, needs to be found and the request needs to be routed to it.
 
