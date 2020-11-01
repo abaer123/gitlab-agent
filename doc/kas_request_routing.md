@@ -124,7 +124,7 @@ If a request from GitLab comes but there is no agent connected that can handle i
 
 This endpoint is an implementation detail, an internal API, and should not be used by any other system. It's protected by JWT using a secret, shared among all `kas` instances. No other system must have access to this secret.
 
-When accessed via this endpoint, `kas` gets the information about the `agentk` it is supposed to send the request to from the request itself. It does not do any discovery, it only does what it's told to do. This prevents any request cycles. Retrying and re-routing requests is the responsibility of the `kas` that got the request on the external endpoint, not the `kas` that got it on the internal one.
+When accessed via this endpoint, `kas` gets the information about the `agentk` it is supposed to send the request to from the request itself. It does not do any discovery, it only does what it's told to do. This prevents any request cycles. Retrying and re-routing requests and all other routing decisions is the responsibility of the `kas` that got the request on the external endpoint, not the `kas` that got it on the internal one. That way there is a single central component (per request) that has the power to decide on how exactly a particular request is routed i.e. this decision is not "distributed" across several `kas` instances.
 
 ### API definitions
 
