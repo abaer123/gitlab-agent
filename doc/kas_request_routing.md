@@ -227,5 +227,5 @@ Questions:
 
 - Stream control
     - How to implement backpressure.
-    - How to propagate errors back to sender. tcp has RST, with Redis we only have timeouts to break connections.
-    - Feels like tcp-over-Redis.
+    - How to propagate errors back to sender. tcp has RST, with Redis we only have timeouts to break connections. Emulate RST by setting a key or via pub/sub?
+    - The above feels like implementing the mechanisms and semantics tcp provides on top of Redis.
