@@ -19,6 +19,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc/mock_agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_gitalypool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/sentryapi/mock_sentryapi"
@@ -572,7 +573,7 @@ func projectInfo() *api.ProjectInfo {
 	}
 }
 
-func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_gitaly.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) { // nolint: unparam
+func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_gitalypool.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) { // nolint: unparam
 	k, mockCtrl, gitalyPool, gitlabClient, sentryHub := setupKasBare(t)
 	agentInfo := agentInfoObj()
 	gitlabClient.EXPECT().
@@ -582,9 +583,9 @@ func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_
 	return k, agentInfo, mockCtrl, gitalyPool, gitlabClient, sentryHub
 }
 
-func setupKasBare(t *testing.T) (*Server, *gomock.Controller, *mock_gitaly.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) {
+func setupKasBare(t *testing.T) (*Server, *gomock.Controller, *mock_gitalypool.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) {
 	mockCtrl := gomock.NewController(t)
-	gitalyPool := mock_gitaly.NewMockPoolInterface(mockCtrl)
+	gitalyPool := mock_gitalypool.NewMockPoolInterface(mockCtrl)
 	gitlabClient := mock_gitlab.NewMockClientInterface(mockCtrl)
 	sentryHub := mock_sentryapi.NewMockHub(mockCtrl)
 
