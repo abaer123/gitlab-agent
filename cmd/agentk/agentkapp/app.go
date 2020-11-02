@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
+	"net/http"
 	"net/url"
 	"time"
 
@@ -81,12 +83,13 @@ func (a *App) kasConnection(ctx context.Context, token string) (*grpc.ClientConn
 	if err != nil {
 		return nil, fmt.Errorf("invalid kas address: %v", err)
 	}
+	userAgent := fmt.Sprintf("agentk/%s/%s", cmd.Version, cmd.Commit)
 	opts := []grpc.DialOption{
-		grpc.WithUserAgent(fmt.Sprintf("agentk/%s/%s", cmd.Version, cmd.Commit)),
+		grpc.WithUserAgent(userAgent),
 		// keepalive.ClientParameters must be specified at least as large as what is allowed by the
 		// server-side grpc.KeepaliveEnforcementPolicy
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                20 * time.Second,
+			Time:                30 * time.Second, // server allows min 20 seconds
 			PermitWithoutStream: true,
 		}),
 		grpc.WithChainStreamInterceptor(
@@ -103,8 +106,28 @@ func (a *App) kasConnection(ctx context.Context, token string) (*grpc.ClientConn
 	switch u.Scheme {
 	case "ws", "wss":
 		addressToDial = a.KasAddress
+		dialer := net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}
 		opts = append(opts, grpc.WithContextDialer(wstunnel.DialerForGRPC(defaultMaxMessageSize, &websocket.DialOptions{
-			// TODO
+			HTTPClient: &http.Client{
+				Transport: &http.Transport{
+					Proxy:                 http.ProxyFromEnvironment,
+					DialContext:           dialer.DialContext,
+					MaxIdleConns:          10,
+					IdleConnTimeout:       90 * time.Second,
+					TLSHandshakeTimeout:   10 * time.Second,
+					ResponseHeaderTimeout: 20 * time.Second,
+					ExpectContinueTimeout: 20 * time.Second,
+				},
+				CheckRedirect: func(req *http.Request, via []*http.Request) error {
+					return http.ErrUseLastResponse
+				},
+			},
+			HTTPHeader: http.Header{
+				"User-Agent": []string{userAgent},
+			},
 		})))
 	case "grpc":
 		addressToDial = u.Host
