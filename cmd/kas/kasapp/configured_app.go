@@ -310,7 +310,8 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 				PermitWithoutStream: true,
 			}),
 			grpc.KeepaliveParams(keepalive.ServerParameters{
-				Time: 1 * time.Minute,
+				// trying to stay below 60 seconds (typical load-balancer timeout)
+				Time: 50 * time.Second,
 			}),
 		)
 		agentrpc.RegisterKasServer(grpcServer, srv)

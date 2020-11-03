@@ -89,7 +89,10 @@ func (a *App) kasConnection(ctx context.Context, token string) (*grpc.ClientConn
 		// keepalive.ClientParameters must be specified at least as large as what is allowed by the
 		// server-side grpc.KeepaliveEnforcementPolicy
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                30 * time.Second, // server allows min 20 seconds
+			// kas allows min 20 seconds, trying to stay below 60 seconds (typical load-balancer timeout) and
+			// above kas' server keepalive Time so that kas pings the client sometimes. This helps mitigate
+			// reverse-proxies' enforced server response timeout.
+			Time:                55 * time.Second,
 			PermitWithoutStream: true,
 		}),
 		grpc.WithChainStreamInterceptor(
