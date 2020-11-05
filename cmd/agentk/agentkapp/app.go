@@ -21,6 +21,7 @@ import (
 	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/keepalive"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/resource"
@@ -85,6 +86,7 @@ func (a *App) kasConnection(ctx context.Context, token string) (*grpc.ClientConn
 	}
 	userAgent := fmt.Sprintf("agentk/%s/%s", cmd.Version, cmd.Commit)
 	opts := []grpc.DialOption{
+		grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)),
 		grpc.WithUserAgent(userAgent),
 		// keepalive.ClientParameters must be specified at least as large as what is allowed by the
 		// server-side grpc.KeepaliveEnforcementPolicy

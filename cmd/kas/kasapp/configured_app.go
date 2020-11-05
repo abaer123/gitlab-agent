@@ -36,6 +36,7 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
+	_ "google.golang.org/grpc/encoding/gzip" // Install the gzip compressor
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/stats"
 	"k8s.io/apimachinery/pkg/util/wait"

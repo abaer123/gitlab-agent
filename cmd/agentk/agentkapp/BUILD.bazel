@@ -21,6 +21,7 @@ go_library(
         "@io_k8s_klog_v2//:klog",
         "@io_nhooyr_websocket//:websocket",
         "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//encoding/gzip",
         "@org_golang_google_grpc//keepalive",
         "@org_uber_go_zap//:zap",
     ],
