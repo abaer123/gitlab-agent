@@ -179,6 +179,8 @@ func (s *Server) fetchSingleFile(ctx context.Context, gInfo *api.GitalyInfo, rep
 	if err != nil {
 		return nil, fmt.Errorf("CommitServiceClient: %w", err) // wrap
 	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel() // ensure streaming call is canceled
 	treeEntryReq := &gitalypb.TreeEntryRequest{
 		Repository: repo,
 		Revision:   []byte(revision),

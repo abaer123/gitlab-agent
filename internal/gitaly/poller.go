@@ -78,6 +78,8 @@ func (p *Poller) fetchRefs(ctx context.Context, gInfo *api.GitalyInfo, repo *git
 	if err != nil {
 		return nil, fmt.Errorf("SmartHTTPServiceClient: %w", err) // wrap
 	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel() // ensure streaming call is canceled
 	uploadPackReq := &gitalypb.InfoRefsRequest{
 		Repository: repo,
 	}

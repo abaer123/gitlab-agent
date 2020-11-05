@@ -78,6 +78,8 @@ func (d *gitopsWorker) Run(ctx context.Context) {
 func (d *gitopsWorker) getObjectsToSynchronize(s *synchronizer) func(context.Context) {
 	var lastProcessedCommitId string
 	return func(ctx context.Context) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel() // ensure streaming call is canceled
 		req := &agentrpc.ObjectsToSynchronizeRequest{
 			ProjectId: d.projectConfiguration.Id,
 			CommitId:  lastProcessedCommitId,
