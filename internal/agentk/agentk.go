@@ -92,6 +92,8 @@ func (a *Agent) stopAllWorkers() {
 func (a *Agent) refreshConfiguration() func(context.Context) {
 	var lastProcessedCommitId string
 	return func(ctx context.Context) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel() // ensure streaming call is canceled
 		req := &agentrpc.ConfigurationRequest{
 			CommitId: lastProcessedCommitId,
 		}
