@@ -26,7 +26,7 @@ First you need to setup two files:
      authentication_secret_file: /Users/tkuah/code/ee-gdk/gitlab/.gitlab_kas_secret
    agent:
      gitops:
-     poll_period: "10s"
+       poll_period: "10s"
    ```
 
 1. `token.txt`. This is the token for the agent you [created](https://docs.gitlab.com/ee/user/clusters/agent/#create-an-agent-record-in-gitlab).
