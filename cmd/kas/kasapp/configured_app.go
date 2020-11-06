@@ -194,7 +194,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		}
 
 		// gRPC listener
-		lis, err := net.Listen(cfg.Listen.Network.String(), cfg.Listen.Address)
+		lis, err := net.Listen(cfg.ListenAgent.Network.String(), cfg.ListenAgent.Address)
 		if err != nil {
 			return err
 		}
@@ -203,10 +203,10 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		a.Log.Info("Listening for agentk connections",
 			logz.NetNetworkFromAddr(lis.Addr()),
 			logz.NetAddressFromAddr(lis.Addr()),
-			logz.IsWebSocket(cfg.Listen.Websocket),
+			logz.IsWebSocket(cfg.ListenAgent.Websocket),
 		)
 
-		if cfg.GetListen().GetWebsocket() {
+		if cfg.ListenAgent.Websocket {
 			wsWrapper := wstunnel.ListenerWrapper{
 				// TODO set timeouts
 				ReadLimit: defaultMaxMessageSize,

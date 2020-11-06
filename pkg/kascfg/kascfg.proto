@@ -19,7 +19,7 @@ enum listen_network_enum {
     unix = 3;
 }
 
-message ListenCF {
+message ListenAgentCF {
     // Network type to listen on. Supported values: tcp, tcp4, tcp6, unix.
     listen_network_enum network = 1 [json_name = "network"];
     // Address to listen on.
@@ -176,8 +176,8 @@ message AgentLimitsCF {
 
 // ConfigurationFile represents kas configuration file.
 message ConfigurationFile {
-    // RPC listener configuration.
-    ListenCF listen = 1 [json_name = "listen"];
+    // RPC listener configuration for agentk connections.
+    ListenAgentCF listen_agent = 1 [json_name = "listen_agent"];
     // Configuration related to interaction with GitLab.
     GitLabCF gitlab = 2 [json_name = "gitlab"];
     // Configuration related to the agent. Generally all configuration for user-facing features should be here.

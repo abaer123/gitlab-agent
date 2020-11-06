@@ -44,7 +44,7 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 	address := getRandomLocalAddress(t)
 	ag := kasapp.ConfiguredApp{
 		Configuration: &kascfg.ConfigurationFile{
-			Listen: &kascfg.ListenCF{
+			ListenAgent: &kascfg.ListenAgentCF{
 				Address:   address,
 				Websocket: websocket,
 			},

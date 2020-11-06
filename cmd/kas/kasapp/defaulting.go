@@ -10,8 +10,8 @@ import (
 const (
 	defaultListenNetwork kascfg.ListenNetworkEnum = 0 // whatever is 0 is the default value
 
-	defaultListenAddress = "127.0.0.1:8150"
-	defaultGitLabAddress = "http://localhost:8080"
+	defaultListenAgentAddress = "127.0.0.1:8150"
+	defaultGitLabAddress      = "http://localhost:8080"
 
 	defaultAgentConfigurationPollPeriod = 20 * time.Second
 
@@ -42,8 +42,8 @@ const (
 )
 
 func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
-	protodefault.NotNil(&cfg.Listen)
-	defaultListen(cfg.Listen)
+	protodefault.NotNil(&cfg.ListenAgent)
+	defaultListenAgent(cfg.ListenAgent)
 
 	protodefault.NotNil(&cfg.Gitlab)
 	defaultGitLab(cfg.Gitlab)
@@ -62,8 +62,8 @@ func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
 	}
 }
 
-func defaultListen(l *kascfg.ListenCF) {
-	protodefault.String(&l.Address, defaultListenAddress)
+func defaultListenAgent(l *kascfg.ListenAgentCF) {
+	protodefault.String(&l.Address, defaultListenAgentAddress)
 }
 
 func defaultGitLab(g *kascfg.GitLabCF) {
