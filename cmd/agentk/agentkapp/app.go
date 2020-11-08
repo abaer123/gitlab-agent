@@ -2,6 +2,7 @@ package agentkapp
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -21,6 +22,7 @@ import (
 	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/keepalive"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -136,8 +138,9 @@ func (a *App) kasConnection(ctx context.Context, token string) (*grpc.ClientConn
 		})))
 	case "grpc":
 		addressToDial = u.Host
-	//case "grpcs":
-	// TODO https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/7
+	case "grpcs":
+		addressToDial = u.Host
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
 	default:
 		return nil, fmt.Errorf("unsupported scheme in GitLab Kubernetes Agent Server address: %q", u.Scheme)
 	}
