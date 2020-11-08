@@ -70,7 +70,7 @@ def define_command_targets(name, binary_embed):
 
     go_image(
         name = "container_race",
-        base = "@go_image_base//image",
+        base = "@go_debug_image_base//image",
         binary = ":%s_linux_race" % name,
         tags = ["manual"],
     )
