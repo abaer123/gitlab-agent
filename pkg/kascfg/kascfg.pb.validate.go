@@ -115,8 +115,6 @@ func (m *PrometheusCF) Validate() error {
 		return nil
 	}
 
-	// no validation rules for Disabled
-
 	// no validation rules for UrlPath
 
 	return nil
@@ -937,21 +935,22 @@ var _ interface {
 	ErrorName() string
 } = GoogleProfilerCFValidationError{}
 
-// Validate checks the field values on PprofCF with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is returned.
-func (m *PprofCF) Validate() error {
+// Validate checks the field values on LivenessProbeCF with the rules defined
+// in the proto definition for this message. If any rules are violated, an
+// error is returned.
+func (m *LivenessProbeCF) Validate() error {
 	if m == nil {
 		return nil
 	}
 
-	// no validation rules for Disabled
+	// no validation rules for UrlPath
 
 	return nil
 }
 
-// PprofCFValidationError is the validation error returned by PprofCF.Validate
-// if the designated constraints aren't met.
-type PprofCFValidationError struct {
+// LivenessProbeCFValidationError is the validation error returned by
+// LivenessProbeCF.Validate if the designated constraints aren't met.
+type LivenessProbeCFValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -959,22 +958,22 @@ type PprofCFValidationError struct {
 }
 
 // Field function returns field value.
-func (e PprofCFValidationError) Field() string { return e.field }
+func (e LivenessProbeCFValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e PprofCFValidationError) Reason() string { return e.reason }
+func (e LivenessProbeCFValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e PprofCFValidationError) Cause() error { return e.cause }
+func (e LivenessProbeCFValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e PprofCFValidationError) Key() bool { return e.key }
+func (e LivenessProbeCFValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e PprofCFValidationError) ErrorName() string { return "PprofCFValidationError" }
+func (e LivenessProbeCFValidationError) ErrorName() string { return "LivenessProbeCFValidationError" }
 
 // Error satisfies the builtin error interface
-func (e PprofCFValidationError) Error() string {
+func (e LivenessProbeCFValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -986,14 +985,14 @@ func (e PprofCFValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sPprofCF.%s: %s%s",
+		"invalid %sLivenessProbeCF.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = PprofCFValidationError{}
+var _ error = LivenessProbeCFValidationError{}
 
 var _ interface {
 	Field() string
@@ -1001,7 +1000,74 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = PprofCFValidationError{}
+} = LivenessProbeCFValidationError{}
+
+// Validate checks the field values on ReadinessProbeCF with the rules defined
+// in the proto definition for this message. If any rules are violated, an
+// error is returned.
+func (m *ReadinessProbeCF) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	// no validation rules for UrlPath
+
+	return nil
+}
+
+// ReadinessProbeCFValidationError is the validation error returned by
+// ReadinessProbeCF.Validate if the designated constraints aren't met.
+type ReadinessProbeCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ReadinessProbeCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ReadinessProbeCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ReadinessProbeCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ReadinessProbeCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ReadinessProbeCFValidationError) ErrorName() string { return "ReadinessProbeCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ReadinessProbeCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sReadinessProbeCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ReadinessProbeCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ReadinessProbeCFValidationError{}
 
 // Validate checks the field values on ObservabilityCF with the rules defined
 // in the proto definition for this message. If any rules are violated, an
@@ -1092,10 +1158,20 @@ func (m *ObservabilityCF) Validate() error {
 		}
 	}
 
-	if v, ok := interface{}(m.GetPprof()).(interface{ Validate() error }); ok {
+	if v, ok := interface{}(m.GetLivenessProbe()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return ObservabilityCFValidationError{
-				field:  "Pprof",
+				field:  "LivenessProbe",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetReadinessProbe()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ObservabilityCFValidationError{
+				field:  "ReadinessProbe",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}

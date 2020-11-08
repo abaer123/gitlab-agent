@@ -26,7 +26,6 @@ observability:
     network: tcp
     address: 127.0.0.1:8151
   prometheus:
-    disabled: false
     url_path: /metrics
   tracing:
     connection_string: ""
@@ -39,8 +38,10 @@ observability:
     enabled: false
     # project_id: ""
     # credentials_file: /some/file
-  pprof:
-    disabled: false
+  liveness_probe:
+    url_path: /liveness
+  readiness_probe:
+    url_path: /readiness
 gitaly:
   global_api_rate_limit:
     refill_rate_per_second: 10.0

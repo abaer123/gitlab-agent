@@ -74,7 +74,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 	// Start things up
 	st := stager.New()
 	a.startGoogleProfiler(st)
-	a.startMetricsServer(st, gatherer, reg)
+	a.startObservabilityServer(st, gatherer, reg)
 	a.startGrpcServer(st, reg, ssh, csh)
 	return st.Run(ctx)
 }
@@ -128,16 +128,8 @@ func (a *ConfiguredApp) startGoogleProfiler(st stager.Stager) {
 	})
 }
 
-func (a *ConfiguredApp) startMetricsServer(st stager.Stager, gatherer prometheus.Gatherer, registerer prometheus.Registerer) {
+func (a *ConfiguredApp) startObservabilityServer(st stager.Stager, gatherer prometheus.Gatherer, registerer prometheus.Registerer) {
 	cfg := a.Configuration.Observability
-	if cfg.Prometheus.Disabled && cfg.Pprof.Disabled {
-		return
-	}
-	if cfg.Prometheus.Disabled {
-		// Do not expose Prometheus if it is disabled
-		gatherer = nil
-		registerer = nil
-	}
 	stage := st.NextStage()
 	stage.Go(func(ctx context.Context) error {
 		lis, err := net.Listen(cfg.Listen.Network.String(), cfg.Listen.Address)
@@ -146,19 +138,19 @@ func (a *ConfiguredApp) startMetricsServer(st stager.Stager, gatherer prometheus
 		}
 		defer lis.Close() // nolint: errcheck
 
-		a.Log.Info(fmt.Sprintf("Observability endpoint is up. Prometheus enabled: %t, pprof enabled: %t", !cfg.Prometheus.Disabled, !cfg.Pprof.Disabled),
+		a.Log.Info("Observability endpoint is up",
 			logz.NetNetworkFromAddr(lis.Addr()),
 			logz.NetAddressFromAddr(lis.Addr()),
-			logz.UrlPath(cfg.Prometheus.UrlPath),
 		)
 
 		metricSrv := &metric.Server{
-			Name:          kasUserAgent(),
-			Listener:      lis,
-			UrlPath:       cfg.Prometheus.UrlPath,
-			Gatherer:      gatherer,
-			Registerer:    registerer,
-			PprofDisabled: cfg.Pprof.Disabled,
+			Name:                  kasUserAgent(),
+			Listener:              lis,
+			PrometheusUrlPath:     cfg.Prometheus.UrlPath,
+			LivenessProbeUrlPath:  cfg.LivenessProbe.UrlPath,
+			ReadinessProbeUrlPath: cfg.ReadinessProbe.UrlPath,
+			Gatherer:              gatherer,
+			Registerer:            registerer,
 		}
 		return metricSrv.Run(ctx)
 	})
