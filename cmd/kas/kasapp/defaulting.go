@@ -25,9 +25,11 @@ const (
 	defaultGitOpsProjectInfoCacheTTL      = 5 * time.Minute
 	defaultGitOpsProjectInfoCacheErrorTTL = 1 * time.Minute
 
-	defaultUsageReportingPeriod    = 1 * time.Minute
-	defaultPrometheusListenAddress = "127.0.0.1:8151"
-	defaultPrometheusListenUrlPath = "/metrics"
+	defaultUsageReportingPeriod       = 1 * time.Minute
+	defaultObservabilityListenAddress = "127.0.0.1:8151"
+	defaultPrometheusUrlPath          = "/metrics"
+	defaultLivenessProbeUrlPath       = "/liveness"
+	defaultReadinessProbeUrlPath      = "/readiness"
 
 	defaultGitalyGlobalApiRefillRate    = 10.0
 	defaultGitalyGlobalApiBucketSize    = 50
@@ -91,10 +93,10 @@ func defaultObservability(o *kascfg.ObservabilityCF) {
 	protodefault.Duration(&o.UsageReportingPeriod, defaultUsageReportingPeriod)
 
 	protodefault.NotNil(&o.Listen)
-	protodefault.String(&o.Listen.Address, defaultPrometheusListenAddress)
+	protodefault.String(&o.Listen.Address, defaultObservabilityListenAddress)
 
 	protodefault.NotNil(&o.Prometheus)
-	protodefault.String(&o.Prometheus.UrlPath, defaultPrometheusListenUrlPath)
+	protodefault.String(&o.Prometheus.UrlPath, defaultPrometheusUrlPath)
 
 	protodefault.NotNil(&o.Tracing)
 
@@ -104,7 +106,11 @@ func defaultObservability(o *kascfg.ObservabilityCF) {
 
 	protodefault.NotNil(&o.GoogleProfiler)
 
-	protodefault.NotNil(&o.Pprof)
+	protodefault.NotNil(&o.LivenessProbe)
+	protodefault.String(&o.LivenessProbe.UrlPath, defaultLivenessProbeUrlPath)
+
+	protodefault.NotNil(&o.ReadinessProbe)
+	protodefault.String(&o.ReadinessProbe.UrlPath, defaultReadinessProbeUrlPath)
 }
 
 func defaultGitaly(g *kascfg.GitalyCF) {

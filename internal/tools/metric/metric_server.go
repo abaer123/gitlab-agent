@@ -22,12 +22,13 @@ const (
 
 type Server struct {
 	// Name is the name of the application.
-	Name          string
-	Listener      net.Listener
-	UrlPath       string
-	Gatherer      prometheus.Gatherer
-	Registerer    prometheus.Registerer
-	PprofDisabled bool
+	Name                  string
+	Listener              net.Listener
+	PrometheusUrlPath     string
+	LivenessProbeUrlPath  string
+	ReadinessProbeUrlPath string
+	Gatherer              prometheus.Gatherer
+	Registerer            prometheus.Registerer
 }
 
 func (a *Server) Run(ctx context.Context) error {
@@ -42,8 +43,9 @@ func (a *Server) Run(ctx context.Context) error {
 
 func (a *Server) constructHandler() http.Handler {
 	mux := http.NewServeMux()
-	a.maybePprofHandler(mux)
-	a.maybePrometheusHandler(mux)
+	a.probesHandler(mux)
+	a.pprofHandler(mux)
+	a.prometheusHandler(mux)
 	return mux
 }
 
@@ -54,22 +56,31 @@ func (a *Server) setHeaders(next http.Handler) http.Handler {
 	})
 }
 
-func (a *Server) maybePrometheusHandler(mux *http.ServeMux) {
-	if a.Gatherer == nil {
-		return
-	}
+func (a *Server) probesHandler(mux *http.ServeMux) {
 	mux.Handle(
-		a.UrlPath,
+		a.LivenessProbeUrlPath,
+		a.setHeaders(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})),
+	)
+	mux.Handle(
+		a.ReadinessProbeUrlPath,
+		a.setHeaders(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})),
+	)
+}
+
+func (a *Server) prometheusHandler(mux *http.ServeMux) {
+	mux.Handle(
+		a.PrometheusUrlPath,
 		a.setHeaders(promhttp.InstrumentMetricHandler(a.Registerer, promhttp.HandlerFor(a.Gatherer, promhttp.HandlerOpts{
 			Timeout: defaultMaxRequestDuration,
 		}))),
 	)
 }
 
-func (a *Server) maybePprofHandler(mux *http.ServeMux) {
-	if a.PprofDisabled {
-		return
-	}
+func (a *Server) pprofHandler(mux *http.ServeMux) {
 	routes := map[string]func(http.ResponseWriter, *http.Request){
 		"/debug/pprof/":        pprof.Index,
 		"/debug/pprof/cmdline": pprof.Cmdline,

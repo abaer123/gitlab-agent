@@ -30,9 +30,8 @@ message ListenAgentCF {
 }
 
 message PrometheusCF {
-    bool disabled = 1 [json_name = "disabled"];
     // Expected URL path for requests.
-    string url_path = 2 [json_name = "url_path"];
+    string url_path = 1 [json_name = "url_path"];
 }
 
 message ObservabilityListenCF {
@@ -109,15 +108,21 @@ message GoogleProfilerCF {
     string credentials_file = 3 [json_name = "credentials_file"];
 }
 
-message PprofCF {
-    bool disabled = 1 [json_name = "disabled"];
+message LivenessProbeCF {
+    // Expected URL path for requests.
+    string url_path = 1 [json_name = "url_path"];
+}
+
+message ReadinessProbeCF {
+    // Expected URL path for requests.
+    string url_path = 1 [json_name = "url_path"];
 }
 
 message ObservabilityCF {
     // How often to send usage metrics to the main application. /api/v4/internal/kubernetes/usage_ping
     // Set to zero to disable.
     google.protobuf.Duration usage_reporting_period = 1 [json_name = "usage_reporting_period", (validate.rules).duration = {gte: {}}];
-    // Listener configuration for HTTP endpoint that exposes Prometheus and pprof.
+    // Listener configuration for HTTP endpoint that exposes Prometheus, pprof, liveness and readiness probes.
     ObservabilityListenCF listen = 2 [json_name = "listen"];
     PrometheusCF prometheus = 3 [json_name = "prometheus"];
     TracingCF tracing = 4 [json_name = "tracing"];
@@ -125,7 +130,8 @@ message ObservabilityCF {
     LoggingCF logging = 6 [json_name = "logging"];
     // Configuration for the Google Cloud Profiler. See https://pkg.go.dev/cloud.google.com/go/profiler.
     GoogleProfilerCF google_profiler = 7 [json_name = "google_profiler"];
-    PprofCF pprof = 8 [json_name = "pprof"];
+    LivenessProbeCF liveness_probe = 8 [json_name = "liveness_probe"];
+    ReadinessProbeCF readiness_probe = 9 [json_name = "readiness_probe"];
 }
 
 // See https://pkg.go.dev/golang.org/x/time/rate#Limiter.
