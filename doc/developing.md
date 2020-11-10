@@ -17,7 +17,7 @@ First you need to setup two files:
    For reference, here's an example file:
 
    ```yaml
-   listen:
+   listen_agent:
      network: tcp
      address: 127.0.0.1:8150
      websocket: false
