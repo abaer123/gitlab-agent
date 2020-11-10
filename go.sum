@@ -128,6 +128,8 @@ github.com/bgentry/speakeasy v0.1.0/go.mod h1:+zsyZBPWlz7T6j88CTgSN5bM796AkVf0kB
 github.com/bifurcation/mint v0.0.0-20180715133206-93c51c6ce115/go.mod h1:zVt7zX3K/aDCk9Tj+VM7YymsX66ERvzCJzw8rFCX2JU=
 github.com/blang/semver v3.1.0+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
 github.com/blang/semver v3.5.0+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
+github.com/bmatcuk/doublestar/v2 v2.0.3 h1:D6SI8MzWzXXBXZFS87cFL6s/n307lEU+thM2SUnge3g=
+github.com/bmatcuk/doublestar/v2 v2.0.3/go.mod h1:QMmcs3H2AUQICWhfzLXz+IYln8lRQmTZRptLie8RgRw=
 github.com/boltdb/bolt v1.3.1/go.mod h1:clJnj/oiGkjum5o1McbSZDSLxVThjynRyGBgiAx27Ps=
 github.com/caddyserver/caddy v1.0.3/go.mod h1:G+ouvOY32gENkJC+jhgl62TyhvqEsFaDiZ4uw0RzP1E=
 github.com/casbin/casbin/v2 v2.1.2/go.mod h1:YcPU1XXisHhLzuxH9coDNf2FbKpjGlbCg3n9yuLkIJQ=

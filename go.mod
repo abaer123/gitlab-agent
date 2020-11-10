@@ -7,6 +7,7 @@ require (
 	github.com/FZambia/sentinel v1.1.0
 	github.com/argoproj/gitops-engine v0.1.3-0.20201027001456-31311943a57a
 	github.com/ash2k/stager v0.2.0
+	github.com/bmatcuk/doublestar/v2 v2.0.3
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1.0.20200107205605-c66185887605
 	github.com/envoyproxy/protoc-gen-validate v0.4.2-0.20200930220426-ec9cd95372b9
 	github.com/getsentry/sentry-go v0.7.0

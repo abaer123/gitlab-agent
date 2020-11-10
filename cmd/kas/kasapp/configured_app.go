@@ -230,12 +230,17 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			GitalyPool: &gitaly.Pool{
 				ClientPool: gitalyClientPool,
 			},
-			GitLabClient:                 gitLabCachingClient,
-			AgentConfigurationPollPeriod: cfg.Agent.Configuration.PollPeriod.AsDuration(),
-			GitopsPollPeriod:             cfg.Agent.Gitops.PollPeriod.AsDuration(),
-			UsageReportingPeriod:         cfg.Observability.UsageReportingPeriod.AsDuration(),
-			Registerer:                   registerer,
-			Sentry:                       hub,
+			GitLabClient:                   gitLabCachingClient,
+			Registerer:                     registerer,
+			Sentry:                         hub,
+			AgentConfigurationPollPeriod:   cfg.Agent.Configuration.PollPeriod.AsDuration(),
+			GitopsPollPeriod:               cfg.Agent.Gitops.PollPeriod.AsDuration(),
+			UsageReportingPeriod:           cfg.Observability.UsageReportingPeriod.AsDuration(),
+			MaxConfigurationFileSize:       cfg.Agent.Limits.MaxConfigurationFileSize,
+			MaxGitopsManifestFileSize:      cfg.Agent.Limits.MaxGitopsManifestFileSize,
+			MaxGitopsTotalManifestFileSize: cfg.Agent.Limits.MaxGitopsTotalManifestFileSize,
+			MaxGitopsNumberOfPaths:         cfg.Agent.Limits.MaxGitopsNumberOfPaths,
+			MaxGitopsNumberOfFiles:         cfg.Agent.Limits.MaxGitopsNumberOfFiles,
 		})
 		if err != nil {
 			return fmt.Errorf("kas.NewServer: %v", err)

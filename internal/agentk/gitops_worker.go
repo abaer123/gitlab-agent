@@ -83,6 +83,7 @@ func (d *gitopsWorker) getObjectsToSynchronize(s *synchronizer) func(context.Con
 		req := &agentrpc.ObjectsToSynchronizeRequest{
 			ProjectId: d.projectConfiguration.Id,
 			CommitId:  lastProcessedCommitId,
+			Paths:     d.projectConfiguration.Paths,
 		}
 		res, err := d.kasClient.GetObjectsToSynchronize(ctx, req)
 		if err != nil {

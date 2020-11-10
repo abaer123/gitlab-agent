@@ -18,6 +18,13 @@ message ResourceFilterCF {
     repeated string kinds = 2 [json_name = "kinds", (validate.rules).repeated.min_items = 1, (validate.rules).repeated.items.string.min_len = 1];
 }
 
+message PathCF {
+    // Glob to use to scan for files in the repository. Directories with names starting with a dot are ignored.
+    // See https://github.com/bmatcuk/doublestar#about and
+    // https://pkg.go.dev/github.com/bmatcuk/doublestar/v2#Match for globbing rules.
+    string glob = 1 [json_name = "glob"];
+}
+
 // Project with Kubernetes object manifests.
 message ManifestProjectCF {
     // Project id.
@@ -33,7 +40,8 @@ message ManifestProjectCF {
     repeated ResourceFilterCF resource_exclusions = 3 [json_name = "resource_exclusions"];
     // Namespace to use if not set explicitly in object manifest.
     string default_namespace = 4 [json_name = "default_namespace"];
-    // TODO support fetching a path (subdirectory) within a repository
+    // A list of paths inside of the project to scan for .yaml/.yml/.json manifest files.
+    repeated PathCF paths = 5 [json_name = "paths"];
 }
 
 message GitopsCF {

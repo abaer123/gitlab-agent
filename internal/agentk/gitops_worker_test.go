@@ -25,8 +25,9 @@ import (
 )
 
 const (
-	projectId = "bla123/bla-1"
-	revision  = "rev12341234"
+	projectId        = "bla123/bla-1"
+	revision         = "rev12341234"
+	defaultNamespace = "testing1"
 )
 
 func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
@@ -46,6 +47,11 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 	defer func() {
 		assert.True(t, engineWasStopped)
 	}()
+	pathsCfg := []*agentcfg.PathCF{
+		{
+			Glob: "*.yaml",
+		},
+	}
 	gomock.InOrder(
 		engineFactory.EXPECT().
 			New(gomock.Any(), gomock.Any()).
@@ -58,6 +64,7 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 		kasClient.EXPECT().
 			GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeRequest{
 				ProjectId: projectId,
+				Paths:     pathsCfg,
 			}), gomock.Any()).
 			Return(stream1, nil),
 		stream1.EXPECT().
@@ -72,6 +79,7 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 			GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeRequest{
 				ProjectId: projectId,
 				CommitId:  revision,
+				Paths:     pathsCfg,
 			}), gomock.Any()).
 			Return(stream2, nil),
 		stream2.EXPECT().
@@ -99,6 +107,7 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 			projectConfiguration: &agentcfg.ManifestProjectCF{
 				Id:               projectId,
 				DefaultNamespace: defaultNamespace, // as if user didn't specify configuration so it's the default value
+				Paths:            pathsCfg,
 			},
 			k8sClientGetter: genericclioptions.NewTestConfigFlags(),
 		},
@@ -235,6 +244,11 @@ func setupWorker(t *testing.T) (*gitopsWorker, *mock_engine.MockGitOpsEngine, *m
 	t.Cleanup(func() {
 		assert.True(t, engineWasStopped)
 	})
+	pathsCfg := []*agentcfg.PathCF{
+		{
+			Glob: "*.yaml",
+		},
+	}
 	gomock.InOrder(
 		engineFactory.EXPECT().
 			New(gomock.Any(), gomock.Any()).
@@ -247,6 +261,7 @@ func setupWorker(t *testing.T) (*gitopsWorker, *mock_engine.MockGitOpsEngine, *m
 		kasClient.EXPECT().
 			GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeRequest{
 				ProjectId: projectId,
+				Paths:     pathsCfg,
 			}), gomock.Any()).
 			Return(stream, nil),
 	)
@@ -259,6 +274,7 @@ func setupWorker(t *testing.T) (*gitopsWorker, *mock_engine.MockGitOpsEngine, *m
 			projectConfiguration: &agentcfg.ManifestProjectCF{
 				Id:               projectId,
 				DefaultNamespace: defaultNamespace, // as if user didn't specify configuration so it's the default value
+				Paths:            pathsCfg,
 			},
 			k8sClientGetter: genericclioptions.NewTestConfigFlags(),
 		},

@@ -20,6 +20,11 @@ agent:
   limits:
     connections_per_token_per_minute: 100
     redis_key_prefix: kas:agent_limits
+    max_configuration_file_size: 131072
+    max_gitops_manifest_file_size: 1048576
+    max_gitops_total_manifest_file_size: 2097152
+    max_gitops_number_of_paths: 100
+    max_gitops_number_of_files: 1000
 observability:
   usage_reporting_period: "60s"
   listen:

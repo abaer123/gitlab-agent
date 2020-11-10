@@ -173,8 +173,6 @@ func assertWorkersMatchConfiguration(t *testing.T, a *Agent, config *agentcfg.Ag
 			success = false
 			continue
 		}
-		project = proto.Clone(project).(*agentcfg.ManifestProjectCF)
-		applyDefaultsToManifestProject(project)
 		success = assert.Empty(t, cmp.Diff(a.workers[project.Id].worker.projectConfiguration, project, protocmp.Transform())) || success
 	}
 	return success

@@ -3,6 +3,8 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "gitaly",
     srcs = [
+        "path_fetcher.go",
+        "path_visitor.go",
         "poller.go",
         "pool.go",
         "reference_discovery.go",
@@ -20,11 +22,20 @@ go_library(
 go_test(
     name = "gitaly_test",
     size = "small",
-    srcs = ["reference_discovery_test.go"],
+    srcs = [
+        "path_fetcher_test.go",
+        "path_visitor_test.go",
+        "reference_discovery_test.go",
+    ],
     embed = [":gitaly"],
     race = "on",
     deps = [
+        "//internal/gitaly/mock_internalgitaly",
         "//internal/gitaly/pktline",
+        "//internal/tools/testing/matcher",
+        "//internal/tools/testing/mock_gitaly",
+        "@com_github_golang_mock//gomock",
         "@com_github_stretchr_testify//require",
+        "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",
     ],
 )

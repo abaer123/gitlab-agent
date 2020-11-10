@@ -1564,6 +1564,16 @@ func (m *AgentLimitsCF) Validate() error {
 
 	// no validation rules for RedisKeyPrefix
 
+	// no validation rules for MaxConfigurationFileSize
+
+	// no validation rules for MaxGitopsManifestFileSize
+
+	// no validation rules for MaxGitopsTotalManifestFileSize
+
+	// no validation rules for MaxGitopsNumberOfPaths
+
+	// no validation rules for MaxGitopsNumberOfFiles
+
 	return nil
 }
 

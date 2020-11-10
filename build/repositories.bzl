@@ -275,6 +275,13 @@ def go_repositories():
         version = "v3.5.0+incompatible",
     )
     go_repository(
+        name = "com_github_bmatcuk_doublestar_v2",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/bmatcuk/doublestar/v2",
+        sum = "h1:D6SI8MzWzXXBXZFS87cFL6s/n307lEU+thM2SUnge3g=",
+        version = "v2.0.3",
+    )
+    go_repository(
         name = "com_github_boltdb_bolt",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/boltdb/bolt",
