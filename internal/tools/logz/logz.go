@@ -57,6 +57,10 @@ func CommitId(commitId string) zap.Field {
 	return zap.String("commit_id", commitId)
 }
 
+func NumberOfFiles(n int) zap.Field {
+	return zap.Int("number_of_files", n)
+}
+
 // The human-readable GitLab project path (e.g. gitlab-org/gitlab).
 func ProjectId(projectId string) zap.Field {
 	return zap.String("project_id", projectId)

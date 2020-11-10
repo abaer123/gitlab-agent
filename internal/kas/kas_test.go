@@ -19,7 +19,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc/mock_agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_gitalypool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_internalgitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/sentryapi/mock_sentryapi"
@@ -33,6 +34,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/testing/protocmp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -40,15 +42,22 @@ import (
 )
 
 const (
-	token     = "abfaasdfasdfasdf"
-	projectId = "some/project"
-	revision  = "507ebc6de9bcac25628aa7afd52802a91a0685d8"
+	token            = "abfaasdfasdfasdf"
+	projectId        = "some/project"
+	revision         = "507ebc6de9bcac25628aa7afd52802a91a0685d8"
+	manifestRevision = "7afd52802a91a0685d8507ebc6de9bcac25628aa"
 
 	infoRefsData = `001e# service=git-upload-pack
 00000148` + revision + ` HEAD` + "\x00" + `multi_ack thin-pack side-band side-band-64k ofs-delta shallow deepen-since deepen-not deepen-relative no-progress include-tag multi_ack_detailed allow-tip-sha1-in-want allow-reachable-sha1-in-want no-done symref=HEAD:refs/heads/master filter object-format=sha1 agent=git/2.28.0
 003f` + revision + ` refs/heads/master
 0044` + revision + ` refs/heads/test-branch
 0000`
+
+	maxConfigurationFileSize       = 128 * 1024
+	maxGitopsManifestFileSize      = 128 * 1024
+	maxGitopsTotalManifestFileSize = 1024 * 1024
+	maxGitopsNumberOfPaths         = 10
+	maxGitopsNumberOfFiles         = 200
 )
 
 func TestYAMLToConfigurationAndBack(t *testing.T) {
@@ -110,7 +119,7 @@ func TestGetConfiguration(t *testing.T) {
 		Repository: &agentInfo.Repository,
 		Revision:   []byte(revision),
 		Path:       []byte(agentConfigurationDirectory + "/" + agentInfo.Name + "/" + agentConfigurationFileName),
-		Limit:      fileSizeLimit,
+		Limit:      maxConfigurationFileSize,
 	}
 	infoRefsReq := &gitalypb.InfoRefsRequest{
 		Repository: &agentInfo.Repository,
@@ -124,7 +133,19 @@ func TestGetConfiguration(t *testing.T) {
 	resp.EXPECT().
 		Send(matcher.ProtoEq(t, &agentrpc.ConfigurationResponse{
 			Configuration: &agentcfg.AgentConfiguration{
-				Gitops: configFile.Gitops,
+				Gitops: &agentcfg.GitopsCF{
+					ManifestProjects: []*agentcfg.ManifestProjectCF{
+						{
+							Id:               projectId,
+							DefaultNamespace: defaultGitOpsManifestNamespace,
+							Paths: []*agentcfg.PathCF{
+								{
+									Glob: defaultGitOpsManifestPathGlob,
+								},
+							},
+						},
+					},
+				},
 			},
 			CommitId: revision,
 		})).
@@ -322,11 +343,17 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	}
 	objectsYAML := kube_testing.ObjsToYAML(t, objects...)
 	projectInfo := projectInfo()
-	treeEntryReq := &gitalypb.TreeEntryRequest{
+	treeEntriesReq := &gitalypb.GetTreeEntriesRequest{
 		Repository: &projectInfo.Repository,
 		Revision:   []byte(revision),
+		Path:       []byte("."),
+		Recursive:  true,
+	}
+	treeEntryReq := &gitalypb.TreeEntryRequest{
+		Repository: &projectInfo.Repository,
+		Revision:   []byte(manifestRevision),
 		Path:       []byte("manifest.yaml"),
-		Limit:      fileSizeLimit,
+		Limit:      maxGitopsManifestFileSize,
 	}
 	infoRefsReq := &gitalypb.InfoRefsRequest{
 		Repository: &projectInfo.Repository,
@@ -362,8 +389,36 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	gitalyPool.EXPECT().
 		CommitServiceClient(gomock.Any(), &projectInfo.GitalyInfo).
 		Return(commitClient, nil)
+
+	treeEntriesClient := mock_gitaly.NewMockCommitService_GetTreeEntriesClient(mockCtrl)
+	gomock.InOrder(
+		commitClient.EXPECT().
+			GetTreeEntries(gomock.Any(), matcher.ProtoEq(t, treeEntriesReq), gomock.Any()).
+			Return(treeEntriesClient, nil),
+		treeEntriesClient.EXPECT().
+			Recv().
+			Return(&gitalypb.GetTreeEntriesResponse{
+				Entries: []*gitalypb.TreeEntry{
+					{
+						Path:      []byte("manifest.yaml"),
+						Type:      gitalypb.TreeEntry_BLOB,
+						CommitOid: manifestRevision,
+					},
+				},
+			}, nil),
+		treeEntriesClient.EXPECT().
+			Recv().
+			Return(nil, io.EOF),
+	)
 	mockTreeEntry(t, mockCtrl, commitClient, treeEntryReq, objectsYAML)
-	err := a.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, resp)
+	err := a.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{
+		ProjectId: projectId,
+		Paths: []*agentcfg.PathCF{
+			{
+				Glob: defaultGitOpsManifestPathGlob,
+			},
+		},
+	}, resp)
 	require.NoError(t, err)
 
 	ctxRun, cancelRun := context.WithTimeout(context.Background(), 1*time.Second)
@@ -473,13 +528,307 @@ func TestSendUsageRetry(t *testing.T) {
 	require.NoError(t, k.sendUsageInternal(ctx))
 }
 
+func TestObjectsToSynchronizeVisitor(t *testing.T) {
+	tests := []struct {
+		name             string
+		path             string
+		glob             string
+		expectedDownload bool
+		expectedMaxSize  int64
+		expectedErr      string
+	}{
+		{
+			name:             "YAML file",
+			path:             "manifest1.yaml",
+			glob:             defaultGitOpsManifestPathGlob,
+			expectedDownload: true,
+			expectedMaxSize:  maxGitopsManifestFileSize,
+		},
+		{
+			name:             "YML file",
+			path:             "manifest1.yml",
+			glob:             defaultGitOpsManifestPathGlob,
+			expectedDownload: true,
+			expectedMaxSize:  maxGitopsManifestFileSize,
+		},
+		{
+			name:             "JSON file",
+			path:             "manifest1.json",
+			glob:             defaultGitOpsManifestPathGlob,
+			expectedDownload: true,
+			expectedMaxSize:  maxGitopsManifestFileSize,
+		},
+		{
+			name:             "nested YAML file",
+			path:             "dir/manifest1.yaml",
+			glob:             defaultGitOpsManifestPathGlob,
+			expectedDownload: true,
+			expectedMaxSize:  maxGitopsManifestFileSize,
+		},
+		{
+			name:             "nested YML file",
+			path:             "dir/manifest1.yml",
+			glob:             defaultGitOpsManifestPathGlob,
+			expectedDownload: true,
+			expectedMaxSize:  maxGitopsManifestFileSize,
+		},
+		{
+			name:             "nested JSON file",
+			path:             "dir/manifest1.json",
+			glob:             defaultGitOpsManifestPathGlob,
+			expectedDownload: true,
+			expectedMaxSize:  maxGitopsManifestFileSize,
+		},
+		{
+			name:             "TXT file",
+			path:             "manifest1.txt",
+			glob:             defaultGitOpsManifestPathGlob,
+			expectedDownload: false,
+		},
+		{
+			name:             "nested TXT file",
+			path:             "dir/manifest1.txt",
+			glob:             defaultGitOpsManifestPathGlob,
+			expectedDownload: false,
+		},
+		{
+			name:             "hidden directory",
+			path:             ".dir/manifest1.yaml",
+			glob:             defaultGitOpsManifestPathGlob,
+			expectedDownload: false,
+		},
+		{
+			name:             "hidden nested directory",
+			path:             "dir1/.dir2/manifest1.yaml",
+			glob:             defaultGitOpsManifestPathGlob,
+			expectedDownload: false,
+		},
+		{
+			name:             "invalid glob",
+			path:             "dir1/manifest1.yaml",
+			glob:             "**.yaml", // yes, this does not match "dir/file" names. See https://github.com/bmatcuk/doublestar/issues/48
+			expectedDownload: false,
+		},
+		{
+			name:             "no match",
+			path:             "dir1/manifest1.yaml",
+			glob:             "dir2/*.yml",
+			expectedDownload: false,
+		},
+		{
+			name:             "weird glob",
+			path:             "manifest1.yaml",
+			glob:             "**.yaml",
+			expectedDownload: true,
+			expectedMaxSize:  maxGitopsManifestFileSize,
+		},
+		{
+			name:             "all files 1",
+			path:             "manifest1.yaml",
+			glob:             "**",
+			expectedDownload: true,
+			expectedMaxSize:  maxGitopsManifestFileSize,
+		},
+		{
+			name:             "all files 2",
+			path:             "dir1/manifest1.yaml",
+			glob:             "**",
+			expectedDownload: true,
+			expectedMaxSize:  maxGitopsManifestFileSize,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			v := objectsToSynchronizeVisitor{
+				glob:                   tc.glob, // nolint: scopelint
+				remainingTotalFileSize: maxGitopsTotalManifestFileSize,
+				fileSizeLimit:          maxGitopsManifestFileSize,
+				maxNumberOfFiles:       maxGitopsNumberOfFiles,
+			}
+			download, maxSize, err := v.VisitEntry(&gitalypb.TreeEntry{
+				Path: []byte(tc.path), // nolint: scopelint
+			})
+			if tc.expectedErr == "" { // nolint: scopelint
+				assert.Equal(t, tc.expectedDownload, download) // nolint: scopelint
+				if tc.expectedDownload {                       // nolint: scopelint
+					assert.Equal(t, tc.expectedMaxSize, maxSize) // nolint: scopelint
+				}
+			} else {
+				assert.EqualError(t, err, tc.expectedErr) // nolint: scopelint
+			}
+		})
+	}
+	t.Run("too many files", func(t *testing.T) {
+		v := objectsToSynchronizeVisitor{
+			glob:                   defaultGitOpsManifestPathGlob,
+			remainingTotalFileSize: maxGitopsTotalManifestFileSize,
+			fileSizeLimit:          maxGitopsManifestFileSize,
+			maxNumberOfFiles:       1,
+		}
+		download, maxSize, err := v.VisitEntry(&gitalypb.TreeEntry{
+			Path: []byte("manifest1.yaml"),
+		})
+		require.NoError(t, err)
+		assert.EqualValues(t, maxGitopsManifestFileSize, maxSize)
+		assert.True(t, download)
+
+		_, _, err = v.VisitEntry(&gitalypb.TreeEntry{
+			Path: []byte("manifest2.yaml"),
+		})
+		assert.EqualError(t, err, "maximum number of manifest files limit reached: 1")
+	})
+	t.Run("unexpected underflow", func(t *testing.T) {
+		v := objectsToSynchronizeVisitor{
+			glob:                   defaultGitOpsManifestPathGlob,
+			remainingTotalFileSize: 1,
+			fileSizeLimit:          maxGitopsManifestFileSize,
+			maxNumberOfFiles:       maxGitopsNumberOfFiles,
+		}
+		_, err := v.VisitBlob(gitaly.Blob{
+			Path: []byte("manifest2.yaml"),
+			Data: []byte("data1"),
+		})
+		assert.EqualError(t, err, "unexpected negative remaining total file size")
+	})
+	t.Run("blob", func(t *testing.T) {
+		v := objectsToSynchronizeVisitor{
+			glob:                   defaultGitOpsManifestPathGlob,
+			remainingTotalFileSize: maxGitopsTotalManifestFileSize,
+			fileSizeLimit:          maxGitopsManifestFileSize,
+			maxNumberOfFiles:       maxGitopsNumberOfFiles,
+		}
+		data := []byte("data1")
+		blob := gitaly.Blob{
+			Path: []byte("manifest2.yaml"),
+			Data: data,
+		}
+		done, err := v.VisitBlob(blob)
+		require.NoError(t, err)
+		assert.False(t, done)
+		assert.Empty(t, cmp.Diff(v.objects, []*agentrpc.ObjectToSynchronize{{Object: data, Source: "manifest2.yaml"}}, protocmp.Transform()))
+		assert.EqualValues(t, maxGitopsTotalManifestFileSize-len(blob.Data), v.remainingTotalFileSize)
+	})
+}
+
+func TestGlobToGitaly(t *testing.T) {
+	tests := []struct {
+		name              string
+		glob              string
+		expectedRepoPath  []byte
+		expectedRecursive bool
+		expectedGlob      string
+	}{
+		{
+			name:              "empty",
+			glob:              "",
+			expectedRepoPath:  []byte{'.'},
+			expectedRecursive: false,
+			expectedGlob:      "",
+		},
+		{
+			name:              "root",
+			glob:              "/",
+			expectedRepoPath:  []byte{'.'},
+			expectedRecursive: false,
+			expectedGlob:      "",
+		},
+		{
+			name:              "simple file1",
+			glob:              "*.yaml",
+			expectedRepoPath:  []byte{'.'},
+			expectedRecursive: false,
+			expectedGlob:      "*.yaml",
+		},
+		{
+			name:              "simple file2",
+			glob:              "/*.yaml",
+			expectedRepoPath:  []byte{'.'},
+			expectedRecursive: false,
+			expectedGlob:      "*.yaml",
+		},
+		{
+			name:              "files in directory1",
+			glob:              "bla/*.yaml",
+			expectedRepoPath:  []byte("bla"),
+			expectedRecursive: false,
+			expectedGlob:      "*.yaml",
+		},
+		{
+			name:              "files in directory2",
+			glob:              "/bla/*.yaml",
+			expectedRepoPath:  []byte("bla"),
+			expectedRecursive: false,
+			expectedGlob:      "*.yaml",
+		},
+		{
+			name:              "recursive files in directory1",
+			glob:              "bla/**/*.yaml",
+			expectedRepoPath:  []byte("bla"),
+			expectedRecursive: true,
+			expectedGlob:      "**/*.yaml",
+		},
+		{
+			name:              "recursive files in directory2",
+			glob:              "/bla/**/*.yaml",
+			expectedRepoPath:  []byte("bla"),
+			expectedRecursive: true,
+			expectedGlob:      "**/*.yaml",
+		},
+		{
+			name:              "all files1",
+			glob:              "**/*.yaml",
+			expectedRepoPath:  []byte{'.'},
+			expectedRecursive: true,
+			expectedGlob:      "**/*.yaml",
+		},
+		{
+			name:              "all files2",
+			glob:              "/**/*.yaml",
+			expectedRepoPath:  []byte{'.'},
+			expectedRecursive: true,
+			expectedGlob:      "**/*.yaml",
+		},
+		{
+			name:              "group1",
+			glob:              "/[a-z]*/*.yaml",
+			expectedRepoPath:  []byte{'.'},
+			expectedRecursive: true,
+			expectedGlob:      "[a-z]*/*.yaml",
+		},
+		{
+			name:              "group2",
+			glob:              "/?bla/*.yaml",
+			expectedRepoPath:  []byte{'.'},
+			expectedRecursive: true,
+			expectedGlob:      "?bla/*.yaml",
+		},
+		{
+			name:              "group3",
+			glob:              "/bla/?aaa/*.yaml",
+			expectedRepoPath:  []byte("bla"),
+			expectedRecursive: true,
+			expectedGlob:      "?aaa/*.yaml",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) { // nolint: scopelint
+			gotRepoPath, gotRecursive, gotGlob := globToGitaly(tc.glob) // nolint: scopelint
+			assert.Equal(t, tc.expectedRepoPath, gotRepoPath)           // nolint: scopelint
+			assert.Equal(t, tc.expectedRecursive, gotRecursive)         // nolint: scopelint
+			assert.Equal(t, tc.expectedGlob, gotGlob)                   // nolint: scopelint
+		})
+	}
+}
+
 func mockTreeEntry(t *testing.T, mockCtrl *gomock.Controller, commitClient *mock_gitaly.MockCommitServiceClient, req *gitalypb.TreeEntryRequest, data []byte) {
 	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(mockCtrl)
 	// Emulate streaming response
 	resp1 := &gitalypb.TreeEntryResponse{
+		Type: gitalypb.TreeEntryResponse_BLOB,
 		Data: data[:1],
 	}
 	resp2 := &gitalypb.TreeEntryResponse{
+		Type: gitalypb.TreeEntryResponse_BLOB,
 		Data: data[1:],
 	}
 	gomock.InOrder(
@@ -573,7 +922,7 @@ func projectInfo() *api.ProjectInfo {
 	}
 }
 
-func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_gitalypool.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) { // nolint: unparam
+func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) { // nolint: unparam
 	k, mockCtrl, gitalyPool, gitlabClient, sentryHub := setupKasBare(t)
 	agentInfo := agentInfoObj()
 	gitlabClient.EXPECT().
@@ -583,20 +932,25 @@ func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_
 	return k, agentInfo, mockCtrl, gitalyPool, gitlabClient, sentryHub
 }
 
-func setupKasBare(t *testing.T) (*Server, *gomock.Controller, *mock_gitalypool.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) {
+func setupKasBare(t *testing.T) (*Server, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) {
 	mockCtrl := gomock.NewController(t)
-	gitalyPool := mock_gitalypool.NewMockPoolInterface(mockCtrl)
+	gitalyPool := mock_internalgitaly.NewMockPoolInterface(mockCtrl)
 	gitlabClient := mock_gitlab.NewMockClientInterface(mockCtrl)
 	sentryHub := mock_sentryapi.NewMockHub(mockCtrl)
 
 	k, cleanup, err := NewServer(Config{
-		Log:                          zaptest.NewLogger(t),
-		GitalyPool:                   gitalyPool,
-		GitLabClient:                 gitlabClient,
-		AgentConfigurationPollPeriod: 10 * time.Minute,
-		GitopsPollPeriod:             10 * time.Minute,
-		Registerer:                   prometheus.NewPedanticRegistry(),
-		Sentry:                       sentryHub,
+		Log:                            zaptest.NewLogger(t),
+		GitalyPool:                     gitalyPool,
+		GitLabClient:                   gitlabClient,
+		Registerer:                     prometheus.NewPedanticRegistry(),
+		Sentry:                         sentryHub,
+		AgentConfigurationPollPeriod:   10 * time.Minute,
+		GitopsPollPeriod:               10 * time.Minute,
+		MaxConfigurationFileSize:       maxConfigurationFileSize,
+		MaxGitopsManifestFileSize:      maxGitopsManifestFileSize,
+		MaxGitopsTotalManifestFileSize: maxGitopsTotalManifestFileSize,
+		MaxGitopsNumberOfPaths:         maxGitopsNumberOfPaths,
+		MaxGitopsNumberOfFiles:         maxGitopsNumberOfFiles,
 	})
 	require.NoError(t, err)
 	t.Cleanup(cleanup)

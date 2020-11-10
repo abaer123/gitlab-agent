@@ -30,6 +30,8 @@ message ObjectsToSynchronizeRequest {
     // Server will only send objects if the last commit on the branch is a different one.
     // If a connection breaks, this allows to resume the stream without sending the same data again.
     string commit_id = 2;
+    // A list of paths inside of the project to scan for .yaml/.yml/.json manifest files.
+    repeated agentcfg.PathCF paths = 3;
 }
 
 message ObjectToSynchronize {

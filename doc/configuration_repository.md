@@ -87,6 +87,16 @@ gitops:
       - '*'
     # Namespace to use if not set explicitly in object manifest.
     default_namespace: my-ns
+    # Paths inside of the repository to scan for manifest files. Directories with names starting with a dot are ignored.
+    paths:
+      # Read all .yaml files from team1/app1 directory.
+      # See https://github.com/bmatcuk/doublestar#about and
+      # https://pkg.go.dev/github.com/bmatcuk/doublestar/v2#Match for globbing rules.
+    - glob: '/team1/app1/*.yaml'
+      # Read all .yaml files from team2/apps and all subdirectories
+    - glob: '/team2/apps/**/*.yaml'
+      # If 'paths' is not specified or is an empty list, the configuration below is used
+    - glob: '/**/*.{yaml,yml,json}'
 ```
 
 By default, all resource kinds are monitored. Use `resource_exclusions` section to specify exclusion patterns to narrow down the list of monitored resources. This allows to reduce the needed permissions for the GitOps feature. To invert the matching behavior, exclude all groups/kinds and use `resource_inclusions` to specify the desired resource patterns. See the example configuration above for this pattern.

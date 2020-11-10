@@ -27,7 +27,7 @@ internal-regenerate-mocks:
 	go generate -x -v \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc/mock_agentrpc" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab/mock_gitlab" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_gitalypool" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_internalgitaly" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_engine" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_gitaly" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_grpc" \

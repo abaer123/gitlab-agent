@@ -26,7 +26,6 @@ go_library(
         "@com_github_argoproj_gitops_engine//pkg/utils/kube",
         "@com_github_ash2k_stager//:stager",
         "@com_github_go_logr_zapr//:zapr",
-        "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
         "@io_k8s_apimachinery//pkg/apis/meta/v1/unstructured",
         "@io_k8s_apimachinery//pkg/util/sets",
         "@io_k8s_apimachinery//pkg/util/wait",

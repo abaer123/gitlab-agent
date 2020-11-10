@@ -17,15 +17,10 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/rest"
-)
-
-const (
-	defaultNamespace = metav1.NamespaceDefault
 )
 
 type GitOpsEngineFactory interface {
@@ -251,11 +246,4 @@ func applyDefaultsToConfiguration(config *agentcfg.AgentConfiguration) {
 	protodefault.NotNil(&config.Observability)
 	protodefault.NotNil(&config.Observability.Logging)
 	protodefault.NotNil(&config.Gitops)
-	for _, project := range config.Gitops.ManifestProjects {
-		applyDefaultsToManifestProject(project)
-	}
-}
-
-func applyDefaultsToManifestProject(project *agentcfg.ManifestProjectCF) {
-	protodefault.String(&project.DefaultNamespace, defaultNamespace)
 }

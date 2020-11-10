@@ -18,8 +18,13 @@ const (
 	defaultAgentInfoCacheTTL      = 5 * time.Minute
 	defaultAgentInfoCacheErrorTTL = 1 * time.Minute
 
-	defaultAgentLimitsRedisKeyPrefix               = "kas:agent_limits"
-	defaultAgentLimitsConnectionsPerTokenPerMinute = 100
+	defaultAgentLimitsConnectionsPerTokenPerMinute   = 100
+	defaultAgentLimitsRedisKeyPrefix                 = "kas:agent_limits"
+	defaultAgentLimitsMaxConfigurationFileSize       = 128 * 1024
+	defaultAgentLimitsMaxGitopsManifestFileSize      = 1024 * 1024
+	defaultAgentLimitsMaxGitopsTotalManifestFileSize = 2 * 1024 * 1024
+	defaultAgentLimitsMaxGitopsNumberOfPaths         = 100
+	defaultAgentLimitsMaxGitopsNumberOfFiles         = 1000
 
 	defaultGitOpsPollPeriod               = 20 * time.Second
 	defaultGitOpsProjectInfoCacheTTL      = 5 * time.Minute
@@ -85,8 +90,13 @@ func defaultAgent(a *kascfg.AgentCF) {
 	protodefault.Duration(&a.InfoCacheErrorTtl, defaultAgentInfoCacheErrorTTL)
 
 	protodefault.NotNil(&a.Limits)
-	protodefault.String(&a.Limits.RedisKeyPrefix, defaultAgentLimitsRedisKeyPrefix)
 	protodefault.Uint32(&a.Limits.ConnectionsPerTokenPerMinute, defaultAgentLimitsConnectionsPerTokenPerMinute)
+	protodefault.String(&a.Limits.RedisKeyPrefix, defaultAgentLimitsRedisKeyPrefix)
+	protodefault.Uint32(&a.Limits.MaxConfigurationFileSize, defaultAgentLimitsMaxConfigurationFileSize)
+	protodefault.Uint32(&a.Limits.MaxGitopsManifestFileSize, defaultAgentLimitsMaxGitopsManifestFileSize)
+	protodefault.Uint32(&a.Limits.MaxGitopsTotalManifestFileSize, defaultAgentLimitsMaxGitopsTotalManifestFileSize)
+	protodefault.Uint32(&a.Limits.MaxGitopsNumberOfPaths, defaultAgentLimitsMaxGitopsNumberOfPaths)
+	protodefault.Uint32(&a.Limits.MaxGitopsNumberOfFiles, defaultAgentLimitsMaxGitopsNumberOfFiles)
 }
 
 func defaultObservability(o *kascfg.ObservabilityCF) {

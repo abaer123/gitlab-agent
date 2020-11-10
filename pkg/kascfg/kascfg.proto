@@ -178,6 +178,19 @@ message AgentLimitsCF {
     uint32 connections_per_token_per_minute = 1 [json_name = "connections_per_token_per_minute", (validate.rules).uint32.gte = 0];
     // Prefix to use for agent limit keys in redis
     string redis_key_prefix = 2 [json_name = "redis_key_prefix"];
+    // Maximum file size of the agent configuration file.
+    uint32 max_configuration_file_size = 3 [json_name = "max_configuration_file_size"];
+    // Maximum size of a GitOps manifest file.
+    uint32 max_gitops_manifest_file_size = 4 [json_name = "max_gitops_manifest_file_size"];
+    // Maximum total size of all GitOps manifest files per GitOps project.
+    uint32 max_gitops_total_manifest_file_size = 5 [json_name = "max_gitops_total_manifest_file_size"];
+    // Maximum number of scanned paths per GitOps project.
+    uint32 max_gitops_number_of_paths = 6 [json_name = "max_gitops_number_of_paths"];
+    // Maximum number of scanned files across all paths per GitOps project.
+    // This limit ensures there are not too many files in the repository that we need to sift though to
+    // find *.yaml, *.yml, *.json files.
+    // All files and directories under a path are counted towards this limit.
+    uint32 max_gitops_number_of_files = 7 [json_name = "max_gitops_number_of_files"];
 }
 
 // ConfigurationFile represents kas configuration file.
