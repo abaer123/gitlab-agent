@@ -2,10 +2,12 @@ package gitaly_test
 
 import (
 	"context"
+	"errors"
 	"io"
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_internalgitaly"
@@ -61,22 +63,22 @@ func TestPathFetcherHappyPath(t *testing.T) {
 	mockVisitor := mock_internalgitaly.NewMockFetchVisitor(mockCtrl)
 	gomock.InOrder(
 		mockVisitor.EXPECT().
-			VisitEntry(matcher.ProtoEq(t, expectedEntry1)).
+			Entry(matcher.ProtoEq(t, expectedEntry1)).
 			Return(true, fileMaxSize, nil),
 		mockVisitor.EXPECT().
-			VisitBlob(gitaly.Blob{
-				Path: expectedEntry1.Path,
-				Data: data1,
-			}).
+			StreamChunk(expectedEntry1.Path, data1[:1]).
 			Return(false, nil),
 		mockVisitor.EXPECT().
-			VisitEntry(matcher.ProtoEq(t, expectedEntry2)).
+			StreamChunk(expectedEntry1.Path, data1[1:]).
+			Return(false, nil),
+		mockVisitor.EXPECT().
+			Entry(matcher.ProtoEq(t, expectedEntry2)).
 			Return(true, fileMaxSize, nil),
 		mockVisitor.EXPECT().
-			VisitBlob(gitaly.Blob{
-				Path: expectedEntry2.Path,
-				Data: data2,
-			}).
+			StreamChunk(expectedEntry2.Path, data2[:1]).
+			Return(false, nil),
+		mockVisitor.EXPECT().
+			StreamChunk(expectedEntry2.Path, data2[1:]).
 			Return(false, nil),
 	)
 	v := gitaly.PathFetcher{
@@ -84,6 +86,99 @@ func TestPathFetcherHappyPath(t *testing.T) {
 	}
 	err := v.Visit(context.Background(), r, []byte(revision), []byte(repoPath), false, mockVisitor)
 	require.NoError(t, err)
+}
+
+func TestChunkingFetchVisitor_Entry(t *testing.T) {
+	entry := &gitalypb.TreeEntry{
+		Path:      []byte("manifest2.yaml"),
+		Type:      gitalypb.TreeEntry_BLOB,
+		CommitOid: manifestRevision,
+	}
+	mockCtrl := gomock.NewController(t)
+	fv := mock_internalgitaly.NewMockFetchVisitor(mockCtrl)
+	fv.EXPECT().
+		Entry(matcher.ProtoEq(t, entry)).
+		Return(true, int64(100), nil)
+	v := gitaly.ChunkingFetchVisitor{
+		MaxChunkSize: 10,
+		Delegate:     fv,
+	}
+	download, maxSize, err := v.Entry(entry)
+	assert.True(t, download)
+	assert.EqualValues(t, 100, maxSize)
+	assert.NoError(t, err)
+}
+
+func TestChunkingFetchVisitor_StreamChunk(t *testing.T) {
+	t.Run("no chunking", func(t *testing.T) {
+		p := []byte{1, 2, 3}
+		data := []byte{4, 5, 6}
+		mockCtrl := gomock.NewController(t)
+		fv := mock_internalgitaly.NewMockFetchVisitor(mockCtrl)
+		fv.EXPECT().
+			StreamChunk(p, data).
+			Return(false, nil)
+		v := gitaly.ChunkingFetchVisitor{
+			MaxChunkSize: 10,
+			Delegate:     fv,
+		}
+		done, err := v.StreamChunk(p, data)
+		assert.False(t, done)
+		assert.NoError(t, err)
+	})
+	t.Run("chunking", func(t *testing.T) {
+		p := []byte{1, 2, 3}
+		data := []byte{4, 5, 6}
+		mockCtrl := gomock.NewController(t)
+		fv := mock_internalgitaly.NewMockFetchVisitor(mockCtrl)
+		gomock.InOrder(
+			fv.EXPECT().
+				StreamChunk(p, data[:2]).
+				Return(false, nil),
+			fv.EXPECT().
+				StreamChunk(p, data[2:]).
+				Return(false, nil),
+		)
+		v := gitaly.ChunkingFetchVisitor{
+			MaxChunkSize: 2,
+			Delegate:     fv,
+		}
+		done, err := v.StreamChunk(p, data)
+		assert.False(t, done)
+		assert.NoError(t, err)
+	})
+	t.Run("done", func(t *testing.T) {
+		p := []byte{1, 2, 3}
+		data := []byte{4, 5, 6}
+		mockCtrl := gomock.NewController(t)
+		fv := mock_internalgitaly.NewMockFetchVisitor(mockCtrl)
+		fv.EXPECT().
+			StreamChunk(p, data[:2]).
+			Return(true, nil)
+		v := gitaly.ChunkingFetchVisitor{
+			MaxChunkSize: 2,
+			Delegate:     fv,
+		}
+		done, err := v.StreamChunk(p, data)
+		assert.True(t, done)
+		assert.NoError(t, err)
+	})
+	t.Run("error", func(t *testing.T) {
+		p := []byte{1, 2, 3}
+		data := []byte{4, 5, 6}
+		mockCtrl := gomock.NewController(t)
+		fv := mock_internalgitaly.NewMockFetchVisitor(mockCtrl)
+		fv.EXPECT().
+			StreamChunk(p, data[:2]).
+			Return(false, errors.New("boom!"))
+		v := gitaly.ChunkingFetchVisitor{
+			MaxChunkSize: 2,
+			Delegate:     fv,
+		}
+		done, err := v.StreamChunk(p, data)
+		assert.False(t, done)
+		assert.EqualError(t, err, "boom!")
+	})
 }
 
 func mockTreeEntry(t *testing.T, mockCtrl *gomock.Controller, commitClient *mock_gitaly.MockCommitServiceClient, data []byte, req *gitalypb.TreeEntryRequest) {

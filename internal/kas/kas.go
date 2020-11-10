@@ -36,8 +36,10 @@ import (
 )
 
 const (
-	agentConfigurationDirectory    = ".gitlab/agents"
-	agentConfigurationFileName     = "config.yaml"
+	agentConfigurationDirectory = ".gitlab/agents"
+	agentConfigurationFileName  = "config.yaml"
+	gitOpsManifestMaxChunkSize  = 128 * 1024
+
 	defaultGitOpsManifestNamespace = metav1.NamespaceDefault
 	defaultGitOpsManifestPathGlob  = "**/*.{yaml,yml,json}"
 )
@@ -182,7 +184,7 @@ func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInf
 	f := gitaly.PathFetcher{
 		Client: client,
 	}
-	configYAML, err := f.FetchSingleFile(ctx, &agentInfo.Repository, []byte(revision), []byte(filename), s.maxConfigurationFileSize)
+	configYAML, err := f.FetchFile(ctx, &agentInfo.Repository, []byte(revision), []byte(filename), s.maxConfigurationFileSize)
 	if err != nil {
 		return nil, fmt.Errorf("fetch agent configuration: %w", err) // wrap
 	}
@@ -229,14 +231,12 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 		GitalyPool: s.gitalyPool,
 	}
 	ctx := stream.Context()
-	projectId := req.ProjectId
-	lastProcessedCommitId := req.CommitId
-	l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(projectId))
+	l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(req.ProjectId))
 	return func() (bool /*done*/, error) {
 		// This call is made on each poll because:
 		// - it checks that the agent's token is still valid
 		// - repository location in Gitaly might have changed
-		repoInfo, err := s.gitLabClient.GetProjectInfo(ctx, &agentInfo.Meta, projectId)
+		repoInfo, err := s.gitLabClient.GetProjectInfo(ctx, &agentInfo.Meta, req.ProjectId)
 		switch {
 		case err == nil:
 		case errz.ContextDone(err):
@@ -250,7 +250,7 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
-		info, err := p.Poll(ctx, &repoInfo.GitalyInfo, &repoInfo.Repository, lastProcessedCommitId, revision)
+		info, err := p.Poll(ctx, &repoInfo.GitalyInfo, &repoInfo.Repository, req.CommitId, revision)
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
 				l.Warn("GitOps: repository poll failed", zap.Error(err))
@@ -258,56 +258,60 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		if !info.UpdateAvailable {
-			l.Debug("GitOps: no updates", logz.CommitId(lastProcessedCommitId))
+			l.Debug("GitOps: no updates", logz.CommitId(req.CommitId))
 			return false, nil
 		}
 		// Create a new l variable, don't want to mutate the one from the outer scope
 		l := l.With(logz.CommitId(info.CommitId)) // nolint:govet
 		l.Info("GitOps: new commit")
-		objects, err := s.fetchObjectsToSynchronize(ctx, repoInfo, req.Paths, info.CommitId)
+		client, err := s.gitalyPool.CommitServiceClient(ctx, &repoInfo.GitalyInfo)
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
-				l.Warn("GitOps: failed to get objects to synchronize", zap.Error(err))
+				l.Warn("GitOps: CommitServiceClient", zap.Error(err))
 			}
 			return false, nil // don't want to close the response stream, so report no error
 		}
-		l.Info("GitOps: fetched files", logz.NumberOfFiles(len(objects)))
-		lastProcessedCommitId = info.CommitId
 		err = stream.Send(&agentrpc.ObjectsToSynchronizeResponse{
-			CommitId: lastProcessedCommitId,
-			Objects:  objects,
+			Message: &agentrpc.ObjectsToSynchronizeResponse_Meta_{
+				Meta: &agentrpc.ObjectsToSynchronizeResponse_Meta{
+					CommitId: info.CommitId,
+				},
+			},
 		})
 		if err != nil {
-			return false, err
+			if !grpctools.RequestCanceled(err) {
+				l.Warn("GitOps: failed to send objects to synchronize", zap.Error(err))
+			}
+			return false, status.Error(codes.Unavailable, "unavailable")
 		}
+		f := gitaly.PathFetcher{
+			Client: client,
+		}
+		v := &objectsToSynchronizeVisitor{
+			stream:                 stream,
+			remainingTotalFileSize: s.maxGitopsTotalManifestFileSize,
+			fileSizeLimit:          s.maxGitopsManifestFileSize,
+			maxNumberOfFiles:       s.maxGitopsNumberOfFiles,
+		}
+		vChunk := gitaly.ChunkingFetchVisitor{
+			MaxChunkSize: gitOpsManifestMaxChunkSize,
+			Delegate:     v,
+		}
+		for _, p := range req.Paths {
+			repoPath, recursive, glob := globToGitaly(p.Glob)
+			v.glob = glob // set new glob for each path
+			err := f.Visit(ctx, &repoInfo.Repository, []byte(info.CommitId), repoPath, recursive, vChunk)
+			if err != nil {
+				if !grpctools.RequestCanceled(err) {
+					l.Warn("GitOps: failed to get objects to synchronize", zap.Error(err))
+				}
+				return false, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
+			}
+		}
+		l.Info("GitOps: fetched files", logz.NumberOfFiles(v.numberOfFiles))
 		s.usageMetrics.IncGitopsSyncCount()
-		return false, nil
+		return true, nil
 	}
-}
-
-// fetchObjectsToSynchronize returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
-func (s *Server) fetchObjectsToSynchronize(ctx context.Context, repoInfo *api.ProjectInfo, paths []*agentcfg.PathCF, revision string) ([]*agentrpc.ObjectToSynchronize, error) {
-	client, err := s.gitalyPool.CommitServiceClient(ctx, &repoInfo.GitalyInfo)
-	if err != nil {
-		return nil, fmt.Errorf("CommitServiceClient: %w", err) // wrap
-	}
-	f := gitaly.PathFetcher{
-		Client: client,
-	}
-	v := &objectsToSynchronizeVisitor{
-		remainingTotalFileSize: s.maxGitopsTotalManifestFileSize,
-		fileSizeLimit:          s.maxGitopsManifestFileSize,
-		maxNumberOfFiles:       s.maxGitopsNumberOfFiles,
-	}
-	for _, p := range paths {
-		repoPath, recursive, glob := globToGitaly(p.Glob)
-		v.glob = glob // set new glob for each path
-		err := f.Visit(ctx, &repoInfo.Repository, []byte(revision), repoPath, recursive, v)
-		if err != nil {
-			return nil, fmt.Errorf("fetch: %w", err) // wrap
-		}
-	}
-	return v.objects, nil
 }
 
 func (s *Server) sendUsage(ctx context.Context) {
@@ -360,15 +364,15 @@ func (s *Server) pollImmediateUntil(ctx context.Context, interval time.Duration,
 }
 
 type objectsToSynchronizeVisitor struct {
+	stream                 agentrpc.Kas_GetObjectsToSynchronizeServer
 	glob                   string
 	remainingTotalFileSize int64
 	fileSizeLimit          int64
 	maxNumberOfFiles       uint32
 	numberOfFiles          uint32
-	objects                []*agentrpc.ObjectToSynchronize
 }
 
-func (v *objectsToSynchronizeVisitor) VisitEntry(entry *gitalypb.TreeEntry) (bool /* download? */, int64 /* max size */, error) {
+func (v *objectsToSynchronizeVisitor) Entry(entry *gitalypb.TreeEntry) (bool /* download? */, int64 /* max size */, error) {
 	if v.numberOfFiles == v.maxNumberOfFiles {
 		return false, 0, fmt.Errorf("maximum number of manifest files limit reached: %d", v.maxNumberOfFiles)
 	}
@@ -384,18 +388,21 @@ func (v *objectsToSynchronizeVisitor) VisitEntry(entry *gitalypb.TreeEntry) (boo
 	return shouldDownload, minInt64(v.remainingTotalFileSize, v.fileSizeLimit), nil
 }
 
-func (v *objectsToSynchronizeVisitor) VisitBlob(blob gitaly.Blob) (bool /* done? */, error) {
-	v.remainingTotalFileSize -= int64(len(blob.Data))
+func (v *objectsToSynchronizeVisitor) StreamChunk(path []byte, data []byte) (bool /* done? */, error) {
+	v.remainingTotalFileSize -= int64(len(data))
 	if v.remainingTotalFileSize < 0 {
 		// This should never happen because we told Gitaly the maximum file size that we'd like to get.
 		// i.e. we should have gotten an error from Gitaly if file is bigger than the limit.
 		return false, errors.New("unexpected negative remaining total file size")
 	}
-	v.objects = append(v.objects, &agentrpc.ObjectToSynchronize{
-		Object: blob.Data,
-		Source: string(blob.Path),
+	return false, v.stream.Send(&agentrpc.ObjectsToSynchronizeResponse{
+		Message: &agentrpc.ObjectsToSynchronizeResponse_Object_{
+			Object: &agentrpc.ObjectsToSynchronizeResponse_Object{
+				Source: string(path),
+				Data:   data,
+			},
+		},
 	})
-	return false, nil
 }
 
 // isHiddenDir checks if a file is in a directory, which name starts with a dot.

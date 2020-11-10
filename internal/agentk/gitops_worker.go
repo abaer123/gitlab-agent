@@ -3,6 +3,7 @@ package agentk
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
@@ -79,31 +80,53 @@ func (d *gitopsWorker) getObjectsToSynchronize(s *synchronizer) func(context.Con
 	return func(ctx context.Context) {
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel() // ensure streaming call is canceled
-		req := &agentrpc.ObjectsToSynchronizeRequest{
+		res, err := d.kasClient.GetObjectsToSynchronize(ctx, &agentrpc.ObjectsToSynchronizeRequest{
 			ProjectId: d.projectConfiguration.Id,
 			CommitId:  lastProcessedCommitId,
 			Paths:     d.projectConfiguration.Paths,
-		}
-		res, err := d.kasClient.GetObjectsToSynchronize(ctx, req)
+		})
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
 				d.log.Warn("GetObjectsToSynchronize failed", zap.Error(err))
 			}
 			return
 		}
+		var state desiredState
+	objectStream:
 		for {
 			objectsResp, err := res.Recv()
 			if err != nil {
 				switch {
 				case errors.Is(err, io.EOF):
+					break objectStream
 				case grpctool.RequestCanceled(err):
 				default:
 					d.log.Warn("GetObjectsToSynchronize.Recv failed", zap.Error(err))
 				}
 				return
 			}
-			s.setDesiredState(ctx, objectsResp)
-			lastProcessedCommitId = objectsResp.CommitId
+			switch msg := objectsResp.Message.(type) {
+			case *agentrpc.ObjectsToSynchronizeResponse_Meta_:
+				state.commitId = msg.Meta.CommitId
+			case *agentrpc.ObjectsToSynchronizeResponse_Object_:
+				lastIdx := len(state.sources) - 1
+				object := msg.Object
+				if lastIdx >= 0 && state.sources[lastIdx].name == object.Source {
+					// Same source, append to the actual slice
+					state.sources[lastIdx].data = append(state.sources[lastIdx].data, object.Data...)
+					continue
+				}
+				state.sources = append(state.sources, stateSource{
+					name: object.Source,
+					data: object.Data,
+				})
+			default:
+				d.log.Error(fmt.Sprintf("GetObjectsToSynchronize.Recv returned an unexpected type: %T", objectsResp.Message))
+				return
+			}
+		}
+		if s.setDesiredState(ctx, state) {
+			lastProcessedCommitId = state.commitId
 		}
 	}
 }
