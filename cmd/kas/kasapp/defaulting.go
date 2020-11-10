@@ -26,7 +26,7 @@ const (
 	defaultGitOpsProjectInfoCacheErrorTTL = 1 * time.Minute
 
 	defaultUsageReportingPeriod       = 1 * time.Minute
-	defaultObservabilityListenAddress = "127.0.0.1:8151"
+	defaultObservabilityListenAddress = "0.0.0.0:8151"
 	defaultPrometheusUrlPath          = "/metrics"
 	defaultLivenessProbeUrlPath       = "/liveness"
 	defaultReadinessProbeUrlPath      = "/readiness"
