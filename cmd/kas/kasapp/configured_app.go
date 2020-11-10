@@ -319,8 +319,9 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			if err != nil {
 				return fmt.Errorf("loading certificate (%s) and key (%s) files: %v", certFile, keyFile, err)
 			}
-			serverOpts = append(serverOpts, grpc.Creds(credentials.NewTLS(&tls.Config{ // nolint: gosec
+			serverOpts = append(serverOpts, grpc.Creds(credentials.NewTLS(&tls.Config{
 				Certificates: []tls.Certificate{cert},
+				MinVersion:   tls.VersionTLS12,
 			})))
 		case certFile == "" && keyFile == "":
 		default:
