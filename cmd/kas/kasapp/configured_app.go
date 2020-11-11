@@ -251,14 +251,14 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
 			grpc_prometheus.StreamServerInterceptor, // This one should be the first one to measure all invocations
 			apiutil.StreamAgentMetaInterceptor(),    // This one should be the second one to ensure agent presents a token
-			grpccorrelation.StreamServerCorrelationInterceptor(),
+			grpccorrelation.StreamServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()),
 			grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 			grpctools.StreamServerCtxAugmentingInterceptor(grpctools.JoinContexts(ctx)),
 		}
 		grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
 			grpc_prometheus.UnaryServerInterceptor, // This one should be the first one to measure all invocations
 			apiutil.UnaryAgentMetaInterceptor(),    // This one should be the second one to ensure agent presents a token
-			grpccorrelation.UnaryServerCorrelationInterceptor(),
+			grpccorrelation.UnaryServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()),
 			grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 			grpctools.UnaryServerCtxAugmentingInterceptor(grpctools.JoinContexts(ctx)),
 		}
