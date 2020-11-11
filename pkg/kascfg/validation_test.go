@@ -57,7 +57,12 @@ func TestValidation_Valid(t *testing.T) {
 		{
 			name: "AgentLimitsCF",
 			valid: &AgentLimitsCF{
-				ConnectionsPerTokenPerMinute: 0, // zero means "use default value"
+				ConnectionsPerTokenPerMinute:   0, // zero means "use default value"
+				MaxConfigurationFileSize:       0, // zero means "use default value"
+				MaxGitopsManifestFileSize:      0, // zero means "use default value"
+				MaxGitopsTotalManifestFileSize: 0, // zero means "use default value"
+				MaxGitopsNumberOfPaths:         0, // zero means "use default value"
+				MaxGitopsNumberOfFiles:         0, // zero means "use default value"
 			},
 		},
 	}
