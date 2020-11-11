@@ -27,6 +27,12 @@ message ListenAgentCF {
     // Enable "gRPC through WebSocket" listening mode. Rather than expecting gRPC directly, expect a WebSocket
     // connection, from which a gRPC stream is then unpacked.
     bool websocket = 3 [json_name = "websocket"];
+    // X.509 certificate for TLS in PEM format.
+    // TLS is enabled iff both certificate_file and key_file are provided.
+    string certificate_file = 4 [json_name = "certificate_file"];
+    // X.509 key file for TLS in PEM format.
+    // TLS is enabled iff both certificate_file and key_file are provided.
+    string key_file = 5 [json_name = "key_file"];
 }
 
 message PrometheusCF {

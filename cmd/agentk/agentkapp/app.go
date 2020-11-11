@@ -3,6 +3,7 @@ package agentkapp
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -46,6 +47,7 @@ type App struct {
 	LogLevel zap.AtomicLevel
 	// KasAddress specifies the address of kas.
 	KasAddress      string
+	CACertFile      string
 	TokenFile       string
 	K8sClientGetter resource.RESTClientGetter
 }
@@ -62,7 +64,11 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("token file: %v", err)
 	}
-	conn, err := a.kasConnection(ctx, string(tokenData))
+	tlsConfig, err := tlsConfig(a.CACertFile)
+	if err != nil {
+		return err
+	}
+	conn, err := kasConnection(ctx, a.KasAddress, string(tokenData), tlsConfig)
 	if err != nil {
 		return err
 	}
@@ -81,10 +87,10 @@ func (a *App) Run(ctx context.Context) error {
 	return agent.Run(ctx)
 }
 
-func (a *App) kasConnection(ctx context.Context, token string) (*grpc.ClientConn, error) {
-	u, err := url.Parse(a.KasAddress)
+func kasConnection(ctx context.Context, kasAddress, token string, tlsConfig *tls.Config) (*grpc.ClientConn, error) {
+	u, err := url.Parse(kasAddress)
 	if err != nil {
-		return nil, fmt.Errorf("invalid kas address: %v", err)
+		return nil, fmt.Errorf("invalid gitlab-kas address: %v", err)
 	}
 	userAgent := fmt.Sprintf("agentk/%s/%s", cmd.Version, cmd.Commit)
 	opts := []grpc.DialOption{
@@ -112,7 +118,7 @@ func (a *App) kasConnection(ctx context.Context, token string) (*grpc.ClientConn
 	secure := u.Scheme == "grpcs"
 	switch u.Scheme {
 	case "ws", "wss":
-		addressToDial = a.KasAddress
+		addressToDial = kasAddress
 		dialer := net.Dialer{
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,
@@ -122,6 +128,7 @@ func (a *App) kasConnection(ctx context.Context, token string) (*grpc.ClientConn
 				Transport: &http.Transport{
 					Proxy:                 http.ProxyFromEnvironment,
 					DialContext:           dialer.DialContext,
+					TLSClientConfig:       tlsConfig,
 					MaxIdleConns:          10,
 					IdleConnTimeout:       90 * time.Second,
 					TLSHandshakeTimeout:   10 * time.Second,
@@ -140,7 +147,7 @@ func (a *App) kasConnection(ctx context.Context, token string) (*grpc.ClientConn
 		addressToDial = u.Host
 	case "grpcs":
 		addressToDial = u.Host
-		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
 	default:
 		return nil, fmt.Errorf("unsupported scheme in GitLab Kubernetes Agent Server address: %q", u.Scheme)
 	}
@@ -165,6 +172,7 @@ func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, err
 		LogLevel: level,
 	}
 	flagset.StringVar(&app.KasAddress, "kas-address", "", "GitLab Kubernetes Agent Server address")
+	flagset.StringVar(&app.CACertFile, "ca-cert-file", "", "Optional file with X.509 certificate authority certificate in PEM format")
 	flagset.StringVar(&app.TokenFile, "token-file", "", "File with access token")
 	kubeConfigFlags := genericclioptions.NewConfigFlags(true)
 	kubeConfigFlags.AddFlags(flagset)
@@ -182,4 +190,32 @@ func logger() (*zap.Logger, zap.AtomicLevel, error) {
 	}
 	atomicLevel := zap.NewAtomicLevelAt(level)
 	return logz.LoggerWithLevel(atomicLevel), atomicLevel, nil
+}
+
+func loadCACert(caCertFile string) (*x509.CertPool, error) {
+	certPool, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, fmt.Errorf("SystemCertPool: %v", err)
+	}
+	caCert, err := ioutil.ReadFile(caCertFile) // nolint: gosec
+	if err != nil {
+		return nil, fmt.Errorf("CA certificate file: %v", err)
+	}
+	ok := certPool.AppendCertsFromPEM(caCert)
+	if !ok {
+		return nil, fmt.Errorf("AppendCertsFromPEM(%s) failed", caCertFile)
+	}
+	return certPool, nil
+}
+
+func tlsConfig(caCertFile string) (*tls.Config, error) {
+	tlsConfig := &tls.Config{} // nolint: gosec
+	if caCertFile != "" {
+		certPool, err := loadCACert(caCertFile)
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.RootCAs = certPool
+	}
+	return tlsConfig, nil
 }

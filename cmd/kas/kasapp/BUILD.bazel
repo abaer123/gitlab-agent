@@ -40,6 +40,7 @@ go_library(
         "@io_k8s_sigs_yaml//:yaml",
         "@org_golang_google_api//option",
         "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//credentials",
         "@org_golang_google_grpc//encoding/gzip",
         "@org_golang_google_grpc//keepalive",
         "@org_golang_google_grpc//stats",

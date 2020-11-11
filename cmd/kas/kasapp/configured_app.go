@@ -2,6 +2,7 @@ package kasapp
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -35,6 +36,7 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	_ "google.golang.org/grpc/encoding/gzip" // Install the gzip compressor
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/stats"
@@ -295,7 +297,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			grpcUnaryServerInterceptors = append(grpcUnaryServerInterceptors, grpctools.UnaryServerLimitingInterceptor(agentConnectionLimiter))
 		}
 
-		grpcServer := grpc.NewServer(
+		serverOpts := []grpc.ServerOption{
 			grpc.StatsHandler(ssh),
 			grpc.ChainStreamInterceptor(grpcStreamServerInterceptors...),
 			grpc.ChainUnaryInterceptor(grpcUnaryServerInterceptors...),
@@ -307,7 +309,25 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 				// trying to stay below 60 seconds (typical load-balancer timeout)
 				Time: 50 * time.Second,
 			}),
-		)
+		}
+
+		certFile := cfg.ListenAgent.CertificateFile
+		keyFile := cfg.ListenAgent.KeyFile
+		switch {
+		case certFile != "" && keyFile != "":
+			cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+			if err != nil {
+				return fmt.Errorf("loading certificate (%s) and key (%s) files: %v", certFile, keyFile, err)
+			}
+			serverOpts = append(serverOpts, grpc.Creds(credentials.NewTLS(&tls.Config{ // nolint: gosec
+				Certificates: []tls.Certificate{cert},
+			})))
+		case certFile == "" && keyFile == "":
+		default:
+			return fmt.Errorf("both certificate_file (%s) and key_file (%s) must be either set or not set", certFile, keyFile)
+		}
+
+		grpcServer := grpc.NewServer(serverOpts...)
 		agentrpc.RegisterKasServer(grpcServer, srv)
 
 		var wg wait.Group
