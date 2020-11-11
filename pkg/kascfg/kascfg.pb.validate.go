@@ -50,6 +50,10 @@ func (m *ListenAgentCF) Validate() error {
 
 	// no validation rules for Websocket
 
+	// no validation rules for CertificateFile
+
+	// no validation rules for KeyFile
+
 	return nil
 }
 

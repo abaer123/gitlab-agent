@@ -5,6 +5,8 @@ listen_agent:
   network: tcp
   address: 127.0.0.1:8150
   websocket: false
+  # certificate_file: /server-cert.pem
+  # key_file: /server-key.pem
 gitlab:
   address: http://localhost:8080
   # authentication_secret_file: /some/file
