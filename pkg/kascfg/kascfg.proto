@@ -141,7 +141,7 @@ message TokenBucketRateLimitCF {
     double refill_rate_per_second = 1 [json_name = "refill_rate_per_second", (validate.rules).double.gte = 0];
     // Maximum number of events that are allowed to happen in succession.
     // Size of the "token bucket".
-    uint32 bucket_size = 2 [json_name = "bucket_size", (validate.rules).uint32.gte = 0];
+    uint32 bucket_size = 2 [json_name = "bucket_size"];
 }
 
 message GitalyCF {
@@ -157,9 +157,9 @@ message RedisCF {
     // The password to use for all connections
     string password = 2 [json_name = "password"];
     // The max number of idle connections
-    uint32 max_idle = 3 [json_name = "max_idle", (validate.rules).uint32.gte = 0];
+    uint32 max_idle = 3 [json_name = "max_idle"];
     // The max number of active connections
-    uint32 max_active = 4 [json_name = "max_active", (validate.rules).uint32.gte = 0];
+    uint32 max_active = 4 [json_name = "max_active"];
     // Read timeout
     google.protobuf.Duration read_timeout = 5 [json_name = "read_timeout", (validate.rules).duration = {gt: {}}];
     // Write timeout
@@ -175,7 +175,7 @@ message RedisCF {
 
 message AgentLimitsCF {
     // Maximum number of connections to allow per agent token per minute
-    uint32 connections_per_token_per_minute = 1 [json_name = "connections_per_token_per_minute", (validate.rules).uint32.gte = 0];
+    uint32 connections_per_token_per_minute = 1 [json_name = "connections_per_token_per_minute"];
     // Prefix to use for agent limit keys in redis
     string redis_key_prefix = 2 [json_name = "redis_key_prefix"];
     // Maximum file size of the agent configuration file.

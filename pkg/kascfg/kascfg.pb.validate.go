@@ -1250,12 +1250,7 @@ func (m *TokenBucketRateLimitCF) Validate() error {
 		}
 	}
 
-	if m.GetBucketSize() < 0 {
-		return TokenBucketRateLimitCFValidationError{
-			field:  "BucketSize",
-			reason: "value must be greater than or equal to 0",
-		}
-	}
+	// no validation rules for BucketSize
 
 	return nil
 }
@@ -1411,19 +1406,9 @@ func (m *RedisCF) Validate() error {
 
 	// no validation rules for Password
 
-	if m.GetMaxIdle() < 0 {
-		return RedisCFValidationError{
-			field:  "MaxIdle",
-			reason: "value must be greater than or equal to 0",
-		}
-	}
+	// no validation rules for MaxIdle
 
-	if m.GetMaxActive() < 0 {
-		return RedisCFValidationError{
-			field:  "MaxActive",
-			reason: "value must be greater than or equal to 0",
-		}
-	}
+	// no validation rules for MaxActive
 
 	if d := m.GetReadTimeout(); d != nil {
 		dur, err := ptypes.Duration(d)
@@ -1555,12 +1540,7 @@ func (m *AgentLimitsCF) Validate() error {
 		return nil
 	}
 
-	if m.GetConnectionsPerTokenPerMinute() < 0 {
-		return AgentLimitsCFValidationError{
-			field:  "ConnectionsPerTokenPerMinute",
-			reason: "value must be greater than or equal to 0",
-		}
-	}
+	// no validation rules for ConnectionsPerTokenPerMinute
 
 	// no validation rules for RedisKeyPrefix
 
