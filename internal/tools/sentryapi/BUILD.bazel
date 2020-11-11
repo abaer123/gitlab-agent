@@ -1,9 +1,0 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
-
-go_library(
-    name = "sentryapi",
-    srcs = ["sentryapi.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/sentryapi",
-    visibility = ["//:__subpackages__"],
-    deps = ["@com_github_getsentry_sentry_go//:sentry-go"],
-)

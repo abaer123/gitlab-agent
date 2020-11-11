@@ -11,7 +11,6 @@ import (
 
 	"cloud.google.com/go/profiler"
 	"github.com/ash2k/stager"
-	"github.com/getsentry/sentry-go"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/opentracing/opentracing-go"
@@ -26,12 +25,12 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctools"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/sentryapi"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/tracing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/wstunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"gitlab.com/gitlab-org/gitaly/client"
 	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
+	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 	"google.golang.org/api/option"
@@ -83,24 +82,21 @@ func kasUserAgent() string {
 	return fmt.Sprintf("gitlab-kas/%s/%s", cmd.Version, cmd.Commit)
 }
 
-func (a *ConfiguredApp) constructSentryHub() (sentryapi.Hub, error) {
+func (a *ConfiguredApp) constructErrorTracker() (errortracking.Tracker, error) {
 	s := a.Configuration.Observability.Sentry
 	if s.Dsn == "" {
-		return sentryapi.NewHub(nil, sentry.NewScope()), nil
+		return nopTracker{}, nil
 	}
-
-	version := kasUserAgent()
-
 	a.Log.Debug("Initializing Sentry error tracking", logz.SentryDSN(s.Dsn), logz.SentryEnv(s.Environment))
-	c, err := sentry.NewClient(sentry.ClientOptions{
-		Dsn:         s.Dsn,
-		Release:     version,
-		Environment: s.Environment,
-	})
+	tracker, err := errortracking.NewTracker(
+		errortracking.WithSentryDSN(s.Dsn),
+		errortracking.WithVersion(kasUserAgent()),
+		errortracking.WithSentryEnvironment(s.Environment),
+	)
 	if err != nil {
 		return nil, err
 	}
-	return sentryapi.NewHub(c, sentry.NewScope()), nil
+	return tracker, nil
 }
 
 func (a *ConfiguredApp) startGoogleProfiler(st stager.Stager) {
@@ -180,9 +176,9 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		defer closer.Close() // nolint: errcheck
 
 		// Sentry
-		hub, err := a.constructSentryHub()
+		tracker, err := a.constructErrorTracker()
 		if err != nil {
-			return fmt.Errorf("Sentry: %v", err)
+			return fmt.Errorf("error tracker: %v", err)
 		}
 
 		// gRPC listener
@@ -232,7 +228,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			},
 			GitLabClient:                   gitLabCachingClient,
 			Registerer:                     registerer,
-			Sentry:                         hub,
+			ErrorTracker:                   tracker,
 			AgentConfigurationPollPeriod:   cfg.Agent.Configuration.PollPeriod.AsDuration(),
 			GitopsPollPeriod:               cfg.Agent.Gitops.PollPeriod.AsDuration(),
 			UsageReportingPeriod:           cfg.Observability.UsageReportingPeriod.AsDuration(),
@@ -379,4 +375,11 @@ func constructGitalyPool(g *kascfg.GitalyCF, csh stats.Handler, tracer opentraci
 			return client.DialContext(ctx, address, opts)
 		}),
 	)
+}
+
+// nopTracker is the state of the art error tracking facility.
+type nopTracker struct {
+}
+
+func (n nopTracker) Capture(err error, opts ...errortracking.CaptureOption) {
 }

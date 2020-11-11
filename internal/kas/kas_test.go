@@ -23,9 +23,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_internalgitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab/mock_gitlab"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/sentryapi/mock_sentryapi"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_errtracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
@@ -485,9 +485,9 @@ func TestSendUsageFailure(t *testing.T) {
 	defer cancel()
 
 	expectedErr := errors.New("expected error")
-	k, _, _, gitlabClient, sentryHub := setupKasBare(t)
-	sentryHub.EXPECT().
-		CaptureException(expectedErr).
+	k, _, _, gitlabClient, errTracker := setupKasBare(t)
+	errTracker.EXPECT().
+		Capture(expectedErr).
 		DoAndReturn(func(err error) *sentry.EventID {
 			cancel() // exception captured, cancel the context to stop the test
 			return nil
@@ -922,28 +922,28 @@ func projectInfo() *api.ProjectInfo {
 	}
 }
 
-func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) { // nolint: unparam
-	k, mockCtrl, gitalyPool, gitlabClient, sentryHub := setupKasBare(t)
+func setupKas(t *testing.T) (*Server, *api.AgentInfo, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_errtracker.MockTracker) { // nolint: unparam
+	k, mockCtrl, gitalyPool, gitlabClient, errTracker := setupKasBare(t)
 	agentInfo := agentInfoObj()
 	gitlabClient.EXPECT().
 		GetAgentInfo(gomock.Any(), &agentInfo.Meta).
 		Return(agentInfo, nil)
 
-	return k, agentInfo, mockCtrl, gitalyPool, gitlabClient, sentryHub
+	return k, agentInfo, mockCtrl, gitalyPool, gitlabClient, errTracker
 }
 
-func setupKasBare(t *testing.T) (*Server, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_sentryapi.MockHub) {
+func setupKasBare(t *testing.T) (*Server, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_errtracker.MockTracker) {
 	mockCtrl := gomock.NewController(t)
 	gitalyPool := mock_internalgitaly.NewMockPoolInterface(mockCtrl)
 	gitlabClient := mock_gitlab.NewMockClientInterface(mockCtrl)
-	sentryHub := mock_sentryapi.NewMockHub(mockCtrl)
+	errTracker := mock_errtracker.NewMockTracker(mockCtrl)
 
 	k, cleanup, err := NewServer(Config{
 		Log:                            zaptest.NewLogger(t),
 		GitalyPool:                     gitalyPool,
 		GitLabClient:                   gitlabClient,
 		Registerer:                     prometheus.NewPedanticRegistry(),
-		Sentry:                         sentryHub,
+		ErrorTracker:                   errTracker,
 		AgentConfigurationPollPeriod:   10 * time.Minute,
 		GitopsPollPeriod:               10 * time.Minute,
 		MaxConfigurationFileSize:       maxConfigurationFileSize,
@@ -955,7 +955,7 @@ func setupKasBare(t *testing.T) (*Server, *gomock.Controller, *mock_internalgita
 	require.NoError(t, err)
 	t.Cleanup(cleanup)
 
-	return k, mockCtrl, gitalyPool, gitlabClient, sentryHub
+	return k, mockCtrl, gitalyPool, gitlabClient, errTracker
 }
 
 func agentInfoObj() *api.AgentInfo {
