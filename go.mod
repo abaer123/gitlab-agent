@@ -10,7 +10,7 @@ require (
 	github.com/bmatcuk/doublestar/v2 v2.0.3
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1.0.20200107205605-c66185887605
 	github.com/envoyproxy/protoc-gen-validate v0.4.2-0.20200930220426-ec9cd95372b9
-	github.com/getsentry/sentry-go v0.7.0
+	github.com/getsentry/sentry-go v0.5.1
 	github.com/go-logr/zapr v0.2.0
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.3
@@ -29,7 +29,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
 	gitlab.com/gitlab-org/gitaly v1.87.1-0.20201016033652-3bdd23173595
-	gitlab.com/gitlab-org/labkit v0.0.0-20201021103929-24e6f6eaad7a
+	gitlab.com/gitlab-org/labkit v0.0.0-20201105120257-8e29ab1aa82b
 	go.uber.org/zap v1.16.0
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	golang.org/x/tools v0.0.0-20201017001424-6003fad69a88

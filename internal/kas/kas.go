@@ -22,9 +22,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/protodefault"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/sentryapi"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
+	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -53,7 +53,7 @@ type Config struct {
 	GitalyPool                     gitaly.PoolInterface
 	GitLabClient                   gitlab.ClientInterface
 	Registerer                     prometheus.Registerer
-	Sentry                         sentryapi.Hub
+	ErrorTracker                   errortracking.Tracker
 	AgentConfigurationPollPeriod   time.Duration
 	GitopsPollPeriod               time.Duration
 	UsageReportingPeriod           time.Duration
@@ -71,7 +71,7 @@ type Server struct {
 	log                            *zap.Logger
 	gitalyPool                     gitaly.PoolInterface
 	gitLabClient                   gitlab.ClientInterface
-	sentry                         sentryapi.Hub
+	errorTracker                   errortracking.Tracker
 	agentConfigurationPollPeriod   time.Duration
 	gitopsPollPeriod               time.Duration
 	usageReportingPeriod           time.Duration
@@ -94,7 +94,7 @@ func NewServer(config Config) (*Server, func(), error) {
 		log:                            config.Log,
 		gitalyPool:                     config.GitalyPool,
 		gitLabClient:                   config.GitLabClient,
-		sentry:                         config.Sentry,
+		errorTracker:                   config.ErrorTracker,
 		agentConfigurationPollPeriod:   config.AgentConfigurationPollPeriod,
 		gitopsPollPeriod:               config.GitopsPollPeriod,
 		usageReportingPeriod:           config.UsageReportingPeriod,
@@ -328,7 +328,7 @@ func (s *Server) sendUsage(ctx context.Context) {
 			if err := s.sendUsageInternal(ctx); err != nil {
 				if !errz.ContextDone(err) {
 					s.log.Warn("Failed to send usage data", zap.Error(err))
-					s.sentry.CaptureException(err)
+					s.errorTracker.Capture(err, errortracking.WithContext(ctx))
 				}
 			}
 		}
