@@ -2494,6 +2494,13 @@ def go_repositories():
         version = "v1.3.1",
     )
     go_repository(
+        name = "com_github_oklog_ulid_v2",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/oklog/ulid/v2",
+        sum = "h1:r4fFzBm+bv0wNKNh5eXTwU7i85y5x+uwkxCUTNVQqLc=",
+        version = "v2.0.2",
+    )
+    go_repository(
         name = "com_github_olekukonko_tablewriter",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/olekukonko/tablewriter",
@@ -2639,6 +2646,13 @@ def go_repositories():
         importpath = "github.com/pascaldekloe/goe",
         sum = "h1:Lgl0gzECD8GnQ5QCWA8o6BtfL6mDH5rQgM4/fX3avOs=",
         version = "v0.0.0-20180627143212-57f6aae5913c",
+    )
+    go_repository(
+        name = "com_github_pborman_getopt",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/pborman/getopt",
+        sum = "h1:BHT1/DKsYDGkUgQ2jmMaozVcdk+sVfz0+1ZJq4zkWgw=",
+        version = "v0.0.0-20170112200414-7148bc3a4c30",
     )
     go_repository(
         name = "com_github_pborman_uuid",
