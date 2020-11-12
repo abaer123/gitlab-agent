@@ -5,7 +5,7 @@ import (
 
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctools"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -46,7 +46,7 @@ func InjectAgentMeta(ctx context.Context, agentMeta *api.AgentMeta) context.Cont
 
 // UnaryAgentMetaInterceptor is a gRPC server-side interceptor that populates context with api.AgentMeta for unary RPCs.
 func UnaryAgentMetaInterceptor() func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	return grpctools.UnaryServerCtxAugmentingInterceptor(func(ctx context.Context) (context.Context, error) {
+	return grpctool.UnaryServerCtxAugmentingInterceptor(func(ctx context.Context) (context.Context, error) {
 		agentMeta, err := AgentMetaFromRawContext(ctx)
 		if err != nil {
 			return nil, err // err is already a status.Error
@@ -57,7 +57,7 @@ func UnaryAgentMetaInterceptor() func(ctx context.Context, req interface{}, info
 
 // StreamAgentMetaInterceptor is a gRPC server-side interceptor that populates context with api.AgentMeta for streaming RPCs.
 func StreamAgentMetaInterceptor() func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-	return grpctools.StreamServerCtxAugmentingInterceptor(func(ctx context.Context) (context.Context, error) {
+	return grpctool.StreamServerCtxAugmentingInterceptor(func(ctx context.Context) (context.Context, error) {
 		agentMeta, err := AgentMetaFromRawContext(ctx)
 		if err != nil {
 			return nil, err // err is already a status.Error

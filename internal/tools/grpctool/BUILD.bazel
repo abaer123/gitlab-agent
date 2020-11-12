@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "grpctools",
+    name = "grpctool",
     srcs = [
         "client_ctx.go",
         "client_limiting.go",
@@ -9,7 +9,7 @@ go_library(
         "server_limiting.go",
         "tools.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctools",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctool",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/tools/errz",
@@ -21,13 +21,13 @@ go_library(
 )
 
 go_test(
-    name = "grpctools_test",
+    name = "grpctool_test",
     size = "small",
     srcs = [
         "server_limiting_test.go",
         "tools_test.go",
     ],
-    embed = [":grpctools"],
+    embed = [":grpctool"],
     race = "on",
     deps = [
         "//internal/tools/testing/mock_grpc",

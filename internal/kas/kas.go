@@ -18,7 +18,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/errz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctools"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/protodefault"
@@ -146,7 +146,7 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 		l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath))
 		info, err := p.Poll(ctx, &agentInfo.GitalyInfo, &agentInfo.Repository, lastProcessedCommitId, gitaly.DefaultBranch)
 		if err != nil {
-			if !grpctools.RequestCanceled(err) {
+			if !grpctool.RequestCanceled(err) {
 				l.Warn("Config: repository poll failed", zap.Error(err))
 			}
 			return false, nil // don't want to close the response stream, so report no error
@@ -158,7 +158,7 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 		l.Info("Config: new commit", logz.CommitId(info.CommitId))
 		config, err := s.fetchConfiguration(ctx, agentInfo, info.CommitId)
 		if err != nil {
-			if !grpctools.RequestCanceled(err) {
+			if !grpctool.RequestCanceled(err) {
 				l.Warn("Config: failed to fetch", zap.Error(err))
 			}
 			return false, nil // don't want to close the response stream, so report no error
@@ -257,7 +257,7 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 		revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
 		info, err := p.Poll(ctx, &repoInfo.GitalyInfo, &repoInfo.Repository, lastProcessedCommitId, revision)
 		if err != nil {
-			if !grpctools.RequestCanceled(err) {
+			if !grpctool.RequestCanceled(err) {
 				l.Warn("GitOps: repository poll failed", zap.Error(err))
 			}
 			return false, nil // don't want to close the response stream, so report no error
@@ -271,7 +271,7 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 		l.Info("GitOps: new commit")
 		objects, err := s.fetchObjectsToSynchronize(ctx, repoInfo, req.Paths, info.CommitId)
 		if err != nil {
-			if !grpctools.RequestCanceled(err) {
+			if !grpctool.RequestCanceled(err) {
 				l.Warn("GitOps: failed to get objects to synchronize", zap.Error(err))
 			}
 			return false, nil // don't want to close the response stream, so report no error
