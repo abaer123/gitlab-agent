@@ -22,6 +22,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/protodefault"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"gitlab.com/gitlab-org/labkit/errortracking"
@@ -112,7 +113,7 @@ func (s *Server) Run(ctx context.Context) {
 }
 
 func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream agentrpc.Kas_GetConfigurationServer) error {
-	err := wait.PollImmediateUntil(s.agentConfigurationPollPeriod, s.sendConfiguration(req.CommitId, stream), stream.Context().Done())
+	err := retry.PollImmediateUntil(stream.Context(), s.agentConfigurationPollPeriod, s.sendConfiguration(req.CommitId, stream))
 	if errors.Is(err, wait.ErrWaitTimeout) {
 		return nil // all good, ctx is done
 	}
@@ -221,7 +222,7 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 	if numberOfPaths > s.maxGitopsNumberOfPaths {
 		return status.Errorf(codes.InvalidArgument, "maximum number of GitOps paths per manifest project is %d, but %d was requested", s.maxGitopsNumberOfPaths, numberOfPaths)
 	}
-	err = wait.PollImmediateUntil(s.gitopsPollPeriod, s.sendObjectsToSynchronize(agentInfo, req, stream), ctx.Done())
+	err = retry.PollImmediateUntil(ctx, s.gitopsPollPeriod, s.sendObjectsToSynchronize(agentInfo, req, stream))
 	if errors.Is(err, wait.ErrWaitTimeout) {
 		return nil // all good, ctx is done
 	}

@@ -14,7 +14,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctools"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
 	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -46,7 +45,7 @@ func (d *gitopsWorker) Run(ctx context.Context) {
 		},
 	)
 	var stopEngine engine.StopFunc
-	err := wait.PollImmediateUntil(engineRunRetryPeriod, func() (bool /*done*/, error) {
+	err := retry.PollImmediateUntil(ctx, engineRunRetryPeriod, func() (bool /*done*/, error) {
 		var err error
 		stopEngine, err = eng.Run()
 		if err != nil {
@@ -54,7 +53,7 @@ func (d *gitopsWorker) Run(ctx context.Context) {
 			return false, nil // nil error to keep polling
 		}
 		return true, nil
-	}, ctx.Done())
+	})
 	if err != nil {
 		// context is done
 		return
