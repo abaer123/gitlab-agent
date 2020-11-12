@@ -3,7 +3,6 @@ package agentkapp
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -18,6 +17,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/tlstool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/wstunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
@@ -64,7 +64,7 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("token file: %v", err)
 	}
-	tlsConfig, err := tlsConfig(a.CACertFile)
+	tlsConfig, err := tlstool.DefaultClientTLSConfigWithCACert(a.CACertFile)
 	if err != nil {
 		return err
 	}
@@ -190,34 +190,4 @@ func logger() (*zap.Logger, zap.AtomicLevel, error) {
 	}
 	atomicLevel := zap.NewAtomicLevelAt(level)
 	return logz.LoggerWithLevel(atomicLevel), atomicLevel, nil
-}
-
-func loadCACert(caCertFile string) (*x509.CertPool, error) {
-	certPool, err := x509.SystemCertPool()
-	if err != nil {
-		return nil, fmt.Errorf("SystemCertPool: %v", err)
-	}
-	caCert, err := ioutil.ReadFile(caCertFile) // nolint: gosec
-	if err != nil {
-		return nil, fmt.Errorf("CA certificate file: %v", err)
-	}
-	ok := certPool.AppendCertsFromPEM(caCert)
-	if !ok {
-		return nil, fmt.Errorf("AppendCertsFromPEM(%s) failed", caCertFile)
-	}
-	return certPool, nil
-}
-
-func tlsConfig(caCertFile string) (*tls.Config, error) {
-	tlsConfig := &tls.Config{
-		MinVersion: tls.VersionTLS12,
-	}
-	if caCertFile != "" {
-		certPool, err := loadCACert(caCertFile)
-		if err != nil {
-			return nil, err
-		}
-		tlsConfig.RootCAs = certPool
-	}
-	return tlsConfig, nil
 }

@@ -21,6 +21,7 @@ go_library(
         "//internal/tools/logz",
         "//internal/tools/metric",
         "//internal/tools/protodefault",
+        "//internal/tools/tlstool",
         "//internal/tools/tracing",
         "//internal/tools/wstunnel",
         "//pkg/kascfg",

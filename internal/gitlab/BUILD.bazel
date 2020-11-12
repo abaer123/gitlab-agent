@@ -12,6 +12,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",
+        "//internal/tools/tlstool",
         "//internal/tools/tracing",
         "@com_github_dgrijalva_jwt_go_v4//:jwt-go",
         "@com_github_opentracing_opentracing_go//:opentracing-go",

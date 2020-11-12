@@ -10,6 +10,7 @@ listen_agent:
 gitlab:
   address: http://localhost:8080
   # authentication_secret_file: /some/file
+  # ca_certificate_file: /server-ca.pem
 agent:
   configuration:
     poll_period: "20s"
