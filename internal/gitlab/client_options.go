@@ -2,12 +2,14 @@ package gitlab
 
 import (
 	"context"
+	"crypto/tls"
 	"net"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/opentracing/opentracing-go"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/tlstool"
 	"go.uber.org/zap"
 )
 
@@ -15,6 +17,7 @@ import (
 type clientConfig struct {
 	tracer      opentracing.Tracer
 	log         *zap.Logger
+	tlsConfig   *tls.Config
 	dialContext func(ctx context.Context, network, address string) (net.Conn, error)
 	proxy       func(*http.Request) (*url.URL, error)
 	clientName  string
@@ -32,6 +35,7 @@ func applyClientOptions(opts []ClientOption) clientConfig {
 	config := clientConfig{
 		tracer:      opentracing.GlobalTracer(),
 		log:         zap.NewNop(),
+		tlsConfig:   tlstool.DefaultClientTLSConfig(),
 		dialContext: dialer.DialContext,
 		proxy:       http.ProxyFromEnvironment,
 		clientName:  "",
@@ -69,5 +73,12 @@ func WithUserAgent(userAgent string) ClientOption {
 func WithLogger(log *zap.Logger) ClientOption {
 	return func(config *clientConfig) {
 		config.log = log
+	}
+}
+
+// WithTLSConfig sets the TLS config to use.
+func WithTLSConfig(tlsConfig *tls.Config) ClientOption {
+	return func(config *clientConfig) {
+		config.tlsConfig = tlsConfig
 	}
 }

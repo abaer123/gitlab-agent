@@ -100,6 +100,7 @@ func NewClient(backend *url.URL, authSecret []byte, opts ...ClientOption) *Clien
 					&http.Transport{
 						Proxy:                 o.proxy,
 						DialContext:           o.dialContext,
+						TLSClientConfig:       o.tlsConfig,
 						MaxIdleConns:          100,
 						IdleConnTimeout:       90 * time.Second,
 						TLSHandshakeTimeout:   10 * time.Second,

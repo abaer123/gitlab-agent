@@ -392,6 +392,8 @@ func (m *GitLabCF) Validate() error {
 
 	// no validation rules for AuthenticationSecretFile
 
+	// no validation rules for CaCertificateFile
+
 	return nil
 }
 

@@ -2,7 +2,6 @@ package kasapp
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -26,6 +25,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctools"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/tlstool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/tracing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/wstunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
@@ -165,6 +165,11 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		if err != nil {
 			return err
 		}
+		// TLS cert for talking to GitLab/Workhorse.
+		clientTLSConfig, err := tlstool.DefaultClientTLSConfigWithCACert(cfg.Gitlab.CaCertificateFile)
+		if err != nil {
+			return err
+		}
 		// Secret for JWT signing
 		decodedAuthSecret, err := a.loadAuthSecret()
 		if err != nil {
@@ -214,6 +219,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			gitlab.WithUserAgent(userAgent),
 			gitlab.WithTracer(tracer),
 			gitlab.WithLogger(a.Log),
+			gitlab.WithTLSConfig(clientTLSConfig),
 		)
 		gitLabCachingClient := gitlab.NewCachingClient(gitLabClient, gitlab.CacheOptions{
 			CacheTTL:      cfg.Agent.InfoCacheTtl.AsDuration(),
@@ -315,14 +321,11 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		keyFile := cfg.ListenAgent.KeyFile
 		switch {
 		case certFile != "" && keyFile != "":
-			cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+			config, err := tlstool.DefaultServerTLSConfig(certFile, keyFile)
 			if err != nil {
-				return fmt.Errorf("loading certificate (%s) and key (%s) files: %v", certFile, keyFile, err)
+				return err
 			}
-			serverOpts = append(serverOpts, grpc.Creds(credentials.NewTLS(&tls.Config{
-				Certificates: []tls.Certificate{cert},
-				MinVersion:   tls.VersionTLS12,
-			})))
+			serverOpts = append(serverOpts, grpc.Creds(credentials.NewTLS(config)))
 		case certFile == "" && keyFile == "":
 		default:
 			return fmt.Errorf("both certificate_file (%s) and key_file (%s) must be either set or not set", certFile, keyFile)
