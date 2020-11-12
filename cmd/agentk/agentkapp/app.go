@@ -209,7 +209,9 @@ func loadCACert(caCertFile string) (*x509.CertPool, error) {
 }
 
 func tlsConfig(caCertFile string) (*tls.Config, error) {
-	tlsConfig := &tls.Config{} // nolint: gosec
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
 	if caCertFile != "" {
 		certPool, err := loadCACert(caCertFile)
 		if err != nil {
