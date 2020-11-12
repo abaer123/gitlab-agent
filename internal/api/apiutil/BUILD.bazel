@@ -7,7 +7,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",
-        "//internal/tools/grpctools",
+        "//internal/tools/grpctool",
         "@com_github_grpc_ecosystem_go_grpc_middleware//auth",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//credentials",

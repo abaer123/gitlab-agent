@@ -11,10 +11,9 @@ import (
 	"github.com/ash2k/stager"
 	"github.com/go-logr/zapr"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctools"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
 	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -46,7 +45,7 @@ func (d *gitopsWorker) Run(ctx context.Context) {
 		},
 	)
 	var stopEngine engine.StopFunc
-	err := wait.PollImmediateUntil(engineRunRetryPeriod, func() (bool /*done*/, error) {
+	err := retry.PollImmediateUntil(ctx, engineRunRetryPeriod, func() (bool /*done*/, error) {
 		var err error
 		stopEngine, err = eng.Run()
 		if err != nil {
@@ -54,7 +53,7 @@ func (d *gitopsWorker) Run(ctx context.Context) {
 			return false, nil // nil error to keep polling
 		}
 		return true, nil
-	}, ctx.Done())
+	})
 	if err != nil {
 		// context is done
 		return
@@ -87,7 +86,7 @@ func (d *gitopsWorker) getObjectsToSynchronize(s *synchronizer) func(context.Con
 		}
 		res, err := d.kasClient.GetObjectsToSynchronize(ctx, req)
 		if err != nil {
-			if !grpctools.RequestCanceled(err) {
+			if !grpctool.RequestCanceled(err) {
 				d.log.Warn("GetObjectsToSynchronize failed", zap.Error(err))
 			}
 			return
@@ -97,7 +96,7 @@ func (d *gitopsWorker) getObjectsToSynchronize(s *synchronizer) func(context.Con
 			if err != nil {
 				switch {
 				case errors.Is(err, io.EOF):
-				case grpctools.RequestCanceled(err):
+				case grpctool.RequestCanceled(err):
 				default:
 					d.log.Warn("GetObjectsToSynchronize.Recv failed", zap.Error(err))
 				}

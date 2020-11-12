@@ -10,7 +10,7 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/cache"
 	"github.com/argoproj/gitops-engine/pkg/engine"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctools"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/protodefault"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
@@ -94,7 +94,7 @@ func (a *Agent) refreshConfiguration() func(context.Context) {
 		}
 		res, err := a.kasClient.GetConfiguration(ctx, req)
 		if err != nil {
-			if !grpctools.RequestCanceled(err) {
+			if !grpctool.RequestCanceled(err) {
 				a.log.Warn("GetConfiguration failed", zap.Error(err))
 			}
 			return
@@ -104,7 +104,7 @@ func (a *Agent) refreshConfiguration() func(context.Context) {
 			if err != nil {
 				switch {
 				case errors.Is(err, io.EOF):
-				case grpctools.RequestCanceled(err):
+				case grpctool.RequestCanceled(err):
 				default:
 					a.log.Warn("GetConfiguration.Recv failed", zap.Error(err))
 				}

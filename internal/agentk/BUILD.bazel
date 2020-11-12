@@ -15,7 +15,7 @@ go_library(
     deps = [
         "//internal/agentrpc",
         "//internal/tools/errz",
-        "//internal/tools/grpctools",
+        "//internal/tools/grpctool",
         "//internal/tools/logz",
         "//internal/tools/protodefault",
         "//internal/tools/retry",
