@@ -63,6 +63,7 @@ type Config struct {
 	MaxGitopsTotalManifestFileSize uint32
 	MaxGitopsNumberOfPaths         uint32
 	MaxGitopsNumberOfFiles         uint32
+	ConnectionMaxAge               time.Duration
 }
 
 type Server struct {
@@ -81,6 +82,7 @@ type Server struct {
 	maxGitopsTotalManifestFileSize int64
 	maxGitopsNumberOfPaths         uint32
 	maxGitopsNumberOfFiles         uint32
+	connectionMaxAge               time.Duration
 }
 
 func NewServer(config Config) (*Server, func(), error) {
@@ -104,6 +106,7 @@ func NewServer(config Config) (*Server, func(), error) {
 		maxGitopsTotalManifestFileSize: int64(config.MaxGitopsTotalManifestFileSize),
 		maxGitopsNumberOfPaths:         config.MaxGitopsNumberOfPaths,
 		maxGitopsNumberOfFiles:         config.MaxGitopsNumberOfFiles,
+		connectionMaxAge:               config.ConnectionMaxAge,
 	}
 	return s, cleanup, nil
 }
@@ -113,11 +116,7 @@ func (s *Server) Run(ctx context.Context) {
 }
 
 func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream agentrpc.Kas_GetConfigurationServer) error {
-	err := retry.PollImmediateUntil(stream.Context(), s.agentConfigurationPollPeriod, s.sendConfiguration(req.CommitId, stream))
-	if errors.Is(err, wait.ErrWaitTimeout) {
-		return nil // all good, ctx is done
-	}
-	return err
+	return s.pollImmediateUntil(stream.Context(), s.agentConfigurationPollPeriod, s.sendConfiguration(req.CommitId, stream))
 }
 
 func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc.Kas_GetConfigurationServer) wait.ConditionFunc {
@@ -222,11 +221,7 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 	if numberOfPaths > s.maxGitopsNumberOfPaths {
 		return status.Errorf(codes.InvalidArgument, "maximum number of GitOps paths per manifest project is %d, but %d was requested", s.maxGitopsNumberOfPaths, numberOfPaths)
 	}
-	err = retry.PollImmediateUntil(ctx, s.gitopsPollPeriod, s.sendObjectsToSynchronize(agentInfo, req, stream))
-	if errors.Is(err, wait.ErrWaitTimeout) {
-		return nil // all good, ctx is done
-	}
-	return err
+	return s.pollImmediateUntil(stream.Context(), s.gitopsPollPeriod, s.sendObjectsToSynchronize(agentInfo, req, stream))
 }
 
 func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrpc.ObjectsToSynchronizeRequest, stream agentrpc.Kas_GetObjectsToSynchronizeServer) wait.ConditionFunc {
@@ -351,6 +346,17 @@ func (s *Server) sendUsageInternal(ctx context.Context) error {
 	// Subtract the increments we've just sent
 	s.usageMetrics.Subtract(m)
 	return nil
+}
+
+func (s *Server) pollImmediateUntil(ctx context.Context, interval time.Duration, condition wait.ConditionFunc) error {
+	// this context must only be used here, not inside of condition() - connection should be closed only when idle.
+	ageCtx, cancel := context.WithTimeout(ctx, s.connectionMaxAge)
+	defer cancel()
+	err := retry.PollImmediateUntil(ageCtx, interval, condition)
+	if errors.Is(err, wait.ErrWaitTimeout) {
+		return nil // all good, ctx is done
+	}
+	return err
 }
 
 type objectsToSynchronizeVisitor struct {

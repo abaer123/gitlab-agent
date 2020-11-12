@@ -1560,6 +1560,27 @@ func (m *AgentLimitsCF) Validate() error {
 
 	// no validation rules for MaxGitopsNumberOfFiles
 
+	if d := m.GetConnectionMaxAge(); d != nil {
+		dur, err := ptypes.Duration(d)
+		if err != nil {
+			return AgentLimitsCFValidationError{
+				field:  "ConnectionMaxAge",
+				reason: "value is not a valid duration",
+				cause:  err,
+			}
+		}
+
+		gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+		if dur <= gt {
+			return AgentLimitsCFValidationError{
+				field:  "ConnectionMaxAge",
+				reason: "value must be greater than 0s",
+			}
+		}
+
+	}
+
 	return nil
 }
 

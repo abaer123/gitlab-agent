@@ -198,6 +198,20 @@ func TestValidation_Invalid(t *testing.T) {
 				Keepalive: durationpb.New(-1),
 			},
 		},
+		{
+			name:      "zero AgentLimitsCF.ConnectionMaxAge",
+			errString: "invalid AgentLimitsCF.ConnectionMaxAge: value must be greater than 0s",
+			invalid: &AgentLimitsCF{
+				ConnectionMaxAge: durationpb.New(0),
+			},
+		},
+		{
+			name:      "negative AgentLimitsCF.ConnectionMaxAge",
+			errString: "invalid AgentLimitsCF.ConnectionMaxAge: value must be greater than 0s",
+			invalid: &AgentLimitsCF{
+				ConnectionMaxAge: durationpb.New(-1),
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) { // nolint: scopelint

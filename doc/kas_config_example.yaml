@@ -28,6 +28,7 @@ agent:
     max_gitops_total_manifest_file_size: 2097152
     max_gitops_number_of_paths: 100
     max_gitops_number_of_files: 1000
+    connection_max_age: "1800s"
 observability:
   usage_reporting_period: "60s"
   listen:
