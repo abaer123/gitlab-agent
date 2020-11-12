@@ -199,6 +199,8 @@ message AgentLimitsCF {
     // find *.yaml, *.yml, *.json files.
     // All files and directories under a path are counted towards this limit.
     uint32 max_gitops_number_of_files = 7 [json_name = "max_gitops_number_of_files"];
+    // Max age of a connection. Connection is closed gracefully once it's too old and there is no streaming happening.
+    google.protobuf.Duration connection_max_age = 8 [json_name = "connection_max_age", (validate.rules).duration = {gt: {}}];
 }
 
 // ConfigurationFile represents kas configuration file.

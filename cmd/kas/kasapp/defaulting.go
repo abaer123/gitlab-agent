@@ -25,6 +25,7 @@ const (
 	defaultAgentLimitsMaxGitopsTotalManifestFileSize = 2 * 1024 * 1024
 	defaultAgentLimitsMaxGitopsNumberOfPaths         = 100
 	defaultAgentLimitsMaxGitopsNumberOfFiles         = 1000
+	defaultAgentConnectionMaxAge                     = 30 * time.Minute
 
 	defaultGitOpsPollPeriod               = 20 * time.Second
 	defaultGitOpsProjectInfoCacheTTL      = 5 * time.Minute
@@ -97,6 +98,7 @@ func defaultAgent(a *kascfg.AgentCF) {
 	protodefault.Uint32(&a.Limits.MaxGitopsTotalManifestFileSize, defaultAgentLimitsMaxGitopsTotalManifestFileSize)
 	protodefault.Uint32(&a.Limits.MaxGitopsNumberOfPaths, defaultAgentLimitsMaxGitopsNumberOfPaths)
 	protodefault.Uint32(&a.Limits.MaxGitopsNumberOfFiles, defaultAgentLimitsMaxGitopsNumberOfFiles)
+	protodefault.Duration(&a.Limits.ConnectionMaxAge, defaultAgentConnectionMaxAge)
 }
 
 func defaultObservability(o *kascfg.ObservabilityCF) {
