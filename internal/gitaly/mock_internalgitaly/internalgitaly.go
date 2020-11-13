@@ -37,21 +37,6 @@ func (m *MockPoolInterface) EXPECT() *MockPoolInterfaceMockRecorder {
 	return m.recorder
 }
 
-// CommitServiceClient mocks base method
-func (m *MockPoolInterface) CommitServiceClient(arg0 context.Context, arg1 *api.GitalyInfo) (gitalypb.CommitServiceClient, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CommitServiceClient", arg0, arg1)
-	ret0, _ := ret[0].(gitalypb.CommitServiceClient)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CommitServiceClient indicates an expected call of CommitServiceClient
-func (mr *MockPoolInterfaceMockRecorder) CommitServiceClient(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CommitServiceClient", reflect.TypeOf((*MockPoolInterface)(nil).CommitServiceClient), arg0, arg1)
-}
-
 // PathFetcher mocks base method
 func (m *MockPoolInterface) PathFetcher(arg0 context.Context, arg1 *api.GitalyInfo) (gitaly.PathFetcherInterface, error) {
 	m.ctrl.T.Helper()

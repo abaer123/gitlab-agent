@@ -13,7 +13,6 @@ var (
 )
 
 type PoolInterface interface {
-	CommitServiceClient(context.Context, *api.GitalyInfo) (gitalypb.CommitServiceClient, error)
 	SmartHTTPServiceClient(context.Context, *api.GitalyInfo) (gitalypb.SmartHTTPServiceClient, error)
 	PathFetcher(context.Context, *api.GitalyInfo) (PathFetcherInterface, error)
 }
@@ -27,7 +26,7 @@ type Pool struct {
 	ClientPool ClientPool
 }
 
-func (p *Pool) CommitServiceClient(ctx context.Context, gInfo *api.GitalyInfo) (gitalypb.CommitServiceClient, error) {
+func (p *Pool) commitServiceClient(ctx context.Context, gInfo *api.GitalyInfo) (gitalypb.CommitServiceClient, error) {
 	conn, err := p.ClientPool.Dial(ctx, gInfo.Address, gInfo.Token)
 	if err != nil {
 		return nil, err // don't wrap
@@ -44,7 +43,7 @@ func (p *Pool) SmartHTTPServiceClient(ctx context.Context, gInfo *api.GitalyInfo
 }
 
 func (p *Pool) PathFetcher(ctx context.Context, info *api.GitalyInfo) (PathFetcherInterface, error) {
-	client, err := p.CommitServiceClient(ctx, info)
+	client, err := p.commitServiceClient(ctx, info)
 	if err != nil {
 		return nil, err
 	}
