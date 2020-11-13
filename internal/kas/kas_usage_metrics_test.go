@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -47,7 +48,7 @@ func TestSendUsageFailure(t *testing.T) {
 		SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
 		Return(expectedErr)
 	k.usageMetrics.gitopsSyncCount = 5
-	k.usageReportingPeriod = 1 // ASAP
+	k.usageReportingPeriod = 10 * time.Millisecond
 
 	k.sendUsage(ctx)
 }
