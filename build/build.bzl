@@ -6,7 +6,7 @@ def copy_to_workspace(name, label, file_to_copy, workspace_relative_target_direc
         name = name,
         command = "//build:copy_to_workspace",
         data = [label],
-        arguments = ["$(locations %s)" % label, file_to_copy, workspace_relative_target_directory],
+        arguments = ["$(rootpaths %s)" % label, file_to_copy, workspace_relative_target_directory],
         visibility = ["//visibility:public"],
     )
 
@@ -16,6 +16,6 @@ def copy_absolute(name, label, file_to_copy):
         name = name,
         command = "//build:copy_absolute",
         data = [label],
-        arguments = ["$(locations %s)" % label, file_to_copy],
+        arguments = ["$(rootpaths %s)" % label, file_to_copy],
         visibility = ["//visibility:public"],
     )
