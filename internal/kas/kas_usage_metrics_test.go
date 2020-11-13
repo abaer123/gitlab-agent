@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
+	"gitlab.com/gitlab-org/labkit/errortracking"
 )
 
 func TestSendUsage(t *testing.T) {
@@ -16,7 +16,8 @@ func TestSendUsage(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	k, _, _, gitlabClient, _ := setupKasBare(t)
+	k, mockCtrl, _, gitlabClient, _ := setupKasBare(t)
+	defer mockCtrl.Finish()
 	gitlabClient.EXPECT().
 		SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
 		Return(nil)
@@ -35,17 +36,18 @@ func TestSendUsageFailure(t *testing.T) {
 	defer cancel()
 
 	expectedErr := errors.New("expected error")
-	k, _, _, gitlabClient, errTracker := setupKasBare(t)
+	k, mockCtrl, _, gitlabClient, errTracker := setupKasBare(t)
+	defer mockCtrl.Finish()
 	errTracker.EXPECT().
-		Capture(expectedErr).
-		DoAndReturn(func(err error) *sentry.EventID {
+		Capture(expectedErr, gomock.Any()).
+		DoAndReturn(func(err error, opts ...errortracking.CaptureOption) {
 			cancel() // exception captured, cancel the context to stop the test
-			return nil
 		})
 	gitlabClient.EXPECT().
 		SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
 		Return(expectedErr)
 	k.usageMetrics.gitopsSyncCount = 5
+	k.usageReportingPeriod = 1 // ASAP
 
 	k.sendUsage(ctx)
 }
@@ -55,7 +57,8 @@ func TestSendUsageRetry(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	k, _, _, gitlabClient, _ := setupKasBare(t)
+	k, mockCtrl, _, gitlabClient, _ := setupKasBare(t)
+	defer mockCtrl.Finish()
 	gomock.InOrder(
 		gitlabClient.EXPECT().
 			SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
