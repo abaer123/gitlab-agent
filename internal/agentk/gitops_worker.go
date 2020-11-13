@@ -91,7 +91,11 @@ func (d *gitopsWorker) getObjectsToSynchronize(s *synchronizer) func(context.Con
 			}
 			return
 		}
-		var state desiredState
+		var (
+			state            desiredState
+			headersReceived  bool
+			trailersReceived bool
+		)
 	objectStream:
 		for {
 			objectsResp, err := res.Recv()
@@ -106,8 +110,9 @@ func (d *gitopsWorker) getObjectsToSynchronize(s *synchronizer) func(context.Con
 				return
 			}
 			switch msg := objectsResp.Message.(type) {
-			case *agentrpc.ObjectsToSynchronizeResponse_Meta_:
-				state.commitId = msg.Meta.CommitId
+			case *agentrpc.ObjectsToSynchronizeResponse_Headers_:
+				headersReceived = true
+				state.commitId = msg.Headers.CommitId
 			case *agentrpc.ObjectsToSynchronizeResponse_Object_:
 				lastIdx := len(state.sources) - 1
 				object := msg.Object
@@ -120,13 +125,39 @@ func (d *gitopsWorker) getObjectsToSynchronize(s *synchronizer) func(context.Con
 					name: object.Source,
 					data: object.Data,
 				})
+			case *agentrpc.ObjectsToSynchronizeResponse_Trailers_:
+				trailersReceived = true
 			default:
 				d.log.Error(fmt.Sprintf("GetObjectsToSynchronize.Recv returned an unexpected type: %T", objectsResp.Message))
 				return
 			}
 		}
-		if s.setDesiredState(ctx, state) {
-			lastProcessedCommitId = state.commitId
+		switch {
+		case !headersReceived && !trailersReceived:
+			if len(state.sources) > 0 {
+				// This should never happen.
+				s.log.Error(fmt.Sprintf(
+					"Server didn't send both headers and trailers for objects stream, but sent some objects. It's a bug! Number of sources received: %d, commit id: %s",
+					len(state.sources),
+					state.commitId),
+				)
+				//} else {
+				// Normal clean shutdown of a connection that has been open more than connection max age duration.
+			}
+		case headersReceived && trailersReceived:
+			// All good, work on received state
+			if s.setDesiredState(ctx, state) {
+				lastProcessedCommitId = state.commitId
+			}
+		default:
+			// This should never happen.
+			s.log.Error(fmt.Sprintf(
+				"Server didn't send both headers (%t) and trailers (%t) for objects stream. It's a bug! Number of sources received: %d, commit id: %s",
+				headersReceived,
+				trailersReceived,
+				len(state.sources),
+				state.commitId),
+			)
 		}
 	}
 }

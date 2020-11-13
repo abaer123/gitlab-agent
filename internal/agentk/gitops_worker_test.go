@@ -71,10 +71,17 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 		stream1.EXPECT().
 			Recv().
 			Return(&agentrpc.ObjectsToSynchronizeResponse{
-				Message: &agentrpc.ObjectsToSynchronizeResponse_Meta_{
-					Meta: &agentrpc.ObjectsToSynchronizeResponse_Meta{
+				Message: &agentrpc.ObjectsToSynchronizeResponse_Headers_{
+					Headers: &agentrpc.ObjectsToSynchronizeResponse_Headers{
 						CommitId: revision,
 					},
+				},
+			}, nil),
+		stream1.EXPECT().
+			Recv().
+			Return(&agentrpc.ObjectsToSynchronizeResponse{
+				Message: &agentrpc.ObjectsToSynchronizeResponse_Trailers_{
+					Trailers: &agentrpc.ObjectsToSynchronizeResponse_Trailers{},
 				},
 			}, nil),
 		stream1.EXPECT().
@@ -125,17 +132,25 @@ func TestRunHappyPathNoObjects(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	resp := &agentrpc.ObjectsToSynchronizeResponse{
-		Message: &agentrpc.ObjectsToSynchronizeResponse_Meta_{
-			Meta: &agentrpc.ObjectsToSynchronizeResponse_Meta{
+	headers := &agentrpc.ObjectsToSynchronizeResponse{
+		Message: &agentrpc.ObjectsToSynchronizeResponse_Headers_{
+			Headers: &agentrpc.ObjectsToSynchronizeResponse_Headers{
 				CommitId: revision,
 			},
+		},
+	}
+	trailers := &agentrpc.ObjectsToSynchronizeResponse{
+		Message: &agentrpc.ObjectsToSynchronizeResponse_Trailers_{
+			Trailers: &agentrpc.ObjectsToSynchronizeResponse_Trailers{},
 		},
 	}
 	gomock.InOrder(
 		stream.EXPECT().
 			Recv().
-			Return(resp, nil),
+			Return(headers, nil),
+		stream.EXPECT().
+			Recv().
+			Return(trailers, nil),
 		stream.EXPECT().
 			Recv().
 			Return(nil, io.EOF),
@@ -153,11 +168,11 @@ func TestRunHappyPath(t *testing.T) {
 	_, s, engine, stream, _ := setupWorker(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	objs, respMeta, resp1, resp2, resp3 := objsAndResp(t)
+	objs, headers, resp1, resp2, resp3, trailers := objsAndResp(t)
 	gomock.InOrder(
 		stream.EXPECT().
 			Recv().
-			Return(respMeta, nil),
+			Return(headers, nil),
 		stream.EXPECT().
 			Recv().
 			Return(resp1, nil),
@@ -167,6 +182,9 @@ func TestRunHappyPath(t *testing.T) {
 		stream.EXPECT().
 			Recv().
 			Return(resp3, nil),
+		stream.EXPECT().
+			Recv().
+			Return(trailers, nil),
 		stream.EXPECT().
 			Recv().
 			Return(nil, io.EOF),
@@ -190,13 +208,13 @@ func TestRunHappyPathSyncCancellation(t *testing.T) {
 	s.getObjectsToSynchronizeRetryPeriod = 10 * time.Millisecond
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	objs, respMeta, resp1, resp2, resp3 := objsAndResp(t)
+	objs, headers, resp1, resp2, resp3, trailers := objsAndResp(t)
 	job1started := make(chan struct{})
 	stream2 := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
 	gomock.InOrder(
 		stream1.EXPECT().
 			Recv().
-			Return(respMeta, nil),
+			Return(headers, nil),
 		stream1.EXPECT().
 			Recv().
 			Return(resp1, nil),
@@ -206,6 +224,9 @@ func TestRunHappyPathSyncCancellation(t *testing.T) {
 		stream1.EXPECT().
 			Recv().
 			Return(resp3, nil),
+		stream1.EXPECT().
+			Recv().
+			Return(trailers, nil),
 		stream1.EXPECT().
 			Recv().
 			Return(nil, io.EOF),
@@ -221,7 +242,10 @@ func TestRunHappyPathSyncCancellation(t *testing.T) {
 			}),
 		stream2.EXPECT().
 			Recv().
-			Return(respMeta, nil),
+			Return(headers, nil),
+		stream2.EXPECT().
+			Recv().
+			Return(trailers, nil),
 		stream2.EXPECT().
 			Recv().
 			Return(nil, io.EOF),
@@ -245,15 +269,15 @@ func TestRunHappyPathSyncCancellation(t *testing.T) {
 	s.Run(ctx)
 }
 
-func objsAndResp(t *testing.T) ([]*unstructured.Unstructured, *agentrpc.ObjectsToSynchronizeResponse, *agentrpc.ObjectsToSynchronizeResponse, *agentrpc.ObjectsToSynchronizeResponse, *agentrpc.ObjectsToSynchronizeResponse) {
+func objsAndResp(t *testing.T) ([]*unstructured.Unstructured, *agentrpc.ObjectsToSynchronizeResponse, *agentrpc.ObjectsToSynchronizeResponse, *agentrpc.ObjectsToSynchronizeResponse, *agentrpc.ObjectsToSynchronizeResponse, *agentrpc.ObjectsToSynchronizeResponse) {
 	objs := []*unstructured.Unstructured{
 		kube_testing.ToUnstructured(t, testMap1()),
 		kube_testing.ToUnstructured(t, testNs1()),
 		kube_testing.ToUnstructured(t, testMap2()),
 	}
-	respMeta := &agentrpc.ObjectsToSynchronizeResponse{
-		Message: &agentrpc.ObjectsToSynchronizeResponse_Meta_{
-			Meta: &agentrpc.ObjectsToSynchronizeResponse_Meta{
+	headers := &agentrpc.ObjectsToSynchronizeResponse{
+		Message: &agentrpc.ObjectsToSynchronizeResponse_Headers_{
+			Headers: &agentrpc.ObjectsToSynchronizeResponse_Headers{
 				CommitId: revision,
 			},
 		},
@@ -285,7 +309,12 @@ func objsAndResp(t *testing.T) ([]*unstructured.Unstructured, *agentrpc.ObjectsT
 			},
 		},
 	}
-	return objs, respMeta, resp1, resp2, resp3
+	trailers := &agentrpc.ObjectsToSynchronizeResponse{
+		Message: &agentrpc.ObjectsToSynchronizeResponse_Trailers_{
+			Trailers: &agentrpc.ObjectsToSynchronizeResponse_Trailers{},
+		},
+	}
+	return objs, headers, resp1, resp2, resp3, trailers
 }
 
 func setupWorker(t *testing.T) (*gomock.Controller, *gitopsWorker, *mock_engine.MockGitOpsEngine, *mock_agentrpc.MockKas_GetObjectsToSynchronizeClient, *mock_agentrpc.MockKasClient) {

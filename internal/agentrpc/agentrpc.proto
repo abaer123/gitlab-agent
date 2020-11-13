@@ -36,7 +36,7 @@ message ObjectsToSynchronizeRequest {
 
 message ObjectsToSynchronizeResponse {
     // First message of the stream.
-    message Meta {
+    message Headers {
         // Commit id of the manifest repository.
         // Can be used to resume connection from where it dropped.
         string commit_id = 1;
@@ -52,9 +52,13 @@ message ObjectsToSynchronizeResponse {
         // Might be partial data, see comment for source.
         bytes data = 2;
     }
+    // Last message of the stream.
+    message Trailers {
+    }
     oneof message {
-        Meta meta = 1;
+        Headers headers = 1;
         Object object = 2;
+        Trailers trailers = 3;
     }
 }
 

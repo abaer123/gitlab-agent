@@ -364,8 +364,8 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	gomock.InOrder(
 		resp.EXPECT().
 			Send(matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeResponse{
-				Message: &agentrpc.ObjectsToSynchronizeResponse_Meta_{
-					Meta: &agentrpc.ObjectsToSynchronizeResponse_Meta{
+				Message: &agentrpc.ObjectsToSynchronizeResponse_Headers_{
+					Headers: &agentrpc.ObjectsToSynchronizeResponse_Headers{
 						CommitId: revision,
 					},
 				},
@@ -388,6 +388,13 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 						Source: "manifest.yaml",
 						Data:   objectsYAML[1:],
 					},
+				},
+			})).
+			Return(nil),
+		resp.EXPECT().
+			Send(matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeResponse{
+				Message: &agentrpc.ObjectsToSynchronizeResponse_Trailers_{
+					Trailers: &agentrpc.ObjectsToSynchronizeResponse_Trailers{},
 				},
 			})).
 			DoAndReturn(func(resp *agentrpc.ObjectsToSynchronizeResponse) error {

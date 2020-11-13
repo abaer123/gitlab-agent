@@ -272,14 +272,14 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		err = stream.Send(&agentrpc.ObjectsToSynchronizeResponse{
-			Message: &agentrpc.ObjectsToSynchronizeResponse_Meta_{
-				Meta: &agentrpc.ObjectsToSynchronizeResponse_Meta{
+			Message: &agentrpc.ObjectsToSynchronizeResponse_Headers_{
+				Headers: &agentrpc.ObjectsToSynchronizeResponse_Headers{
 					CommitId: info.CommitId,
 				},
 			},
 		})
 		if err != nil {
-			if !grpctools.RequestCanceled(err) {
+			if !grpctool.RequestCanceled(err) {
 				l.Warn("GitOps: failed to send objects to synchronize", zap.Error(err))
 			}
 			return false, status.Error(codes.Unavailable, "unavailable")
@@ -300,13 +300,24 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 		for _, p := range req.Paths {
 			repoPath, recursive, glob := globToGitaly(p.Glob)
 			v.glob = glob // set new glob for each path
-			err := f.Visit(ctx, &repoInfo.Repository, []byte(info.CommitId), repoPath, recursive, vChunk)
+			err = f.Visit(ctx, &repoInfo.Repository, []byte(info.CommitId), repoPath, recursive, vChunk)
 			if err != nil {
-				if !grpctools.RequestCanceled(err) {
+				if !grpctool.RequestCanceled(err) {
 					l.Warn("GitOps: failed to get objects to synchronize", zap.Error(err))
 				}
 				return false, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
 			}
+		}
+		err = stream.Send(&agentrpc.ObjectsToSynchronizeResponse{
+			Message: &agentrpc.ObjectsToSynchronizeResponse_Trailers_{
+				Trailers: &agentrpc.ObjectsToSynchronizeResponse_Trailers{},
+			},
+		})
+		if err != nil {
+			if !grpctool.RequestCanceled(err) {
+				l.Warn("GitOps: failed to send objects to synchronize", zap.Error(err))
+			}
+			return false, status.Error(codes.Unavailable, "unavailable")
 		}
 		l.Info("GitOps: fetched files", logz.NumberOfFiles(v.numberOfFiles))
 		s.usageMetrics.IncGitopsSyncCount()
