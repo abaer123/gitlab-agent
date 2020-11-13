@@ -33,22 +33,20 @@ func (f *PathFetcher) Visit(ctx context.Context, repo *gitalypb.Repository, revi
 			return false, nil
 		}
 		shouldFetch, maxSize, err := visitor.Entry(entry)
-		if err != nil {
+		if err != nil || !shouldFetch {
 			return false, err
 		}
-		if !shouldFetch {
-			return false, nil
-		}
-		return f.StreamFile(ctx, repo, []byte(entry.CommitOid), entry.Path, maxSize, fetcherFileVisitor(func(data []byte) (bool /* done? */, error) {
+		err = f.StreamFile(ctx, repo, []byte(entry.CommitOid), entry.Path, maxSize, fetcherFileVisitor(func(data []byte) (bool /* done? */, error) {
 			return visitor.StreamChunk(entry.Path, data)
 		}))
+		return false, err
 	}))
 }
 
 // StreamFile streams the specified revision of the file.
 // The passed visitor is never called if file was not found.
 // StreamFile returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
-func (f *PathFetcher) StreamFile(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, sizeLimit int64, v FileVisitor) (bool /* done? */, error) {
+func (f *PathFetcher) StreamFile(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, sizeLimit int64, v FileVisitor) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel() // ensure streaming call is canceled
 	teResp, err := f.Client.TreeEntry(ctx, &gitalypb.TreeEntryRequest{
@@ -58,7 +56,7 @@ func (f *PathFetcher) StreamFile(ctx context.Context, repo *gitalypb.Repository,
 		Limit:      sizeLimit,
 	})
 	if err != nil {
-		return false, fmt.Errorf("TreeEntry: %w", err) // wrap
+		return fmt.Errorf("TreeEntry: %w", err) // wrap
 	}
 	for {
 		entry, err := teResp.Recv()
@@ -66,17 +64,17 @@ func (f *PathFetcher) StreamFile(ctx context.Context, repo *gitalypb.Repository,
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			return false, fmt.Errorf("TreeEntry.Recv: %w", err) // wrap
+			return fmt.Errorf("TreeEntry.Recv: %w", err) // wrap
 		}
 		if entry.Type != gitalypb.TreeEntryResponse_BLOB {
-			return false, fmt.Errorf("TreeEntry: expected BLOB got %s", entry.Type.String())
+			return fmt.Errorf("TreeEntry: expected BLOB got %s", entry.Type.String())
 		}
 		done, err := v.Chunk(entry.Data)
 		if err != nil || done {
-			return done, err
+			return err
 		}
 	}
-	return false, nil
+	return nil
 }
 
 // FetchFile fetches the specified revision of a file.
@@ -84,7 +82,7 @@ func (f *PathFetcher) StreamFile(ctx context.Context, repo *gitalypb.Repository,
 // FetchFile returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
 func (f *PathFetcher) FetchFile(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, sizeLimit int64) ([]byte, error) {
 	v := &AccumulatingFileVisitor{}
-	_, err := f.StreamFile(ctx, repo, revision, repoPath, sizeLimit, v)
+	err := f.StreamFile(ctx, repo, revision, repoPath, sizeLimit, v)
 	if err != nil {
 		return nil, err
 	}
