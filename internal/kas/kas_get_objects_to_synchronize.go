@@ -1,6 +1,7 @@
 package kas
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path"
@@ -37,18 +38,9 @@ var (
 func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeRequest, stream agentrpc.Kas_GetObjectsToSynchronizeServer) error {
 	ctx := stream.Context()
 	agentMeta := apiutil.AgentMetaFromContext(ctx)
-	agentInfo, err := s.gitLabClient.GetAgentInfo(ctx, agentMeta)
-	switch {
-	case err == nil:
-	case errz.ContextDone(err):
-		return status.Error(codes.Unavailable, "unavailable")
-	case gitlab.IsForbidden(err):
-		return status.Error(codes.PermissionDenied, "forbidden")
-	case gitlab.IsUnauthorized(err):
-		return status.Error(codes.Unauthenticated, "unauthenticated")
-	default:
-		s.log.Error("GetAgentInfo()", zap.Error(err))
-		return status.Error(codes.Unavailable, "unavailable")
+	agentInfo, err, retErr := s.getAgentInfo(ctx, agentMeta, false)
+	if retErr {
+		return err
 	}
 	numberOfPaths := uint32(len(req.Paths))
 	if numberOfPaths > s.maxGitopsNumberOfPaths {
@@ -67,21 +59,12 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 		// This call is made on each poll because:
 		// - it checks that the agent's token is still valid
 		// - repository location in Gitaly might have changed
-		repoInfo, err := s.gitLabClient.GetProjectInfo(ctx, &agentInfo.Meta, req.ProjectId)
-		switch {
-		case err == nil:
-		case errz.ContextDone(err):
-			return false, status.Error(codes.Unavailable, "unavailable")
-		case gitlab.IsForbidden(err):
-			return false, status.Error(codes.PermissionDenied, "forbidden")
-		case gitlab.IsUnauthorized(err):
-			return false, status.Error(codes.Unauthenticated, "unauthenticated")
-		default:
-			l.Warn("GitOps: failed to get project info", zap.Error(err))
-			return false, nil // don't want to close the response stream, so report no error
+		projectInfo, err, retErr := s.getProjectInfo(ctx, l, &agentInfo.Meta, req.ProjectId)
+		if retErr {
+			return false, err
 		}
 		revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
-		info, err := p.Poll(ctx, &repoInfo.GitalyInfo, &repoInfo.Repository, req.CommitId, revision)
+		info, err := p.Poll(ctx, &projectInfo.GitalyInfo, &projectInfo.Repository, req.CommitId, revision)
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
 				l.Warn("GitOps: repository poll failed", zap.Error(err))
@@ -95,7 +78,7 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 		// Create a new l variable, don't want to mutate the one from the outer scope
 		l := l.With(logz.CommitId(info.CommitId)) // nolint:govet
 		l.Info("GitOps: new commit")
-		client, err := s.gitalyPool.CommitServiceClient(ctx, &repoInfo.GitalyInfo)
+		client, err := s.gitalyPool.CommitServiceClient(ctx, &projectInfo.GitalyInfo)
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
 				l.Warn("GitOps: CommitServiceClient", zap.Error(err))
@@ -131,7 +114,7 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 		for _, p := range req.Paths {
 			repoPath, recursive, glob := globToGitaly(p.Glob)
 			v.glob = glob // set new glob for each path
-			err = f.Visit(ctx, &repoInfo.Repository, []byte(info.CommitId), repoPath, recursive, vChunk)
+			err = f.Visit(ctx, &projectInfo.Repository, []byte(info.CommitId), repoPath, recursive, vChunk)
 			if err != nil {
 				if !grpctool.RequestCanceled(err) {
 					l.Warn("GitOps: failed to get objects to synchronize", zap.Error(err))
@@ -154,6 +137,24 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 		s.usageMetrics.IncGitopsSyncCount()
 		return true, nil
 	}
+}
+
+func (s *Server) getProjectInfo(ctx context.Context, log *zap.Logger, agentMeta *api.AgentMeta, projectId string) (*api.ProjectInfo, error, bool /* return the error? */) {
+	projectInfo, err := s.gitLabClient.GetProjectInfo(ctx, agentMeta, projectId)
+	switch {
+	case err == nil:
+		return projectInfo, nil, false
+	case errz.ContextDone(err):
+		err = status.Error(codes.Unavailable, "unavailable")
+	case gitlab.IsForbidden(err):
+		err = status.Error(codes.PermissionDenied, "forbidden")
+	case gitlab.IsUnauthorized(err):
+		err = status.Error(codes.Unauthenticated, "unauthenticated")
+	default:
+		log.Warn("GitOps: failed to get project info", zap.Error(err))
+		err = nil // don't want to close the response stream, so report no error
+	}
+	return nil, err, true
 }
 
 type objectsToSynchronizeVisitor struct {
