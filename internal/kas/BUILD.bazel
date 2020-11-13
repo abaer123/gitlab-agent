@@ -2,7 +2,12 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "kas",
-    srcs = ["kas.go"],
+    srcs = [
+        "kas.go",
+        "kas_get_configuration.go",
+        "kas_get_objects_to_synchronize.go",
+        "kas_usage_metrics.go",
+    ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/kas",
     visibility = ["//:__subpackages__"],
     deps = [
@@ -35,7 +40,12 @@ go_library(
 go_test(
     name = "kas_test",
     size = "small",
-    srcs = ["kas_test.go"],
+    srcs = [
+        "kas_get_configuration_test.go",
+        "kas_get_objects_to_synchronize_test.go",
+        "kas_test.go",
+        "kas_usage_metrics_test.go",
+    ],
     embed = [":kas"],
     race = "on",
     deps = [
@@ -58,6 +68,7 @@ go_test(
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",
+        "@com_gitlab_gitlab_org_labkit//errortracking",
         "@io_k8s_api//core/v1:core",
         "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
         "@io_k8s_apimachinery//pkg/runtime",
