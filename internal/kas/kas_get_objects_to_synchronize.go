@@ -78,10 +78,10 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 		// Create a new l variable, don't want to mutate the one from the outer scope
 		l := l.With(logz.CommitId(info.CommitId)) // nolint:govet
 		l.Info("GitOps: new commit")
-		client, err := s.gitalyPool.CommitServiceClient(ctx, &projectInfo.GitalyInfo)
+		pf, err := s.gitalyPool.PathFetcher(ctx, &projectInfo.GitalyInfo)
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
-				l.Warn("GitOps: CommitServiceClient", zap.Error(err))
+				l.Warn("GitOps: PathFetcher", zap.Error(err))
 			}
 			return false, nil // don't want to close the response stream, so report no error
 		}
@@ -98,9 +98,6 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 			}
 			return false, status.Error(codes.Unavailable, "unavailable")
 		}
-		f := gitaly.PathFetcher{
-			Client: client,
-		}
 		v := &objectsToSynchronizeVisitor{
 			stream:                 stream,
 			remainingTotalFileSize: s.maxGitopsTotalManifestFileSize,
@@ -114,7 +111,7 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 		for _, p := range req.Paths {
 			repoPath, recursive, glob := globToGitaly(p.Glob)
 			v.glob = glob // set new glob for each path
-			err = f.Visit(ctx, &projectInfo.Repository, []byte(info.CommitId), repoPath, recursive, vChunk)
+			err = pf.Visit(ctx, &projectInfo.Repository, []byte(info.CommitId), repoPath, recursive, vChunk)
 			if err != nil {
 				if !grpctool.RequestCanceled(err) {
 					l.Warn("GitOps: failed to get objects to synchronize", zap.Error(err))

@@ -40,33 +40,6 @@ const (
 	maxGitopsNumberOfFiles         = 200
 )
 
-func mockTreeEntry(t *testing.T, mockCtrl *gomock.Controller, commitClient *mock_gitaly.MockCommitServiceClient, req *gitalypb.TreeEntryRequest, data []byte) {
-	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(mockCtrl)
-	// Emulate streaming response
-	resp1 := &gitalypb.TreeEntryResponse{
-		Type: gitalypb.TreeEntryResponse_BLOB,
-		Data: data[:1],
-	}
-	resp2 := &gitalypb.TreeEntryResponse{
-		Type: gitalypb.TreeEntryResponse_BLOB,
-		Data: data[1:],
-	}
-	gomock.InOrder(
-		treeEntryClient.EXPECT().
-			Recv().
-			Return(resp1, nil),
-		treeEntryClient.EXPECT().
-			Recv().
-			Return(resp2, nil),
-		treeEntryClient.EXPECT().
-			Recv().
-			Return(nil, io.EOF),
-	)
-	commitClient.EXPECT().
-		TreeEntry(gomock.Any(), matcher.ProtoEq(t, req)).
-		Return(treeEntryClient, nil)
-}
-
 func mockInfoRefsUploadPack(t *testing.T, mockCtrl *gomock.Controller, httpClient *mock_gitaly.MockSmartHTTPServiceClient, infoRefsReq *gitalypb.InfoRefsRequest, data []byte) {
 	infoRefsClient := mock_gitaly.NewMockSmartHTTPService_InfoRefsUploadPackClient(mockCtrl)
 	// Emulate streaming response

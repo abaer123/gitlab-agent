@@ -2,7 +2,6 @@ package kas
 
 import (
 	"context"
-	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -13,6 +12,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc/mock_agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_internalgitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
@@ -139,18 +140,6 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	}
 	objectsYAML := kube_testing.ObjsToYAML(t, objects...)
 	projectInfo := projectInfo()
-	treeEntriesReq := &gitalypb.GetTreeEntriesRequest{
-		Repository: &projectInfo.Repository,
-		Revision:   []byte(revision),
-		Path:       []byte("."),
-		Recursive:  true,
-	}
-	treeEntryReq := &gitalypb.TreeEntryRequest{
-		Repository: &projectInfo.Repository,
-		Revision:   []byte(manifestRevision),
-		Path:       []byte("manifest.yaml"),
-		Limit:      maxGitopsManifestFileSize,
-	}
 	infoRefsReq := &gitalypb.InfoRefsRequest{
 		Repository: &projectInfo.Repository,
 	}
@@ -208,32 +197,32 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 		SmartHTTPServiceClient(gomock.Any(), &projectInfo.GitalyInfo).
 		Return(httpClient, nil)
 	mockInfoRefsUploadPack(t, mockCtrl, httpClient, infoRefsReq, []byte(infoRefsData))
-	commitClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
-	gitalyPool.EXPECT().
-		CommitServiceClient(gomock.Any(), &projectInfo.GitalyInfo).
-		Return(commitClient, nil)
-
-	treeEntriesClient := mock_gitaly.NewMockCommitService_GetTreeEntriesClient(mockCtrl)
+	pf := mock_internalgitaly.NewMockPathFetcherInterface(mockCtrl)
 	gomock.InOrder(
-		commitClient.EXPECT().
-			GetTreeEntries(gomock.Any(), matcher.ProtoEq(t, treeEntriesReq), gomock.Any()).
-			Return(treeEntriesClient, nil),
-		treeEntriesClient.EXPECT().
-			Recv().
-			Return(&gitalypb.GetTreeEntriesResponse{
-				Entries: []*gitalypb.TreeEntry{
-					{
-						Path:      []byte("manifest.yaml"),
-						Type:      gitalypb.TreeEntry_BLOB,
-						CommitOid: manifestRevision,
-					},
-				},
-			}, nil),
-		treeEntriesClient.EXPECT().
-			Recv().
-			Return(nil, io.EOF),
+		gitalyPool.EXPECT().
+			PathFetcher(gomock.Any(), &projectInfo.GitalyInfo).
+			Return(pf, nil),
+		pf.EXPECT().
+			Visit(gomock.Any(), &projectInfo.Repository, []byte(revision), []byte("."), true, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, recursive bool, visitor gitaly.FetchVisitor) error {
+				download, maxSize, err := visitor.Entry(&gitalypb.TreeEntry{
+					Path:      []byte("manifest.yaml"),
+					Type:      gitalypb.TreeEntry_BLOB,
+					CommitOid: manifestRevision,
+				})
+				require.NoError(t, err)
+				assert.EqualValues(t, gitOpsManifestMaxChunkSize, maxSize)
+				assert.True(t, download)
+
+				done, err := visitor.StreamChunk([]byte("manifest.yaml"), objectsYAML[:1])
+				require.NoError(t, err)
+				assert.False(t, done)
+				done, err = visitor.StreamChunk([]byte("manifest.yaml"), objectsYAML[1:])
+				require.NoError(t, err)
+				assert.False(t, done)
+				return nil
+			}),
 	)
-	mockTreeEntry(t, mockCtrl, commitClient, treeEntryReq, objectsYAML)
 	err := a.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
 		Paths: []*agentcfg.PathCF{
@@ -273,10 +262,6 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 		SmartHTTPServiceClient(gomock.Any(), &projectInfo.GitalyInfo).
 		Return(httpClient, nil)
 	mockInfoRefsUploadPack(t, mockCtrl, httpClient, infoRefsReq, []byte(infoRefsData))
-	commitClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
-	gitalyPool.EXPECT().
-		CommitServiceClient(gomock.Any(), &projectInfo.GitalyInfo).
-		Return(commitClient, nil)
 	err := a.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
 		CommitId:  revision,
