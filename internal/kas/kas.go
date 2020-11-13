@@ -6,12 +6,16 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -90,4 +94,29 @@ func (s *Server) pollImmediateUntil(ctx context.Context, interval time.Duration,
 		return nil // all good, ctx is done
 	}
 	return err
+}
+
+// getAgentInfo is a helper that encapsulates error checking logic.
+// The signature is not conventional on purpose because the caller is not supposed to inspect the error,
+// but instead return it if the bool is true.
+func (s *Server) getAgentInfo(ctx context.Context, agentMeta *api.AgentMeta, noErrorOnUnknownError bool) (*api.AgentInfo, error, bool /* return the error? */) {
+	agentInfo, err := s.gitLabClient.GetAgentInfo(ctx, agentMeta)
+	switch {
+	case err == nil:
+		return agentInfo, nil, false
+	case errz.ContextDone(err):
+		err = status.Error(codes.Unavailable, "unavailable")
+	case gitlab.IsForbidden(err):
+		err = status.Error(codes.PermissionDenied, "forbidden")
+	case gitlab.IsUnauthorized(err):
+		err = status.Error(codes.Unauthenticated, "unauthenticated")
+	default:
+		s.log.Error("GetAgentInfo()", zap.Error(err))
+		if noErrorOnUnknownError {
+			err = nil
+		} else {
+			err = status.Error(codes.Unavailable, "unavailable")
+		}
+	}
+	return nil, err, true
 }

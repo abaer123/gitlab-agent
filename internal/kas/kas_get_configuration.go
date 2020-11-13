@@ -9,15 +9,11 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/protodefault"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -46,18 +42,9 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 		// This call is made on each poll because:
 		// - it checks that the agent's token is still valid
 		// - repository location in Gitaly might have changed
-		agentInfo, err := s.gitLabClient.GetAgentInfo(ctx, agentMeta)
-		switch {
-		case err == nil:
-		case errz.ContextDone(err):
-			return false, status.Error(codes.Unavailable, "unavailable")
-		case gitlab.IsForbidden(err):
-			return false, status.Error(codes.PermissionDenied, "forbidden")
-		case gitlab.IsUnauthorized(err):
-			return false, status.Error(codes.Unauthenticated, "unauthenticated")
-		default:
-			s.log.Error("GetAgentInfo()", zap.Error(err))
-			return false, nil // don't want to close the response stream, so report no error
+		agentInfo, err, retErr := s.getAgentInfo(ctx, agentMeta, true) // don't want to close the response stream, so report no error
+		if retErr {
+			return false, err
 		}
 		l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath))
 		info, err := p.Poll(ctx, &agentInfo.GitalyInfo, &agentInfo.Repository, lastProcessedCommitId, gitaly.DefaultBranch)
