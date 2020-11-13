@@ -9,15 +9,15 @@ import (
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 )
 
-// FetchVisitor is the visitor callback, invoked for each path entry.
-type FetchVisitor interface {
-	VisitEntry(*gitalypb.TreeEntry) (bool /* download? */, int64 /* max size */, error)
-	VisitBlob(Blob) (bool /* done? */, error)
+// FileVisitor is the visitor callback, invoked for each chunk of a file.
+type FileVisitor interface {
+	Chunk(data []byte) (bool /* done? */, error)
 }
 
-type Blob struct {
-	Path []byte
-	Data []byte
+// FetchVisitor is the visitor callback, invoked for each chunk of each path entry.
+type FetchVisitor interface {
+	Entry(*gitalypb.TreeEntry) (bool /* download? */, int64 /* max size */, error)
+	StreamChunk(path []byte, data []byte) (bool /* done? */, error)
 }
 
 type PathFetcher struct {
@@ -28,32 +28,27 @@ func (f *PathFetcher) Visit(ctx context.Context, repo *gitalypb.Repository, revi
 	v := PathVisitor{
 		Client: f.Client,
 	}
-	return v.Visit(ctx, repo, revision, repoPath, recursive, fetcherPathVisitor(func(entry *gitalypb.TreeEntry) (bool /* done? */, error) {
+	return v.Visit(ctx, repo, revision, repoPath, recursive, fetcherPathEntryVisitor(func(entry *gitalypb.TreeEntry) (bool /* done? */, error) {
 		if entry.Type != gitalypb.TreeEntry_BLOB {
 			return false, nil
 		}
-		shouldFetch, maxSize, err := visitor.VisitEntry(entry)
+		shouldFetch, maxSize, err := visitor.Entry(entry)
 		if err != nil {
 			return false, err
 		}
 		if !shouldFetch {
 			return false, nil
 		}
-		file, err := f.FetchSingleFile(ctx, repo, []byte(entry.CommitOid), entry.Path, maxSize)
-		if err != nil {
-			return false, err // don't wrap
-		}
-		return visitor.VisitBlob(Blob{
-			Path: entry.Path,
-			Data: file,
-		})
+		return f.StreamFile(ctx, repo, []byte(entry.CommitOid), entry.Path, maxSize, fetcherFileVisitor(func(data []byte) (bool /* done? */, error) {
+			return visitor.StreamChunk(entry.Path, data)
+		}))
 	}))
 }
 
-// FetchSingleFile fetches the specified revision of the file.
-// Returned data slice is nil if file was not found and is empty if the file is empty.
-// FetchSingleFile returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
-func (f *PathFetcher) FetchSingleFile(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, sizeLimit int64) ([]byte, error) {
+// StreamFile streams the specified revision of the file.
+// The passed visitor is never called if file was not found.
+// StreamFile returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
+func (f *PathFetcher) StreamFile(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, sizeLimit int64, v FileVisitor) (bool /* done? */, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel() // ensure streaming call is canceled
 	teResp, err := f.Client.TreeEntry(ctx, &gitalypb.TreeEntryRequest{
@@ -63,27 +58,93 @@ func (f *PathFetcher) FetchSingleFile(ctx context.Context, repo *gitalypb.Reposi
 		Limit:      sizeLimit,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("TreeEntry: %w", err) // wrap
+		return false, fmt.Errorf("TreeEntry: %w", err) // wrap
 	}
-	var fileData []byte
 	for {
 		entry, err := teResp.Recv()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			return nil, fmt.Errorf("TreeEntry.Recv: %w", err) // wrap
+			return false, fmt.Errorf("TreeEntry.Recv: %w", err) // wrap
 		}
 		if entry.Type != gitalypb.TreeEntryResponse_BLOB {
-			return nil, fmt.Errorf("TreeEntry: expected BLOB got %s", entry.Type.String())
+			return false, fmt.Errorf("TreeEntry: expected BLOB got %s", entry.Type.String())
 		}
-		fileData = append(fileData, entry.Data...)
+		done, err := v.Chunk(entry.Data)
+		if err != nil || done {
+			return done, err
+		}
 	}
-	return fileData, nil
+	return false, nil
 }
 
-type fetcherPathVisitor func(*gitalypb.TreeEntry) (bool /* done? */, error)
+// FetchFile fetches the specified revision of a file.
+// Returned data slice is nil if file was not found and is empty if the file is empty.
+// FetchFile returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
+func (f *PathFetcher) FetchFile(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, sizeLimit int64) ([]byte, error) {
+	v := &AccumulatingFileVisitor{}
+	_, err := f.StreamFile(ctx, repo, revision, repoPath, sizeLimit, v)
+	if err != nil {
+		return nil, err
+	}
+	return v.Data, nil
+}
 
-func (v fetcherPathVisitor) VisitEntry(entry *gitalypb.TreeEntry) (bool /* done? */, error) {
+var (
+	_ FileVisitor  = &AccumulatingFileVisitor{}
+	_ FetchVisitor = ChunkingFetchVisitor{}
+)
+
+type ChunkingFetchVisitor struct {
+	MaxChunkSize int
+	Delegate     FetchVisitor
+}
+
+func (v ChunkingFetchVisitor) Entry(entry *gitalypb.TreeEntry) (bool /* download? */, int64 /* max size */, error) {
+	return v.Delegate.Entry(entry)
+}
+
+func (v ChunkingFetchVisitor) StreamChunk(path []byte, data []byte) (bool /* done? */, error) {
+	for {
+		bytesToSend := minInt(len(data), v.MaxChunkSize)
+		done, err := v.Delegate.StreamChunk(path, data[:bytesToSend])
+		if err != nil || done {
+			return done, err
+		}
+		data = data[bytesToSend:]
+		if len(data) == 0 {
+			break
+		}
+	}
+	return false, nil
+}
+
+type fetcherPathEntryVisitor func(*gitalypb.TreeEntry) (bool /* done? */, error)
+
+func (v fetcherPathEntryVisitor) Entry(entry *gitalypb.TreeEntry) (bool /* done? */, error) {
 	return v(entry)
+}
+
+type fetcherFileVisitor func(data []byte) (bool /* done? */, error)
+
+func (v fetcherFileVisitor) Chunk(data []byte) (bool /* done? */, error) {
+	return v(data)
+}
+
+type AccumulatingFileVisitor struct {
+	Data []byte
+}
+
+func (a *AccumulatingFileVisitor) Chunk(data []byte) (bool /* done? */, error) {
+	a.Data = append(a.Data, data...)
+	return false, nil
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+
+	return b
 }

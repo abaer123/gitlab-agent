@@ -19,7 +19,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc/mock_agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_internalgitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab/mock_gitlab"
@@ -34,7 +33,6 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/testing/protocmp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -363,20 +361,47 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 		Context().
 		Return(incomingCtx(ctx, t)).
 		MinTimes(1)
-	resp.EXPECT().
-		Send(matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeResponse{
-			CommitId: revision,
-			Objects: []*agentrpc.ObjectToSynchronize{
-				{
-					Object: objectsYAML,
-					Source: "manifest.yaml",
+	gomock.InOrder(
+		resp.EXPECT().
+			Send(matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeResponse{
+				Message: &agentrpc.ObjectsToSynchronizeResponse_Headers_{
+					Headers: &agentrpc.ObjectsToSynchronizeResponse_Headers{
+						CommitId: revision,
+					},
 				},
-			},
-		})).
-		DoAndReturn(func(resp *agentrpc.ObjectsToSynchronizeResponse) error {
-			cancel() // stop streaming call after the first response has been sent
-			return nil
-		})
+			})).
+			Return(nil),
+		resp.EXPECT().
+			Send(matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeResponse{
+				Message: &agentrpc.ObjectsToSynchronizeResponse_Object_{
+					Object: &agentrpc.ObjectsToSynchronizeResponse_Object{
+						Source: "manifest.yaml",
+						Data:   objectsYAML[:1],
+					},
+				},
+			})).
+			Return(nil),
+		resp.EXPECT().
+			Send(matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeResponse{
+				Message: &agentrpc.ObjectsToSynchronizeResponse_Object_{
+					Object: &agentrpc.ObjectsToSynchronizeResponse_Object{
+						Source: "manifest.yaml",
+						Data:   objectsYAML[1:],
+					},
+				},
+			})).
+			Return(nil),
+		resp.EXPECT().
+			Send(matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeResponse{
+				Message: &agentrpc.ObjectsToSynchronizeResponse_Trailers_{
+					Trailers: &agentrpc.ObjectsToSynchronizeResponse_Trailers{},
+				},
+			})).
+			DoAndReturn(func(resp *agentrpc.ObjectsToSynchronizeResponse) error {
+				cancel() // stop streaming call after the first response has been sent
+				return nil
+			}),
+	)
 	gitlabClient.EXPECT().
 		GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
 		Return(projectInfo, nil)
@@ -645,7 +670,7 @@ func TestObjectsToSynchronizeVisitor(t *testing.T) {
 				fileSizeLimit:          maxGitopsManifestFileSize,
 				maxNumberOfFiles:       maxGitopsNumberOfFiles,
 			}
-			download, maxSize, err := v.VisitEntry(&gitalypb.TreeEntry{
+			download, maxSize, err := v.Entry(&gitalypb.TreeEntry{
 				Path: []byte(tc.path), // nolint: scopelint
 			})
 			if tc.expectedErr == "" { // nolint: scopelint
@@ -665,14 +690,14 @@ func TestObjectsToSynchronizeVisitor(t *testing.T) {
 			fileSizeLimit:          maxGitopsManifestFileSize,
 			maxNumberOfFiles:       1,
 		}
-		download, maxSize, err := v.VisitEntry(&gitalypb.TreeEntry{
+		download, maxSize, err := v.Entry(&gitalypb.TreeEntry{
 			Path: []byte("manifest1.yaml"),
 		})
 		require.NoError(t, err)
 		assert.EqualValues(t, maxGitopsManifestFileSize, maxSize)
 		assert.True(t, download)
 
-		_, _, err = v.VisitEntry(&gitalypb.TreeEntry{
+		_, _, err = v.Entry(&gitalypb.TreeEntry{
 			Path: []byte("manifest2.yaml"),
 		})
 		assert.EqualError(t, err, "maximum number of manifest files limit reached: 1")
@@ -684,29 +709,34 @@ func TestObjectsToSynchronizeVisitor(t *testing.T) {
 			fileSizeLimit:          maxGitopsManifestFileSize,
 			maxNumberOfFiles:       maxGitopsNumberOfFiles,
 		}
-		_, err := v.VisitBlob(gitaly.Blob{
-			Path: []byte("manifest2.yaml"),
-			Data: []byte("data1"),
-		})
+		_, err := v.StreamChunk([]byte("manifest2.yaml"), []byte("data1"))
 		assert.EqualError(t, err, "unexpected negative remaining total file size")
 	})
 	t.Run("blob", func(t *testing.T) {
+		data := []byte("data1")
+		mockCtrl := gomock.NewController(t)
+		stream := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
+		stream.EXPECT().
+			Send(matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeResponse{
+				Message: &agentrpc.ObjectsToSynchronizeResponse_Object_{
+					Object: &agentrpc.ObjectsToSynchronizeResponse_Object{
+						Source: "manifest2.yaml",
+						Data:   data,
+					},
+				},
+			})).
+			Return(nil)
 		v := objectsToSynchronizeVisitor{
+			stream:                 stream,
 			glob:                   defaultGitOpsManifestPathGlob,
 			remainingTotalFileSize: maxGitopsTotalManifestFileSize,
 			fileSizeLimit:          maxGitopsManifestFileSize,
 			maxNumberOfFiles:       maxGitopsNumberOfFiles,
 		}
-		data := []byte("data1")
-		blob := gitaly.Blob{
-			Path: []byte("manifest2.yaml"),
-			Data: data,
-		}
-		done, err := v.VisitBlob(blob)
+		done, err := v.StreamChunk([]byte("manifest2.yaml"), data)
 		require.NoError(t, err)
 		assert.False(t, done)
-		assert.Empty(t, cmp.Diff(v.objects, []*agentrpc.ObjectToSynchronize{{Object: data, Source: "manifest2.yaml"}}, protocmp.Transform()))
-		assert.EqualValues(t, maxGitopsTotalManifestFileSize-len(blob.Data), v.remainingTotalFileSize)
+		assert.EqualValues(t, maxGitopsTotalManifestFileSize-len(data), v.remainingTotalFileSize)
 	})
 }
 

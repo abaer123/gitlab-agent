@@ -18,6 +18,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_engine"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
+	"google.golang.org/grpc"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -70,7 +71,18 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 		stream1.EXPECT().
 			Recv().
 			Return(&agentrpc.ObjectsToSynchronizeResponse{
-				CommitId: revision,
+				Message: &agentrpc.ObjectsToSynchronizeResponse_Headers_{
+					Headers: &agentrpc.ObjectsToSynchronizeResponse_Headers{
+						CommitId: revision,
+					},
+				},
+			}, nil),
+		stream1.EXPECT().
+			Recv().
+			Return(&agentrpc.ObjectsToSynchronizeResponse{
+				Message: &agentrpc.ObjectsToSynchronizeResponse_Trailers_{
+					Trailers: &agentrpc.ObjectsToSynchronizeResponse_Trailers{},
+				},
 			}, nil),
 		stream1.EXPECT().
 			Recv().
@@ -116,17 +128,29 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 }
 
 func TestRunHappyPathNoObjects(t *testing.T) {
-	s, engine, stream := setupWorker(t)
+	_, s, engine, stream, _ := setupWorker(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	resp := &agentrpc.ObjectsToSynchronizeResponse{
-		CommitId: revision,
+	headers := &agentrpc.ObjectsToSynchronizeResponse{
+		Message: &agentrpc.ObjectsToSynchronizeResponse_Headers_{
+			Headers: &agentrpc.ObjectsToSynchronizeResponse_Headers{
+				CommitId: revision,
+			},
+		},
+	}
+	trailers := &agentrpc.ObjectsToSynchronizeResponse{
+		Message: &agentrpc.ObjectsToSynchronizeResponse_Trailers_{
+			Trailers: &agentrpc.ObjectsToSynchronizeResponse_Trailers{},
+		},
 	}
 	gomock.InOrder(
 		stream.EXPECT().
 			Recv().
-			Return(resp, nil),
+			Return(headers, nil),
+		stream.EXPECT().
+			Recv().
+			Return(trailers, nil),
 		stream.EXPECT().
 			Recv().
 			Return(nil, io.EOF),
@@ -141,14 +165,26 @@ func TestRunHappyPathNoObjects(t *testing.T) {
 }
 
 func TestRunHappyPath(t *testing.T) {
-	s, engine, stream := setupWorker(t)
+	_, s, engine, stream, _ := setupWorker(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	objs, resp := objsAndResp(t)
+	objs, headers, resp1, resp2, resp3, trailers := objsAndResp(t)
 	gomock.InOrder(
 		stream.EXPECT().
 			Recv().
-			Return(resp, nil),
+			Return(headers, nil),
+		stream.EXPECT().
+			Recv().
+			Return(resp1, nil),
+		stream.EXPECT().
+			Recv().
+			Return(resp2, nil),
+		stream.EXPECT().
+			Recv().
+			Return(resp3, nil),
+		stream.EXPECT().
+			Recv().
+			Return(trailers, nil),
 		stream.EXPECT().
 			Recv().
 			Return(nil, io.EOF),
@@ -168,25 +204,49 @@ func TestRunHappyPath(t *testing.T) {
 }
 
 func TestRunHappyPathSyncCancellation(t *testing.T) {
-	s, engine, stream := setupWorker(t)
+	mockCtrl, s, engine, stream1, kasClient := setupWorker(t)
+	s.getObjectsToSynchronizeRetryPeriod = 10 * time.Millisecond
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	objs, resp1 := objsAndResp(t)
-	resp2 := &agentrpc.ObjectsToSynchronizeResponse{
-		CommitId: revision,
-	}
+	objs, headers, resp1, resp2, resp3, trailers := objsAndResp(t)
 	job1started := make(chan struct{})
+	stream2 := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
 	gomock.InOrder(
-		stream.EXPECT().
+		stream1.EXPECT().
+			Recv().
+			Return(headers, nil),
+		stream1.EXPECT().
 			Recv().
 			Return(resp1, nil),
-		stream.EXPECT().
+		stream1.EXPECT().
 			Recv().
-			DoAndReturn(func() (*agentrpc.ObjectsToSynchronizeResponse, error) {
+			Return(resp2, nil),
+		stream1.EXPECT().
+			Recv().
+			Return(resp3, nil),
+		stream1.EXPECT().
+			Recv().
+			Return(trailers, nil),
+		stream1.EXPECT().
+			Recv().
+			Return(nil, io.EOF),
+		kasClient.EXPECT().
+			GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeRequest{
+				ProjectId: projectId,
+				CommitId:  revision,
+				Paths:     s.projectConfiguration.Paths,
+			}), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, req *agentrpc.ObjectsToSynchronizeRequest, opts ...grpc.CallOption) (agentrpc.Kas_GetObjectsToSynchronizeClient, error) {
 				<-job1started
-				return resp2, nil
+				return stream2, nil
 			}),
-		stream.EXPECT().
+		stream2.EXPECT().
+			Recv().
+			Return(headers, nil),
+		stream2.EXPECT().
+			Recv().
+			Return(trailers, nil),
+		stream2.EXPECT().
 			Recv().
 			Return(nil, io.EOF),
 	)
@@ -209,29 +269,55 @@ func TestRunHappyPathSyncCancellation(t *testing.T) {
 	s.Run(ctx)
 }
 
-func objsAndResp(t *testing.T) ([]*unstructured.Unstructured, *agentrpc.ObjectsToSynchronizeResponse) {
+func objsAndResp(t *testing.T) ([]*unstructured.Unstructured, *agentrpc.ObjectsToSynchronizeResponse, *agentrpc.ObjectsToSynchronizeResponse, *agentrpc.ObjectsToSynchronizeResponse, *agentrpc.ObjectsToSynchronizeResponse, *agentrpc.ObjectsToSynchronizeResponse) {
 	objs := []*unstructured.Unstructured{
-		kube_testing.ToUnstructured(t, testNs1()),
 		kube_testing.ToUnstructured(t, testMap1()),
+		kube_testing.ToUnstructured(t, testNs1()),
 		kube_testing.ToUnstructured(t, testMap2()),
 	}
-	resp1 := &agentrpc.ObjectsToSynchronizeResponse{
-		CommitId: revision,
-		Objects: []*agentrpc.ObjectToSynchronize{
-			{
-				// Multi-document YAML
-				Object: kube_testing.ObjsToYAML(t, objs[0], objs[1]),
-			},
-			{
-				// Single ConfigMap object
-				Object: kube_testing.ObjsToYAML(t, objs[2]),
+	headers := &agentrpc.ObjectsToSynchronizeResponse{
+		Message: &agentrpc.ObjectsToSynchronizeResponse_Headers_{
+			Headers: &agentrpc.ObjectsToSynchronizeResponse_Headers{
+				CommitId: revision,
 			},
 		},
 	}
-	return objs, resp1
+	// Single ConfigMap object
+	resp1 := &agentrpc.ObjectsToSynchronizeResponse{
+		Message: &agentrpc.ObjectsToSynchronizeResponse_Object_{
+			Object: &agentrpc.ObjectsToSynchronizeResponse_Object{
+				Source: "obj1.yaml",
+				Data:   kube_testing.ObjsToYAML(t, objs[0]),
+			},
+		},
+	}
+	// Multi-document YAML
+	data2 := kube_testing.ObjsToYAML(t, objs[1], objs[2])
+	resp2 := &agentrpc.ObjectsToSynchronizeResponse{
+		Message: &agentrpc.ObjectsToSynchronizeResponse_Object_{
+			Object: &agentrpc.ObjectsToSynchronizeResponse_Object{
+				Source: "obj2.yaml",
+				Data:   data2[:2], // first part
+			},
+		},
+	}
+	resp3 := &agentrpc.ObjectsToSynchronizeResponse{
+		Message: &agentrpc.ObjectsToSynchronizeResponse_Object_{
+			Object: &agentrpc.ObjectsToSynchronizeResponse_Object{
+				Source: "obj2.yaml",
+				Data:   data2[2:], // last part
+			},
+		},
+	}
+	trailers := &agentrpc.ObjectsToSynchronizeResponse{
+		Message: &agentrpc.ObjectsToSynchronizeResponse_Trailers_{
+			Trailers: &agentrpc.ObjectsToSynchronizeResponse_Trailers{},
+		},
+	}
+	return objs, headers, resp1, resp2, resp3, trailers
 }
 
-func setupWorker(t *testing.T) (*gitopsWorker, *mock_engine.MockGitOpsEngine, *mock_agentrpc.MockKas_GetObjectsToSynchronizeClient) {
+func setupWorker(t *testing.T) (*gomock.Controller, *gitopsWorker, *mock_engine.MockGitOpsEngine, *mock_agentrpc.MockKas_GetObjectsToSynchronizeClient, *mock_agentrpc.MockKasClient) {
 	mockCtrl := gomock.NewController(t)
 	mockEngineCtrl := gomock.NewController(t)
 	// engine is used concurrently with other mocks. So use a separate mock controller to avoid data races because
@@ -279,7 +365,7 @@ func setupWorker(t *testing.T) (*gitopsWorker, *mock_engine.MockGitOpsEngine, *m
 			k8sClientGetter: genericclioptions.NewTestConfigFlags(),
 		},
 	}
-	return d, engine, stream
+	return mockCtrl, d, engine, stream, kasClient
 }
 
 func testMap1() *corev1.ConfigMap {

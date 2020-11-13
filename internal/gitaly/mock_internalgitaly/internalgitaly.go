@@ -10,7 +10,6 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	api "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
-	gitaly "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	gitalypb "gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 )
 
@@ -90,35 +89,35 @@ func (m *MockFetchVisitor) EXPECT() *MockFetchVisitorMockRecorder {
 	return m.recorder
 }
 
-// VisitBlob mocks base method
-func (m *MockFetchVisitor) VisitBlob(arg0 gitaly.Blob) (bool, error) {
+// Entry mocks base method
+func (m *MockFetchVisitor) Entry(arg0 *gitalypb.TreeEntry) (bool, int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "VisitBlob", arg0)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// VisitBlob indicates an expected call of VisitBlob
-func (mr *MockFetchVisitorMockRecorder) VisitBlob(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VisitBlob", reflect.TypeOf((*MockFetchVisitor)(nil).VisitBlob), arg0)
-}
-
-// VisitEntry mocks base method
-func (m *MockFetchVisitor) VisitEntry(arg0 *gitalypb.TreeEntry) (bool, int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "VisitEntry", arg0)
+	ret := m.ctrl.Call(m, "Entry", arg0)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(int64)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
 
-// VisitEntry indicates an expected call of VisitEntry
-func (mr *MockFetchVisitorMockRecorder) VisitEntry(arg0 interface{}) *gomock.Call {
+// Entry indicates an expected call of Entry
+func (mr *MockFetchVisitorMockRecorder) Entry(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VisitEntry", reflect.TypeOf((*MockFetchVisitor)(nil).VisitEntry), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Entry", reflect.TypeOf((*MockFetchVisitor)(nil).Entry), arg0)
+}
+
+// StreamChunk mocks base method
+func (m *MockFetchVisitor) StreamChunk(arg0, arg1 []byte) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StreamChunk", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// StreamChunk indicates an expected call of StreamChunk
+func (mr *MockFetchVisitorMockRecorder) StreamChunk(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StreamChunk", reflect.TypeOf((*MockFetchVisitor)(nil).StreamChunk), arg0, arg1)
 }
 
 // MockPathEntryVisitor is a mock of PathEntryVisitor interface
@@ -144,17 +143,17 @@ func (m *MockPathEntryVisitor) EXPECT() *MockPathEntryVisitorMockRecorder {
 	return m.recorder
 }
 
-// VisitEntry mocks base method
-func (m *MockPathEntryVisitor) VisitEntry(arg0 *gitalypb.TreeEntry) (bool, error) {
+// Entry mocks base method
+func (m *MockPathEntryVisitor) Entry(arg0 *gitalypb.TreeEntry) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "VisitEntry", arg0)
+	ret := m.ctrl.Call(m, "Entry", arg0)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// VisitEntry indicates an expected call of VisitEntry
-func (mr *MockPathEntryVisitorMockRecorder) VisitEntry(arg0 interface{}) *gomock.Call {
+// Entry indicates an expected call of Entry
+func (mr *MockPathEntryVisitorMockRecorder) Entry(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VisitEntry", reflect.TypeOf((*MockPathEntryVisitor)(nil).VisitEntry), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Entry", reflect.TypeOf((*MockPathEntryVisitor)(nil).Entry), arg0)
 }

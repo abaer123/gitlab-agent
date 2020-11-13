@@ -34,25 +34,41 @@ message ObjectsToSynchronizeRequest {
     repeated agentcfg.PathCF paths = 3;
 }
 
-message ObjectToSynchronize {
-    // YAML object manifest.
-    bytes object = 1;
-    // Source of the YAML e.g. file name.
-    string source = 2;
-}
-
 message ObjectsToSynchronizeResponse {
-    // Commit id of the manifest repository.
-    // Can be used to resume connection from where it dropped.
-    string commit_id = 1;
-    repeated ObjectToSynchronize objects = 2;
+    // First message of the stream.
+    message Headers {
+        // Commit id of the manifest repository.
+        // Can be used to resume connection from where it dropped.
+        string commit_id = 1;
+    }
+    // Subsequent messages of the stream.
+    message Object {
+        // Source of the YAML e.g. file name.
+        // Several subsequent messages may contain the same source string. That means data should be accumulated
+        // to form the whole blob of data.
+        string source = 1;
+
+        // YAML object manifest.
+        // Might be partial data, see comment for source.
+        bytes data = 2;
+    }
+    // Last message of the stream.
+    message Trailers {
+    }
+    oneof message {
+        Headers headers = 1;
+        Object object = 2;
+        Trailers trailers = 3;
+    }
 }
 
 service Kas {
     // Fetch agentk configuration.
     rpc GetConfiguration (ConfigurationRequest) returns (stream ConfigurationResponse) {
     }
-    // Fetch Kubernetes objects to synchronize.
+    // Fetch Kubernetes objects to synchronize with the cluster.
+    // Server closes the stream when it's done transmitting the full batch of objects. New request should be
+    // made after that to get the next batch.
     rpc GetObjectsToSynchronize (ObjectsToSynchronizeRequest) returns (stream ObjectsToSynchronizeResponse) {
     }
 }

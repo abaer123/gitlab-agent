@@ -10,7 +10,7 @@ import (
 )
 
 type PathEntryVisitor interface {
-	VisitEntry(*gitalypb.TreeEntry) (bool /* done? */, error)
+	Entry(*gitalypb.TreeEntry) (bool /* done? */, error)
 }
 
 type PathVisitor struct {
@@ -39,7 +39,7 @@ entriesLoop:
 			return fmt.Errorf("GetTreeEntries.Recv: %w", err) // wrap
 		}
 		for _, entry := range resp.Entries {
-			done, err := visitor.VisitEntry(entry)
+			done, err := visitor.Entry(entry)
 			if err != nil {
 				return err // don't wrap
 			}
