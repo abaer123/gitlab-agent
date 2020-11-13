@@ -9,6 +9,12 @@ import (
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 )
 
+type PathFetcherInterface interface {
+	Visit(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, recursive bool, visitor FetchVisitor) error
+	StreamFile(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, sizeLimit int64, v FileVisitor) error
+	FetchFile(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, sizeLimit int64) ([]byte, error)
+}
+
 // FileVisitor is the visitor callback, invoked for each chunk of a file.
 type FileVisitor interface {
 	Chunk(data []byte) (bool /* done? */, error)
@@ -88,11 +94,6 @@ func (f *PathFetcher) FetchFile(ctx context.Context, repo *gitalypb.Repository, 
 	}
 	return v.Data, nil
 }
-
-var (
-	_ FileVisitor  = &AccumulatingFileVisitor{}
-	_ FetchVisitor = ChunkingFetchVisitor{}
-)
 
 type ChunkingFetchVisitor struct {
 	MaxChunkSize int

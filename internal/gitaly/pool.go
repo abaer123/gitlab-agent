@@ -8,9 +8,14 @@ import (
 	"google.golang.org/grpc"
 )
 
+var (
+	_ PoolInterface = &Pool{}
+)
+
 type PoolInterface interface {
 	CommitServiceClient(context.Context, *api.GitalyInfo) (gitalypb.CommitServiceClient, error)
 	SmartHTTPServiceClient(context.Context, *api.GitalyInfo) (gitalypb.SmartHTTPServiceClient, error)
+	PathFetcher(context.Context, *api.GitalyInfo) (PathFetcherInterface, error)
 }
 
 // ClientPool abstracts gitlab.com/gitlab-org/gitaly/client.Pool.
@@ -36,4 +41,14 @@ func (p *Pool) SmartHTTPServiceClient(ctx context.Context, gInfo *api.GitalyInfo
 		return nil, err // don't wrap
 	}
 	return gitalypb.NewSmartHTTPServiceClient(conn), nil
+}
+
+func (p *Pool) PathFetcher(ctx context.Context, info *api.GitalyInfo) (PathFetcherInterface, error) {
+	client, err := p.CommitServiceClient(ctx, info)
+	if err != nil {
+		return nil, err
+	}
+	return &PathFetcher{
+		Client: client,
+	}, nil
 }

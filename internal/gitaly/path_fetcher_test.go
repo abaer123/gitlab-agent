@@ -20,6 +20,12 @@ const (
 	fileMaxSize int64 = 1000
 )
 
+var (
+	_ gitaly.FileVisitor          = &gitaly.AccumulatingFileVisitor{}
+	_ gitaly.FetchVisitor         = gitaly.ChunkingFetchVisitor{}
+	_ gitaly.PathFetcherInterface = &gitaly.PathFetcher{}
+)
+
 func TestPathFetcherHappyPath(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	r := repo()

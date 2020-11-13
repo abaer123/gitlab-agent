@@ -78,15 +78,12 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 // Assumes configuration is stored in ".gitlab/agents/<agent id>/config.yaml" file.
 // fetchConfiguration returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
 func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInfo, revision string) (*agentcfg.AgentConfiguration, error) {
-	client, err := s.gitalyPool.CommitServiceClient(ctx, &agentInfo.GitalyInfo)
+	pf, err := s.gitalyPool.PathFetcher(ctx, &agentInfo.GitalyInfo)
 	if err != nil {
-		return nil, fmt.Errorf("CommitServiceClient: %w", err) // wrap
+		return nil, fmt.Errorf("PathFetcher: %w", err) // wrap
 	}
 	filename := path.Join(agentConfigurationDirectory, agentInfo.Name, agentConfigurationFileName)
-	f := gitaly.PathFetcher{
-		Client: client,
-	}
-	configYAML, err := f.FetchFile(ctx, &agentInfo.Repository, []byte(revision), []byte(filename), s.maxConfigurationFileSize)
+	configYAML, err := pf.FetchFile(ctx, &agentInfo.Repository, []byte(revision), []byte(filename), s.maxConfigurationFileSize)
 	if err != nil {
 		return nil, fmt.Errorf("fetch agent configuration: %w", err) // wrap
 	}

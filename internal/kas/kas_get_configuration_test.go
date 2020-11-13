@@ -14,6 +14,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc/mock_agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_internalgitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_gitaly"
@@ -80,12 +81,6 @@ func TestGetConfiguration(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	a, agentInfo, mockCtrl, gitalyPool, _, _ := setupKas(t)
-	treeEntryReq := &gitalypb.TreeEntryRequest{
-		Repository: &agentInfo.Repository,
-		Revision:   []byte(revision),
-		Path:       []byte(agentConfigurationDirectory + "/" + agentInfo.Name + "/" + agentConfigurationFileName),
-		Limit:      maxConfigurationFileSize,
-	}
 	infoRefsReq := &gitalypb.InfoRefsRequest{
 		Repository: &agentInfo.Repository,
 	}
@@ -123,11 +118,16 @@ func TestGetConfiguration(t *testing.T) {
 		SmartHTTPServiceClient(gomock.Any(), &agentInfo.GitalyInfo).
 		Return(httpClient, nil)
 	mockInfoRefsUploadPack(t, mockCtrl, httpClient, infoRefsReq, []byte(infoRefsData))
-	commitClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
-	gitalyPool.EXPECT().
-		CommitServiceClient(gomock.Any(), &agentInfo.GitalyInfo).
-		Return(commitClient, nil)
-	mockTreeEntry(t, mockCtrl, commitClient, treeEntryReq, configToBytes(t, configFile))
+	pf := mock_internalgitaly.NewMockPathFetcherInterface(mockCtrl)
+	configFileName := agentConfigurationDirectory + "/" + agentInfo.Name + "/" + agentConfigurationFileName
+	gomock.InOrder(
+		gitalyPool.EXPECT().
+			PathFetcher(gomock.Any(), &agentInfo.GitalyInfo).
+			Return(pf, nil),
+		pf.EXPECT().
+			FetchFile(gomock.Any(), &agentInfo.Repository, []byte(revision), []byte(configFileName), int64(maxConfigurationFileSize)).
+			Return(configToBytes(t, configFile), nil),
+	)
 	err := a.GetConfiguration(&agentrpc.ConfigurationRequest{}, resp)
 	require.NoError(t, err)
 }
