@@ -33,9 +33,6 @@ func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream age
 }
 
 func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc.Kas_GetConfigurationServer) wait.ConditionFunc {
-	p := gitaly.Poller{
-		GitalyPool: s.gitalyPool,
-	}
 	ctx := stream.Context()
 	agentMeta := apiutil.AgentMetaFromContext(ctx)
 	return func() (bool /*done*/, error) {
@@ -47,7 +44,14 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 			return false, err
 		}
 		l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath))
-		info, err := p.Poll(ctx, &agentInfo.GitalyInfo, &agentInfo.Repository, lastProcessedCommitId, gitaly.DefaultBranch)
+		p, err := s.gitalyPool.Poller(ctx, &agentInfo.GitalyInfo)
+		if err != nil {
+			if !grpctool.RequestCanceled(err) {
+				l.Warn("GitOps: Poller", zap.Error(err))
+			}
+			return false, nil // don't want to close the response stream, so report no error
+		}
+		info, err := p.Poll(ctx, &agentInfo.Repository, lastProcessedCommitId, gitaly.DefaultBranch)
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
 				l.Warn("Config: repository poll failed", zap.Error(err))

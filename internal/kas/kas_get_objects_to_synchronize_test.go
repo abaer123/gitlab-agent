@@ -17,7 +17,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"google.golang.org/grpc/codes"
@@ -140,9 +139,6 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	}
 	objectsYAML := kube_testing.ObjsToYAML(t, objects...)
 	projectInfo := projectInfo()
-	infoRefsReq := &gitalypb.InfoRefsRequest{
-		Repository: &projectInfo.Repository,
-	}
 	resp := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
 	resp.EXPECT().
 		Context().
@@ -192,13 +188,18 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	gitlabClient.EXPECT().
 		GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
 		Return(projectInfo, nil)
-	httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(mockCtrl)
-	gitalyPool.EXPECT().
-		SmartHTTPServiceClient(gomock.Any(), &projectInfo.GitalyInfo).
-		Return(httpClient, nil)
-	mockInfoRefsUploadPack(t, mockCtrl, httpClient, infoRefsReq, []byte(infoRefsData))
+	p := mock_internalgitaly.NewMockPollerInterface(mockCtrl)
 	pf := mock_internalgitaly.NewMockPathFetcherInterface(mockCtrl)
 	gomock.InOrder(
+		gitalyPool.EXPECT().
+			Poller(gomock.Any(), &projectInfo.GitalyInfo).
+			Return(p, nil),
+		p.EXPECT().
+			Poll(gomock.Any(), &projectInfo.Repository, "", gitaly.DefaultBranch).
+			Return(&gitaly.PollInfo{
+				UpdateAvailable: true,
+				CommitId:        revision,
+			}, nil),
 		gitalyPool.EXPECT().
 			PathFetcher(gomock.Any(), &projectInfo.GitalyInfo).
 			Return(pf, nil),
@@ -240,28 +241,30 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 
 func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 	t.Parallel()
-	// we check that nothing gets sent back when the request with the last commit id comes
-	// so we just wait to see that nothing happens
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	a, agentInfo, mockCtrl, gitalyPool, gitlabClient, _ := setupKas(t)
 	projectInfo := projectInfo()
-	infoRefsReq := &gitalypb.InfoRefsRequest{
-		Repository: &projectInfo.Repository,
-	}
 	resp := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
 	resp.EXPECT().
 		Context().
 		Return(incomingCtx(ctx, t)).
 		MinTimes(1)
-	gitlabClient.EXPECT().
-		GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
-		Return(projectInfo, nil)
-	httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(mockCtrl)
-	gitalyPool.EXPECT().
-		SmartHTTPServiceClient(gomock.Any(), &projectInfo.GitalyInfo).
-		Return(httpClient, nil)
-	mockInfoRefsUploadPack(t, mockCtrl, httpClient, infoRefsReq, []byte(infoRefsData))
+	p := mock_internalgitaly.NewMockPollerInterface(mockCtrl)
+	gomock.InOrder(
+		gitlabClient.EXPECT().
+			GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
+			Return(projectInfo, nil),
+		gitalyPool.EXPECT().
+			Poller(gomock.Any(), &projectInfo.GitalyInfo).
+			Return(p, nil),
+		p.EXPECT().
+			Poll(gomock.Any(), &projectInfo.Repository, revision, gitaly.DefaultBranch).
+			Return(&gitaly.PollInfo{
+				UpdateAvailable: false,
+				CommitId:        revision,
+			}, nil),
+	)
 	err := a.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
 		CommitId:  revision,

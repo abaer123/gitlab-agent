@@ -50,9 +50,6 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 }
 
 func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrpc.ObjectsToSynchronizeRequest, stream agentrpc.Kas_GetObjectsToSynchronizeServer) wait.ConditionFunc {
-	p := gitaly.Poller{
-		GitalyPool: s.gitalyPool,
-	}
 	ctx := stream.Context()
 	l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(req.ProjectId))
 	return func() (bool /*done*/, error) {
@@ -64,7 +61,14 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 			return false, err
 		}
 		revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
-		info, err := p.Poll(ctx, &projectInfo.GitalyInfo, &projectInfo.Repository, req.CommitId, revision)
+		p, err := s.gitalyPool.Poller(ctx, &projectInfo.GitalyInfo)
+		if err != nil {
+			if !grpctool.RequestCanceled(err) {
+				l.Warn("GitOps: Poller", zap.Error(err))
+			}
+			return false, nil // don't want to close the response stream, so report no error
+		}
+		info, err := p.Poll(ctx, &projectInfo.Repository, req.CommitId, revision)
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
 				l.Warn("GitOps: repository poll failed", zap.Error(err))

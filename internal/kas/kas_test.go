@@ -2,7 +2,6 @@ package kas
 
 import (
 	"context"
-	"io"
 	"testing"
 	"time"
 
@@ -13,9 +12,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_internalgitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab/mock_gitlab"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_errtracker"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_gitaly"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/metadata"
@@ -27,43 +24,12 @@ const (
 	revision         = "507ebc6de9bcac25628aa7afd52802a91a0685d8"
 	manifestRevision = "7afd52802a91a0685d8507ebc6de9bcac25628aa"
 
-	infoRefsData = `001e# service=git-upload-pack
-00000148` + revision + ` HEAD` + "\x00" + `multi_ack thin-pack side-band side-band-64k ofs-delta shallow deepen-since deepen-not deepen-relative no-progress include-tag multi_ack_detailed allow-tip-sha1-in-want allow-reachable-sha1-in-want no-done symref=HEAD:refs/heads/master filter object-format=sha1 agent=git/2.28.0
-003f` + revision + ` refs/heads/master
-0044` + revision + ` refs/heads/test-branch
-0000`
-
 	maxConfigurationFileSize       = 128 * 1024
 	maxGitopsManifestFileSize      = 128 * 1024
 	maxGitopsTotalManifestFileSize = 1024 * 1024
 	maxGitopsNumberOfPaths         = 10
 	maxGitopsNumberOfFiles         = 200
 )
-
-func mockInfoRefsUploadPack(t *testing.T, mockCtrl *gomock.Controller, httpClient *mock_gitaly.MockSmartHTTPServiceClient, infoRefsReq *gitalypb.InfoRefsRequest, data []byte) {
-	infoRefsClient := mock_gitaly.NewMockSmartHTTPService_InfoRefsUploadPackClient(mockCtrl)
-	// Emulate streaming response
-	resp1 := &gitalypb.InfoRefsResponse{
-		Data: data[:1],
-	}
-	resp2 := &gitalypb.InfoRefsResponse{
-		Data: data[1:],
-	}
-	gomock.InOrder(
-		infoRefsClient.EXPECT().
-			Recv().
-			Return(resp1, nil),
-		infoRefsClient.EXPECT().
-			Recv().
-			Return(resp2, nil),
-		infoRefsClient.EXPECT().
-			Recv().
-			Return(nil, io.EOF),
-	)
-	httpClient.EXPECT().
-		InfoRefsUploadPack(gomock.Any(), matcher.ProtoEq(t, infoRefsReq)).
-		Return(infoRefsClient, nil)
-}
 
 func incomingCtx(ctx context.Context, t *testing.T) context.Context {
 	creds := apiutil.NewTokenCredentials(token, false)

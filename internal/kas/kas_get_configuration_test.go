@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
@@ -14,10 +13,10 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc/mock_agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_internalgitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"google.golang.org/grpc/codes"
@@ -81,9 +80,6 @@ func TestGetConfiguration(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	a, agentInfo, mockCtrl, gitalyPool, _, _ := setupKas(t)
-	infoRefsReq := &gitalypb.InfoRefsRequest{
-		Repository: &agentInfo.Repository,
-	}
 	configFile := sampleConfig()
 	resp := mock_agentrpc.NewMockKas_GetConfigurationServer(mockCtrl)
 	resp.EXPECT().
@@ -113,14 +109,19 @@ func TestGetConfiguration(t *testing.T) {
 			cancel() // stop streaming call after the first response has been sent
 			return nil
 		})
-	httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(mockCtrl)
-	gitalyPool.EXPECT().
-		SmartHTTPServiceClient(gomock.Any(), &agentInfo.GitalyInfo).
-		Return(httpClient, nil)
-	mockInfoRefsUploadPack(t, mockCtrl, httpClient, infoRefsReq, []byte(infoRefsData))
+	p := mock_internalgitaly.NewMockPollerInterface(mockCtrl)
 	pf := mock_internalgitaly.NewMockPathFetcherInterface(mockCtrl)
 	configFileName := agentConfigurationDirectory + "/" + agentInfo.Name + "/" + agentConfigurationFileName
 	gomock.InOrder(
+		gitalyPool.EXPECT().
+			Poller(gomock.Any(), &agentInfo.GitalyInfo).
+			Return(p, nil),
+		p.EXPECT().
+			Poll(gomock.Any(), &agentInfo.Repository, "", gitaly.DefaultBranch).
+			Return(&gitaly.PollInfo{
+				UpdateAvailable: true,
+				CommitId:        revision,
+			}, nil),
 		gitalyPool.EXPECT().
 			PathFetcher(gomock.Any(), &agentInfo.GitalyInfo).
 			Return(pf, nil),
@@ -134,24 +135,29 @@ func TestGetConfiguration(t *testing.T) {
 
 func TestGetConfigurationResumeConnection(t *testing.T) {
 	t.Parallel()
-	// we check that nothing gets sent back when the request with the last commit id comes
-	// so we just wait to see that nothing happens
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	a, agentInfo, mockCtrl, gitalyPool, _, _ := setupKas(t)
-	infoRefsReq := &gitalypb.InfoRefsRequest{
-		Repository: &agentInfo.Repository,
-	}
 	resp := mock_agentrpc.NewMockKas_GetConfigurationServer(mockCtrl)
 	resp.EXPECT().
 		Context().
 		Return(incomingCtx(ctx, t)).
 		MinTimes(1)
-	httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(mockCtrl)
-	gitalyPool.EXPECT().
-		SmartHTTPServiceClient(gomock.Any(), &agentInfo.GitalyInfo).
-		Return(httpClient, nil)
-	mockInfoRefsUploadPack(t, mockCtrl, httpClient, infoRefsReq, []byte(infoRefsData))
+	p := mock_internalgitaly.NewMockPollerInterface(mockCtrl)
+	gomock.InOrder(
+		gitalyPool.EXPECT().
+			Poller(gomock.Any(), &agentInfo.GitalyInfo).
+			Return(p, nil),
+		p.EXPECT().
+			Poll(gomock.Any(), &agentInfo.Repository, revision, gitaly.DefaultBranch).
+			DoAndReturn(func(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*gitaly.PollInfo, error) {
+				cancel()
+				return &gitaly.PollInfo{
+					UpdateAvailable: false,
+					CommitId:        revision,
+				}, nil
+			}),
+	)
 	err := a.GetConfiguration(&agentrpc.ConfigurationRequest{
 		CommitId: revision, // same commit id
 	}, resp)
