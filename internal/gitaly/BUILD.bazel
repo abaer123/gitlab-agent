@@ -25,6 +25,7 @@ go_test(
     srcs = [
         "path_fetcher_test.go",
         "path_visitor_test.go",
+        "poller_test.go",
         "reference_discovery_test.go",
     ],
     embed = [":gitaly"],
