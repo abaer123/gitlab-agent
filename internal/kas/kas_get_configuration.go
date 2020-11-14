@@ -9,11 +9,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/protodefault"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
-	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -46,16 +44,12 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 		l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath))
 		p, err := s.gitalyPool.Poller(ctx, &agentInfo.GitalyInfo)
 		if err != nil {
-			if !grpctool.RequestCanceled(err) {
-				l.Warn("GitOps: Poller", zap.Error(err))
-			}
+			logWarnIfNotCanceled(l, "Config: Poller", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		info, err := p.Poll(ctx, &agentInfo.Repository, lastProcessedCommitId, gitaly.DefaultBranch)
 		if err != nil {
-			if !grpctool.RequestCanceled(err) {
-				l.Warn("Config: repository poll failed", zap.Error(err))
-			}
+			logWarnIfNotCanceled(l, "Config: repository poll failed", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		if !info.UpdateAvailable {
@@ -65,9 +59,7 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 		l.Info("Config: new commit", logz.CommitId(info.CommitId))
 		config, err := s.fetchConfiguration(ctx, agentInfo, info.CommitId)
 		if err != nil {
-			if !grpctool.RequestCanceled(err) {
-				l.Warn("Config: failed to fetch", zap.Error(err))
-			}
+			logWarnIfNotCanceled(l, "Config: failed to fetch", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		lastProcessedCommitId = info.CommitId

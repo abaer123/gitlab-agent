@@ -15,7 +15,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/errz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"go.uber.org/zap"
@@ -63,16 +62,12 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 		revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
 		p, err := s.gitalyPool.Poller(ctx, &projectInfo.GitalyInfo)
 		if err != nil {
-			if !grpctool.RequestCanceled(err) {
-				l.Warn("GitOps: Poller", zap.Error(err))
-			}
+			logWarnIfNotCanceled(l, "GitOps: Poller", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		info, err := p.Poll(ctx, &projectInfo.Repository, req.CommitId, revision)
 		if err != nil {
-			if !grpctool.RequestCanceled(err) {
-				l.Warn("GitOps: repository poll failed", zap.Error(err))
-			}
+			logWarnIfNotCanceled(l, "GitOps: repository poll failed", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		if !info.UpdateAvailable {
@@ -84,9 +79,7 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 		l.Info("GitOps: new commit")
 		pf, err := s.gitalyPool.PathFetcher(ctx, &projectInfo.GitalyInfo)
 		if err != nil {
-			if !grpctool.RequestCanceled(err) {
-				l.Warn("GitOps: PathFetcher", zap.Error(err))
-			}
+			logWarnIfNotCanceled(l, "GitOps: PathFetcher", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		err = stream.Send(&agentrpc.ObjectsToSynchronizeResponse{
@@ -97,9 +90,7 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 			},
 		})
 		if err != nil {
-			if !grpctool.RequestCanceled(err) {
-				l.Warn("GitOps: failed to send objects to synchronize", zap.Error(err))
-			}
+			logWarnIfNotCanceled(l, "GitOps: failed to send objects to synchronize", err)
 			return false, status.Error(codes.Unavailable, "unavailable")
 		}
 		v := &objectsToSynchronizeVisitor{
@@ -117,9 +108,7 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 			v.glob = glob // set new glob for each path
 			err = pf.Visit(ctx, &projectInfo.Repository, []byte(info.CommitId), repoPath, recursive, vChunk)
 			if err != nil {
-				if !grpctool.RequestCanceled(err) {
-					l.Warn("GitOps: failed to get objects to synchronize", zap.Error(err))
-				}
+				logWarnIfNotCanceled(l, "GitOps: failed to get objects to synchronize", err)
 				return false, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
 			}
 		}
@@ -129,9 +118,7 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 			},
 		})
 		if err != nil {
-			if !grpctool.RequestCanceled(err) {
-				l.Warn("GitOps: failed to send objects to synchronize", zap.Error(err))
-			}
+			logWarnIfNotCanceled(l, "GitOps: failed to send objects to synchronize", err)
 			return false, status.Error(codes.Unavailable, "unavailable")
 		}
 		l.Info("GitOps: fetched files", logz.NumberOfFiles(v.numberOfFiles))
