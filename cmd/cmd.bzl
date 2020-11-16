@@ -4,7 +4,7 @@ Macros for cmd.
 
 load("@io_bazel_rules_docker//go:image.bzl", "go_image")
 load("@io_bazel_rules_go//go:def.bzl", "go_binary")
-load("@io_bazel_rules_docker//container:container.bzl", "container_push")
+load("@io_bazel_rules_docker//container:container.bzl", "container_image", "container_push")
 load("//build:build.bzl", "copy_absolute")
 
 def define_command_targets(name, binary_embed):
@@ -61,16 +61,30 @@ def define_command_targets(name, binary_embed):
         file_to_copy = "%s_race" % name,
     )
 
+    container_image(
+        name = "nonroot_go_image_static",
+        base = "@go_image_static//image",
+        user = "nonroot",
+        tags = ["manual"],
+    )
+
+    container_image(
+        name = "nonroot_go_debug_image_base",
+        base = "@go_debug_image_base//image",
+        user = "nonroot",
+        tags = ["manual"],
+    )
+
     go_image(
         name = "container",
-        base = "@go_image_static//image",
+        base = ":nonroot_go_image_static",
         binary = ":%s_linux" % name,
         tags = ["manual"],
     )
 
     go_image(
         name = "container_race",
-        base = "@go_debug_image_base//image",
+        base = ":nonroot_go_debug_image_base",
         binary = ":%s_linux_race" % name,
         tags = ["manual"],
     )
