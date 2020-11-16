@@ -9,11 +9,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/protodefault"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
-	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -33,9 +31,6 @@ func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream age
 }
 
 func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc.Kas_GetConfigurationServer) wait.ConditionFunc {
-	p := gitaly.Poller{
-		GitalyPool: s.gitalyPool,
-	}
 	ctx := stream.Context()
 	agentMeta := apiutil.AgentMetaFromContext(ctx)
 	return func() (bool /*done*/, error) {
@@ -47,11 +42,14 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 			return false, err
 		}
 		l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath))
-		info, err := p.Poll(ctx, &agentInfo.GitalyInfo, &agentInfo.Repository, lastProcessedCommitId, gitaly.DefaultBranch)
+		p, err := s.gitalyPool.Poller(ctx, &agentInfo.GitalyInfo)
 		if err != nil {
-			if !grpctool.RequestCanceled(err) {
-				l.Warn("Config: repository poll failed", zap.Error(err))
-			}
+			logWarnIfNotCanceled(l, "Config: Poller", err)
+			return false, nil // don't want to close the response stream, so report no error
+		}
+		info, err := p.Poll(ctx, &agentInfo.Repository, lastProcessedCommitId, gitaly.DefaultBranch)
+		if err != nil {
+			logWarnIfNotCanceled(l, "Config: repository poll failed", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		if !info.UpdateAvailable {
@@ -61,9 +59,7 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 		l.Info("Config: new commit", logz.CommitId(info.CommitId))
 		config, err := s.fetchConfiguration(ctx, agentInfo, info.CommitId)
 		if err != nil {
-			if !grpctool.RequestCanceled(err) {
-				l.Warn("Config: failed to fetch", zap.Error(err))
-			}
+			logWarnIfNotCanceled(l, "Config: failed to fetch", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		lastProcessedCommitId = info.CommitId
@@ -78,15 +74,12 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 // Assumes configuration is stored in ".gitlab/agents/<agent id>/config.yaml" file.
 // fetchConfiguration returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
 func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInfo, revision string) (*agentcfg.AgentConfiguration, error) {
-	client, err := s.gitalyPool.CommitServiceClient(ctx, &agentInfo.GitalyInfo)
+	pf, err := s.gitalyPool.PathFetcher(ctx, &agentInfo.GitalyInfo)
 	if err != nil {
-		return nil, fmt.Errorf("CommitServiceClient: %w", err) // wrap
+		return nil, fmt.Errorf("PathFetcher: %w", err) // wrap
 	}
 	filename := path.Join(agentConfigurationDirectory, agentInfo.Name, agentConfigurationFileName)
-	f := gitaly.PathFetcher{
-		Client: client,
-	}
-	configYAML, err := f.FetchFile(ctx, &agentInfo.Repository, []byte(revision), []byte(filename), s.maxConfigurationFileSize)
+	configYAML, err := pf.FetchFile(ctx, &agentInfo.Repository, []byte(revision), []byte(filename), s.maxConfigurationFileSize)
 	if err != nil {
 		return nil, fmt.Errorf("fetch agent configuration: %w", err) // wrap
 	}

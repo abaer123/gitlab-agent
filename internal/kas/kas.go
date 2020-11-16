@@ -10,6 +10,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
 	"gitlab.com/gitlab-org/labkit/errortracking"
@@ -119,4 +120,10 @@ func (s *Server) getAgentInfo(ctx context.Context, agentMeta *api.AgentMeta, noE
 		}
 	}
 	return nil, err, true
+}
+
+func logWarnIfNotCanceled(l *zap.Logger, msg string, err error) {
+	if !grpctool.RequestCanceled(err) {
+		l.Warn(msg, zap.Error(err))
+	}
 }

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 )
 
@@ -15,13 +14,21 @@ const (
 	DefaultBranch = ""
 )
 
+var (
+	_ PollerInterface = &Poller{}
+)
+
+type PollerInterface interface {
+	Poll(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*PollInfo, error)
+}
+
 // Poller does the following:
 // - polls ref advertisement for updates to the repository
 // - detects which is the main branch, if branch or tag name is not specified
 // - compares the commit id the branch or tag is referring to with the last processed one
 // - returns the information about the change
 type Poller struct {
-	GitalyPool PoolInterface
+	Client gitalypb.SmartHTTPServiceClient
 }
 
 type PollInfo struct {
@@ -32,8 +39,8 @@ type PollInfo struct {
 // Poll performs a poll on the repository.
 // revision can be a branch name or a tag.
 // Poll returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
-func (p *Poller) Poll(ctx context.Context, gInfo *api.GitalyInfo, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*PollInfo, error) {
-	r, err := p.fetchRefs(ctx, gInfo, repo)
+func (p *Poller) Poll(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*PollInfo, error) {
+	r, err := p.fetchRefs(ctx, repo)
 	if err != nil {
 		return nil, err // don't wrap
 	}
@@ -73,17 +80,13 @@ loop:
 }
 
 // fetchRefs returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
-func (p *Poller) fetchRefs(ctx context.Context, gInfo *api.GitalyInfo, repo *gitalypb.Repository) (*ReferenceDiscovery, error) {
-	client, err := p.GitalyPool.SmartHTTPServiceClient(ctx, gInfo)
-	if err != nil {
-		return nil, fmt.Errorf("SmartHTTPServiceClient: %w", err) // wrap
-	}
+func (p *Poller) fetchRefs(ctx context.Context, repo *gitalypb.Repository) (*ReferenceDiscovery, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel() // ensure streaming call is canceled
 	uploadPackReq := &gitalypb.InfoRefsRequest{
 		Repository: repo,
 	}
-	uploadPackResp, err := client.InfoRefsUploadPack(ctx, uploadPackReq)
+	uploadPackResp, err := p.Client.InfoRefsUploadPack(ctx, uploadPackReq)
 	if err != nil {
 		return nil, fmt.Errorf("InfoRefsUploadPack: %w", err) // wrap
 	}
