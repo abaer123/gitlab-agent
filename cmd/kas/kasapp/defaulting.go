@@ -8,10 +8,11 @@ import (
 )
 
 const (
-	defaultListenNetwork kascfg.ListenNetworkEnum = 0 // whatever is 0 is the default value
+	defaultListenAgentNetwork kascfg.ListenNetworkEnum = 0 // whatever is 0 is the default value
 
 	defaultListenAgentAddress = "127.0.0.1:8150"
-	defaultGitLabAddress      = "http://localhost:8080"
+
+	defaultGitLabAddress = "http://localhost:8080"
 
 	defaultAgentConfigurationPollPeriod = 20 * time.Second
 
@@ -25,17 +26,17 @@ const (
 	defaultAgentLimitsMaxGitopsTotalManifestFileSize = 2 * 1024 * 1024
 	defaultAgentLimitsMaxGitopsNumberOfPaths         = 100
 	defaultAgentLimitsMaxGitopsNumberOfFiles         = 1000
-	defaultAgentConnectionMaxAge                     = 30 * time.Minute
+	defaultAgentLimitsConnectionMaxAge               = 30 * time.Minute
 
 	defaultGitOpsPollPeriod               = 20 * time.Second
 	defaultGitOpsProjectInfoCacheTTL      = 5 * time.Minute
 	defaultGitOpsProjectInfoCacheErrorTTL = 1 * time.Minute
 
-	defaultUsageReportingPeriod       = 1 * time.Minute
-	defaultObservabilityListenAddress = "0.0.0.0:8151"
-	defaultPrometheusUrlPath          = "/metrics"
-	defaultLivenessProbeUrlPath       = "/liveness"
-	defaultReadinessProbeUrlPath      = "/readiness"
+	defaultObservabilityUsageReportingPeriod  = 1 * time.Minute
+	defaultObservabilityListenAddress         = "0.0.0.0:8151"
+	defaultObservabilityPrometheusUrlPath     = "/metrics"
+	defaultObservabilityLivenessProbeUrlPath  = "/liveness"
+	defaultObservabilityReadinessProbeUrlPath = "/readiness"
 
 	defaultGitalyGlobalApiRefillRate    = 10.0
 	defaultGitalyGlobalApiBucketSize    = 50
@@ -98,17 +99,17 @@ func defaultAgent(a *kascfg.AgentCF) {
 	protodefault.Uint32(&a.Limits.MaxGitopsTotalManifestFileSize, defaultAgentLimitsMaxGitopsTotalManifestFileSize)
 	protodefault.Uint32(&a.Limits.MaxGitopsNumberOfPaths, defaultAgentLimitsMaxGitopsNumberOfPaths)
 	protodefault.Uint32(&a.Limits.MaxGitopsNumberOfFiles, defaultAgentLimitsMaxGitopsNumberOfFiles)
-	protodefault.Duration(&a.Limits.ConnectionMaxAge, defaultAgentConnectionMaxAge)
+	protodefault.Duration(&a.Limits.ConnectionMaxAge, defaultAgentLimitsConnectionMaxAge)
 }
 
 func defaultObservability(o *kascfg.ObservabilityCF) {
-	protodefault.Duration(&o.UsageReportingPeriod, defaultUsageReportingPeriod)
+	protodefault.Duration(&o.UsageReportingPeriod, defaultObservabilityUsageReportingPeriod)
 
 	protodefault.NotNil(&o.Listen)
 	protodefault.String(&o.Listen.Address, defaultObservabilityListenAddress)
 
 	protodefault.NotNil(&o.Prometheus)
-	protodefault.String(&o.Prometheus.UrlPath, defaultPrometheusUrlPath)
+	protodefault.String(&o.Prometheus.UrlPath, defaultObservabilityPrometheusUrlPath)
 
 	protodefault.NotNil(&o.Tracing)
 
@@ -119,10 +120,10 @@ func defaultObservability(o *kascfg.ObservabilityCF) {
 	protodefault.NotNil(&o.GoogleProfiler)
 
 	protodefault.NotNil(&o.LivenessProbe)
-	protodefault.String(&o.LivenessProbe.UrlPath, defaultLivenessProbeUrlPath)
+	protodefault.String(&o.LivenessProbe.UrlPath, defaultObservabilityLivenessProbeUrlPath)
 
 	protodefault.NotNil(&o.ReadinessProbe)
-	protodefault.String(&o.ReadinessProbe.UrlPath, defaultReadinessProbeUrlPath)
+	protodefault.String(&o.ReadinessProbe.UrlPath, defaultObservabilityReadinessProbeUrlPath)
 }
 
 func defaultGitaly(g *kascfg.GitalyCF) {
