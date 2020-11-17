@@ -59,9 +59,11 @@ func (f *PathFetcher) StreamFile(ctx context.Context, repo *gitalypb.Repository,
 		Repository: repo,
 		Revision:   revision,
 		Path:       repoPath,
-		Limit:      sizeLimit,
+		MaxSize:    sizeLimit,
 	})
 	if err != nil {
+		// TODO "file too big" codes.FailedPrecondition should be bubbled up to the UI
+		// https://gitlab.com/gitlab-org/gitlab/-/issues/277323
 		return fmt.Errorf("TreeEntry: %w", err) // wrap
 	}
 	for {

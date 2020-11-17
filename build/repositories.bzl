@@ -3316,15 +3316,15 @@ def go_repositories():
         name = "com_gitlab_gitlab_org_gitaly",
         build_file_proto_mode = "disable_global",
         importpath = "gitlab.com/gitlab-org/gitaly",
-        sum = "h1:9MjR+fhj6MI3PDeaQ8P2M71Q7YfEUGeTM61vIH1HOl0=",
-        version = "v1.87.1-0.20201016033652-3bdd23173595",
+        sum = "h1:p4HVSByRH3V/SHb2PA0Xf03a/hzB1p+ZoQhLkvDI5ws=",
+        version = "v1.87.1-0.20201116145355-f8ed42e0da61",
     )
     go_repository(
         name = "com_gitlab_gitlab_org_gitlab_shell",
         build_file_proto_mode = "disable_global",
         importpath = "gitlab.com/gitlab-org/gitlab-shell",
-        sum = "h1:kqUd95SLY+StJ14/rJdFwurKword02z9oGxEcDJH7gg=",
-        version = "v0.0.0-20200921044701-1a2bfecd2f0e",
+        sum = "h1:C5BHPkyOWx6mDFz2LA3O/3o2ixSGsQBnaLSSQV7KOj8=",
+        version = "v1.9.8-0.20201106143703-da924afd346d",
     )
     go_repository(
         name = "com_google_cloud_go",

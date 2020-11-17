@@ -58,13 +58,13 @@ func TestPathFetcherHappyPath(t *testing.T) {
 		Repository: r,
 		Revision:   []byte(expectedEntry1.CommitOid),
 		Path:       expectedEntry1.Path,
-		Limit:      fileMaxSize,
+		MaxSize:    fileMaxSize,
 	})
 	mockTreeEntry(t, mockCtrl, commitClient, data2, &gitalypb.TreeEntryRequest{
 		Repository: r,
 		Revision:   []byte(expectedEntry2.CommitOid),
 		Path:       expectedEntry2.Path,
-		Limit:      fileMaxSize,
+		MaxSize:    fileMaxSize,
 	})
 	mockVisitor := mock_internalgitaly.NewMockFetchVisitor(mockCtrl)
 	gomock.InOrder(
