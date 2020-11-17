@@ -945,13 +945,13 @@ github.com/yudai/pp v2.0.1+incompatible/go.mod h1:PuxR/8QJ7cyCkFp/aUDS+JY727OFEZ
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/ziutek/mymysql v1.5.4/go.mod h1:LMSpPZ6DbqWFxNCHW77HeMg9I646SAhApZ/wKdgO/C0=
 gitlab.com/gitlab-org/gitaly v1.68.0/go.mod h1:/pCsB918Zu5wFchZ9hLYin9WkJ2yQqdVNz0zlv5HbXg=
-gitlab.com/gitlab-org/gitaly v1.87.1-0.20201016033652-3bdd23173595 h1:9MjR+fhj6MI3PDeaQ8P2M71Q7YfEUGeTM61vIH1HOl0=
-gitlab.com/gitlab-org/gitaly v1.87.1-0.20201016033652-3bdd23173595/go.mod h1:PVCEHpDHlz4CsNcY33n4mnIYjsW2ib2p4/PcAtWDtFw=
-gitlab.com/gitlab-org/gitlab-shell v0.0.0-20200921044701-1a2bfecd2f0e/go.mod h1:RABblvnnhHpFU/lexlwGqpKgZsLV3RGA2D/Elp5/KEA=
+gitlab.com/gitlab-org/gitaly v1.87.1-0.20201116145355-f8ed42e0da61 h1:p4HVSByRH3V/SHb2PA0Xf03a/hzB1p+ZoQhLkvDI5ws=
+gitlab.com/gitlab-org/gitaly v1.87.1-0.20201116145355-f8ed42e0da61/go.mod h1:MUffJ0Pl8Ikm2P37sJcqSBDxv2aUDAUZ/crt/s5K8KU=
+gitlab.com/gitlab-org/gitlab-shell v1.9.8-0.20201106143703-da924afd346d/go.mod h1:5QSTbpAHY2v0iIH5uHh2KA9w7sPUqPmnLjDApI/sv1U=
 gitlab.com/gitlab-org/labkit v0.0.0-20190221122536-0c3fc7cdd57c/go.mod h1:rYhLgfrbEcyfinG+R3EvKu6bZSsmwQqcXzLfHWSfUKM=
-gitlab.com/gitlab-org/labkit v0.0.0-20200507062444-0149780c759d/go.mod h1:SNfxkfUwVNECgtmluVayv0GWFgEjjBs5AzgsowPQuo0=
 gitlab.com/gitlab-org/labkit v0.0.0-20200908084045-45895e129029 h1:L7b9YLsU3zBfTShAPl4fjhgFdfSvuo9tu4VobJdcKDs=
 gitlab.com/gitlab-org/labkit v0.0.0-20200908084045-45895e129029/go.mod h1:SNfxkfUwVNECgtmluVayv0GWFgEjjBs5AzgsowPQuo0=
+gitlab.com/gitlab-org/labkit v0.0.0-20201014124351-eb1fe6499318/go.mod h1:SNfxkfUwVNECgtmluVayv0GWFgEjjBs5AzgsowPQuo0=
 gitlab.com/gitlab-org/labkit v0.0.0-20201105120257-8e29ab1aa82b h1:h2VjaE2cY7lRD7Coh9Df73FpBKsLvq9HNSMIuORmYfI=
 gitlab.com/gitlab-org/labkit v0.0.0-20201105120257-8e29ab1aa82b/go.mod h1:Hj34XspGaoJcQG6/cJr/Mbd2fE1CBPSlsvr2uSxuOmo=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
@@ -1188,8 +1188,6 @@ golang.org/x/sys v0.0.0-20200803210538-64077c9b5642/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20200831180312-196b9ba8737a/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200905004654-be1d3432aa8f/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200916030750-2334cc1a136f/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
-golang.org/x/sys v0.0.0-20200918174421-af09f7315aff h1:1CPUrky56AcgSpxz/KfgzQWzfG09u5YOL8MvPYBlrL8=
-golang.org/x/sys v0.0.0-20200918174421-af09f7315aff/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f h1:+Nyd8tzPX9R7BWHguqsrbFdRx3WQ/1ib8I44HXV5yTA=
 golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20201015000850-e3ed0017c211 h1:9UQO31fZ+0aKQOFldThf7BKPMJTiBfWycGh/u3UoO88=
