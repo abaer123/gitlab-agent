@@ -82,8 +82,8 @@ def go_repositories():
         name = "com_github_argoproj_gitops_engine",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/argoproj/gitops-engine",
-        sum = "h1:ShQaYWNaNKJ8iy65vkftl6jYbDU2kLiAdQ0XJ8LSlOo=",
-        version = "v0.1.3-0.20201027001456-31311943a57a",
+        sum = "h1:+VXKYb/FNTag/vnSoH9/Pey/kXK/jBKDyOtwRfnmMMw=",
+        version = "v0.1.3-0.20201113084616-069a5e64fb79",
     )
     go_repository(
         name = "com_github_armon_circbuf",
@@ -1076,8 +1076,8 @@ def go_repositories():
         name = "com_github_go_logr_logr",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/go-logr/logr",
-        sum = "h1:QvGt2nLcHH0WK9orKa+ppBPAxREcH364nPUedEpK0TY=",
-        version = "v0.2.0",
+        sum = "h1:fV3MLmabKIZ383XifUjFSwcoGee0v9qgPp8wy5svibE=",
+        version = "v0.2.1",
     )
     go_repository(
         name = "com_github_go_logr_zapr",
