@@ -12,7 +12,9 @@ const (
 
 	defaultListenAgentAddress = "127.0.0.1:8150"
 
-	defaultGitLabAddress = "http://localhost:8080"
+	defaultGitLabAddress                = "http://localhost:8080"
+	defaultGitLabApiRateLimitRefillRate = 10.0
+	defaultGitLabApiRateLimitBucketSize = 50
 
 	defaultAgentConfigurationPollPeriod = 20 * time.Second
 
@@ -77,6 +79,10 @@ func defaultListenAgent(l *kascfg.ListenAgentCF) {
 
 func defaultGitLab(g *kascfg.GitLabCF) {
 	protodefault.String(&g.Address, defaultGitLabAddress)
+
+	protodefault.NotNil(&g.ApiRateLimit)
+	protodefault.Float64(&g.ApiRateLimit.RefillRatePerSecond, defaultGitLabApiRateLimitRefillRate)
+	protodefault.Uint32(&g.ApiRateLimit.BucketSize, defaultGitLabApiRateLimitBucketSize)
 }
 
 func defaultAgent(a *kascfg.AgentCF) {

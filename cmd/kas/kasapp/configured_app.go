@@ -212,15 +212,21 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		userAgent := kasUserAgent()
 		gitalyClientPool := constructGitalyPool(cfg.Gitaly, csh, tracer, userAgent)
 		defer gitalyClientPool.Close() // nolint: errcheck
-		gitLabClient := gitlab.NewClient(
-			gitLabUrl,
-			decodedAuthSecret,
-			gitlab.WithCorrelationClientName(correlationClientName),
-			gitlab.WithUserAgent(userAgent),
-			gitlab.WithTracer(tracer),
-			gitlab.WithLogger(a.Log),
-			gitlab.WithTLSConfig(clientTLSConfig),
-		)
+		gitLabClient := &gitlab.RateLimitingClient{
+			Delegate: gitlab.NewClient(
+				gitLabUrl,
+				decodedAuthSecret,
+				gitlab.WithCorrelationClientName(correlationClientName),
+				gitlab.WithUserAgent(userAgent),
+				gitlab.WithTracer(tracer),
+				gitlab.WithLogger(a.Log),
+				gitlab.WithTLSConfig(clientTLSConfig),
+			),
+			Limiter: rate.NewLimiter(
+				rate.Limit(cfg.Gitlab.ApiRateLimit.RefillRatePerSecond),
+				int(cfg.Gitlab.ApiRateLimit.BucketSize),
+			),
+		}
 		gitLabCachingClient := gitlab.NewCachingClient(gitLabClient, gitlab.CacheOptions{
 			CacheTTL:      cfg.Agent.InfoCacheTtl.AsDuration(),
 			CacheErrorTTL: cfg.Agent.InfoCacheErrorTtl.AsDuration(),

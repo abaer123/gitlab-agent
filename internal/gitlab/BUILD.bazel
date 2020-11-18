@@ -6,6 +6,7 @@ go_library(
         "cache.go",
         "client.go",
         "client_options.go",
+        "rate_limiter.go",
         "types.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab",
