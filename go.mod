@@ -26,8 +26,8 @@ require (
 	github.com/prometheus/client_golang v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
-	gitlab.com/gitlab-org/gitaly v1.87.1-0.20201116145355-f8ed42e0da61
-	gitlab.com/gitlab-org/labkit v0.0.0-20201105120257-8e29ab1aa82b
+	gitlab.com/gitlab-org/gitaly v1.87.1-0.20201117220727-89c1ee804f27
+	gitlab.com/gitlab-org/labkit v0.0.0-20201113080642-40dcf811328c
 	go.uber.org/zap v1.16.0
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	golang.org/x/tools v0.0.0-20201017001424-6003fad69a88
