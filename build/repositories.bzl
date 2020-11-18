@@ -936,15 +936,15 @@ def go_repositories():
         name = "com_github_getsentry_raven_go",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/getsentry/raven-go",
-        sum = "h1:4V0z512S5mZXiBvmW2RbuZBSIY1sEdMNsPjpx2zwtSE=",
-        version = "v0.1.2",
+        sum = "h1:no+xWJRb5ZI7eE8TWgIq1jLulQiIoLG0IfYxv5JYMGs=",
+        version = "v0.2.0",
     )
     go_repository(
         name = "com_github_getsentry_sentry_go",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/getsentry/sentry-go",
-        sum = "h1:MIPe7ScHADsrK2vznqmhksIUFxq7m0JfTh+ZIMkI+VQ=",
-        version = "v0.5.1",
+        sum = "h1:MR2yfR4vFfv/2+iBuSnkdQwVg7N9cJzihZ6KJu7srwQ=",
+        version = "v0.7.0",
     )
     go_repository(
         name = "com_github_ghodss_yaml",
@@ -3316,15 +3316,15 @@ def go_repositories():
         name = "com_gitlab_gitlab_org_gitaly",
         build_file_proto_mode = "disable_global",
         importpath = "gitlab.com/gitlab-org/gitaly",
-        sum = "h1:p4HVSByRH3V/SHb2PA0Xf03a/hzB1p+ZoQhLkvDI5ws=",
-        version = "v1.87.1-0.20201116145355-f8ed42e0da61",
+        sum = "h1:BkgPZXO0jMUrZEkPHWGG29FYLOxYSRltJoUTSuXO5+o=",
+        version = "v1.87.1-0.20201117220727-89c1ee804f27",
     )
     go_repository(
         name = "com_gitlab_gitlab_org_gitlab_shell",
         build_file_proto_mode = "disable_global",
         importpath = "gitlab.com/gitlab-org/gitlab-shell",
-        sum = "h1:C5BHPkyOWx6mDFz2LA3O/3o2ixSGsQBnaLSSQV7KOj8=",
-        version = "v1.9.8-0.20201106143703-da924afd346d",
+        sum = "h1:ENBJqb2gK3cZFHe8dbEM/TPXCwkAxDuxGK255ux4XPg=",
+        version = "v1.9.8-0.20201117050822-3f9890ef73dc",
     )
     go_repository(
         name = "com_google_cloud_go",
