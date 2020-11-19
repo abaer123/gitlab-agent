@@ -2,7 +2,6 @@ package kas
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"path"
 	"regexp"
@@ -17,6 +16,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
+	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -41,11 +41,21 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 	if retErr {
 		return err
 	}
+	err = s.validateGetObjectsToSynchronizeRequest(req)
+	if err != nil {
+		return err // no wrap
+	}
+	return s.pollImmediateUntil(ctx, s.gitopsPollPeriod, s.sendObjectsToSynchronize(agentInfo, req, stream))
+}
+
+func (s *Server) validateGetObjectsToSynchronizeRequest(req *agentrpc.ObjectsToSynchronizeRequest) error {
 	numberOfPaths := uint32(len(req.Paths))
 	if numberOfPaths > s.maxGitopsNumberOfPaths {
+		// TODO validate config in GetConfiguration too and send it somewhere the user can see it https://gitlab.com/gitlab-org/gitlab/-/issues/277323
+		// This check must be here, but there too.
 		return status.Errorf(codes.InvalidArgument, "maximum number of GitOps paths per manifest project is %d, but %d was requested", s.maxGitopsNumberOfPaths, numberOfPaths)
 	}
-	return s.pollImmediateUntil(stream.Context(), s.gitopsPollPeriod, s.sendObjectsToSynchronize(agentInfo, req, stream))
+	return nil
 }
 
 func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrpc.ObjectsToSynchronizeRequest, stream agentrpc.Kas_GetObjectsToSynchronizeServer) wait.ConditionFunc {
@@ -62,12 +72,12 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 		revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
 		p, err := s.gitalyPool.Poller(ctx, &projectInfo.GitalyInfo)
 		if err != nil {
-			logWarnIfNotCanceled(l, "GitOps: Poller", err)
+			s.handleError(ctx, l, "GitOps: Poller", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		info, err := p.Poll(ctx, &projectInfo.Repository, req.CommitId, revision)
 		if err != nil {
-			logWarnIfNotCanceled(l, "GitOps: repository poll failed", err)
+			s.handleError(ctx, l, "GitOps: repository poll failed", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		if !info.UpdateAvailable {
@@ -77,54 +87,81 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 		// Create a new l variable, don't want to mutate the one from the outer scope
 		l := l.With(logz.CommitId(info.CommitId)) // nolint:govet
 		l.Info("GitOps: new commit")
-		pf, err := s.gitalyPool.PathFetcher(ctx, &projectInfo.GitalyInfo)
+		err = s.sendObjectsToSynchronizeHeaders(stream, l, info.CommitId)
 		if err != nil {
-			logWarnIfNotCanceled(l, "GitOps: PathFetcher", err)
-			return false, nil // don't want to close the response stream, so report no error
+			return false, err // no wrap
 		}
-		err = stream.Send(&agentrpc.ObjectsToSynchronizeResponse{
-			Message: &agentrpc.ObjectsToSynchronizeResponse_Headers_{
-				Headers: &agentrpc.ObjectsToSynchronizeResponse_Headers{
-					CommitId: info.CommitId,
-				},
-			},
-		})
+		numberOfFiles, err := s.sendObjectsToSynchronizeBody(req, stream, l, &projectInfo.Repository, &projectInfo.GitalyInfo, info.CommitId)
 		if err != nil {
-			logWarnIfNotCanceled(l, "GitOps: failed to send objects to synchronize", err)
-			return false, status.Error(codes.Unavailable, "unavailable")
+			return false, err // no wrap
 		}
-		v := &objectsToSynchronizeVisitor{
-			stream:                 stream,
-			remainingTotalFileSize: s.maxGitopsTotalManifestFileSize,
-			fileSizeLimit:          s.maxGitopsManifestFileSize,
-			maxNumberOfFiles:       s.maxGitopsNumberOfFiles,
-		}
-		vChunk := gitaly.ChunkingFetchVisitor{
-			MaxChunkSize: gitOpsManifestMaxChunkSize,
-			Delegate:     v,
-		}
-		for _, p := range req.Paths {
-			repoPath, recursive, glob := globToGitaly(p.Glob)
-			v.glob = glob // set new glob for each path
-			err = pf.Visit(ctx, &projectInfo.Repository, []byte(info.CommitId), repoPath, recursive, vChunk)
-			if err != nil {
-				logWarnIfNotCanceled(l, "GitOps: failed to get objects to synchronize", err)
-				return false, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
-			}
-		}
-		err = stream.Send(&agentrpc.ObjectsToSynchronizeResponse{
-			Message: &agentrpc.ObjectsToSynchronizeResponse_Trailers_{
-				Trailers: &agentrpc.ObjectsToSynchronizeResponse_Trailers{},
-			},
-		})
+		err = s.sendObjectsToSynchronizeTrailers(stream, l)
 		if err != nil {
-			logWarnIfNotCanceled(l, "GitOps: failed to send objects to synchronize", err)
-			return false, status.Error(codes.Unavailable, "unavailable")
+			return false, err // no wrap
 		}
-		l.Info("GitOps: fetched files", logz.NumberOfFiles(v.numberOfFiles))
+		l.Info("GitOps: fetched files", logz.NumberOfFiles(numberOfFiles))
 		s.usageMetrics.IncGitopsSyncCount()
 		return true, nil
 	}
+}
+
+func (s *Server) sendObjectsToSynchronizeHeaders(stream agentrpc.Kas_GetObjectsToSynchronizeServer, log *zap.Logger, commitId string) error {
+	err := stream.Send(&agentrpc.ObjectsToSynchronizeResponse{
+		Message: &agentrpc.ObjectsToSynchronizeResponse_Headers_{
+			Headers: &agentrpc.ObjectsToSynchronizeResponse_Headers{
+				CommitId: commitId,
+			},
+		},
+	})
+	if err != nil {
+		return s.handleFailedSend(log, "GitOps: failed to send headers for objects to synchronize", err)
+	}
+	return nil
+}
+
+func (s *Server) sendObjectsToSynchronizeBody(req *agentrpc.ObjectsToSynchronizeRequest, stream agentrpc.Kas_GetObjectsToSynchronizeServer, log *zap.Logger, repo *gitalypb.Repository, gitalyInfo *api.GitalyInfo, commitId string) (uint32, error) {
+	ctx := stream.Context()
+	pf, err := s.gitalyPool.PathFetcher(ctx, gitalyInfo)
+	if err != nil {
+		s.handleError(ctx, log, "GitOps: PathFetcher", err)
+		return 0, status.Error(codes.Unavailable, "GitOps: PathFetcher")
+	}
+	v := &objectsToSynchronizeVisitor{
+		stream:                 stream,
+		remainingTotalFileSize: s.maxGitopsTotalManifestFileSize,
+		fileSizeLimit:          s.maxGitopsManifestFileSize,
+		maxNumberOfFiles:       s.maxGitopsNumberOfFiles,
+	}
+	vChunk := gitaly.ChunkingFetchVisitor{
+		MaxChunkSize: gitOpsManifestMaxChunkSize,
+		Delegate:     v,
+	}
+	for _, p := range req.Paths {
+		repoPath, recursive, glob := globToGitaly(p.Glob)
+		v.glob = glob // set new glob for each path
+		err := pf.Visit(ctx, repo, []byte(commitId), repoPath, recursive, vChunk)
+		if err != nil {
+			if v.sendFailed {
+				return 0, s.handleFailedSend(log, "GitOps: failed to send objects to synchronize", err)
+			} else {
+				s.handleError(ctx, log, "GitOps: failed to get objects to synchronize", err)
+				return 0, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
+			}
+		}
+	}
+	return v.numberOfFiles, nil
+}
+
+func (s *Server) sendObjectsToSynchronizeTrailers(stream agentrpc.Kas_GetObjectsToSynchronizeServer, log *zap.Logger) error {
+	err := stream.Send(&agentrpc.ObjectsToSynchronizeResponse{
+		Message: &agentrpc.ObjectsToSynchronizeResponse_Trailers_{
+			Trailers: &agentrpc.ObjectsToSynchronizeResponse_Trailers{},
+		},
+	})
+	if err != nil {
+		return s.handleFailedSend(log, "GitOps: failed to send trailers for objects to synchronize", err)
+	}
+	return nil
 }
 
 func (s *Server) getProjectInfo(ctx context.Context, log *zap.Logger, agentMeta *api.AgentMeta, projectId string) (*api.ProjectInfo, error, bool /* return the error? */) {
@@ -139,7 +176,8 @@ func (s *Server) getProjectInfo(ctx context.Context, log *zap.Logger, agentMeta 
 	case gitlab.IsUnauthorized(err):
 		err = status.Error(codes.Unauthenticated, "unauthenticated")
 	default:
-		log.Warn("GitOps: failed to get project info", zap.Error(err))
+		log.Error("GetProjectInfo()", zap.Error(err))
+		s.errorTracker.Capture(fmt.Errorf("GetProjectInfo: %v", err), errortracking.WithContext(ctx))
 		err = nil // don't want to close the response stream, so report no error
 	}
 	return nil, err, true
@@ -152,11 +190,12 @@ type objectsToSynchronizeVisitor struct {
 	fileSizeLimit          int64
 	maxNumberOfFiles       uint32
 	numberOfFiles          uint32
+	sendFailed             bool
 }
 
 func (v *objectsToSynchronizeVisitor) Entry(entry *gitalypb.TreeEntry) (bool /* download? */, int64 /* max size */, error) {
 	if v.numberOfFiles == v.maxNumberOfFiles {
-		return false, 0, fmt.Errorf("maximum number of manifest files limit reached: %d", v.maxNumberOfFiles)
+		return false, 0, errz.NewUserErrorf("maximum number of manifest files limit reached: %d", v.maxNumberOfFiles)
 	}
 	v.numberOfFiles++
 	filename := string(entry.Path)
@@ -165,7 +204,7 @@ func (v *objectsToSynchronizeVisitor) Entry(entry *gitalypb.TreeEntry) (bool /* 
 	}
 	shouldDownload, err := doublestar.Match(v.glob, filename)
 	if err != nil {
-		return false, 0, err
+		return false, 0, errz.NewUserErrorWithCausef(err, "glob %s match failed", v.glob)
 	}
 	return shouldDownload, minInt64(v.remainingTotalFileSize, v.fileSizeLimit), nil
 }
@@ -175,9 +214,9 @@ func (v *objectsToSynchronizeVisitor) StreamChunk(path []byte, data []byte) (boo
 	if v.remainingTotalFileSize < 0 {
 		// This should never happen because we told Gitaly the maximum file size that we'd like to get.
 		// i.e. we should have gotten an error from Gitaly if file is bigger than the limit.
-		return false, errors.New("unexpected negative remaining total file size")
+		return false, status.Error(codes.Internal, "unexpected negative remaining total file size")
 	}
-	return false, v.stream.Send(&agentrpc.ObjectsToSynchronizeResponse{
+	err := v.stream.Send(&agentrpc.ObjectsToSynchronizeResponse{
 		Message: &agentrpc.ObjectsToSynchronizeResponse_Object_{
 			Object: &agentrpc.ObjectsToSynchronizeResponse_Object{
 				Source: string(path),
@@ -185,6 +224,10 @@ func (v *objectsToSynchronizeVisitor) StreamChunk(path []byte, data []byte) (boo
 			},
 		},
 	})
+	if err != nil {
+		v.sendFailed = true
+	}
+	return false, err
 }
 
 // isHiddenDir checks if a file is in a directory, which name starts with a dot.

@@ -19,6 +19,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
+	"gitlab.com/gitlab-org/labkit/errortracking"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -171,7 +172,7 @@ func TestGetConfigurationGitLabClientFailures(t *testing.T) {
 	agentMeta := api.AgentMeta{
 		Token: token,
 	}
-	k, mockCtrl, _, gitlabClient, _ := setupKasBare(t)
+	k, mockCtrl, _, gitlabClient, errTracker := setupKasBare(t)
 	gomock.InOrder(
 		gitlabClient.EXPECT().
 			GetAgentInfo(gomock.Any(), &agentMeta).
@@ -181,9 +182,11 @@ func TestGetConfigurationGitLabClientFailures(t *testing.T) {
 			Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindUnauthorized, StatusCode: http.StatusUnauthorized}),
 		gitlabClient.EXPECT().
 			GetAgentInfo(gomock.Any(), &agentMeta).
-			DoAndReturn(func(ctx context.Context, agentMeta *api.AgentMeta) (*api.AgentInfo, error) {
-				cancel()
-				return nil, &gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}
+			Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}),
+		errTracker.EXPECT().
+			Capture(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(err error, opts ...errortracking.CaptureOption) {
+				cancel() // exception captured, cancel the context to stop the test
 			}),
 	)
 	resp := mock_agentrpc.NewMockKas_GetConfigurationServer(mockCtrl)

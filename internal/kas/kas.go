@@ -3,6 +3,7 @@ package kas
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -113,6 +114,7 @@ func (s *Server) getAgentInfo(ctx context.Context, agentMeta *api.AgentMeta, noE
 		err = status.Error(codes.Unauthenticated, "unauthenticated")
 	default:
 		s.log.Error("GetAgentInfo()", zap.Error(err))
+		s.errorTracker.Capture(fmt.Errorf("GetAgentInfo: %v", err), errortracking.WithContext(ctx))
 		if noErrorOnUnknownError {
 			err = nil
 		} else {
@@ -122,8 +124,28 @@ func (s *Server) getAgentInfo(ctx context.Context, agentMeta *api.AgentMeta, noE
 	return nil, err, true
 }
 
-func logWarnIfNotCanceled(l *zap.Logger, msg string, err error) {
-	if !grpctool.RequestCanceled(err) {
-		l.Warn(msg, zap.Error(err))
+func (s *Server) handleError(ctx context.Context, log *zap.Logger, msg string, err error) {
+	if grpctool.RequestCanceled(err) {
+		// An error caused by context signalling done
+		return
 	}
+	var ue *errz.UserError
+	isUserError := errors.As(err, &ue)
+	if isUserError {
+		// TODO Don't log it, send it somewhere the user can see it https://gitlab.com/gitlab-org/gitlab/-/issues/277323
+		// Log at Info for now.
+		log.Info(msg, zap.Error(err))
+	} else {
+		log.Warn(msg, zap.Error(err))
+		s.errorTracker.Capture(fmt.Errorf("%s: %v", msg, err), errortracking.WithContext(ctx))
+	}
+}
+
+func (s *Server) handleFailedSend(log *zap.Logger, msg string, err error) error {
+	// The problem is almost certainly with the client's connection.
+	// Still log it on Debug.
+	if !grpctool.RequestCanceled(err) {
+		log.Debug(msg, zap.Error(err))
+	}
+	return status.Error(codes.Unavailable, "gRPC send failed")
 }

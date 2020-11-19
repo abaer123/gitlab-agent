@@ -39,14 +39,16 @@ func TestSendUsageFailure(t *testing.T) {
 	expectedErr := errors.New("expected error")
 	k, mockCtrl, _, gitlabClient, errTracker := setupKasBare(t)
 	defer mockCtrl.Finish()
-	errTracker.EXPECT().
-		Capture(expectedErr, gomock.Any()).
-		DoAndReturn(func(err error, opts ...errortracking.CaptureOption) {
-			cancel() // exception captured, cancel the context to stop the test
-		})
-	gitlabClient.EXPECT().
-		SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
-		Return(expectedErr)
+	gomock.InOrder(
+		gitlabClient.EXPECT().
+			SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
+			Return(expectedErr),
+		errTracker.EXPECT().
+			Capture(expectedErr, gomock.Any()).
+			DoAndReturn(func(err error, opts ...errortracking.CaptureOption) {
+				cancel() // exception captured, cancel the context to stop the test
+			}),
+	)
 	k.usageMetrics.gitopsSyncCount = 5
 	k.usageReportingPeriod = 10 * time.Millisecond
 
