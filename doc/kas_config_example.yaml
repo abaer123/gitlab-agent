@@ -11,6 +11,9 @@ gitlab:
   address: http://localhost:8080
   # authentication_secret_file: /some/file
   # ca_certificate_file: /server-ca.pem
+  api_rate_limit:
+    refill_rate_per_second: 10.0
+    bucket_size: 50
 agent:
   configuration:
     poll_period: "20s"

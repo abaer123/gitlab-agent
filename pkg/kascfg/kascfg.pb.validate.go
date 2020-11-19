@@ -394,6 +394,16 @@ func (m *GitLabCF) Validate() error {
 
 	// no validation rules for CaCertificateFile
 
+	if v, ok := interface{}(m.GetApiRateLimit()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return GitLabCFValidationError{
+				field:  "ApiRateLimit",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	return nil
 }
 

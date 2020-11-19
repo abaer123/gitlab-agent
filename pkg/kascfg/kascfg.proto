@@ -72,6 +72,8 @@ message GitLabCF {
     string authentication_secret_file = 2 [json_name = "authentication_secret_file"];
     // Optional X.509 certificate for TLS in PEM format. Should be set for self-signed certificates.
     string ca_certificate_file = 3 [json_name = "ca_certificate_file"];
+    // Rate limiting configuration for talking to the GitLab API.
+    TokenBucketRateLimitCF api_rate_limit = 4 [json_name = "api_rate_limit"];
 }
 
 message GitopsCF {
