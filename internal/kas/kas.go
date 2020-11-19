@@ -11,6 +11,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/mathz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
 	"gitlab.com/gitlab-org/labkit/errortracking"
@@ -18,6 +19,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/apimachinery/pkg/util/wait"
+)
+
+const (
+	connectionMaxAgeJitterPercent = 5
 )
 
 type Config struct {
@@ -88,7 +93,7 @@ func (s *Server) Run(ctx context.Context) {
 
 func (s *Server) pollImmediateUntil(ctx context.Context, interval time.Duration, condition wait.ConditionFunc) error {
 	// this context must only be used here, not inside of condition() - connection should be closed only when idle.
-	ageCtx, cancel := context.WithTimeout(ctx, s.connectionMaxAge)
+	ageCtx, cancel := context.WithTimeout(ctx, mathz.DurationWithJitter(s.connectionMaxAge, connectionMaxAgeJitterPercent))
 	defer cancel()
 	err := retry.PollImmediateUntil(ageCtx, interval, condition)
 	if errors.Is(err, wait.ErrWaitTimeout) {

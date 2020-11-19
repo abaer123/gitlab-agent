@@ -70,6 +70,7 @@ func setupKasBare(t *testing.T) (*Server, *gomock.Controller, *mock_internalgita
 		MaxGitopsTotalManifestFileSize: maxGitopsTotalManifestFileSize,
 		MaxGitopsNumberOfPaths:         maxGitopsNumberOfPaths,
 		MaxGitopsNumberOfFiles:         maxGitopsNumberOfFiles,
+		ConnectionMaxAge:               10 * time.Minute,
 	})
 	require.NoError(t, err)
 	t.Cleanup(cleanup)
