@@ -7,8 +7,6 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/errz"
-	"gitlab.com/gitlab-org/labkit/errortracking"
-	"go.uber.org/zap"
 )
 
 func (s *Server) sendUsage(ctx context.Context) {
@@ -24,8 +22,7 @@ func (s *Server) sendUsage(ctx context.Context) {
 		case <-ticker.C:
 			if err := s.sendUsageInternal(ctx); err != nil {
 				if !errz.ContextDone(err) {
-					s.log.Warn("Failed to send usage data", zap.Error(err))
-					s.errorTracker.Capture(err, errortracking.WithContext(ctx))
+					s.logAndCapture(ctx, s.log, "Failed to send usage data", err)
 				}
 			}
 		}

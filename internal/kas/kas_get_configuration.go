@@ -45,12 +45,12 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 		l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath))
 		p, err := s.gitalyPool.Poller(ctx, &agentInfo.GitalyInfo)
 		if err != nil {
-			s.handleError(ctx, l, "Config: Poller", err)
+			s.handleProcessingError(ctx, l, "Config: Poller", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		info, err := p.Poll(ctx, &agentInfo.Repository, lastProcessedCommitId, gitaly.DefaultBranch)
 		if err != nil {
-			s.handleError(ctx, l, "Config: repository poll failed", err)
+			s.handleProcessingError(ctx, l, "Config: repository poll failed", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		if !info.UpdateAvailable {
@@ -60,7 +60,7 @@ func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc
 		l.Info("Config: new commit", logz.CommitId(info.CommitId))
 		config, err := s.fetchConfiguration(ctx, agentInfo, info.CommitId)
 		if err != nil {
-			s.handleError(ctx, l, "Config: failed to fetch", err)
+			s.handleProcessingError(ctx, l, "Config: failed to fetch", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		err = stream.Send(&agentrpc.ConfigurationResponse{

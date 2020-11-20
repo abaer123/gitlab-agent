@@ -87,7 +87,7 @@ func TestGetObjectsToSynchronizeGitLabClientFailures(t *testing.T) {
 				GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
 				Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}),
 			errTracker.EXPECT().
-				Capture(gomock.Any(), gomock.Any()).
+				Capture(matcher.ErrorEq("GetProjectInfo(): error kind: 0; status: 500"), gomock.Any()).
 				DoAndReturn(func(err error, opts ...errortracking.CaptureOption) {
 					cancel() // exception captured, cancel the context to stop the test
 				}),

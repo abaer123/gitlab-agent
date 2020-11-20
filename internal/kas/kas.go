@@ -113,8 +113,7 @@ func (s *Server) getAgentInfo(ctx context.Context, agentMeta *api.AgentMeta, noE
 	case gitlab.IsUnauthorized(err):
 		err = status.Error(codes.Unauthenticated, "unauthenticated")
 	default:
-		s.log.Error("GetAgentInfo()", zap.Error(err))
-		s.errorTracker.Capture(fmt.Errorf("GetAgentInfo: %v", err), errortracking.WithContext(ctx))
+		s.logAndCapture(ctx, s.log, "GetAgentInfo()", err)
 		if noErrorOnUnknownError {
 			err = nil
 		} else {
@@ -124,7 +123,7 @@ func (s *Server) getAgentInfo(ctx context.Context, agentMeta *api.AgentMeta, noE
 	return nil, err, true
 }
 
-func (s *Server) handleError(ctx context.Context, log *zap.Logger, msg string, err error) {
+func (s *Server) handleProcessingError(ctx context.Context, log *zap.Logger, msg string, err error) {
 	if grpctool.RequestCanceled(err) {
 		// An error caused by context signalling done
 		return
@@ -136,8 +135,7 @@ func (s *Server) handleError(ctx context.Context, log *zap.Logger, msg string, e
 		// Log at Info for now.
 		log.Info(msg, zap.Error(err))
 	} else {
-		log.Warn(msg, zap.Error(err))
-		s.errorTracker.Capture(fmt.Errorf("%s: %v", msg, err), errortracking.WithContext(ctx))
+		s.logAndCapture(ctx, log, msg, err)
 	}
 }
 
@@ -148,4 +146,9 @@ func (s *Server) handleFailedSend(log *zap.Logger, msg string, err error) error 
 		log.Debug(msg, zap.Error(err))
 	}
 	return status.Error(codes.Unavailable, "gRPC send failed")
+}
+
+func (s *Server) logAndCapture(ctx context.Context, log *zap.Logger, msg string, err error) {
+	log.Error(msg, zap.Error(err))
+	s.errorTracker.Capture(fmt.Errorf("%s: %v", msg, err), errortracking.WithContext(ctx))
 }

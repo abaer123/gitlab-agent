@@ -2,7 +2,6 @@ package kas
 
 import (
 	"context"
-	"fmt"
 	"path"
 	"regexp"
 	"strings"
@@ -16,7 +15,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
-	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -72,12 +70,12 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 		revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
 		p, err := s.gitalyPool.Poller(ctx, &projectInfo.GitalyInfo)
 		if err != nil {
-			s.handleError(ctx, l, "GitOps: Poller", err)
+			s.handleProcessingError(ctx, l, "GitOps: Poller", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		info, err := p.Poll(ctx, &projectInfo.Repository, req.CommitId, revision)
 		if err != nil {
-			s.handleError(ctx, l, "GitOps: repository poll failed", err)
+			s.handleProcessingError(ctx, l, "GitOps: repository poll failed", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		if !info.UpdateAvailable {
@@ -123,7 +121,7 @@ func (s *Server) sendObjectsToSynchronizeBody(req *agentrpc.ObjectsToSynchronize
 	ctx := stream.Context()
 	pf, err := s.gitalyPool.PathFetcher(ctx, gitalyInfo)
 	if err != nil {
-		s.handleError(ctx, log, "GitOps: PathFetcher", err)
+		s.handleProcessingError(ctx, log, "GitOps: PathFetcher", err)
 		return 0, status.Error(codes.Unavailable, "GitOps: PathFetcher")
 	}
 	v := &objectsToSynchronizeVisitor{
@@ -144,7 +142,7 @@ func (s *Server) sendObjectsToSynchronizeBody(req *agentrpc.ObjectsToSynchronize
 			if v.sendFailed {
 				return 0, s.handleFailedSend(log, "GitOps: failed to send objects to synchronize", err)
 			} else {
-				s.handleError(ctx, log, "GitOps: failed to get objects to synchronize", err)
+				s.handleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
 				return 0, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
 			}
 		}
@@ -176,8 +174,7 @@ func (s *Server) getProjectInfo(ctx context.Context, log *zap.Logger, agentMeta 
 	case gitlab.IsUnauthorized(err):
 		err = status.Error(codes.Unauthenticated, "unauthenticated")
 	default:
-		log.Error("GetProjectInfo()", zap.Error(err))
-		s.errorTracker.Capture(fmt.Errorf("GetProjectInfo: %v", err), errortracking.WithContext(ctx))
+		s.logAndCapture(ctx, log, "GetProjectInfo()", err)
 		err = nil // don't want to close the response stream, so report no error
 	}
 	return nil, err, true
