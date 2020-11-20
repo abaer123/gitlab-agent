@@ -235,6 +235,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			CacheErrorTTL: cfg.Agent.Gitops.ProjectInfoCacheErrorTtl.AsDuration(),
 		})
 
+		connectionMaxAge := cfg.Agent.Limits.ConnectionMaxAge.AsDuration()
 		srv, cleanup, err := kas.NewServer(kas.Config{
 			Log: a.Log,
 			GitalyPool: &gitaly.Pool{
@@ -251,6 +252,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			MaxGitopsTotalManifestFileSize: cfg.Agent.Limits.MaxGitopsTotalManifestFileSize,
 			MaxGitopsNumberOfPaths:         cfg.Agent.Limits.MaxGitopsNumberOfPaths,
 			MaxGitopsNumberOfFiles:         cfg.Agent.Limits.MaxGitopsNumberOfFiles,
+			ConnectionMaxAge:               connectionMaxAge,
 		})
 		if err != nil {
 			return fmt.Errorf("kas.NewServer: %v", err)
@@ -318,6 +320,14 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 				PermitWithoutStream: true,
 			}),
 			grpc.KeepaliveParams(keepalive.ServerParameters{
+				// MaxConnectionAge should be below connectionMaxAge so that when kas closes a long running response
+				// stream, gRPC will close the underlying connection. -20% to account for jitter (see doc for the field)
+				// and ensure it's somewhat below connectionMaxAge.
+				// See https://github.com/grpc/grpc-go/blob/v1.33.1/internal/transport/http2_server.go#L949-L1047 to better understand how this all works.
+				MaxConnectionAge: time.Duration(0.8 * float64(connectionMaxAge)),
+				// Give pending RPCs plenty of time to complete.
+				// In practice it will happen in 10-30% of connectionMaxAge time (see above).
+				MaxConnectionAgeGrace: connectionMaxAge,
 				// trying to stay below 60 seconds (typical load-balancer timeout)
 				Time: 50 * time.Second,
 			}),

@@ -19,6 +19,7 @@ go_library(
         "//internal/tools/errz",
         "//internal/tools/grpctool",
         "//internal/tools/logz",
+        "//internal/tools/mathz",
         "//internal/tools/metric",
         "//internal/tools/protodefault",
         "//internal/tools/retry",

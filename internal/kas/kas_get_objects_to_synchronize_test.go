@@ -264,10 +264,13 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 			Return(p, nil),
 		p.EXPECT().
 			Poll(gomock.Any(), &projectInfo.Repository, revision, gitaly.DefaultBranch).
-			Return(&gitaly.PollInfo{
-				UpdateAvailable: false,
-				CommitId:        revision,
-			}, nil),
+			DoAndReturn(func(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*gitaly.PollInfo, error) {
+				cancel() // stop the test
+				return &gitaly.PollInfo{
+					UpdateAvailable: false,
+					CommitId:        revision,
+				}, nil
+			}),
 	)
 	err := a.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
