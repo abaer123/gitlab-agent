@@ -34,15 +34,17 @@ func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream age
 func (s *Server) sendConfiguration(lastProcessedCommitId string, stream agentrpc.Kas_GetConfigurationServer) wait.ConditionFunc {
 	ctx := stream.Context()
 	agentMeta := apiutil.AgentMetaFromContext(ctx)
+	l := s.log.With(logz.CorrelationIdFromContext(ctx))
 	return func() (bool /*done*/, error) {
 		// This call is made on each poll because:
 		// - it checks that the agent's token is still valid
 		// - repository location in Gitaly might have changed
-		agentInfo, err, retErr := s.getAgentInfo(ctx, agentMeta, true) // don't want to close the response stream, so report no error
+		agentInfo, err, retErr := s.getAgentInfo(ctx, l, agentMeta, true) // don't want to close the response stream, so report no error
 		if retErr {
 			return false, err
 		}
-		l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath))
+		// Create a new l variable, don't want to mutate the one from the outer scope
+		l := l.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath)) // nolint:govet
 		p, err := s.gitalyPool.Poller(ctx, &agentInfo.GitalyInfo)
 		if err != nil {
 			s.handleProcessingError(ctx, l, "Config: Poller", err)
