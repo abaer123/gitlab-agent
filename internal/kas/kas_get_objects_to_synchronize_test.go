@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc/mock_agentrpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_internalgitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
@@ -19,6 +18,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
+	"gitlab.com/gitlab-org/labkit/errortracking"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
@@ -31,7 +31,7 @@ func TestGetObjectsToSynchronizeGitLabClientFailures(t *testing.T) {
 	t.Run("GetAgentInfo failures", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		k, mockCtrl, _, gitlabClient, _ := setupKasBare(t)
+		k, mockCtrl, _, gitlabClient, errTracker := setupKasBare(t)
 		agentInfo := agentInfoObj()
 
 		gomock.InOrder(
@@ -43,9 +43,11 @@ func TestGetObjectsToSynchronizeGitLabClientFailures(t *testing.T) {
 				Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindUnauthorized, StatusCode: http.StatusUnauthorized}),
 			gitlabClient.EXPECT().
 				GetAgentInfo(gomock.Any(), &agentInfo.Meta).
-				DoAndReturn(func(ctx context.Context, agentMeta *api.AgentMeta) (*api.AgentInfo, error) {
-					cancel()
-					return nil, &gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}
+				Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}),
+			errTracker.EXPECT().
+				Capture(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(err error, opts ...errortracking.CaptureOption) {
+					cancel() // exception captured, cancel the context to stop the test
 				}),
 		)
 
@@ -67,7 +69,7 @@ func TestGetObjectsToSynchronizeGitLabClientFailures(t *testing.T) {
 	t.Run("GetProjectInfo failures", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		k, mockCtrl, _, gitlabClient, _ := setupKasBare(t)
+		k, mockCtrl, _, gitlabClient, errTracker := setupKasBare(t)
 		agentInfo := agentInfoObj()
 		gitlabClient.EXPECT().
 			GetAgentInfo(gomock.Any(), &agentInfo.Meta).
@@ -83,9 +85,11 @@ func TestGetObjectsToSynchronizeGitLabClientFailures(t *testing.T) {
 				Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindUnauthorized, StatusCode: http.StatusUnauthorized}),
 			gitlabClient.EXPECT().
 				GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
-				DoAndReturn(func(ctx context.Context, agentMeta *api.AgentMeta, projectId string) (*api.ProjectInfo, error) {
-					cancel()
-					return nil, &gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}
+				Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}),
+			errTracker.EXPECT().
+				Capture(matcher.ErrorEq("GetProjectInfo(): error kind: 0; status: 500"), gomock.Any()).
+				DoAndReturn(func(err error, opts ...errortracking.CaptureOption) {
+					cancel() // exception captured, cancel the context to stop the test
 				}),
 		)
 		resp := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
@@ -429,7 +433,7 @@ func TestObjectsToSynchronizeVisitor(t *testing.T) {
 			maxNumberOfFiles:       maxGitopsNumberOfFiles,
 		}
 		_, err := v.StreamChunk([]byte("manifest2.yaml"), []byte("data1"))
-		assert.EqualError(t, err, "unexpected negative remaining total file size")
+		assert.EqualError(t, err, "rpc error: code = Internal desc = unexpected negative remaining total file size")
 	})
 	t.Run("blob", func(t *testing.T) {
 		data := []byte("data1")

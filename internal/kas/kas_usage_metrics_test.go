@@ -9,6 +9,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 )
 
@@ -39,14 +40,16 @@ func TestSendUsageFailure(t *testing.T) {
 	expectedErr := errors.New("expected error")
 	k, mockCtrl, _, gitlabClient, errTracker := setupKasBare(t)
 	defer mockCtrl.Finish()
-	errTracker.EXPECT().
-		Capture(expectedErr, gomock.Any()).
-		DoAndReturn(func(err error, opts ...errortracking.CaptureOption) {
-			cancel() // exception captured, cancel the context to stop the test
-		})
-	gitlabClient.EXPECT().
-		SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
-		Return(expectedErr)
+	gomock.InOrder(
+		gitlabClient.EXPECT().
+			SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 5})).
+			Return(expectedErr),
+		errTracker.EXPECT().
+			Capture(matcher.ErrorEq("Failed to send usage data: expected error"), gomock.Any()).
+			DoAndReturn(func(err error, opts ...errortracking.CaptureOption) {
+				cancel() // exception captured, cancel the context to stop the test
+			}),
+	)
 	k.usageMetrics.gitopsSyncCount = 5
 	k.usageReportingPeriod = 10 * time.Millisecond
 
