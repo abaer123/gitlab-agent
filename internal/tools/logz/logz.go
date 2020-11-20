@@ -7,9 +7,8 @@ import (
 	"net"
 	"net/url"
 
-	"gitlab.com/gitlab-org/labkit/mask"
-
 	"gitlab.com/gitlab-org/labkit/correlation"
+	"gitlab.com/gitlab-org/labkit/mask"
 	"go.uber.org/zap"
 )
 

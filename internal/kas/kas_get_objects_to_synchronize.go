@@ -35,7 +35,8 @@ var (
 func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeRequest, stream agentrpc.Kas_GetObjectsToSynchronizeServer) error {
 	ctx := stream.Context()
 	agentMeta := apiutil.AgentMetaFromContext(ctx)
-	agentInfo, err, retErr := s.getAgentInfo(ctx, agentMeta, false)
+	l := s.log.With(logz.CorrelationIdFromContext(ctx))
+	agentInfo, err, retErr := s.getAgentInfo(ctx, l, agentMeta, false)
 	if retErr {
 		return err
 	}
@@ -58,7 +59,7 @@ func (s *Server) validateGetObjectsToSynchronizeRequest(req *agentrpc.ObjectsToS
 
 func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrpc.ObjectsToSynchronizeRequest, stream agentrpc.Kas_GetObjectsToSynchronizeServer) wait.ConditionFunc {
 	ctx := stream.Context()
-	l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(req.ProjectId))
+	l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(req.ProjectId), logz.CorrelationIdFromContext(ctx))
 	return func() (bool /*done*/, error) {
 		// This call is made on each poll because:
 		// - it checks that the agent's token is still valid

@@ -101,7 +101,7 @@ func (s *Server) pollImmediateUntil(ctx context.Context, interval time.Duration,
 // getAgentInfo is a helper that encapsulates error checking logic.
 // The signature is not conventional on purpose because the caller is not supposed to inspect the error,
 // but instead return it if the bool is true.
-func (s *Server) getAgentInfo(ctx context.Context, agentMeta *api.AgentMeta, noErrorOnUnknownError bool) (*api.AgentInfo, error, bool /* return the error? */) {
+func (s *Server) getAgentInfo(ctx context.Context, log *zap.Logger, agentMeta *api.AgentMeta, noErrorOnUnknownError bool) (*api.AgentInfo, error, bool /* return the error? */) {
 	agentInfo, err := s.gitLabClient.GetAgentInfo(ctx, agentMeta)
 	switch {
 	case err == nil:
@@ -113,7 +113,7 @@ func (s *Server) getAgentInfo(ctx context.Context, agentMeta *api.AgentMeta, noE
 	case gitlab.IsUnauthorized(err):
 		err = status.Error(codes.Unauthenticated, "unauthenticated")
 	default:
-		s.logAndCapture(ctx, s.log, "GetAgentInfo()", err)
+		s.logAndCapture(ctx, log, "GetAgentInfo()", err)
 		if noErrorOnUnknownError {
 			err = nil
 		} else {
@@ -149,6 +149,7 @@ func (s *Server) handleFailedSend(log *zap.Logger, msg string, err error) error 
 }
 
 func (s *Server) logAndCapture(ctx context.Context, log *zap.Logger, msg string, err error) {
+	// don't add logz.CorrelationIdFromContext(ctx) here as it's been added to the logger already
 	log.Error(msg, zap.Error(err))
 	s.errorTracker.Capture(fmt.Errorf("%s: %v", msg, err), errortracking.WithContext(ctx))
 }
