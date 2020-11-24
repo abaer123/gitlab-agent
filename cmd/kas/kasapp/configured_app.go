@@ -189,7 +189,7 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		}
 
 		// gRPC listener
-		lis, err := net.Listen(cfg.ListenAgent.Network.String(), cfg.ListenAgent.Address)
+		lis, err := net.Listen(cfg.Agent.Listen.Network.String(), cfg.Agent.Listen.Address)
 		if err != nil {
 			return err
 		}
@@ -198,10 +198,10 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 		a.Log.Info("Listening for agentk connections",
 			logz.NetNetworkFromAddr(lis.Addr()),
 			logz.NetAddressFromAddr(lis.Addr()),
-			logz.IsWebSocket(cfg.ListenAgent.Websocket),
+			logz.IsWebSocket(cfg.Agent.Listen.Websocket),
 		)
 
-		if cfg.ListenAgent.Websocket {
+		if cfg.Agent.Listen.Websocket {
 			wsWrapper := wstunnel.ListenerWrapper{
 				// TODO set timeouts
 				ReadLimit: defaultMaxMessageSize,
@@ -333,8 +333,8 @@ func (a *ConfiguredApp) startGrpcServer(st stager.Stager, registerer prometheus.
 			}),
 		}
 
-		certFile := cfg.ListenAgent.CertificateFile
-		keyFile := cfg.ListenAgent.KeyFile
+		certFile := cfg.Agent.Listen.CertificateFile
+		keyFile := cfg.Agent.Listen.KeyFile
 		switch {
 		case certFile != "" && keyFile != "":
 			config, err := tlstool.DefaultServerTLSConfig(certFile, keyFile)
