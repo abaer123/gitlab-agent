@@ -1,4 +1,4 @@
-package agentk
+package gitops_agent
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"github.com/ash2k/stager"
 	"github.com/go-logr/zapr"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
 	"go.uber.org/zap"
@@ -22,7 +23,7 @@ const (
 )
 
 type gitopsWorker struct {
-	kasClient                          agentrpc.KasClient
+	api                                modagent.API
 	engineFactory                      GitOpsEngineFactory
 	getObjectsToSynchronizeRetryPeriod time.Duration
 	synchronizerConfig
@@ -80,7 +81,7 @@ func (d *gitopsWorker) getObjectsToSynchronize(s *synchronizer) func(context.Con
 	return func(ctx context.Context) {
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel() // ensure streaming call is canceled
-		res, err := d.kasClient.GetObjectsToSynchronize(ctx, &agentrpc.ObjectsToSynchronizeRequest{
+		res, err := d.api.GetObjectsToSynchronize(ctx, &agentrpc.ObjectsToSynchronizeRequest{
 			ProjectId: d.projectConfiguration.Id,
 			CommitId:  lastProcessedCommitId,
 			Paths:     d.projectConfiguration.Paths,

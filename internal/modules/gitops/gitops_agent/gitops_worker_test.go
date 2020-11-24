@@ -1,4 +1,4 @@
-package agentk
+package gitops_agent
 
 import (
 	"context"
@@ -16,6 +16,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_engine"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
@@ -31,6 +32,10 @@ const (
 	defaultNamespace = "testing1"
 )
 
+var (
+	_ GitOpsEngineFactory = &DefaultGitOpsEngineFactory{}
+)
+
 func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -40,7 +45,7 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 	// mock controllers are not thread safe.
 	engine := mock_engine.NewMockGitOpsEngine(mockEngineCtrl)
 	engineFactory := mock_engine.NewMockGitOpsEngineFactory(mockCtrl)
-	kasClient := mock_agentrpc.NewMockKasClient(mockCtrl)
+	api := mock_modagent.NewMockAPI(mockCtrl)
 	stream1 := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
 	job1started := make(chan struct{})
 	stream2 := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
@@ -62,7 +67,7 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 			Return(func() {
 				engineWasStopped = true
 			}, nil),
-		kasClient.EXPECT().
+		api.EXPECT().
 			GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeRequest{
 				ProjectId: projectId,
 				Paths:     pathsCfg,
@@ -87,7 +92,7 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 		stream1.EXPECT().
 			Recv().
 			Return(nil, io.EOF),
-		kasClient.EXPECT().
+		api.EXPECT().
 			GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeRequest{
 				ProjectId: projectId,
 				CommitId:  revision,
@@ -111,7 +116,7 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 		})
 
 	d := &gitopsWorker{
-		kasClient:                          kasClient,
+		api:                                api,
 		engineFactory:                      engineFactory,
 		getObjectsToSynchronizeRetryPeriod: 10 * time.Millisecond, // must be small, to retry fast
 		synchronizerConfig: synchronizerConfig{
@@ -317,14 +322,14 @@ func objsAndResp(t *testing.T) ([]*unstructured.Unstructured, *agentrpc.ObjectsT
 	return objs, headers, resp1, resp2, resp3, trailers
 }
 
-func setupWorker(t *testing.T) (*gomock.Controller, *gitopsWorker, *mock_engine.MockGitOpsEngine, *mock_agentrpc.MockKas_GetObjectsToSynchronizeClient, *mock_agentrpc.MockKasClient) {
+func setupWorker(t *testing.T) (*gomock.Controller, *gitopsWorker, *mock_engine.MockGitOpsEngine, *mock_agentrpc.MockKas_GetObjectsToSynchronizeClient, *mock_modagent.MockAPI) {
 	mockCtrl := gomock.NewController(t)
 	mockEngineCtrl := gomock.NewController(t)
 	// engine is used concurrently with other mocks. So use a separate mock controller to avoid data races because
 	// mock controllers are not thread safe.
 	engine := mock_engine.NewMockGitOpsEngine(mockEngineCtrl)
 	engineFactory := mock_engine.NewMockGitOpsEngineFactory(mockCtrl)
-	kasClient := mock_agentrpc.NewMockKasClient(mockCtrl)
+	api := mock_modagent.NewMockAPI(mockCtrl)
 	stream := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
 	engineWasStopped := false
 	t.Cleanup(func() {
@@ -344,7 +349,7 @@ func setupWorker(t *testing.T) (*gomock.Controller, *gitopsWorker, *mock_engine.
 			Return(func() {
 				engineWasStopped = true
 			}, nil),
-		kasClient.EXPECT().
+		api.EXPECT().
 			GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeRequest{
 				ProjectId: projectId,
 				Paths:     pathsCfg,
@@ -352,7 +357,7 @@ func setupWorker(t *testing.T) (*gomock.Controller, *gitopsWorker, *mock_engine.
 			Return(stream, nil),
 	)
 	d := &gitopsWorker{
-		kasClient:                          kasClient,
+		api:                                api,
 		engineFactory:                      engineFactory,
 		getObjectsToSynchronizeRetryPeriod: 10 * time.Second,
 		synchronizerConfig: synchronizerConfig{
@@ -365,7 +370,7 @@ func setupWorker(t *testing.T) (*gomock.Controller, *gitopsWorker, *mock_engine.
 			k8sClientGetter: genericclioptions.NewTestConfigFlags(),
 		},
 	}
-	return mockCtrl, d, engine, stream, kasClient
+	return mockCtrl, d, engine, stream, api
 }
 
 func testMap1() *corev1.ConfigMap {
