@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"time"
 
 	"github.com/go-logr/zapr"
 	"github.com/spf13/pflag"
@@ -13,19 +12,12 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/types/known/durationpb"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 )
 
 type App struct {
-	ConfigurationFile         string
-	ListenNetwork             string
-	ListenAddress             string
-	ListenWebSocket           bool
-	GitLabAddress             string
-	GitLabAuthSecretFile      string
-	ReloadConfigurationPeriod time.Duration
+	ConfigurationFile string
 }
 
 func (a *App) Run(ctx context.Context) error {
@@ -34,30 +26,6 @@ func (a *App) Run(ctx context.Context) error {
 		return err
 	}
 	ApplyDefaultsToKasConfigurationFile(cfg)
-	if a.ListenNetwork != defaultListenAgentNetwork.String() {
-		val, ok := kascfg.ListenNetworkEnum_value[a.ListenNetwork]
-		if !ok {
-			return fmt.Errorf("unsupported listen-network flag passed: %s", a.ListenNetwork)
-		}
-		cfg.ListenAgent.Network = kascfg.ListenNetworkEnum(val)
-	}
-	if a.ListenAddress != defaultListenAgentAddress {
-		cfg.ListenAgent.Address = a.ListenAddress
-	}
-	if a.ListenWebSocket {
-		cfg.ListenAgent.Websocket = a.ListenWebSocket
-	}
-
-	if a.GitLabAddress != defaultGitLabAddress {
-		cfg.Gitlab.Address = a.GitLabAddress
-	}
-	if a.GitLabAuthSecretFile != "" {
-		cfg.Gitlab.AuthenticationSecretFile = a.GitLabAuthSecretFile
-	}
-
-	if a.ReloadConfigurationPeriod != defaultAgentConfigurationPollPeriod {
-		cfg.Agent.Configuration.PollPeriod = durationpb.New(a.ReloadConfigurationPeriod)
-	}
 	logger, err := loggerFromConfig(cfg.Observability.Logging)
 	if err != nil {
 		return err
@@ -103,12 +71,6 @@ func LoadConfigurationFile(configFile string) (*kascfg.ConfigurationFile, error)
 func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, error) {
 	app := &App{}
 	flagset.StringVar(&app.ConfigurationFile, "configuration-file", "", "Optional configuration file to use (YAML)")
-	flagset.StringVar(&app.ListenNetwork, "listen-network", defaultListenAgentNetwork.String(), "Network type to listen on. Supported values: tcp, tcp4, tcp6, unix")
-	flagset.StringVar(&app.ListenAddress, "listen-address", defaultListenAgentAddress, "Address to listen on")
-	flagset.BoolVar(&app.ListenWebSocket, "listen-websocket", false, "Enable \"gRPC through WebSocket\" listening mode. Rather than expecting gRPC directly, expect a WebSocket connection, from which a gRPC stream is then unpacked")
-	flagset.StringVar(&app.GitLabAddress, "gitlab-address", defaultGitLabAddress, "GitLab address")
-	flagset.StringVar(&app.GitLabAuthSecretFile, "authentication-secret-file", "", "File with JWT secret to authenticate with GitLab")
-	flagset.DurationVar(&app.ReloadConfigurationPeriod, "reload-configuration-period", defaultAgentConfigurationPollPeriod, "How often to reload agentk configuration")
 	if err := flagset.Parse(arguments); err != nil {
 		return nil, err
 	}
