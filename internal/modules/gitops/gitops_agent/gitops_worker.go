@@ -1,4 +1,4 @@
-package agentk
+package gitops_agent
 
 import (
 	"context"
@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"time"
+
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modclient"
 
 	"github.com/argoproj/gitops-engine/pkg/cache"
 	"github.com/argoproj/gitops-engine/pkg/engine"
@@ -22,7 +24,7 @@ const (
 )
 
 type gitopsWorker struct {
-	kasClient                          agentrpc.KasClient
+	api                                modclient.AgentAPI
 	engineFactory                      GitOpsEngineFactory
 	getObjectsToSynchronizeRetryPeriod time.Duration
 	synchronizerConfig
@@ -80,7 +82,7 @@ func (d *gitopsWorker) getObjectsToSynchronize(s *synchronizer) func(context.Con
 	return func(ctx context.Context) {
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel() // ensure streaming call is canceled
-		res, err := d.kasClient.GetObjectsToSynchronize(ctx, &agentrpc.ObjectsToSynchronizeRequest{
+		res, err := d.api.GetObjectsToSynchronize(ctx, &agentrpc.ObjectsToSynchronizeRequest{
 			ProjectId: d.projectConfiguration.Id,
 			CommitId:  lastProcessedCommitId,
 			Paths:     d.projectConfiguration.Paths,

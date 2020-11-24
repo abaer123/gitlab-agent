@@ -1,4 +1,4 @@
-package agentk
+package gitops_agent
 
 import (
 	"bytes"
