@@ -8,8 +8,6 @@ import (
 )
 
 const (
-	defaultListenAgentNetwork kascfg.ListenNetworkEnum = 0 // whatever is 0 is the default value
-
 	defaultListenAgentAddress = "127.0.0.1:8150"
 
 	defaultGitLabAddress                = "http://localhost:8080"
