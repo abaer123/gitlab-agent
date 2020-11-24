@@ -17,7 +17,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/gitops/gitops_agent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modclient"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/observability/observability_agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/tlstool"
@@ -80,7 +80,7 @@ func (a *App) Run(ctx context.Context) error {
 		Log:                             a.Log,
 		KasClient:                       agentrpc.NewKasClient(conn),
 		RefreshConfigurationRetryPeriod: defaultRefreshConfigurationRetryPeriod,
-		ModuleFactories: []modclient.Factory{
+		ModuleFactories: []modagent.Factory{
 			//  Should be the first to configure logging ASAP
 			&observability_agent.Factory{
 				LogLevel: a.LogLevel,

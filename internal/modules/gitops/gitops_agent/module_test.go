@@ -8,14 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modclient"
-
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_engine"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_modclient"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -24,8 +23,8 @@ import (
 )
 
 var (
-	_ modclient.Module  = &Module{}
-	_ modclient.Factory = &Factory{}
+	_ modagent.Module  = &module{}
+	_ modagent.Factory = &Factory{}
 )
 
 func TestStartsWorkersAccordingToConfiguration(t *testing.T) {
@@ -109,7 +108,7 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 	}
 }
 
-func setupModule(t *testing.T) (*Module, *gomock.Controller, *mock_engine.MockGitOpsEngineFactory, *mock_modclient.MockAgentAPI) { // nolint: unparam
+func setupModule(t *testing.T) (*module, *gomock.Controller, *mock_engine.MockGitOpsEngineFactory, *mock_modagent.MockAPI) { // nolint: unparam
 	mockCtrl := gomock.NewController(t)
 	engFactory := mock_engine.NewMockGitOpsEngineFactory(mockCtrl)
 	configFlags := genericclioptions.NewTestConfigFlags()
@@ -121,9 +120,9 @@ func setupModule(t *testing.T) (*Module, *gomock.Controller, *mock_engine.MockGi
 		K8sClientGetter:                    configFlags,
 		GetObjectsToSynchronizeRetryPeriod: 10 * time.Second,
 	}
-	mockApi := mock_modclient.NewMockAgentAPI(mockCtrl)
-	module := factory.New(mockApi)
-	return module.(*Module), mockCtrl, engFactory, mockApi
+	mockApi := mock_modagent.NewMockAPI(mockCtrl)
+	m := factory.New(mockApi)
+	return m.(*module), mockCtrl, engFactory, mockApi
 }
 
 func testConfigurations() []*agentcfg.AgentConfiguration {
@@ -173,18 +172,18 @@ func testConfigurations() []*agentcfg.AgentConfiguration {
 	}
 }
 
-func assertWorkersMatchConfiguration(t *testing.T, p *Module, config *agentcfg.AgentConfiguration) bool { // nolint: unparam
+func assertWorkersMatchConfiguration(t *testing.T, m *module, config *agentcfg.AgentConfiguration) bool { // nolint: unparam
 	projects := config.GetGitops().GetManifestProjects()
-	if !assert.Len(t, p.workers, len(projects)) {
+	if !assert.Len(t, m.workers, len(projects)) {
 		return false
 	}
 	success := true
 	for _, project := range projects {
-		if !assert.Contains(t, p.workers, project.Id) {
+		if !assert.Contains(t, m.workers, project.Id) {
 			success = false
 			continue
 		}
-		success = assert.Empty(t, cmp.Diff(p.workers[project.Id].worker.projectConfiguration, project, protocmp.Transform())) || success
+		success = assert.Empty(t, cmp.Diff(m.workers[project.Id].worker.projectConfiguration, project, protocmp.Transform())) || success
 	}
 	return success
 }

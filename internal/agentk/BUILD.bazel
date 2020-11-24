@@ -10,7 +10,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/agentrpc",
-        "//internal/modules/modclient",
+        "//internal/modules/modagent",
         "//internal/tools/grpctool",
         "//internal/tools/logz",
         "//internal/tools/retry",

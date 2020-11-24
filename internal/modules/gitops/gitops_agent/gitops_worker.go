@@ -7,13 +7,12 @@ import (
 	"io"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modclient"
-
 	"github.com/argoproj/gitops-engine/pkg/cache"
 	"github.com/argoproj/gitops-engine/pkg/engine"
 	"github.com/ash2k/stager"
 	"github.com/go-logr/zapr"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
 	"go.uber.org/zap"
@@ -24,7 +23,7 @@ const (
 )
 
 type gitopsWorker struct {
-	api                                modclient.AgentAPI
+	api                                modagent.API
 	engineFactory                      GitOpsEngineFactory
 	getObjectsToSynchronizeRetryPeriod time.Duration
 	synchronizerConfig

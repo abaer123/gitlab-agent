@@ -1,10 +1,10 @@
 package observability_agent
 
 import (
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modclient"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modagent"
 )
 
 var (
-	_ modclient.Module  = &Module{}
-	_ modclient.Factory = &Factory{}
+	_ modagent.Module  = &module{}
+	_ modagent.Factory = &Factory{}
 )

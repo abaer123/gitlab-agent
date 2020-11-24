@@ -14,15 +14,15 @@ const (
 	ModuleName = "observability"
 )
 
-type Module struct {
-	LogLevel zap.AtomicLevel
+type module struct {
+	logLevel zap.AtomicLevel
 }
 
-func (m *Module) Run(ctx context.Context) error {
+func (m *module) Run(ctx context.Context) error {
 	return nil
 }
 
-func (m *Module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error {
+func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error {
 	protodefault.NotNil(&config.Observability)
 	protodefault.NotNil(&config.Observability.Logging)
 	err := m.defaultAndValidateLogging(config.Observability.Logging)
@@ -32,7 +32,7 @@ func (m *Module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfigura
 	return nil
 }
 
-func (m *Module) SetConfiguration(config *agentcfg.AgentConfiguration) error {
+func (m *module) SetConfiguration(config *agentcfg.AgentConfiguration) error {
 	err := m.setConfigurationLogging(config.Observability.Logging)
 	if err != nil {
 		return fmt.Errorf("logging: %v", err)
@@ -40,20 +40,20 @@ func (m *Module) SetConfiguration(config *agentcfg.AgentConfiguration) error {
 	return nil
 }
 
-func (m *Module) Name() string {
+func (m *module) Name() string {
 	return ModuleName
 }
 
-func (m *Module) defaultAndValidateLogging(logging *agentcfg.LoggingCF) error {
+func (m *module) defaultAndValidateLogging(logging *agentcfg.LoggingCF) error {
 	_, err := logz.LevelFromString(logging.Level.String())
 	return err
 }
 
-func (m *Module) setConfigurationLogging(logging *agentcfg.LoggingCF) error {
+func (m *module) setConfigurationLogging(logging *agentcfg.LoggingCF) error {
 	level, err := logz.LevelFromString(logging.Level.String())
 	if err != nil {
 		return err
 	}
-	m.LogLevel.SetLevel(level)
+	m.logLevel.SetLevel(level)
 	return nil
 }

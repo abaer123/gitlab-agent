@@ -1,4 +1,4 @@
-package modclient
+package modagent
 
 import (
 	"context"
@@ -8,13 +8,14 @@ import (
 	"google.golang.org/grpc"
 )
 
-type AgentAPI interface {
+// API provides the API for the module to use.
+type API interface {
 	GetObjectsToSynchronize(ctx context.Context, in *agentrpc.ObjectsToSynchronizeRequest, opts ...grpc.CallOption) (agentrpc.Kas_GetObjectsToSynchronizeClient, error)
 }
 
 type Factory interface {
 	// New creates a new instance of a Module.
-	New(AgentAPI) Module
+	New(API) Module
 }
 
 type Module interface {

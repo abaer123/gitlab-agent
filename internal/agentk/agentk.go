@@ -9,7 +9,7 @@ import (
 
 	"github.com/ash2k/stager"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modclient"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
@@ -20,7 +20,7 @@ type Agent struct {
 	Log                             *zap.Logger
 	KasClient                       agentrpc.KasClient
 	RefreshConfigurationRetryPeriod time.Duration
-	ModuleFactories                 []modclient.Factory
+	ModuleFactories                 []modagent.Factory
 }
 
 func (a *Agent) Run(ctx context.Context) error {
@@ -32,9 +32,9 @@ func (a *Agent) Run(ctx context.Context) error {
 	return st.Run(ctx)
 }
 
-func (a *Agent) startModules(st stager.Stager) []modclient.Module {
+func (a *Agent) startModules(st stager.Stager) []modagent.Module {
 	stage := st.NextStage()
-	modules := make([]modclient.Module, 0, len(a.ModuleFactories))
+	modules := make([]modagent.Module, 0, len(a.ModuleFactories))
 	for _, factory := range a.ModuleFactories {
 		module := factory.New(a.KasClient)
 		modules = append(modules, module)
@@ -43,7 +43,7 @@ func (a *Agent) startModules(st stager.Stager) []modclient.Module {
 	return modules
 }
 
-func (a *Agent) startConfigurationRefresh(st stager.Stager, modules []modclient.Module) {
+func (a *Agent) startConfigurationRefresh(st stager.Stager, modules []modagent.Module) {
 	stage := st.NextStage()
 	stage.Go(func(ctx context.Context) error {
 		retry.JitterUntil(ctx, a.RefreshConfigurationRetryPeriod, a.refreshConfiguration(modules))
@@ -51,7 +51,7 @@ func (a *Agent) startConfigurationRefresh(st stager.Stager, modules []modclient.
 	})
 }
 
-func (a *Agent) refreshConfiguration(modules []modclient.Module) func(context.Context) {
+func (a *Agent) refreshConfiguration(modules []modagent.Module) func(context.Context) {
 	var lastProcessedCommitId string
 	return func(ctx context.Context) {
 		ctx, cancel := context.WithCancel(ctx)
@@ -87,7 +87,7 @@ func (a *Agent) refreshConfiguration(modules []modclient.Module) func(context.Co
 	}
 }
 
-func (a *Agent) applyConfiguration(modules []modclient.Module, config *agentcfg.AgentConfiguration) error {
+func (a *Agent) applyConfiguration(modules []modagent.Module, config *agentcfg.AgentConfiguration) error {
 	a.Log.Debug("Applying configuration", agentConfig(config))
 	// Default and validate before setting for use.
 	for _, module := range modules {

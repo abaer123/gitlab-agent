@@ -15,7 +15,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/agentrpc",
-        "//internal/modules/modclient",
+        "//internal/modules/modagent",
         "//internal/tools/errz",
         "//internal/tools/grpctool",
         "//internal/tools/logz",
@@ -51,11 +51,11 @@ go_test(
     deps = [
         "//internal/agentrpc",
         "//internal/agentrpc/mock_agentrpc",
-        "//internal/modules/modclient",
+        "//internal/modules/modagent",
         "//internal/tools/testing/kube_testing",
         "//internal/tools/testing/matcher",
         "//internal/tools/testing/mock_engine",
-        "//internal/tools/testing/mock_modclient",
+        "//internal/tools/testing/mock_modagent",
         "//pkg/agentcfg",
         "@com_github_argoproj_gitops_engine//pkg/cache",
         "@com_github_argoproj_gitops_engine//pkg/sync",

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modclient"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modagent"
 
 	"github.com/argoproj/gitops-engine/pkg/cache"
 	"github.com/argoproj/gitops-engine/pkg/engine"
@@ -28,27 +28,27 @@ type GitOpsEngineFactory interface {
 	New(engineOpts []engine.Option, cacheOpts []cache.UpdateSettingsFunc) engine.GitOpsEngine
 }
 
-type Module struct {
+type module struct {
 	log                                *zap.Logger
 	engineFactory                      GitOpsEngineFactory
 	k8sClientGetter                    resource.RESTClientGetter
 	getObjectsToSynchronizeRetryPeriod time.Duration
-	api                                modclient.AgentAPI
+	api                                modagent.API
 	workers                            map[string]*gitopsWorkerHolder // project id -> worker holder instance
 }
 
-func (m *Module) Run(ctx context.Context) error {
+func (m *module) Run(ctx context.Context) error {
 	defer m.stopAllWorkers()
 	<-ctx.Done()
 	return nil
 }
 
-func (m *Module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error {
+func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error {
 	protodefault.NotNil(&config.Gitops)
 	return nil
 }
 
-func (m *Module) SetConfiguration(config *agentcfg.AgentConfiguration) error {
+func (m *module) SetConfiguration(config *agentcfg.AgentConfiguration) error {
 	err := m.configureWorkers(config.Gitops.ManifestProjects)
 	if err != nil {
 		return fmt.Errorf("manifest projects: %v", err)
@@ -56,11 +56,11 @@ func (m *Module) SetConfiguration(config *agentcfg.AgentConfiguration) error {
 	return nil
 }
 
-func (m *Module) Name() string {
+func (m *module) Name() string {
 	return ModuleName
 }
 
-func (m *Module) stopAllWorkers() {
+func (m *module) stopAllWorkers() {
 	// Tell all workers to stop
 	for _, workerHolder := range m.workers {
 		workerHolder.stop()
@@ -71,7 +71,7 @@ func (m *Module) stopAllWorkers() {
 	}
 }
 
-func (m *Module) startNewWorker(project *agentcfg.ManifestProjectCF) {
+func (m *module) startNewWorker(project *agentcfg.ManifestProjectCF) {
 	l := m.log.With(logz.ProjectId(project.Id))
 	l.Info("Starting synchronization worker")
 	worker := &gitopsWorker{
@@ -93,7 +93,7 @@ func (m *Module) startNewWorker(project *agentcfg.ManifestProjectCF) {
 	m.workers[project.Id] = workerHolder
 }
 
-func (m *Module) configureWorkers(projects []*agentcfg.ManifestProjectCF) error {
+func (m *module) configureWorkers(projects []*agentcfg.ManifestProjectCF) error {
 	newSetOfProjects := sets.NewString()
 	var (
 		projectsToStartWorkersFor []*agentcfg.ManifestProjectCF

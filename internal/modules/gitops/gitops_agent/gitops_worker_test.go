@@ -16,7 +16,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_engine"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_modclient"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
@@ -45,7 +45,7 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 	// mock controllers are not thread safe.
 	engine := mock_engine.NewMockGitOpsEngine(mockEngineCtrl)
 	engineFactory := mock_engine.NewMockGitOpsEngineFactory(mockCtrl)
-	api := mock_modclient.NewMockAgentAPI(mockCtrl)
+	api := mock_modagent.NewMockAPI(mockCtrl)
 	stream1 := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
 	job1started := make(chan struct{})
 	stream2 := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
@@ -322,14 +322,14 @@ func objsAndResp(t *testing.T) ([]*unstructured.Unstructured, *agentrpc.ObjectsT
 	return objs, headers, resp1, resp2, resp3, trailers
 }
 
-func setupWorker(t *testing.T) (*gomock.Controller, *gitopsWorker, *mock_engine.MockGitOpsEngine, *mock_agentrpc.MockKas_GetObjectsToSynchronizeClient, *mock_modclient.MockAgentAPI) {
+func setupWorker(t *testing.T) (*gomock.Controller, *gitopsWorker, *mock_engine.MockGitOpsEngine, *mock_agentrpc.MockKas_GetObjectsToSynchronizeClient, *mock_modagent.MockAPI) {
 	mockCtrl := gomock.NewController(t)
 	mockEngineCtrl := gomock.NewController(t)
 	// engine is used concurrently with other mocks. So use a separate mock controller to avoid data races because
 	// mock controllers are not thread safe.
 	engine := mock_engine.NewMockGitOpsEngine(mockEngineCtrl)
 	engineFactory := mock_engine.NewMockGitOpsEngineFactory(mockCtrl)
-	api := mock_modclient.NewMockAgentAPI(mockCtrl)
+	api := mock_modagent.NewMockAPI(mockCtrl)
 	stream := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
 	engineWasStopped := false
 	t.Cleanup(func() {
