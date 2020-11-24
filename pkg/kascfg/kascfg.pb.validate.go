@@ -663,6 +663,16 @@ func (m *AgentCF) Validate() error {
 		return nil
 	}
 
+	if v, ok := interface{}(m.GetListen()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return AgentCFValidationError{
+				field:  "Listen",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	if v, ok := interface{}(m.GetConfiguration()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return AgentCFValidationError{
@@ -1654,16 +1664,6 @@ var _ interface {
 func (m *ConfigurationFile) Validate() error {
 	if m == nil {
 		return nil
-	}
-
-	if v, ok := interface{}(m.GetListenAgent()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ConfigurationFileValidationError{
-				field:  "ListenAgent",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
 	}
 
 	if v, ok := interface{}(m.GetGitlab()).(interface{ Validate() error }); ok {

@@ -44,13 +44,15 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 	address := getRandomLocalAddress(t)
 	ag := kasapp.ConfiguredApp{
 		Configuration: &kascfg.ConfigurationFile{
-			ListenAgent: &kascfg.ListenAgentCF{
-				Address:   address,
-				Websocket: websocket,
-			},
 			Gitlab: &kascfg.GitLabCF{
 				Address:                  gitlabAddress,
 				AuthenticationSecretFile: kasAuthSecretFile,
+			},
+			Agent: &kascfg.AgentCF{
+				Listen: &kascfg.ListenAgentCF{
+					Address:   address,
+					Websocket: websocket,
+				},
 			},
 		},
 		Log: zaptest.NewLogger(t),

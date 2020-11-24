@@ -8,11 +8,11 @@ import (
 )
 
 const (
-	defaultListenAgentAddress = "127.0.0.1:8150"
-
 	defaultGitLabAddress                = "http://localhost:8080"
 	defaultGitLabApiRateLimitRefillRate = 10.0
 	defaultGitLabApiRateLimitBucketSize = 50
+
+	defaultAgentListenAddress = "127.0.0.1:8150"
 
 	defaultAgentConfigurationPollPeriod = 20 * time.Second
 
@@ -51,9 +51,6 @@ const (
 )
 
 func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
-	protodefault.NotNil(&cfg.ListenAgent)
-	defaultListenAgent(cfg.ListenAgent)
-
 	protodefault.NotNil(&cfg.Gitlab)
 	defaultGitLab(cfg.Gitlab)
 
@@ -71,10 +68,6 @@ func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
 	}
 }
 
-func defaultListenAgent(l *kascfg.ListenAgentCF) {
-	protodefault.String(&l.Address, defaultListenAgentAddress)
-}
-
 func defaultGitLab(g *kascfg.GitLabCF) {
 	protodefault.String(&g.Address, defaultGitLabAddress)
 
@@ -84,6 +77,9 @@ func defaultGitLab(g *kascfg.GitLabCF) {
 }
 
 func defaultAgent(a *kascfg.AgentCF) {
+	protodefault.NotNil(&a.Listen)
+	protodefault.String(&a.Listen.Address, defaultAgentListenAddress)
+
 	protodefault.NotNil(&a.Configuration)
 	protodefault.Duration(&a.Configuration.PollPeriod, defaultAgentConfigurationPollPeriod)
 

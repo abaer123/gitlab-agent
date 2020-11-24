@@ -94,17 +94,19 @@ message SentryCF {
 }
 
 message AgentCF {
+    // RPC listener configuration for agentk connections.
+    ListenAgentCF listen = 1 [json_name = "listen"];
     // Configuration for agent's configuration repository.
-    AgentConfigurationCF configuration = 1 [json_name = "configuration"];
+    AgentConfigurationCF configuration = 2 [json_name = "configuration"];
     // Configuration for GitOps.
-    GitopsCF gitops = 2 [json_name = "gitops"];
+    GitopsCF gitops = 3 [json_name = "gitops"];
     // TTL for successful agent info lookups. /api/v4/internal/kubernetes/agent_info
     // Set to zero to disable.
-    google.protobuf.Duration info_cache_ttl = 3 [json_name = "info_cache_ttl", (validate.rules).duration = {gte: {}}];
+    google.protobuf.Duration info_cache_ttl = 4 [json_name = "info_cache_ttl", (validate.rules).duration = {gte: {}}];
     // TTL for failed agent info lookups. /api/v4/internal/kubernetes/agent_info
-    google.protobuf.Duration info_cache_error_ttl = 4 [json_name = "info_cache_error_ttl", (validate.rules).duration = {gt: {}}];
+    google.protobuf.Duration info_cache_error_ttl = 5 [json_name = "info_cache_error_ttl", (validate.rules).duration = {gt: {}}];
     // Various limiter configurations
-    AgentLimitsCF limits = 5 [json_name = "limits"];
+    AgentLimitsCF limits = 6 [json_name = "limits"];
 }
 
 message AgentConfigurationCF {
@@ -207,16 +209,14 @@ message AgentLimitsCF {
 
 // ConfigurationFile represents kas configuration file.
 message ConfigurationFile {
-    // RPC listener configuration for agentk connections.
-    ListenAgentCF listen_agent = 1 [json_name = "listen_agent"];
     // Configuration related to interaction with GitLab.
-    GitLabCF gitlab = 2 [json_name = "gitlab"];
+    GitLabCF gitlab = 1 [json_name = "gitlab"];
     // Configuration related to the agent. Generally all configuration for user-facing features should be here.
-    AgentCF agent = 3 [json_name = "agent"];
+    AgentCF agent = 2 [json_name = "agent"];
     // Configuration related to all things observability: metrics, tracing, monitoring, logging, usage metrics, profiling.
-    ObservabilityCF observability = 4 [json_name = "observability"];
+    ObservabilityCF observability = 3 [json_name = "observability"];
     // Configuration related to interaction with Gitaly.
-    GitalyCF gitaly = 5 [json_name = "gitaly"];
+    GitalyCF gitaly = 4 [json_name = "gitaly"];
     // Redis configurations available to kas
-    RedisCF redis = 6 [json_name = "redis"];
+    RedisCF redis = 5 [json_name = "redis"];
 }
