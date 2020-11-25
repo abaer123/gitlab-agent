@@ -76,10 +76,15 @@ func (a *App) Run(ctx context.Context) error {
 		return err
 	}
 	defer conn.Close() // nolint: errcheck
+	kasClient := agentrpc.NewKasClient(conn)
 	agent := agentk.Agent{
-		Log:                             a.Log,
-		KasClient:                       agentrpc.NewKasClient(conn),
-		RefreshConfigurationRetryPeriod: defaultRefreshConfigurationRetryPeriod,
+		Log:       a.Log,
+		KasClient: kasClient,
+		ConfigurationWatcher: &agentrpc.ConfigurationWatcher{
+			Log:         a.Log,
+			KasClient:   kasClient,
+			RetryPeriod: defaultRefreshConfigurationRetryPeriod,
+		},
 		ModuleFactories: []modagent.Factory{
 			//  Should be the first to configure logging ASAP
 			&observability_agent.Factory{

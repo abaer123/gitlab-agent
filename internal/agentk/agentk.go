@@ -2,25 +2,21 @@ package agentk
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io"
-	"time"
 
 	"github.com/ash2k/stager"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
 )
 
 type Agent struct {
-	Log                             *zap.Logger
-	KasClient                       agentrpc.KasClient
-	RefreshConfigurationRetryPeriod time.Duration
-	ModuleFactories                 []modagent.Factory
+	Log                  *zap.Logger
+	KasClient            agentrpc.KasClient
+	ConfigurationWatcher agentrpc.ConfigurationWatcherInterface
+	ModuleFactories      []modagent.Factory
 }
 
 func (a *Agent) Run(ctx context.Context) error {
@@ -46,49 +42,19 @@ func (a *Agent) startModules(st stager.Stager) []modagent.Module {
 func (a *Agent) startConfigurationRefresh(st stager.Stager, modules []modagent.Module) {
 	stage := st.NextStage()
 	stage.Go(func(ctx context.Context) error {
-		retry.JitterUntil(ctx, a.RefreshConfigurationRetryPeriod, a.refreshConfiguration(modules))
+		a.ConfigurationWatcher.Watch(ctx, func(ctx context.Context, commitId string, config *agentcfg.AgentConfiguration) {
+			err := a.applyConfiguration(modules, commitId, config)
+			if err != nil {
+				a.Log.Error("Failed to apply configuration", logz.CommitId(commitId), zap.Error(err))
+				return
+			}
+		})
 		return nil
 	})
 }
 
-func (a *Agent) refreshConfiguration(modules []modagent.Module) func(context.Context) {
-	var lastProcessedCommitId string
-	return func(ctx context.Context) {
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel() // ensure streaming call is canceled
-		req := &agentrpc.ConfigurationRequest{
-			CommitId: lastProcessedCommitId,
-		}
-		res, err := a.KasClient.GetConfiguration(ctx, req)
-		if err != nil {
-			if !grpctool.RequestCanceled(err) {
-				a.Log.Warn("GetConfiguration failed", zap.Error(err))
-			}
-			return
-		}
-		for {
-			config, err := res.Recv()
-			if err != nil {
-				switch {
-				case errors.Is(err, io.EOF):
-				case grpctool.RequestCanceled(err):
-				default:
-					a.Log.Warn("GetConfiguration.Recv failed", zap.Error(err))
-				}
-				return
-			}
-			lastProcessedCommitId = config.CommitId
-			err = a.applyConfiguration(modules, config.Configuration)
-			if err != nil {
-				a.Log.Error("Failed to apply configuration", zap.Error(err))
-				continue
-			}
-		}
-	}
-}
-
-func (a *Agent) applyConfiguration(modules []modagent.Module, config *agentcfg.AgentConfiguration) error {
-	a.Log.Debug("Applying configuration", agentConfig(config))
+func (a *Agent) applyConfiguration(modules []modagent.Module, commitId string, config *agentcfg.AgentConfiguration) error {
+	a.Log.Debug("Applying configuration", logz.CommitId(commitId), agentConfig(config))
 	// Default and validate before setting for use.
 	for _, module := range modules {
 		err := module.DefaultAndValidateConfiguration(config)
