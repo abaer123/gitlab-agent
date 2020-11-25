@@ -11,9 +11,7 @@ go_library(
     deps = [
         "//internal/agentrpc",
         "//internal/modules/modagent",
-        "//internal/tools/grpctool",
         "//internal/tools/logz",
-        "//internal/tools/retry",
         "//pkg/agentcfg",
         "@com_github_ash2k_stager//:stager",
         "@org_uber_go_zap//:zap",
@@ -29,7 +27,8 @@ go_test(
     deps = [
         "//internal/agentrpc",
         "//internal/agentrpc/mock_agentrpc",
-        "//internal/tools/testing/matcher",
+        "//internal/modules/modagent",
+        "//internal/tools/testing/mock_modagent",
         "//pkg/agentcfg",
         "@com_github_golang_mock//gomock",
         "@com_github_stretchr_testify//require",

@@ -2,66 +2,74 @@ package agentk
 
 import (
 	"context"
-	"io"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc/mock_agentrpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
 )
 
 const (
-	revision = "rev12341234"
+	revision1 = "rev12341234_1"
+	revision2 = "rev12341234_2"
 )
 
-func TestGetConfigurationResumeConnection(t *testing.T) {
+func TestConfigurationIsApplied(t *testing.T) {
+	cfg1 := &agentcfg.AgentConfiguration{}
+	cfg2 := &agentcfg.AgentConfiguration{
+		Gitops: &agentcfg.GitopsCF{
+			ManifestProjects: []*agentcfg.ManifestProjectCF{
+				{
+					Id: "bla",
+				},
+			},
+		},
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	a, mockCtrl, client := setupBasicAgent(t)
-	configStream1 := mock_agentrpc.NewMockKas_GetConfigurationClient(mockCtrl)
-	configStream2 := mock_agentrpc.NewMockKas_GetConfigurationClient(mockCtrl)
-	gomock.InOrder(
-		client.EXPECT().
-			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &agentrpc.ConfigurationRequest{})).
-			Return(configStream1, nil),
-		configStream1.EXPECT().
-			Recv().
-			Return(&agentrpc.ConfigurationResponse{
-				Configuration: &agentcfg.AgentConfiguration{},
-				CommitId:      revision,
-			}, nil),
-		configStream1.EXPECT().
-			Recv().
-			Return(nil, io.EOF),
-		client.EXPECT().
-			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &agentrpc.ConfigurationRequest{
-				CommitId: revision,
-			})).
-			Return(configStream2, nil),
-		configStream2.EXPECT().
-			Recv().
-			DoAndReturn(func() (*agentrpc.ConfigurationResponse, error) {
-				cancel()
-				return nil, io.EOF
-			}),
-	)
-	err := a.Run(ctx)
-	require.NoError(t, err)
-}
-
-func setupBasicAgent(t *testing.T) (*Agent, *gomock.Controller, *mock_agentrpc.MockKasClient) {
 	mockCtrl := gomock.NewController(t)
 	client := mock_agentrpc.NewMockKasClient(mockCtrl)
-	agent := &Agent{
-		Log:                             zaptest.NewLogger(t),
-		KasClient:                       client,
-		RefreshConfigurationRetryPeriod: 10 * time.Millisecond,
-		ModuleFactories:                 nil,
+	watcher := mock_agentrpc.NewMockConfigurationWatcherInterface(mockCtrl)
+	f := mock_modagent.NewMockFactory(mockCtrl)
+	m := mock_modagent.NewMockModule(mockCtrl)
+	m.EXPECT().
+		Run(gomock.Any()).DoAndReturn(func(ctx context.Context) error {
+		<-ctx.Done()
+		return nil
+	})
+	gomock.InOrder(
+		m.EXPECT().
+			DefaultAndValidateConfiguration(cfg1),
+		m.EXPECT().
+			SetConfiguration(cfg1),
+		m.EXPECT().
+			DefaultAndValidateConfiguration(cfg2),
+		m.EXPECT().
+			SetConfiguration(cfg2),
+	)
+	gomock.InOrder(
+		f.EXPECT().
+			New(gomock.Any()).
+			Return(m),
+		watcher.EXPECT().
+			Watch(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, callback agentrpc.ConfigurationCallback) {
+				callback(ctx, revision1, cfg1)
+				callback(ctx, revision2, cfg2)
+				cancel()
+			}),
+	)
+	a := &Agent{
+		Log:                  zaptest.NewLogger(t),
+		KasClient:            client,
+		ConfigurationWatcher: watcher,
+		ModuleFactories:      []modagent.Factory{f},
 	}
-	return agent, mockCtrl, client
+	err := a.Run(ctx)
+	require.NoError(t, err)
 }
