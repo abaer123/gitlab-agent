@@ -6,7 +6,7 @@ go_library(
         "doc.go",
         "internalgitaly.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_internalgitaly",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_internalgitaly",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",
