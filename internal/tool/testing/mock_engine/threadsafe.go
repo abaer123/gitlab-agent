@@ -32,26 +32,26 @@ func (f *ThreadSafeGitOpsEngineFactory) New(engineOpts []engine.Option, cacheOpt
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 	return &ThreadSafeGitOpsEngine{
-		Mutex:  &f.mutex,
-		Engine: f.EngineFactory.New(engineOpts, cacheOpts),
+		Mutex:    &f.mutex,
+		Delegate: f.EngineFactory.New(engineOpts, cacheOpts),
 	}
 }
 
 type ThreadSafeGitOpsEngine struct {
 	// Mutex is a pointer to allow to share a mutex between mocks.
 	// This is required because all mocks share a *gomock.Controller instance which is what we are protecting.
-	Mutex  *sync.Mutex
-	Engine engine.GitOpsEngine
+	Mutex    *sync.Mutex
+	Delegate engine.GitOpsEngine
 }
 
 func (f *ThreadSafeGitOpsEngine) Run() (engine.StopFunc, error) {
 	f.Mutex.Lock()
 	defer f.Mutex.Unlock()
-	return f.Engine.Run()
+	return f.Delegate.Run()
 }
 
 func (f *ThreadSafeGitOpsEngine) Sync(ctx context.Context, resources []*unstructured.Unstructured, isManaged func(r *cache.Resource) bool, revision string, namespace string, opts ...enginesync.SyncOpt) ([]common.ResourceSyncResult, error) {
 	f.Mutex.Lock()
 	defer f.Mutex.Unlock()
-	return f.Sync(ctx, resources, isManaged, revision, namespace, opts...)
+	return f.Delegate.Sync(ctx, resources, isManaged, revision, namespace, opts...)
 }
