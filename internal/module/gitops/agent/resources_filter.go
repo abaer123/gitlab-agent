@@ -1,4 +1,4 @@
-package gitops_agent
+package agent
 
 import "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 

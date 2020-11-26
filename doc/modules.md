@@ -26,13 +26,8 @@ Responsibilities:
 
 ## Structure
 
-A module lives under `internal/module/{module name}`. Each module may contains one or two parts in separate directories, named after the module:
-
-- Server module directory name pattern: `{module name}_server`.
-- Agent module directory name pattern: `{module name}_agent`.
-
-Any code, that needs to be shared between server and agent modules, may be placed directly in the module's directory or a separate subdirectory.
+A module lives under `internal/module/{module name}`. Each module may contains one or two parts in separate directories: `server` and `agent`. Any code, that needs to be shared between server and agent modules, may be placed directly in the module's directory or a separate subdirectory.
 
 Code for server and agent modules must be in separate directories (i.e. Go packages) to avoid adding unnecessary dependencies from one to the other. That way server module's libraries don't leak into agent module package and vice versa. `gitlab-kas` must only depend on server modules and `agentk` must only depend on agent modules.
 
-Modules may share code via separate packages but must not depend on each other directly. `internal/module/{module A}` can depend on `internal/module/{module B}/shared_package`.
+Modules may share code via separate packages but must not depend on each other directly. `internal/module/{module A}` (and any subdirectories) can depend on `internal/module/{module B}/some_shared_package`.

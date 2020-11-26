@@ -1,4 +1,4 @@
-package gitops_agent
+package agent
 
 import (
 	"github.com/argoproj/gitops-engine/pkg/utils/kube"

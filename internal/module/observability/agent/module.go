@@ -1,4 +1,4 @@
-package observability_agent
+package agent
 
 import (
 	"context"

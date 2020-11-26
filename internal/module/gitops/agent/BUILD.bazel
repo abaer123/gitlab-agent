@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "gitops_agent",
+    name = "agent",
     srcs = [
         "factory.go",
         "gitops_worker.go",
@@ -11,7 +11,7 @@ go_library(
         "sync_worker.go",
         "synchronizer.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/gitops_agent",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/agent",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/agentrpc",
@@ -38,14 +38,14 @@ go_library(
 )
 
 go_test(
-    name = "gitops_agent_test",
+    name = "agent_test",
     size = "small",
     srcs = [
         "gitops_worker_test.go",
         "module_test.go",
         "resources_filter_test.go",
     ],
-    embed = [":gitops_agent"],
+    embed = [":agent"],
     race = "on",
     deps = [
         "//internal/agentrpc",
