@@ -6,7 +6,7 @@ go_library(
         "agentrpc.go",
         "doc.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc/mock_agentrpc",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_agentrpc",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/agentrpc",

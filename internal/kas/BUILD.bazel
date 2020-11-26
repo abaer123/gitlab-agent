@@ -51,7 +51,6 @@ go_test(
     race = "on",
     deps = [
         "//internal/agentrpc",
-        "//internal/agentrpc/mock_agentrpc",
         "//internal/api",
         "//internal/api/apiutil",
         "//internal/gitaly",
@@ -60,6 +59,7 @@ go_test(
         "//internal/gitlab/mock_gitlab",
         "//internal/tool/testing/kube_testing",
         "//internal/tool/testing/matcher",
+        "//internal/tool/testing/mock_agentrpc",
         "//internal/tool/testing/mock_errtracker",
         "//pkg/agentcfg",
         "@com_github_golang_mock//gomock",

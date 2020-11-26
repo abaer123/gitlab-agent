@@ -49,10 +49,10 @@ go_test(
     race = "on",
     deps = [
         "//internal/agentrpc",
-        "//internal/agentrpc/mock_agentrpc",
         "//internal/module/modagent",
         "//internal/tool/testing/kube_testing",
         "//internal/tool/testing/matcher",
+        "//internal/tool/testing/mock_agentrpc",
         "//internal/tool/testing/mock_engine",
         "//internal/tool/testing/mock_grpc",
         "//internal/tool/testing/mock_modagent",
