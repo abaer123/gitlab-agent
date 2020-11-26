@@ -6,8 +6,8 @@ import (
 	"io"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/grpctool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
 )

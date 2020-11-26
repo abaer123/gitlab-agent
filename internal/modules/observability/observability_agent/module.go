@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/protodefault"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/protodefault"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
 )

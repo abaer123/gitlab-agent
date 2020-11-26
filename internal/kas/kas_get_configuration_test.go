@@ -16,7 +16,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_internalgitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"gitlab.com/gitlab-org/labkit/errortracking"

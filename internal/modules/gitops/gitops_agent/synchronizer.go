@@ -6,7 +6,7 @@ import (
 
 	"github.com/argoproj/gitops-engine/pkg/engine"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

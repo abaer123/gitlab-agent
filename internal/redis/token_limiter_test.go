@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_redis"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_redis"
 )
 
 func TestTokenLimiter(t *testing.T) {

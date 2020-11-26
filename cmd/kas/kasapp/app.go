@@ -8,7 +8,7 @@ import (
 	"github.com/go-logr/zapr"
 	"github.com/spf13/pflag"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"

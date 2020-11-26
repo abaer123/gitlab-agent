@@ -2,7 +2,7 @@ package gitops_agent
 
 import (
 	"github.com/argoproj/gitops-engine/pkg/utils/kube"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"go.uber.org/zap"
 )
 

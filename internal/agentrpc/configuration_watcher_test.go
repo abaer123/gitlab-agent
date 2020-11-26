@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc/mock_agentrpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/matcher"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/testing/protocmp"

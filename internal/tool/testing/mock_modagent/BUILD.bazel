@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "mock_modagent",
+    srcs = [
+        "api.go",
+        "doc.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modagent",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/modules/modagent",
+        "//pkg/agentcfg",
+        "@com_github_golang_mock//gomock",
+    ],
+)

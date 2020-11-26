@@ -7,7 +7,7 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/engine"
 	"github.com/argoproj/gitops-engine/pkg/sync"
 	"github.com/go-logr/zapr"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )

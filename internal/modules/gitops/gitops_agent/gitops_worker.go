@@ -9,7 +9,7 @@ import (
 	"github.com/ash2k/stager"
 	"github.com/go-logr/zapr"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 	"go.uber.org/zap"
 )
 

@@ -15,7 +15,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go/v4"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/tracing"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/tracing"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"gitlab.com/gitlab-org/labkit/correlation"
 )

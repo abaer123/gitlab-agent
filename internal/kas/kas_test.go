@@ -12,7 +12,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/mock_internalgitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab/mock_gitlab"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_errtracker"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_errtracker"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/metadata"

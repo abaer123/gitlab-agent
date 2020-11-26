@@ -8,7 +8,7 @@ import (
 	"time"
 
 	redigo "github.com/gomodule/redigo/redis"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"go.uber.org/zap"
 )
 
