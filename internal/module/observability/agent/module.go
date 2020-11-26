@@ -4,14 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/protodefault"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
-)
-
-const (
-	ModuleName = "observability"
 )
 
 type module struct {
@@ -41,7 +38,7 @@ func (m *module) SetConfiguration(config *agentcfg.AgentConfiguration) error {
 }
 
 func (m *module) Name() string {
-	return ModuleName
+	return observability.ModuleName
 }
 
 func (m *module) defaultAndValidateLogging(logging *agentcfg.LoggingCF) error {

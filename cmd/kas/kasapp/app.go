@@ -34,8 +34,8 @@ func (a *App) Run(ctx context.Context) error {
 	// Kubernetes uses klog so here we pipe all logs from it to our logger via an adapter.
 	klog.SetLogger(zapr.NewLogger(logger))
 	app := ConfiguredApp{
-		Configuration: cfg,
 		Log:           logger,
+		Configuration: cfg,
 	}
 	return app.Run(ctx)
 }

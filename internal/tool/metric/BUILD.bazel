@@ -4,15 +4,12 @@ go_library(
     name = "metric",
     srcs = [
         "metric.go",
-        "metric_server.go",
         "promgrpc.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/metric",
     visibility = ["//:__subpackages__"],
     deps = [
-        "//internal/tool/process",
         "@com_github_piotrkowalczuk_promgrpc_v4//:promgrpc",
         "@com_github_prometheus_client_golang//prometheus",
-        "@com_github_prometheus_client_golang//prometheus/promhttp",
     ],
 )
