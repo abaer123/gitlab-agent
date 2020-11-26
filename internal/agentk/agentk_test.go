@@ -9,6 +9,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc/mock_agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_grpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
@@ -33,7 +34,6 @@ func TestConfigurationIsApplied(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	mockCtrl := gomock.NewController(t)
-	client := mock_agentrpc.NewMockKasClient(mockCtrl)
 	watcher := mock_agentrpc.NewMockConfigurationWatcherInterface(mockCtrl)
 	f := mock_modagent.NewMockFactory(mockCtrl)
 	m := mock_modagent.NewMockModule(mockCtrl)
@@ -59,14 +59,14 @@ func TestConfigurationIsApplied(t *testing.T) {
 		watcher.EXPECT().
 			Watch(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, callback agentrpc.ConfigurationCallback) {
-				callback(ctx, revision1, cfg1)
-				callback(ctx, revision2, cfg2)
+				callback(ctx, agentrpc.ConfigurationData{CommitId: revision1, Config: cfg1})
+				callback(ctx, agentrpc.ConfigurationData{CommitId: revision2, Config: cfg2})
 				cancel()
 			}),
 	)
 	a := &Agent{
 		Log:                  zaptest.NewLogger(t),
-		KasClient:            client,
+		KasConn:              mock_grpc.NewMockClientConnInterface(mockCtrl),
 		ConfigurationWatcher: watcher,
 		ModuleFactories:      []modagent.Factory{f},
 	}

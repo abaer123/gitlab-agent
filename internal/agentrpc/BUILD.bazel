@@ -29,6 +29,7 @@ go_library(
     srcs = [
         "agentrpc.pb.go",
         "configuration_watcher.go",
+        "obj_to_sync_watcher.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc",
     visibility = ["//:__subpackages__"],
@@ -49,7 +50,10 @@ go_library(
 go_test(
     name = "agentrpc_test",
     size = "small",
-    srcs = ["configuration_watcher_test.go"],
+    srcs = [
+        "configuration_watcher_test.go",
+        "obj_to_sync_watcher_test.go",
+    ],
     embed = [":agentrpc"],
     race = "on",
     deps = [

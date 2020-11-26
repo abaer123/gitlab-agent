@@ -3,19 +3,29 @@ package modagent
 import (
 	"context"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"k8s.io/cli-runtime/pkg/resource"
 )
+
+// Config holds configuration for a Module.
+type Config struct {
+	Log *zap.Logger
+	Api API
+	// K8sClientGetter provides means to interact with the Kubernetes cluster agentk is running in.
+	K8sClientGetter resource.RESTClientGetter
+	// KasConn is the gRPC connection to gitlab-kas.
+	KasConn grpc.ClientConnInterface
+}
 
 // API provides the API for the module to use.
 type API interface {
-	GetObjectsToSynchronize(ctx context.Context, in *agentrpc.ObjectsToSynchronizeRequest, opts ...grpc.CallOption) (agentrpc.Kas_GetObjectsToSynchronizeClient, error)
 }
 
 type Factory interface {
 	// New creates a new instance of a Module.
-	New(API) Module
+	New(*Config) Module
 }
 
 type Module interface {

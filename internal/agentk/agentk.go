@@ -10,11 +10,14 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"k8s.io/cli-runtime/pkg/resource"
 )
 
 type Agent struct {
 	Log                  *zap.Logger
-	KasClient            agentrpc.KasClient
+	KasConn              grpc.ClientConnInterface
+	K8sClientGetter      resource.RESTClientGetter
 	ConfigurationWatcher agentrpc.ConfigurationWatcherInterface
 	ModuleFactories      []modagent.Factory
 }
@@ -29,10 +32,16 @@ func (a *Agent) Run(ctx context.Context) error {
 }
 
 func (a *Agent) startModules(st stager.Stager) []modagent.Module {
+	cfg := &modagent.Config{
+		Log:             a.Log,
+		Api:             &api{},
+		K8sClientGetter: a.K8sClientGetter,
+		KasConn:         a.KasConn,
+	}
 	stage := st.NextStage()
 	modules := make([]modagent.Module, 0, len(a.ModuleFactories))
 	for _, factory := range a.ModuleFactories {
-		module := factory.New(a.KasClient)
+		module := factory.New(cfg)
 		modules = append(modules, module)
 		stage.Go(module.Run)
 	}
@@ -42,10 +51,10 @@ func (a *Agent) startModules(st stager.Stager) []modagent.Module {
 func (a *Agent) startConfigurationRefresh(st stager.Stager, modules []modagent.Module) {
 	stage := st.NextStage()
 	stage.Go(func(ctx context.Context) error {
-		a.ConfigurationWatcher.Watch(ctx, func(ctx context.Context, commitId string, config *agentcfg.AgentConfiguration) {
-			err := a.applyConfiguration(modules, commitId, config)
+		a.ConfigurationWatcher.Watch(ctx, func(ctx context.Context, data agentrpc.ConfigurationData) {
+			err := a.applyConfiguration(modules, data.CommitId, data.Config)
 			if err != nil {
-				a.Log.Error("Failed to apply configuration", logz.CommitId(commitId), zap.Error(err))
+				a.Log.Error("Failed to apply configuration", logz.CommitId(data.CommitId), zap.Error(err))
 				return
 			}
 		})
