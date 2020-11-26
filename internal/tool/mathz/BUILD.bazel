@@ -1,0 +1,8 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "mathz",
+    srcs = ["rand.go"],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/mathz",
+    visibility = ["//:__subpackages__"],
+)

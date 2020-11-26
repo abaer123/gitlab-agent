@@ -31,10 +31,10 @@ go_test(
     embed = [":gitaly"],
     race = "on",
     deps = [
-        "//internal/gitaly/mock_internalgitaly",
         "//internal/gitaly/pktline",
-        "//internal/tools/testing/matcher",
-        "//internal/tools/testing/mock_gitaly",
+        "//internal/tool/testing/matcher",
+        "//internal/tool/testing/mock_gitaly",
+        "//internal/tool/testing/mock_internalgitaly",
         "@com_github_golang_mock//gomock",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",

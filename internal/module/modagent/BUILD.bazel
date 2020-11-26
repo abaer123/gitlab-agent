@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "modagent",
+    srcs = ["api.go"],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//pkg/agentcfg",
+        "@io_k8s_cli_runtime//pkg/resource",
+        "@org_golang_google_grpc//:grpc",
+        "@org_uber_go_zap//:zap",
+    ],
+)

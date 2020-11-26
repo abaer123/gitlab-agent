@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "wstunnel",
+    srcs = [
+        "api.go",
+        "client.go",
+        "server.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/wstunnel",
+    visibility = ["//:__subpackages__"],
+    deps = ["@io_nhooyr_websocket//:websocket"],
+)
+
+go_test(
+    name = "wstunnel_test",
+    size = "small",
+    srcs = [
+        "main_test.go",
+        "ws_test.go",
+    ],
+    embed = [":wstunnel"],
+    race = "on",
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+        "@io_nhooyr_websocket//:websocket",
+    ],
+)

@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 )
 
 // CancelOnInterrupt calls f when os.Interrupt or SIGTERM is received.

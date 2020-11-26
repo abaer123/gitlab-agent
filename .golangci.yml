@@ -29,9 +29,6 @@ run:
   # "/" will be replaced by current OS file path separator to properly work
   # on Windows.
   skip-dirs:
-    - internal/tools/testing/mock_engine
-    - internal/tools/testing/mock_gitaly
-    - internal/gitlab/mock_gitlab
     - internal/gitaly/pktline
 
   # default is true. Enables skipping of directories:

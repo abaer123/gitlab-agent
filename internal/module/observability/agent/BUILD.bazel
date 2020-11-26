@@ -1,0 +1,27 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "agent",
+    srcs = [
+        "factory.go",
+        "module.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/agent",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/module/modagent",
+        "//internal/tool/logz",
+        "//internal/tool/protodefault",
+        "//pkg/agentcfg",
+        "@org_uber_go_zap//:zap",
+    ],
+)
+
+go_test(
+    name = "agent_test",
+    size = "small",
+    srcs = ["module_test.go"],
+    embed = [":agent"],
+    race = "on",
+    deps = ["//internal/module/modagent"],
+)
