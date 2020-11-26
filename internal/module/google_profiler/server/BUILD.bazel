@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "server",
+    srcs = [
+        "defaulting.go",
+        "factory.go",
+        "module.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/google_profiler/server",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/module/google_profiler",
+        "//internal/module/modserver",
+        "//internal/tool/protodefault",
+        "//pkg/kascfg",
+        "@com_google_cloud_go//profiler",
+        "@org_golang_google_api//option",
+    ],
+)
+
+go_test(
+    name = "server_test",
+    size = "small",
+    srcs = ["module_test.go"],
+    embed = [":server"],
+    race = "on",
+    deps = ["//internal/module/modserver"],
+)

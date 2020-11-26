@@ -1,4 +1,4 @@
-package metric
+package server
 
 import (
 	"context"
@@ -20,7 +20,7 @@ const (
 	idleTimeout               = 1 * time.Minute
 )
 
-type Server struct {
+type metricServer struct {
 	// Name is the name of the application.
 	Name                  string
 	Listener              net.Listener
@@ -31,56 +31,56 @@ type Server struct {
 	Registerer            prometheus.Registerer
 }
 
-func (a *Server) Run(ctx context.Context) error {
+func (s *metricServer) Run(ctx context.Context) error {
 	srv := &http.Server{
-		Handler:      a.constructHandler(),
+		Handler:      s.constructHandler(),
 		WriteTimeout: writeTimeout,
 		ReadTimeout:  readTimeout,
 		IdleTimeout:  idleTimeout,
 	}
-	return process.RunServer(ctx, srv, a.Listener, shutdownTimeout)
+	return process.RunServer(ctx, srv, s.Listener, shutdownTimeout)
 }
 
-func (a *Server) constructHandler() http.Handler {
+func (s *metricServer) constructHandler() http.Handler {
 	mux := http.NewServeMux()
-	a.probesHandler(mux)
-	a.pprofHandler(mux)
-	a.prometheusHandler(mux)
+	s.probesHandler(mux)
+	s.pprofHandler(mux)
+	s.prometheusHandler(mux)
 	return mux
 }
 
-func (a *Server) setHeaders(next http.Handler) http.Handler {
+func (s *metricServer) setHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Server", a.Name)
+		w.Header().Set("Server", s.Name)
 		next.ServeHTTP(w, r)
 	})
 }
 
-func (a *Server) probesHandler(mux *http.ServeMux) {
+func (s *metricServer) probesHandler(mux *http.ServeMux) {
 	mux.Handle(
-		a.LivenessProbeUrlPath,
-		a.setHeaders(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		s.LivenessProbeUrlPath,
+		s.setHeaders(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		})),
 	)
 	mux.Handle(
-		a.ReadinessProbeUrlPath,
-		a.setHeaders(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		s.ReadinessProbeUrlPath,
+		s.setHeaders(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		})),
 	)
 }
 
-func (a *Server) prometheusHandler(mux *http.ServeMux) {
+func (s *metricServer) prometheusHandler(mux *http.ServeMux) {
 	mux.Handle(
-		a.PrometheusUrlPath,
-		a.setHeaders(promhttp.InstrumentMetricHandler(a.Registerer, promhttp.HandlerFor(a.Gatherer, promhttp.HandlerOpts{
+		s.PrometheusUrlPath,
+		s.setHeaders(promhttp.InstrumentMetricHandler(s.Registerer, promhttp.HandlerFor(s.Gatherer, promhttp.HandlerOpts{
 			Timeout: defaultMaxRequestDuration,
 		}))),
 	)
 }
 
-func (a *Server) pprofHandler(mux *http.ServeMux) {
+func (s *metricServer) pprofHandler(mux *http.ServeMux) {
 	routes := map[string]func(http.ResponseWriter, *http.Request){
 		"/debug/pprof/":        pprof.Index,
 		"/debug/pprof/cmdline": pprof.Cmdline,
@@ -89,6 +89,6 @@ func (a *Server) pprofHandler(mux *http.ServeMux) {
 		"/debug/pprof/trace":   pprof.Trace,
 	}
 	for route, handler := range routes {
-		mux.Handle(route, a.setHeaders(http.HandlerFunc(handler)))
+		mux.Handle(route, s.setHeaders(http.HandlerFunc(handler)))
 	}
 }

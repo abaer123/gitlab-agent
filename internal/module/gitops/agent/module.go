@@ -8,6 +8,7 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/cache"
 	"github.com/argoproj/gitops-engine/pkg/engine"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/protodefault"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
@@ -17,10 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/rest"
-)
-
-const (
-	ModuleName = "gitops"
 )
 
 type GitOpsEngineFactory interface {
@@ -56,7 +53,7 @@ func (m *module) SetConfiguration(config *agentcfg.AgentConfiguration) error {
 }
 
 func (m *module) Name() string {
-	return ModuleName
+	return gitops.ModuleName
 }
 
 func (m *module) stopAllWorkers() {

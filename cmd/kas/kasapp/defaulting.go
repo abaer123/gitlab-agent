@@ -3,6 +3,9 @@ package kasapp
 import (
 	"time"
 
+	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/google_profiler/server"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
+	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/protodefault"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 )
@@ -32,12 +35,6 @@ const (
 	defaultGitOpsProjectInfoCacheTTL      = 5 * time.Minute
 	defaultGitOpsProjectInfoCacheErrorTTL = 1 * time.Minute
 
-	defaultObservabilityUsageReportingPeriod  = 1 * time.Minute
-	defaultObservabilityListenAddress         = "0.0.0.0:8151"
-	defaultObservabilityPrometheusUrlPath     = "/metrics"
-	defaultObservabilityLivenessProbeUrlPath  = "/liveness"
-	defaultObservabilityReadinessProbeUrlPath = "/readiness"
-
 	defaultGitalyGlobalApiRefillRate    = 10.0
 	defaultGitalyGlobalApiBucketSize    = 50
 	defaultGitalyPerServerApiRate       = 5.0
@@ -50,6 +47,13 @@ const (
 	defaultRedisKeepAlive    = 5 * time.Minute
 )
 
+var (
+	defaulters = []modserver.ApplyDefaults{
+		observability_server.ApplyDefaults,
+		google_profiler_server.ApplyDefaults,
+	}
+)
+
 func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
 	protodefault.NotNil(&cfg.Gitlab)
 	defaultGitLab(cfg.Gitlab)
@@ -57,14 +61,14 @@ func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
 	protodefault.NotNil(&cfg.Agent)
 	defaultAgent(cfg.Agent)
 
-	protodefault.NotNil(&cfg.Observability)
-	defaultObservability(cfg.Observability)
-
 	protodefault.NotNil(&cfg.Gitaly)
 	defaultGitaly(cfg.Gitaly)
 
 	if cfg.Redis != nil {
 		defaultRedis(cfg.Redis)
+	}
+	for _, defaulter := range defaulters {
+		defaulter(cfg)
 	}
 }
 
@@ -100,30 +104,6 @@ func defaultAgent(a *kascfg.AgentCF) {
 	protodefault.Uint32(&a.Limits.MaxGitopsNumberOfPaths, defaultAgentLimitsMaxGitopsNumberOfPaths)
 	protodefault.Uint32(&a.Limits.MaxGitopsNumberOfFiles, defaultAgentLimitsMaxGitopsNumberOfFiles)
 	protodefault.Duration(&a.Limits.ConnectionMaxAge, defaultAgentLimitsConnectionMaxAge)
-}
-
-func defaultObservability(o *kascfg.ObservabilityCF) {
-	protodefault.Duration(&o.UsageReportingPeriod, defaultObservabilityUsageReportingPeriod)
-
-	protodefault.NotNil(&o.Listen)
-	protodefault.String(&o.Listen.Address, defaultObservabilityListenAddress)
-
-	protodefault.NotNil(&o.Prometheus)
-	protodefault.String(&o.Prometheus.UrlPath, defaultObservabilityPrometheusUrlPath)
-
-	protodefault.NotNil(&o.Tracing)
-
-	protodefault.NotNil(&o.Sentry)
-
-	protodefault.NotNil(&o.Logging)
-
-	protodefault.NotNil(&o.GoogleProfiler)
-
-	protodefault.NotNil(&o.LivenessProbe)
-	protodefault.String(&o.LivenessProbe.UrlPath, defaultObservabilityLivenessProbeUrlPath)
-
-	protodefault.NotNil(&o.ReadinessProbe)
-	protodefault.String(&o.ReadinessProbe.UrlPath, defaultObservabilityReadinessProbeUrlPath)
 }
 
 func defaultGitaly(g *kascfg.GitalyCF) {
