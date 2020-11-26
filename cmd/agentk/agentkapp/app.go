@@ -71,18 +71,18 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	conn, err := kasConnection(ctx, a.KasAddress, string(tokenData), tlsConfig)
+	kasConn, err := kasConnection(ctx, a.KasAddress, string(tokenData), tlsConfig)
 	if err != nil {
 		return err
 	}
-	defer conn.Close() // nolint: errcheck
-	kasClient := agentrpc.NewKasClient(conn)
+	defer kasConn.Close() // nolint: errcheck
 	agent := agentk.Agent{
-		Log:       a.Log,
-		KasClient: kasClient,
+		Log:             a.Log,
+		KasConn:         kasConn,
+		K8sClientGetter: a.K8sClientGetter,
 		ConfigurationWatcher: &agentrpc.ConfigurationWatcher{
 			Log:         a.Log,
-			KasClient:   kasClient,
+			KasClient:   agentrpc.NewKasClient(kasConn),
 			RetryPeriod: defaultRefreshConfigurationRetryPeriod,
 		},
 		ModuleFactories: []modagent.Factory{
@@ -91,11 +91,9 @@ func (a *App) Run(ctx context.Context) error {
 				LogLevel: a.LogLevel,
 			},
 			&gitops_agent.Factory{
-				Log: a.Log,
 				EngineFactory: &gitops_agent.DefaultGitOpsEngineFactory{
 					KubeClientConfig: restConfig,
 				},
-				K8sClientGetter:                    a.K8sClientGetter,
 				GetObjectsToSynchronizeRetryPeriod: defaultGetObjectsToSynchronizeRetryPeriod,
 			},
 		},

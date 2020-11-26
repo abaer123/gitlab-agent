@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_engine"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_grpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/testing/mock_modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
@@ -35,7 +36,7 @@ func TestStartsWorkersAccordingToConfiguration(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			expectedNumberOfWorkers := len(config.GetGitops().GetManifestProjects()) // nolint: scopelint
-			m, mockCtrl, factory, _ := setupModule(t)
+			m, mockCtrl, factory := setupModule(t)
 			for i := 0; i < expectedNumberOfWorkers; i++ {
 				engine := mock_engine.NewMockGitOpsEngine(mockCtrl)
 				engine.EXPECT().
@@ -79,7 +80,7 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			m, mockCtrl, factory, _ := setupModule(t)
+			m, mockCtrl, factory := setupModule(t)
 			var wg wait.Group
 			defer wg.Wait()
 			ctx, cancel := context.WithCancel(context.Background())
@@ -108,21 +109,24 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 	}
 }
 
-func setupModule(t *testing.T) (*module, *gomock.Controller, *mock_engine.MockGitOpsEngineFactory, *mock_modagent.MockAPI) { // nolint: unparam
+func setupModule(t *testing.T) (*module, *gomock.Controller, *mock_engine.MockGitOpsEngineFactory) {
 	mockCtrl := gomock.NewController(t)
 	engFactory := mock_engine.NewMockGitOpsEngineFactory(mockCtrl)
 	configFlags := genericclioptions.NewTestConfigFlags()
+	kasConn := mock_grpc.NewMockClientConnInterface(mockCtrl)
 	factory := Factory{
-		Log: zaptest.NewLogger(t),
 		EngineFactory: &mock_engine.ThreadSafeGitOpsEngineFactory{
 			EngineFactory: engFactory,
 		},
-		K8sClientGetter:                    configFlags,
 		GetObjectsToSynchronizeRetryPeriod: 10 * time.Second,
 	}
-	mockApi := mock_modagent.NewMockAPI(mockCtrl)
-	m := factory.New(mockApi)
-	return m.(*module), mockCtrl, engFactory, mockApi
+	m := factory.New(&modagent.Config{
+		Log:             zaptest.NewLogger(t),
+		Api:             mock_modagent.NewMockAPI(mockCtrl),
+		K8sClientGetter: configFlags,
+		KasConn:         kasConn,
+	})
+	return m.(*module), mockCtrl, engFactory
 }
 
 func testConfigurations() []*agentcfg.AgentConfiguration {

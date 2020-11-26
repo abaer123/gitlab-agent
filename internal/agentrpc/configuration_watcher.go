@@ -12,9 +12,14 @@ import (
 	"go.uber.org/zap"
 )
 
-type ConfigurationCallback func(ctx context.Context, commitId string, config *agentcfg.AgentConfiguration)
+type ConfigurationData struct {
+	CommitId string
+	Config   *agentcfg.AgentConfiguration
+}
 
-// ConfigurationWatcher abstracts agentrpc.ConfigurationWatcher.
+type ConfigurationCallback func(context.Context, ConfigurationData)
+
+// ConfigurationWatcherInterface abstracts ConfigurationWatcher.
 type ConfigurationWatcherInterface interface {
 	Watch(ctx context.Context, callback ConfigurationCallback)
 }
@@ -51,7 +56,10 @@ func (w *ConfigurationWatcher) Watch(ctx context.Context, callback Configuration
 				}
 				return
 			}
-			callback(ctx, config.CommitId, config.Configuration)
+			callback(ctx, ConfigurationData{
+				CommitId: config.CommitId,
+				Config:   config.Configuration,
+			})
 			lastProcessedCommitId = config.CommitId
 		}
 	})

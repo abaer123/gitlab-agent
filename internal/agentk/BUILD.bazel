@@ -4,6 +4,7 @@ go_library(
     name = "agentk",
     srcs = [
         "agentk.go",
+        "api.go",
         "logz.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentk",
@@ -14,6 +15,8 @@ go_library(
         "//internal/tools/logz",
         "//pkg/agentcfg",
         "@com_github_ash2k_stager//:stager",
+        "@io_k8s_cli_runtime//pkg/resource",
+        "@org_golang_google_grpc//:grpc",
         "@org_uber_go_zap//:zap",
     ],
 )
@@ -21,13 +24,17 @@ go_library(
 go_test(
     name = "agentk_test",
     size = "small",
-    srcs = ["agentk_test.go"],
+    srcs = [
+        "agentk_test.go",
+        "api_test.go",
+    ],
     embed = [":agentk"],
     race = "on",
     deps = [
         "//internal/agentrpc",
         "//internal/agentrpc/mock_agentrpc",
         "//internal/modules/modagent",
+        "//internal/tools/testing/mock_grpc",
         "//internal/tools/testing/mock_modagent",
         "//pkg/agentcfg",
         "@com_github_golang_mock//gomock",

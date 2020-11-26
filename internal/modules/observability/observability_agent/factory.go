@@ -9,7 +9,7 @@ type Factory struct {
 	LogLevel zap.AtomicLevel
 }
 
-func (f *Factory) New(api modagent.API) modagent.Module {
+func (f *Factory) New(config *modagent.Config) modagent.Module {
 	return &module{
 		logLevel: f.LogLevel,
 	}

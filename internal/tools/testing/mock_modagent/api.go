@@ -9,10 +9,8 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	agentrpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	modagent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modagent"
 	agentcfg "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
-	grpc "google.golang.org/grpc"
 )
 
 // MockAPI is a mock of API interface
@@ -36,26 +34,6 @@ func NewMockAPI(ctrl *gomock.Controller) *MockAPI {
 // EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 	return m.recorder
-}
-
-// GetObjectsToSynchronize mocks base method
-func (m *MockAPI) GetObjectsToSynchronize(arg0 context.Context, arg1 *agentrpc.ObjectsToSynchronizeRequest, arg2 ...grpc.CallOption) (agentrpc.Kas_GetObjectsToSynchronizeClient, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "GetObjectsToSynchronize", varargs...)
-	ret0, _ := ret[0].(agentrpc.Kas_GetObjectsToSynchronizeClient)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetObjectsToSynchronize indicates an expected call of GetObjectsToSynchronize
-func (mr *MockAPIMockRecorder) GetObjectsToSynchronize(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObjectsToSynchronize", reflect.TypeOf((*MockAPI)(nil).GetObjectsToSynchronize), varargs...)
 }
 
 // MockFactory is a mock of Factory interface
@@ -82,7 +60,7 @@ func (m *MockFactory) EXPECT() *MockFactoryMockRecorder {
 }
 
 // New mocks base method
-func (m *MockFactory) New(arg0 modagent.API) modagent.Module {
+func (m *MockFactory) New(arg0 *modagent.Config) modagent.Module {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "New", arg0)
 	ret0, _ := ret[0].(modagent.Module)

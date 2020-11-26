@@ -5,6 +5,8 @@ import (
 	"context"
 
 	"github.com/argoproj/gitops-engine/pkg/engine"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tools/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -15,17 +17,6 @@ import (
 const (
 	managedObjectAnnotationName = "k8s-agent.gitlab.com/managed-object"
 )
-
-// desiredState holds the state to put into a Kubernetes cluster.
-type desiredState struct {
-	commitId string
-	sources  []stateSource
-}
-
-type stateSource struct {
-	name string
-	data []byte
-}
 
 // synchronizerConfig holds configuration for a synchronizer.
 type synchronizerConfig struct {
@@ -41,18 +32,18 @@ type resourceInfo struct {
 type synchronizer struct {
 	synchronizerConfig
 	engine       engine.GitOpsEngine
-	desiredState chan desiredState
+	desiredState chan agentrpc.ObjectsToSynchronizeData
 }
 
 func newSynchronizer(config synchronizerConfig, engine engine.GitOpsEngine) *synchronizer {
 	return &synchronizer{
 		synchronizerConfig: config,
 		engine:             engine,
-		desiredState:       make(chan desiredState),
+		desiredState:       make(chan agentrpc.ObjectsToSynchronizeData),
 	}
 }
 
-func (s *synchronizer) setDesiredState(ctx context.Context, state desiredState) bool {
+func (s *synchronizer) setDesiredState(ctx context.Context, state agentrpc.ObjectsToSynchronizeData) bool {
 	select {
 	case <-ctx.Done():
 		return false
@@ -87,9 +78,9 @@ func (s *synchronizer) run(ctx context.Context) {
 		case <-ctx.Done():
 			return // nolint: govet
 		case state := <-s.desiredState:
-			objs, err := s.decodeObjectsToSynchronize(state.sources)
+			objs, err := s.decodeObjectsToSynchronize(state.Sources)
 			if err != nil {
-				s.log.Warn("Failed to decode GitOps objects", zap.Error(err))
+				s.log.Warn("Failed to decode GitOps objects", zap.Error(err), logz.CommitId(state.CommitId))
 				continue
 			}
 			if jobCancel != nil {
@@ -97,7 +88,7 @@ func (s *synchronizer) run(ctx context.Context) {
 			}
 			markAsManaged(objs)
 			newJob = syncJob{
-				commitId: state.commitId,
+				commitId: state.CommitId,
 				objects:  objs,
 			}
 			newJob.ctx, jobCancel = context.WithCancel(context.Background()) // nolint: govet
@@ -110,7 +101,7 @@ func (s *synchronizer) run(ctx context.Context) {
 	}
 }
 
-func (s *synchronizer) decodeObjectsToSynchronize(sources []stateSource) ([]*unstructured.Unstructured, error) {
+func (s *synchronizer) decodeObjectsToSynchronize(sources []agentrpc.ObjectSource) ([]*unstructured.Unstructured, error) {
 	if len(sources) == 0 {
 		return nil, nil
 	}
@@ -121,7 +112,7 @@ func (s *synchronizer) decodeObjectsToSynchronize(sources []stateSource) ([]*uns
 		Local().
 		Unstructured()
 	for _, source := range sources {
-		builder.Stream(bytes.NewReader(source.data), source.name)
+		builder.Stream(bytes.NewReader(source.Data), source.Name)
 	}
 	var res []*unstructured.Unstructured
 	err := builder.Do().Visit(func(info *resource.Info, err error) error {

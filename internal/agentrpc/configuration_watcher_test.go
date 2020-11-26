@@ -71,12 +71,12 @@ func TestConfigurationWatcher(t *testing.T) {
 		RetryPeriod: 10 * time.Millisecond,
 	}
 	iter := 0
-	w.Watch(ctx, func(ctx context.Context, commitId string, configuration *agentcfg.AgentConfiguration) {
+	w.Watch(ctx, func(ctx context.Context, config agentrpc.ConfigurationData) {
 		switch iter {
 		case 0:
-			assert.Empty(t, cmp.Diff(configuration, cfg1, protocmp.Transform()))
+			assert.Empty(t, cmp.Diff(config.Config, cfg1, protocmp.Transform()))
 		case 1:
-			assert.Empty(t, cmp.Diff(configuration, cfg2, protocmp.Transform()))
+			assert.Empty(t, cmp.Diff(config.Config, cfg2, protocmp.Transform()))
 		default:
 			t.Fatal(iter)
 		}
@@ -122,7 +122,7 @@ func TestConfigurationWatcherResumeConnection(t *testing.T) {
 		KasClient:   client,
 		RetryPeriod: 10 * time.Millisecond,
 	}
-	w.Watch(ctx, func(ctx context.Context, commitId string, configuration *agentcfg.AgentConfiguration) {
+	w.Watch(ctx, func(ctx context.Context, config agentrpc.ConfigurationData) {
 		// Don't care
 	})
 }

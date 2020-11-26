@@ -6,8 +6,9 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modagent",
     visibility = ["//:__subpackages__"],
     deps = [
-        "//internal/agentrpc",
         "//pkg/agentcfg",
+        "@io_k8s_cli_runtime//pkg/resource",
         "@org_golang_google_grpc//:grpc",
+        "@org_uber_go_zap//:zap",
     ],
 )
