@@ -9,7 +9,7 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modagent",
     visibility = ["//:__subpackages__"],
     deps = [
-        "//internal/modules/modagent",
+        "//internal/module/modagent",
         "//pkg/agentcfg",
         "@com_github_golang_mock//gomock",
     ],

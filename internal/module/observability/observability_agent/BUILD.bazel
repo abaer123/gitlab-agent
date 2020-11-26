@@ -6,10 +6,10 @@ go_library(
         "factory.go",
         "module.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/observability/observability_agent",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/observability_agent",
     visibility = ["//:__subpackages__"],
     deps = [
-        "//internal/modules/modagent",
+        "//internal/module/modagent",
         "//internal/tool/logz",
         "//internal/tool/protodefault",
         "//pkg/agentcfg",
@@ -23,5 +23,5 @@ go_test(
     srcs = ["module_test.go"],
     embed = [":observability_agent"],
     race = "on",
-    deps = ["//internal/modules/modagent"],
+    deps = ["//internal/module/modagent"],
 )

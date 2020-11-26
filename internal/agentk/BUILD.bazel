@@ -11,7 +11,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/agentrpc",
-        "//internal/modules/modagent",
+        "//internal/module/modagent",
         "//internal/tool/logz",
         "//pkg/agentcfg",
         "@com_github_ash2k_stager//:stager",
@@ -33,7 +33,7 @@ go_test(
     deps = [
         "//internal/agentrpc",
         "//internal/agentrpc/mock_agentrpc",
-        "//internal/modules/modagent",
+        "//internal/module/modagent",
         "//internal/tool/testing/mock_grpc",
         "//internal/tool/testing/mock_modagent",
         "//pkg/agentcfg",

@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 )
 
 type Factory struct {

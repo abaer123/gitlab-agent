@@ -1,7 +1,7 @@
 package observability_agent
 
 import (
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/modules/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 )
 
 var (
