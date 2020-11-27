@@ -14,10 +14,16 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/rest"
+)
+
+const (
+	defaultGitOpsManifestNamespace = metav1.NamespaceDefault
+	defaultGitOpsManifestPathGlob  = "**/*.{yaml,yml,json}"
 )
 
 type GitOpsEngineFactory interface {
@@ -41,7 +47,21 @@ func (m *module) Run(ctx context.Context) error {
 
 func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error {
 	protodefault.NotNil(&config.Gitops)
+	for _, project := range config.Gitops.ManifestProjects {
+		applyDefaultsToManifestProject(project)
+	}
 	return nil
+}
+
+func applyDefaultsToManifestProject(project *agentcfg.ManifestProjectCF) {
+	protodefault.String(&project.DefaultNamespace, defaultGitOpsManifestNamespace)
+	if len(project.Paths) == 0 {
+		project.Paths = []*agentcfg.PathCF{
+			{
+				Glob: defaultGitOpsManifestPathGlob,
+			},
+		}
+	}
 }
 
 func (m *module) SetConfiguration(config *agentcfg.AgentConfiguration) error {

@@ -93,13 +93,7 @@ func TestGetConfiguration(t *testing.T) {
 				Gitops: &agentcfg.GitopsCF{
 					ManifestProjects: []*agentcfg.ManifestProjectCF{
 						{
-							Id:               projectId,
-							DefaultNamespace: defaultGitOpsManifestNamespace,
-							Paths: []*agentcfg.PathCF{
-								{
-									Glob: defaultGitOpsManifestPathGlob,
-								},
-							},
+							Id: projectId,
 						},
 					},
 				},
