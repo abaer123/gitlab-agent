@@ -11,10 +11,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/protodefault"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"google.golang.org/protobuf/encoding/protojson"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/yaml"
 )
@@ -22,9 +20,6 @@ import (
 const (
 	agentConfigurationDirectory = ".gitlab/agents"
 	agentConfigurationFileName  = "config.yaml"
-
-	defaultGitOpsManifestNamespace = metav1.NamespaceDefault
-	defaultGitOpsManifestPathGlob  = "**/*.{yaml,yml,json}"
 )
 
 func (s *Server) GetConfiguration(req *agentrpc.ConfigurationRequest, stream agentrpc.Kas_GetConfigurationServer) error {
@@ -101,8 +96,10 @@ func (s *Server) fetchConfiguration(ctx context.Context, agentInfo *api.AgentInf
 	if err != nil {
 		return nil, errz.NewUserErrorWithCause(err, "invalid agent configuration")
 	}
-	agentConfig := defaultAndExtractAgentConfiguration(configFile)
-	return agentConfig, nil
+	return &agentcfg.AgentConfiguration{
+		Gitops:        configFile.Gitops,
+		Observability: configFile.Observability,
+	}, nil
 }
 
 func parseYAMLToConfiguration(configYAML []byte) (*agentcfg.ConfigurationFile, error) {
@@ -116,26 +113,4 @@ func parseYAMLToConfiguration(configYAML []byte) (*agentcfg.ConfigurationFile, e
 		return nil, fmt.Errorf("protojson.Unmarshal: %v", err)
 	}
 	return configFile, nil
-}
-
-func defaultAndExtractAgentConfiguration(file *agentcfg.ConfigurationFile) *agentcfg.AgentConfiguration {
-	protodefault.NotNil(&file.Gitops)
-	for _, project := range file.Gitops.ManifestProjects {
-		applyDefaultsToManifestProject(project)
-	}
-	return &agentcfg.AgentConfiguration{
-		Gitops:        file.Gitops,
-		Observability: file.Observability,
-	}
-}
-
-func applyDefaultsToManifestProject(project *agentcfg.ManifestProjectCF) {
-	protodefault.String(&project.DefaultNamespace, defaultGitOpsManifestNamespace)
-	if len(project.Paths) == 0 {
-		project.Paths = []*agentcfg.PathCF{
-			{
-				Glob: defaultGitOpsManifestPathGlob,
-			},
-		}
-	}
 }

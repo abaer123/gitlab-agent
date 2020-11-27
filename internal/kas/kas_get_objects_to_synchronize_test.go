@@ -26,6 +26,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+const (
+	defaultGitOpsManifestPathGlob = "**/*.{yaml,yml,json}"
+)
+
 func TestGetObjectsToSynchronizeGitLabClientFailures(t *testing.T) {
 	t.Parallel()
 	t.Run("GetAgentInfo failures", func(t *testing.T) {

@@ -10,7 +10,7 @@ API for module's server part is defined in the `internal/module/modserver` direc
 
 Responsibilities:
 
-- Validates and applies defaults to the corresponding part of the configuration. Most of defaulting happens here, not in the agent module.
+- Validates and applies defaults to the corresponding part of the `gitlab-kas` configuration.
 - Optionally registers gRPC services on the gRPC server that `agentk` talks to.
 - Implements the required functionality.
 
@@ -20,7 +20,7 @@ API for module's agent part is defined in `internal/module/modagent` directory.
 
 Responsibilities:
 
-- Validates and applies defaults to the corresponding part of the configuration. Defaulting only ensures that fields are not `nil` (to avoid having to check that everywhere).
+- Validates and applies defaults to the corresponding part of the `agentk` configuration.
 - Optionally registers gRPC services on the gRPC server that `gitlab-kas` talks to. See [`kas` request routing](kas_request_routing.md).
 - Implements the required functionality.
 
