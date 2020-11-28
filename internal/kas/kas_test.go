@@ -13,6 +13,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_errtracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_internalgitaly"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_usage_metrics"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/metadata"
@@ -55,7 +56,10 @@ func setupKasBare(t *testing.T) (*Server, *gomock.Controller, *mock_internalgita
 	gitalyPool := mock_internalgitaly.NewMockPoolInterface(mockCtrl)
 	gitlabClient := mock_gitlab.NewMockClientInterface(mockCtrl)
 	errTracker := mock_errtracker.NewMockTracker(mockCtrl)
-
+	usageTracker := mock_usage_metrics.NewMockUsageTrackerInterface(mockCtrl)
+	usageTracker.EXPECT().
+		RegisterCounter(gitopsSyncCountKnownMetric).
+		Return(mock_usage_metrics.NewMockCounter(mockCtrl))
 	k, cleanup, err := NewServer(Config{
 		Log: zaptest.NewLogger(t),
 		Api: &API{
@@ -65,6 +69,7 @@ func setupKasBare(t *testing.T) (*Server, *gomock.Controller, *mock_internalgita
 		GitalyPool:                     gitalyPool,
 		GitLabClient:                   gitlabClient,
 		Registerer:                     prometheus.NewPedanticRegistry(),
+		UsageTracker:                   usageTracker,
 		GitopsPollPeriod:               10 * time.Minute,
 		MaxGitopsManifestFileSize:      maxGitopsManifestFileSize,
 		MaxGitopsTotalManifestFileSize: maxGitopsTotalManifestFileSize,

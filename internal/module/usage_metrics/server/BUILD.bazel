@@ -1,0 +1,43 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "server",
+    srcs = [
+        "defaulting.go",
+        "factory.go",
+        "module.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics/server",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/gitlab",
+        "//internal/module/modserver",
+        "//internal/module/usage_metrics",
+        "//internal/tool/errz",
+        "//internal/tool/protodefault",
+        "//pkg/kascfg",
+        "@org_uber_go_zap//:zap",
+    ],
+)
+
+go_test(
+    name = "server_test",
+    size = "small",
+    srcs = ["module_test.go"],
+    embed = [":server"],
+    race = "on",
+    deps = [
+        "//internal/gitlab",
+        "//internal/module/modserver",
+        "//internal/module/usage_metrics",
+        "//internal/tool/testing/mock_gitlab",
+        "//internal/tool/testing/mock_modserver",
+        "//internal/tool/testing/mock_usage_metrics",
+        "//pkg/kascfg",
+        "@com_github_golang_mock//gomock",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_protobuf//types/known/durationpb",
+        "@org_uber_go_zap//:zap",
+        "@org_uber_go_zap//zaptest",
+    ],
+)

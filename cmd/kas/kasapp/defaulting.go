@@ -7,6 +7,7 @@ import (
 	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/google_profiler/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/server"
+	usage_metrics_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/protodefault"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 )
@@ -50,6 +51,7 @@ var (
 		observability_server.ApplyDefaults,
 		google_profiler_server.ApplyDefaults,
 		agent_configuration_server.ApplyDefaults,
+		usage_metrics_server.ApplyDefaults,
 	}
 )
 

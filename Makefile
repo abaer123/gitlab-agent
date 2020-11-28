@@ -25,6 +25,7 @@ regenerate-proto: internal-regenerate-proto fmt update-bazel
 .PHONY: internal-regenerate-mocks
 internal-regenerate-mocks:
 	go generate -x -v \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_usage_metrics" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_internalgitaly" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver" \

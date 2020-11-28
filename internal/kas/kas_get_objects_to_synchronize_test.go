@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -17,6 +16,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_internalgitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"gitlab.com/gitlab-org/labkit/errortracking"
@@ -118,10 +118,7 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	a, agentInfo, mockCtrl, gitalyPool, gitlabClient, _ := setupKas(t)
-	gitlabClient.EXPECT().
-		SendUsage(gomock.Any(), gomock.Eq(&gitlab.UsageData{GitopsSyncCount: 1})).
-		Return(nil)
-	a.usageReportingPeriod = 10 * time.Millisecond
+	a.gitopsSyncCount.(*mock_usage_metrics.MockCounter).EXPECT().Inc()
 
 	objects := []runtime.Object{
 		&corev1.ConfigMap{
@@ -242,10 +239,6 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 		},
 	}, resp)
 	require.NoError(t, err)
-
-	ctxRun, cancelRun := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancelRun()
-	a.Run(ctxRun)
 }
 
 func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {

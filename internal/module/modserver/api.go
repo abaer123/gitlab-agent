@@ -7,6 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
@@ -24,7 +25,8 @@ type Config struct {
 	Config *kascfg.ConfigurationFile
 	// Registerer allows to register metrics.
 	// Metrics should be registered in Run and unregistered before Run returns.
-	Registerer prometheus.Registerer
+	Registerer   prometheus.Registerer
+	UsageTracker usage_metrics.UsageTrackerRegisterer
 	// AgentServer is the gRPC server agentk is talking to.
 	// This can be used to add endpoints in Factory.New.
 	AgentServer *grpc.Server

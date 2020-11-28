@@ -34,7 +34,7 @@ func (r *RateLimitingClient) GetProjectInfo(ctx context.Context, agentMeta *api.
 	return r.Delegate.GetProjectInfo(ctx, agentMeta, projectId)
 }
 
-func (r *RateLimitingClient) SendUsage(ctx context.Context, data *UsageData) error {
+func (r *RateLimitingClient) SendUsage(ctx context.Context, data UsageData) error {
 	if err := r.Limiter.Wait(ctx); err != nil {
 		return err
 	}

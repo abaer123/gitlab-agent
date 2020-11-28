@@ -24,6 +24,8 @@ import (
 	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/google_profiler/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/server"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
+	usage_metrics_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/redis"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
@@ -154,14 +156,15 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 	gitalyPool := &gitaly.Pool{
 		ClientPool: gitalyClientPool,
 	}
+	usageTracker := usage_metrics.NewUsageTracker()
 	srv, cleanup, err := kas.NewServer(kas.Config{
 		Log:                            a.Log,
 		Api:                            kasApi,
 		GitalyPool:                     gitalyPool,
 		GitLabClient:                   gitLabCachingClient,
 		Registerer:                     registerer,
+		UsageTracker:                   usageTracker,
 		GitopsPollPeriod:               cfg.Agent.Gitops.PollPeriod.AsDuration(),
-		UsageReportingPeriod:           cfg.Observability.UsageReportingPeriod.AsDuration(),
 		MaxGitopsManifestFileSize:      cfg.Agent.Limits.MaxGitopsManifestFileSize,
 		MaxGitopsTotalManifestFileSize: cfg.Agent.Limits.MaxGitopsTotalManifestFileSize,
 		MaxGitopsNumberOfPaths:         cfg.Agent.Limits.MaxGitopsNumberOfPaths,
@@ -273,27 +276,27 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 		},
 		&google_profiler_server.Factory{},
 		&agent_configuration_server.Factory{},
+		&usage_metrics_server.Factory{
+			UsageTracker: usageTracker,
+			GitLabClient: gitLabClient,
+		},
 	}
 	modconfig := &modserver.Config{
-		Log:         a.Log,
-		Api:         kasApi,
-		Config:      cfg,
-		Registerer:  registerer,
-		AgentServer: agentServer,
-		Gitaly:      gitalyPool,
-		KasName:     kasName,
-		Version:     cmd.Version,
-		Commit:      cmd.Commit,
+		Log:          a.Log,
+		Api:          kasApi,
+		Config:       cfg,
+		Registerer:   registerer,
+		UsageTracker: usageTracker,
+		AgentServer:  agentServer,
+		Gitaly:       gitalyPool,
+		KasName:      kasName,
+		Version:      cmd.Version,
+		Commit:       cmd.Commit,
 	}
 
 	// Start things up
 	st := stager.New()
-	stage := st.NextStage() // usage ping stage
-	stage.Go(func(ctx context.Context) error {
-		srv.Run(ctx)
-		return nil
-	})
-	stage = st.NextStage() // modules stage
+	stage := st.NextStage() // modules stage
 	for _, factory := range factories {
 		module := factory.New(modconfig)
 		stage.Go(func(ctx context.Context) error {

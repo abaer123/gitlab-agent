@@ -1,15 +1,19 @@
 package kas
 
 import (
-	"context"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/metric"
 	"go.uber.org/zap"
+)
+
+const (
+	gitopsSyncCountKnownMetric = "gitops_sync_count"
 )
 
 type Config struct {
@@ -18,8 +22,8 @@ type Config struct {
 	GitalyPool                     gitaly.PoolInterface
 	GitLabClient                   gitlab.ClientInterface
 	Registerer                     prometheus.Registerer
+	UsageTracker                   usage_metrics.UsageTrackerRegisterer
 	GitopsPollPeriod               time.Duration
-	UsageReportingPeriod           time.Duration
 	MaxGitopsManifestFileSize      uint32
 	MaxGitopsTotalManifestFileSize uint32
 	MaxGitopsNumberOfPaths         uint32
@@ -28,15 +32,12 @@ type Config struct {
 }
 
 type Server struct {
-	// usageMetrics must be the very first field to ensure 64-bit alignment.
-	// See https://github.com/golang/go/blob/95df156e6ac53f98efd6c57e4586c1dfb43066dd/src/sync/atomic/doc.go#L46-L54
-	usageMetrics                   usageMetrics
 	log                            *zap.Logger
 	api                            modserver.API
 	gitalyPool                     gitaly.PoolInterface
 	gitLabClient                   gitlab.ClientInterface
+	gitopsSyncCount                usage_metrics.Counter
 	gitopsPollPeriod               time.Duration
-	usageReportingPeriod           time.Duration
 	maxGitopsManifestFileSize      int64
 	maxGitopsTotalManifestFileSize int64
 	maxGitopsNumberOfPaths         uint32
@@ -57,8 +58,8 @@ func NewServer(config Config) (*Server, func(), error) {
 		api:                            config.Api,
 		gitalyPool:                     config.GitalyPool,
 		gitLabClient:                   config.GitLabClient,
+		gitopsSyncCount:                config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
 		gitopsPollPeriod:               config.GitopsPollPeriod,
-		usageReportingPeriod:           config.UsageReportingPeriod,
 		maxGitopsManifestFileSize:      int64(config.MaxGitopsManifestFileSize),
 		maxGitopsTotalManifestFileSize: int64(config.MaxGitopsTotalManifestFileSize),
 		maxGitopsNumberOfPaths:         config.MaxGitopsNumberOfPaths,
@@ -66,8 +67,4 @@ func NewServer(config Config) (*Server, func(), error) {
 		connectionMaxAge:               config.ConnectionMaxAge,
 	}
 	return s, cleanup, nil
-}
-
-func (s *Server) Run(ctx context.Context) {
-	s.sendUsage(ctx)
 }

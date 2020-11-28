@@ -136,7 +136,7 @@ func TestGetProjectInfo(t *testing.T) {
 func TestSendUsage(t *testing.T) {
 	ctx, correlationId := ctxWithCorrelation(t)
 	usageData := UsageData{
-		GitopsSyncCount: 123,
+		"GitopsSyncCount": 123,
 	}
 	r := http.NewServeMux()
 	r.HandleFunc(usagePingApiPath, func(w http.ResponseWriter, r *http.Request) {
@@ -168,7 +168,7 @@ func TestSendUsage(t *testing.T) {
 	u, err := url.Parse(s.URL)
 	require.NoError(t, err)
 	c := NewClient(u, []byte(authSecretKey), clientOptionsForTest()...)
-	err = c.SendUsage(ctx, &usageData)
+	err = c.SendUsage(ctx, usageData)
 	require.NoError(t, err)
 }
 
