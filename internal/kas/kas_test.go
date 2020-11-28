@@ -24,7 +24,6 @@ const (
 	revision         = "507ebc6de9bcac25628aa7afd52802a91a0685d8"
 	manifestRevision = "7afd52802a91a0685d8507ebc6de9bcac25628aa"
 
-	maxConfigurationFileSize       = 128 * 1024
 	maxGitopsManifestFileSize      = 128 * 1024
 	maxGitopsTotalManifestFileSize = 1024 * 1024
 	maxGitopsNumberOfPaths         = 10
@@ -58,14 +57,15 @@ func setupKasBare(t *testing.T) (*Server, *gomock.Controller, *mock_internalgita
 	errTracker := mock_errtracker.NewMockTracker(mockCtrl)
 
 	k, cleanup, err := NewServer(Config{
-		Log:                            zaptest.NewLogger(t),
+		Log: zaptest.NewLogger(t),
+		Api: &API{
+			GitLabClient: gitlabClient,
+			ErrorTracker: errTracker,
+		},
 		GitalyPool:                     gitalyPool,
 		GitLabClient:                   gitlabClient,
 		Registerer:                     prometheus.NewPedanticRegistry(),
-		ErrorTracker:                   errTracker,
-		AgentConfigurationPollPeriod:   10 * time.Minute,
 		GitopsPollPeriod:               10 * time.Minute,
-		MaxConfigurationFileSize:       maxConfigurationFileSize,
 		MaxGitopsManifestFileSize:      maxGitopsManifestFileSize,
 		MaxGitopsTotalManifestFileSize: maxGitopsTotalManifestFileSize,
 		MaxGitopsNumberOfPaths:         maxGitopsNumberOfPaths,

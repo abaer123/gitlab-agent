@@ -3,6 +3,7 @@ package kasapp
 import (
 	"time"
 
+	agent_configuration_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/server"
 	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/google_profiler/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/server"
@@ -17,14 +18,11 @@ const (
 
 	defaultAgentListenAddress = "127.0.0.1:8150"
 
-	defaultAgentConfigurationPollPeriod = 20 * time.Second
-
 	defaultAgentInfoCacheTTL      = 5 * time.Minute
 	defaultAgentInfoCacheErrorTTL = 1 * time.Minute
 
 	defaultAgentLimitsConnectionsPerTokenPerMinute   = 100
 	defaultAgentLimitsRedisKeyPrefix                 = "kas:agent_limits"
-	defaultAgentLimitsMaxConfigurationFileSize       = 128 * 1024
 	defaultAgentLimitsMaxGitopsManifestFileSize      = 1024 * 1024
 	defaultAgentLimitsMaxGitopsTotalManifestFileSize = 2 * 1024 * 1024
 	defaultAgentLimitsMaxGitopsNumberOfPaths         = 100
@@ -51,6 +49,7 @@ var (
 	defaulters = []modserver.ApplyDefaults{
 		observability_server.ApplyDefaults,
 		google_profiler_server.ApplyDefaults,
+		agent_configuration_server.ApplyDefaults,
 	}
 )
 
@@ -84,9 +83,6 @@ func defaultAgent(a *kascfg.AgentCF) {
 	protodefault.NotNil(&a.Listen)
 	protodefault.String(&a.Listen.Address, defaultAgentListenAddress)
 
-	protodefault.NotNil(&a.Configuration)
-	protodefault.Duration(&a.Configuration.PollPeriod, defaultAgentConfigurationPollPeriod)
-
 	protodefault.NotNil(&a.Gitops)
 	protodefault.Duration(&a.Gitops.PollPeriod, defaultGitOpsPollPeriod)
 	protodefault.Duration(&a.Gitops.ProjectInfoCacheTtl, defaultGitOpsProjectInfoCacheTTL)
@@ -98,7 +94,6 @@ func defaultAgent(a *kascfg.AgentCF) {
 	protodefault.NotNil(&a.Limits)
 	protodefault.Uint32(&a.Limits.ConnectionsPerTokenPerMinute, defaultAgentLimitsConnectionsPerTokenPerMinute)
 	protodefault.String(&a.Limits.RedisKeyPrefix, defaultAgentLimitsRedisKeyPrefix)
-	protodefault.Uint32(&a.Limits.MaxConfigurationFileSize, defaultAgentLimitsMaxConfigurationFileSize)
 	protodefault.Uint32(&a.Limits.MaxGitopsManifestFileSize, defaultAgentLimitsMaxGitopsManifestFileSize)
 	protodefault.Uint32(&a.Limits.MaxGitopsTotalManifestFileSize, defaultAgentLimitsMaxGitopsTotalManifestFileSize)
 	protodefault.Uint32(&a.Limits.MaxGitopsNumberOfPaths, defaultAgentLimitsMaxGitopsNumberOfPaths)

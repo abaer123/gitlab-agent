@@ -12,13 +12,13 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -36,7 +36,7 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 	ctx := stream.Context()
 	agentMeta := apiutil.AgentMetaFromContext(ctx)
 	l := s.log.With(logz.CorrelationIdFromContext(ctx))
-	agentInfo, err, retErr := s.getAgentInfo(ctx, l, agentMeta, false)
+	agentInfo, err, retErr := s.api.GetAgentInfo(ctx, l, agentMeta, false)
 	if retErr {
 		return err
 	}
@@ -44,7 +44,7 @@ func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeReque
 	if err != nil {
 		return err // no wrap
 	}
-	return s.pollImmediateUntil(ctx, s.gitopsPollPeriod, s.sendObjectsToSynchronize(agentInfo, req, stream))
+	return s.api.PollImmediateUntil(ctx, s.gitopsPollPeriod, s.connectionMaxAge, s.sendObjectsToSynchronize(agentInfo, req, stream))
 }
 
 func (s *Server) validateGetObjectsToSynchronizeRequest(req *agentrpc.ObjectsToSynchronizeRequest) error {
@@ -57,7 +57,7 @@ func (s *Server) validateGetObjectsToSynchronizeRequest(req *agentrpc.ObjectsToS
 	return nil
 }
 
-func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrpc.ObjectsToSynchronizeRequest, stream agentrpc.Kas_GetObjectsToSynchronizeServer) wait.ConditionFunc {
+func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrpc.ObjectsToSynchronizeRequest, stream agentrpc.Kas_GetObjectsToSynchronizeServer) modserver.ConditionFunc {
 	ctx := stream.Context()
 	l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(req.ProjectId), logz.CorrelationIdFromContext(ctx))
 	return func() (bool /*done*/, error) {
@@ -71,12 +71,12 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 		revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
 		p, err := s.gitalyPool.Poller(ctx, &projectInfo.GitalyInfo)
 		if err != nil {
-			s.handleProcessingError(ctx, l, "GitOps: Poller", err)
+			s.api.HandleProcessingError(ctx, l, "GitOps: Poller", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		info, err := p.Poll(ctx, &projectInfo.Repository, req.CommitId, revision)
 		if err != nil {
-			s.handleProcessingError(ctx, l, "GitOps: repository poll failed", err)
+			s.api.HandleProcessingError(ctx, l, "GitOps: repository poll failed", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		if !info.UpdateAvailable {
@@ -113,7 +113,7 @@ func (s *Server) sendObjectsToSynchronizeHeaders(stream agentrpc.Kas_GetObjectsT
 		},
 	})
 	if err != nil {
-		return s.handleFailedSend(log, "GitOps: failed to send headers for objects to synchronize", err)
+		return s.api.HandleSendError(log, "GitOps: failed to send headers for objects to synchronize", err)
 	}
 	return nil
 }
@@ -122,7 +122,7 @@ func (s *Server) sendObjectsToSynchronizeBody(req *agentrpc.ObjectsToSynchronize
 	ctx := stream.Context()
 	pf, err := s.gitalyPool.PathFetcher(ctx, gitalyInfo)
 	if err != nil {
-		s.handleProcessingError(ctx, log, "GitOps: PathFetcher", err)
+		s.api.HandleProcessingError(ctx, log, "GitOps: PathFetcher", err)
 		return 0, status.Error(codes.Unavailable, "GitOps: PathFetcher")
 	}
 	v := &objectsToSynchronizeVisitor{
@@ -141,9 +141,9 @@ func (s *Server) sendObjectsToSynchronizeBody(req *agentrpc.ObjectsToSynchronize
 		err := pf.Visit(ctx, repo, []byte(commitId), repoPath, recursive, vChunk)
 		if err != nil {
 			if v.sendFailed {
-				return 0, s.handleFailedSend(log, "GitOps: failed to send objects to synchronize", err)
+				return 0, s.api.HandleSendError(log, "GitOps: failed to send objects to synchronize", err)
 			} else {
-				s.handleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
+				s.api.HandleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
 				return 0, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
 			}
 		}
@@ -158,7 +158,7 @@ func (s *Server) sendObjectsToSynchronizeTrailers(stream agentrpc.Kas_GetObjects
 		},
 	})
 	if err != nil {
-		return s.handleFailedSend(log, "GitOps: failed to send trailers for objects to synchronize", err)
+		return s.api.HandleSendError(log, "GitOps: failed to send trailers for objects to synchronize", err)
 	}
 	return nil
 }
@@ -175,7 +175,7 @@ func (s *Server) getProjectInfo(ctx context.Context, log *zap.Logger, agentMeta 
 	case gitlab.IsUnauthorized(err):
 		err = status.Error(codes.Unauthenticated, "unauthenticated")
 	default:
-		s.logAndCapture(ctx, log, "GetProjectInfo()", err)
+		s.api.LogAndCapture(ctx, log, "GetProjectInfo()", err)
 		err = nil // don't want to close the response stream, so report no error
 	}
 	return nil, err, true

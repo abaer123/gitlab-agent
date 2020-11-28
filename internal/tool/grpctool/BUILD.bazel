@@ -30,7 +30,7 @@ go_test(
     embed = [":grpctool"],
     race = "on",
     deps = [
-        "//internal/tool/testing/mock_grpc",
+        "//internal/tool/testing/mock_rpc",
         "@com_github_golang_mock//gomock",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",

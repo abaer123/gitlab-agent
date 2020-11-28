@@ -8,8 +8,8 @@ go_library(
     deps = [
         "//cmd",
         "//internal/agentk",
-        "//internal/agentrpc",
         "//internal/api/apiutil",
+        "//internal/module/agent_configuration/rpc",
         "//internal/module/gitops/agent",
         "//internal/module/modagent",
         "//internal/module/observability/agent",

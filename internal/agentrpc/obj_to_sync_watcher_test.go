@@ -9,7 +9,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
 )
@@ -32,9 +32,9 @@ func TestObjectsToSynchronizeWatcherResumeConnection(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	mockCtrl := gomock.NewController(t)
-	client := mock_agentrpc.NewMockKasClient(mockCtrl)
-	stream1 := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
-	stream2 := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
+	client := mock_rpc.NewMockKasClient(mockCtrl)
+	stream1 := mock_rpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
+	stream2 := mock_rpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
 	req := &agentrpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
 		Paths:     pathsCfg,
@@ -154,8 +154,8 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			mockCtrl := gomock.NewController(t)
-			client := mock_agentrpc.NewMockKasClient(mockCtrl)
-			stream1 := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
+			client := mock_rpc.NewMockKasClient(mockCtrl)
+			stream1 := mock_rpc.NewMockKas_GetObjectsToSynchronizeClient(mockCtrl)
 			req := &agentrpc.ObjectsToSynchronizeRequest{
 				ProjectId: projectId,
 				Paths: []*agentcfg.PathCF{

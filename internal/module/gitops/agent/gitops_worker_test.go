@@ -12,8 +12,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_engine"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
 	corev1 "k8s.io/api/core/v1"
@@ -159,14 +159,14 @@ func TestRunHappyPathSyncCancellation(t *testing.T) {
 	w.Run(ctx)
 }
 
-func setupWorker(t *testing.T) (*gitopsWorker, *mock_engine.MockGitOpsEngine, *mock_agentrpc.MockObjectsToSynchronizeWatcherInterface) {
+func setupWorker(t *testing.T) (*gitopsWorker, *mock_engine.MockGitOpsEngine, *mock_rpc.MockObjectsToSynchronizeWatcherInterface) {
 	mockCtrl := gomock.NewController(t)
 	mockEngineCtrl := gomock.NewController(t)
 	// engine is used concurrently with other mocks. So use a separate mock controller to avoid data races because
 	// mock controllers are not thread safe.
 	engine := mock_engine.NewMockGitOpsEngine(mockEngineCtrl)
 	engineFactory := mock_engine.NewMockGitOpsEngineFactory(mockCtrl)
-	watcher := mock_agentrpc.NewMockObjectsToSynchronizeWatcherInterface(mockCtrl)
+	watcher := mock_rpc.NewMockObjectsToSynchronizeWatcherInterface(mockCtrl)
 	engineWasStopped := false
 	t.Cleanup(func() {
 		assert.True(t, engineWasStopped)

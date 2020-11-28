@@ -20,6 +20,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/kas"
+	agent_configuration_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/server"
 	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/google_profiler/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/server"
@@ -146,24 +147,25 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 		CacheErrorTTL: cfg.Agent.Gitops.ProjectInfoCacheErrorTtl.AsDuration(),
 	})
 
-	connectionMaxAge := cfg.Agent.Limits.ConnectionMaxAge.AsDuration()
+	kasApi := &kas.API{
+		GitLabClient: gitLabCachingClient,
+		ErrorTracker: errTracker,
+	}
+	gitalyPool := &gitaly.Pool{
+		ClientPool: gitalyClientPool,
+	}
 	srv, cleanup, err := kas.NewServer(kas.Config{
-		Log: a.Log,
-		GitalyPool: &gitaly.Pool{
-			ClientPool: gitalyClientPool,
-		},
+		Log:                            a.Log,
+		Api:                            kasApi,
+		GitalyPool:                     gitalyPool,
 		GitLabClient:                   gitLabCachingClient,
 		Registerer:                     registerer,
-		ErrorTracker:                   errTracker,
-		AgentConfigurationPollPeriod:   cfg.Agent.Configuration.PollPeriod.AsDuration(),
 		GitopsPollPeriod:               cfg.Agent.Gitops.PollPeriod.AsDuration(),
 		UsageReportingPeriod:           cfg.Observability.UsageReportingPeriod.AsDuration(),
-		MaxConfigurationFileSize:       cfg.Agent.Limits.MaxConfigurationFileSize,
 		MaxGitopsManifestFileSize:      cfg.Agent.Limits.MaxGitopsManifestFileSize,
 		MaxGitopsTotalManifestFileSize: cfg.Agent.Limits.MaxGitopsTotalManifestFileSize,
 		MaxGitopsNumberOfPaths:         cfg.Agent.Limits.MaxGitopsNumberOfPaths,
 		MaxGitopsNumberOfFiles:         cfg.Agent.Limits.MaxGitopsNumberOfFiles,
-		ConnectionMaxAge:               connectionMaxAge,
 	})
 	if err != nil {
 		return fmt.Errorf("kas.NewServer: %v", err)
@@ -225,6 +227,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 		grpcUnaryServerInterceptors = append(grpcUnaryServerInterceptors, grpctool.UnaryServerLimitingInterceptor(agentConnectionLimiter))
 	}
 
+	connectionMaxAge := cfg.Agent.Limits.ConnectionMaxAge.AsDuration()
 	serverOpts := []grpc.ServerOption{
 		grpc.StatsHandler(ssh),
 		grpc.ChainStreamInterceptor(grpcStreamServerInterceptors...),
@@ -261,23 +264,26 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 		return fmt.Errorf("both certificate_file (%s) and key_file (%s) must be either set or not set", certFile, keyFile)
 	}
 
-	grpcServer := grpc.NewServer(serverOpts...)
-	agentrpc.RegisterKasServer(grpcServer, srv)
+	agentServer := grpc.NewServer(serverOpts...)
+	agentrpc.RegisterKasServer(agentServer, srv)
 
 	factories := []modserver.Factory{
 		&observability_server.Factory{
 			Gatherer: gatherer,
 		},
 		&google_profiler_server.Factory{},
+		&agent_configuration_server.Factory{},
 	}
 	modconfig := &modserver.Config{
-		Log:        a.Log,
-		Config:     cfg,
-		Registerer: registerer,
-		ErrTracker: errTracker,
-		KasName:    kasName,
-		Version:    cmd.Version,
-		Commit:     cmd.Commit,
+		Log:         a.Log,
+		Api:         kasApi,
+		Config:      cfg,
+		Registerer:  registerer,
+		AgentServer: agentServer,
+		Gitaly:      gitalyPool,
+		KasName:     kasName,
+		Version:     cmd.Version,
+		Commit:      cmd.Commit,
 	}
 
 	// Start things up
@@ -300,12 +306,12 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 	}
 	stage = st.NextStage() // gRPC server stage
 	stage.Go(func(ctx context.Context) error {
-		return grpcServer.Serve(lis)
+		return agentServer.Serve(lis)
 	})
 	stage.Go(func(ctx context.Context) error {
 		<-ctx.Done() // can be cancelled because Serve() failed or main ctx was canceled or some stage failed
 		interceptorsCancel()
-		grpcServer.GracefulStop()
+		agentServer.GracefulStop()
 		return nil
 	})
 	return st.Run(ctx)

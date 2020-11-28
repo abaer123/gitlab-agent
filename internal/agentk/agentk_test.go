@@ -6,11 +6,10 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_agentrpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_grpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
 )
@@ -34,7 +33,7 @@ func TestConfigurationIsApplied(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	mockCtrl := gomock.NewController(t)
-	watcher := mock_agentrpc.NewMockConfigurationWatcherInterface(mockCtrl)
+	watcher := mock_rpc.NewMockConfigurationWatcherInterface(mockCtrl)
 	f := mock_modagent.NewMockFactory(mockCtrl)
 	m := mock_modagent.NewMockModule(mockCtrl)
 	m.EXPECT().
@@ -58,15 +57,15 @@ func TestConfigurationIsApplied(t *testing.T) {
 			Return(m),
 		watcher.EXPECT().
 			Watch(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, callback agentrpc.ConfigurationCallback) {
-				callback(ctx, agentrpc.ConfigurationData{CommitId: revision1, Config: cfg1})
-				callback(ctx, agentrpc.ConfigurationData{CommitId: revision2, Config: cfg2})
+			DoAndReturn(func(ctx context.Context, callback rpc.ConfigurationCallback) {
+				callback(ctx, rpc.ConfigurationData{CommitId: revision1, Config: cfg1})
+				callback(ctx, rpc.ConfigurationData{CommitId: revision2, Config: cfg2})
 				cancel()
 			}),
 	)
 	a := &Agent{
 		Log:                  zaptest.NewLogger(t),
-		KasConn:              mock_grpc.NewMockClientConnInterface(mockCtrl),
+		KasConn:              mock_rpc.NewMockClientConnInterface(mockCtrl),
 		ConfigurationWatcher: watcher,
 		ModuleFactories:      []modagent.Factory{f},
 	}

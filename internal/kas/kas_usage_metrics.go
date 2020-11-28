@@ -22,7 +22,7 @@ func (s *Server) sendUsage(ctx context.Context) {
 		case <-ticker.C:
 			if err := s.sendUsageInternal(ctx); err != nil {
 				if !errz.ContextDone(err) {
-					s.logAndCapture(ctx, s.log, "Failed to send usage data", err)
+					s.api.LogAndCapture(ctx, s.log, "Failed to send usage data", err)
 				}
 			}
 		}

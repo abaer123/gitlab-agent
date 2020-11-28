@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ash2k/stager"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
@@ -18,7 +18,7 @@ type Agent struct {
 	Log                  *zap.Logger
 	KasConn              grpc.ClientConnInterface
 	K8sClientGetter      resource.RESTClientGetter
-	ConfigurationWatcher agentrpc.ConfigurationWatcherInterface
+	ConfigurationWatcher rpc.ConfigurationWatcherInterface
 	ModuleFactories      []modagent.Factory
 }
 
@@ -51,7 +51,7 @@ func (a *Agent) startModules(st stager.Stager) []modagent.Module {
 func (a *Agent) startConfigurationRefresh(st stager.Stager, modules []modagent.Module) {
 	stage := st.NextStage()
 	stage.Go(func(ctx context.Context) error {
-		a.ConfigurationWatcher.Watch(ctx, func(ctx context.Context, data agentrpc.ConfigurationData) {
+		a.ConfigurationWatcher.Watch(ctx, func(ctx context.Context, data rpc.ConfigurationData) {
 			err := a.applyConfiguration(modules, data.CommitId, data.Config)
 			if err != nil {
 				a.Log.Error("Failed to apply configuration", logz.CommitId(data.CommitId), zap.Error(err))

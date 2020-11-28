@@ -1,4 +1,4 @@
-package grpctool
+package grpctool_test
 
 import (
 	"context"
@@ -6,7 +6,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_grpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"google.golang.org/grpc"
 )
 
@@ -29,12 +30,12 @@ func TestServerInterceptors(t *testing.T) {
 	t.Run("It lets the connection through when allowed", func(t *testing.T) {
 		limiter := &testServerLimiter{allow: true}
 
-		usi := UnaryServerLimitingInterceptor(limiter)
+		usi := grpctool.UnaryServerLimitingInterceptor(limiter)
 		_, err := usi(context.Background(), struct{}{}, nil, usHandler)
 		require.NoError(t, err)
 
-		ssi := StreamServerLimitingInterceptor(limiter)
-		ss := mock_grpc.NewMockServerStream(ctrl)
+		ssi := grpctool.StreamServerLimitingInterceptor(limiter)
+		ss := mock_rpc.NewMockServerStream(ctrl)
 		ss.EXPECT().Context().Return(context.Background())
 		err = ssi(struct{}{}, ss, nil, ssHandler)
 		require.NoError(t, err)
@@ -43,12 +44,12 @@ func TestServerInterceptors(t *testing.T) {
 	t.Run("It blocks the connection when not allowed", func(t *testing.T) {
 		limiter := &testServerLimiter{false}
 
-		usi := UnaryServerLimitingInterceptor(limiter)
+		usi := grpctool.UnaryServerLimitingInterceptor(limiter)
 		_, err := usi(context.Background(), struct{}{}, nil, usHandler)
 		require.Error(t, err)
 
-		ssi := StreamServerLimitingInterceptor(limiter)
-		ss := mock_grpc.NewMockServerStream(ctrl)
+		ssi := grpctool.StreamServerLimitingInterceptor(limiter)
+		ss := mock_rpc.NewMockServerStream(ctrl)
 		ss.EXPECT().Context().Return(context.Background())
 		err = ssi(struct{}{}, ss, nil, ssHandler)
 		require.Error(t, err)
