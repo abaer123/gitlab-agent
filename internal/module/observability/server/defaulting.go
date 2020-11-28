@@ -1,14 +1,11 @@
 package server
 
 import (
-	"time"
-
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/protodefault"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 )
 
 const (
-	defaultObservabilityUsageReportingPeriod  = 1 * time.Minute
 	defaultObservabilityListenAddress         = "0.0.0.0:8151"
 	defaultObservabilityPrometheusUrlPath     = "/metrics"
 	defaultObservabilityLivenessProbeUrlPath  = "/liveness"
@@ -18,7 +15,6 @@ const (
 func ApplyDefaults(config *kascfg.ConfigurationFile) {
 	protodefault.NotNil(&config.Observability)
 	o := config.Observability
-	protodefault.Duration(&o.UsageReportingPeriod, defaultObservabilityUsageReportingPeriod)
 
 	protodefault.NotNil(&o.Listen)
 	protodefault.String(&o.Listen.Address, defaultObservabilityListenAddress)

@@ -99,7 +99,7 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 			return false, err // no wrap
 		}
 		l.Info("GitOps: fetched files", logz.NumberOfFiles(numberOfFiles))
-		s.usageMetrics.IncGitopsSyncCount()
+		s.gitopsSyncCount.Inc()
 		return true, nil
 	}
 }

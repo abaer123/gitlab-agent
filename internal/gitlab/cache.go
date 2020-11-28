@@ -124,7 +124,7 @@ func (c *CachingClient) GetProjectInfo(ctx context.Context, agentMeta *api.Agent
 	return item.projectInfo, item.err
 }
 
-func (c *CachingClient) SendUsage(ctx context.Context, data *UsageData) error {
+func (c *CachingClient) SendUsage(ctx context.Context, data UsageData) error {
 	return c.client.SendUsage(ctx, data)
 }
 

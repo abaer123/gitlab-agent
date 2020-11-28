@@ -67,7 +67,7 @@ func (mr *MockClientInterfaceMockRecorder) GetProjectInfo(arg0, arg1, arg2 inter
 }
 
 // SendUsage mocks base method
-func (m *MockClientInterface) SendUsage(arg0 context.Context, arg1 *gitlab.UsageData) error {
+func (m *MockClientInterface) SendUsage(arg0 context.Context, arg1 gitlab.UsageData) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendUsage", arg0, arg1)
 	ret0, _ := ret[0].(error)

@@ -157,7 +157,7 @@ func (c *Client) GetProjectInfo(ctx context.Context, meta *api.AgentMeta, projec
 	}, nil
 }
 
-func (c *Client) SendUsage(ctx context.Context, data *UsageData) error {
+func (c *Client) SendUsage(ctx context.Context, data UsageData) error {
 	u := *c.Backend
 	u.Path = usagePingApiPath
 	err := c.doJSON(ctx, http.MethodPost, nil, &u, data, nil)
