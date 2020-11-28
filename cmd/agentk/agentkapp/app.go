@@ -14,8 +14,8 @@ import (
 	"github.com/spf13/pflag"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentk"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc"
 	gitops_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	observability_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/agent"
@@ -80,9 +80,9 @@ func (a *App) Run(ctx context.Context) error {
 		Log:             a.Log,
 		KasConn:         kasConn,
 		K8sClientGetter: a.K8sClientGetter,
-		ConfigurationWatcher: &agentrpc.ConfigurationWatcher{
+		ConfigurationWatcher: &rpc.ConfigurationWatcher{
 			Log:         a.Log,
-			KasClient:   agentrpc.NewKasClient(kasConn),
+			Client:      rpc.NewAgentConfigurationClient(kasConn),
 			RetryPeriod: defaultRefreshConfigurationRetryPeriod,
 		},
 		ModuleFactories: []modagent.Factory{

@@ -10,7 +10,7 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentk",
     visibility = ["//:__subpackages__"],
     deps = [
-        "//internal/agentrpc",
+        "//internal/module/agent_configuration/rpc",
         "//internal/module/modagent",
         "//internal/tool/logz",
         "//pkg/agentcfg",
@@ -31,11 +31,10 @@ go_test(
     embed = [":agentk"],
     race = "on",
     deps = [
-        "//internal/agentrpc",
+        "//internal/module/agent_configuration/rpc",
         "//internal/module/modagent",
-        "//internal/tool/testing/mock_agentrpc",
-        "//internal/tool/testing/mock_grpc",
         "//internal/tool/testing/mock_modagent",
+        "//internal/tool/testing/mock_rpc",
         "//pkg/agentcfg",
         "@com_github_golang_mock//gomock",
         "@com_github_stretchr_testify//require",

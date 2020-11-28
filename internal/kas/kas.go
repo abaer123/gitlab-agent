@@ -2,40 +2,24 @@ package kas
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/mathz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/metric"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
-	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"k8s.io/apimachinery/pkg/util/wait"
-)
-
-const (
-	connectionMaxAgeJitterPercent = 5
 )
 
 type Config struct {
 	Log                            *zap.Logger
+	Api                            modserver.API
 	GitalyPool                     gitaly.PoolInterface
 	GitLabClient                   gitlab.ClientInterface
 	Registerer                     prometheus.Registerer
-	ErrorTracker                   errortracking.Tracker
-	AgentConfigurationPollPeriod   time.Duration
 	GitopsPollPeriod               time.Duration
 	UsageReportingPeriod           time.Duration
-	MaxConfigurationFileSize       uint32
 	MaxGitopsManifestFileSize      uint32
 	MaxGitopsTotalManifestFileSize uint32
 	MaxGitopsNumberOfPaths         uint32
@@ -48,13 +32,11 @@ type Server struct {
 	// See https://github.com/golang/go/blob/95df156e6ac53f98efd6c57e4586c1dfb43066dd/src/sync/atomic/doc.go#L46-L54
 	usageMetrics                   usageMetrics
 	log                            *zap.Logger
+	api                            modserver.API
 	gitalyPool                     gitaly.PoolInterface
 	gitLabClient                   gitlab.ClientInterface
-	errorTracker                   errortracking.Tracker
-	agentConfigurationPollPeriod   time.Duration
 	gitopsPollPeriod               time.Duration
 	usageReportingPeriod           time.Duration
-	maxConfigurationFileSize       int64
 	maxGitopsManifestFileSize      int64
 	maxGitopsTotalManifestFileSize int64
 	maxGitopsNumberOfPaths         uint32
@@ -72,13 +54,11 @@ func NewServer(config Config) (*Server, func(), error) {
 	}
 	s := &Server{
 		log:                            config.Log,
+		api:                            config.Api,
 		gitalyPool:                     config.GitalyPool,
 		gitLabClient:                   config.GitLabClient,
-		errorTracker:                   config.ErrorTracker,
-		agentConfigurationPollPeriod:   config.AgentConfigurationPollPeriod,
 		gitopsPollPeriod:               config.GitopsPollPeriod,
 		usageReportingPeriod:           config.UsageReportingPeriod,
-		maxConfigurationFileSize:       int64(config.MaxConfigurationFileSize),
 		maxGitopsManifestFileSize:      int64(config.MaxGitopsManifestFileSize),
 		maxGitopsTotalManifestFileSize: int64(config.MaxGitopsTotalManifestFileSize),
 		maxGitopsNumberOfPaths:         config.MaxGitopsNumberOfPaths,
@@ -90,71 +70,4 @@ func NewServer(config Config) (*Server, func(), error) {
 
 func (s *Server) Run(ctx context.Context) {
 	s.sendUsage(ctx)
-}
-
-func (s *Server) pollImmediateUntil(ctx context.Context, interval time.Duration, condition wait.ConditionFunc) error {
-	// this context must only be used here, not inside of condition() - connection should be closed only when idle.
-	ageCtx, cancel := context.WithTimeout(ctx, mathz.DurationWithJitter(s.connectionMaxAge, connectionMaxAgeJitterPercent))
-	defer cancel()
-	err := retry.PollImmediateUntil(ageCtx, interval, condition)
-	if errors.Is(err, wait.ErrWaitTimeout) {
-		return nil // all good, ctx is done
-	}
-	return err
-}
-
-// getAgentInfo is a helper that encapsulates error checking logic.
-// The signature is not conventional on purpose because the caller is not supposed to inspect the error,
-// but instead return it if the bool is true.
-func (s *Server) getAgentInfo(ctx context.Context, log *zap.Logger, agentMeta *api.AgentMeta, noErrorOnUnknownError bool) (*api.AgentInfo, error, bool /* return the error? */) {
-	agentInfo, err := s.gitLabClient.GetAgentInfo(ctx, agentMeta)
-	switch {
-	case err == nil:
-		return agentInfo, nil, false
-	case errz.ContextDone(err):
-		err = status.Error(codes.Unavailable, "unavailable")
-	case gitlab.IsForbidden(err):
-		err = status.Error(codes.PermissionDenied, "forbidden")
-	case gitlab.IsUnauthorized(err):
-		err = status.Error(codes.Unauthenticated, "unauthenticated")
-	default:
-		s.logAndCapture(ctx, log, "GetAgentInfo()", err)
-		if noErrorOnUnknownError {
-			err = nil
-		} else {
-			err = status.Error(codes.Unavailable, "unavailable")
-		}
-	}
-	return nil, err, true
-}
-
-func (s *Server) handleProcessingError(ctx context.Context, log *zap.Logger, msg string, err error) {
-	if grpctool.RequestCanceled(err) {
-		// An error caused by context signalling done
-		return
-	}
-	var ue *errz.UserError
-	isUserError := errors.As(err, &ue)
-	if isUserError {
-		// TODO Don't log it, send it somewhere the user can see it https://gitlab.com/gitlab-org/gitlab/-/issues/277323
-		// Log at Info for now.
-		log.Info(msg, zap.Error(err))
-	} else {
-		s.logAndCapture(ctx, log, msg, err)
-	}
-}
-
-func (s *Server) handleFailedSend(log *zap.Logger, msg string, err error) error {
-	// The problem is almost certainly with the client's connection.
-	// Still log it on Debug.
-	if !grpctool.RequestCanceled(err) {
-		log.Debug(msg, zap.Error(err))
-	}
-	return status.Error(codes.Unavailable, "gRPC send failed")
-}
-
-func (s *Server) logAndCapture(ctx context.Context, log *zap.Logger, msg string, err error) {
-	// don't add logz.CorrelationIdFromContext(ctx) here as it's been added to the logger already
-	log.Error(msg, zap.Error(err))
-	s.errorTracker.Capture(fmt.Errorf("%s: %v", msg, err), errortracking.WithContext(ctx))
 }

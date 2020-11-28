@@ -40,9 +40,10 @@ multirun(
     commands = [
         "//pkg/agentcfg:extract_generated",
         "//pkg/agentcfg:extract_generated_validator",
-        "//internal/agentrpc:extract_generated",
         "//pkg/kascfg:extract_generated",
         "//pkg/kascfg:extract_generated_validator",
+        "//internal/agentrpc:extract_generated",
+        "//internal/module/agent_configuration/rpc:extract_generated",
     ],
 )
 

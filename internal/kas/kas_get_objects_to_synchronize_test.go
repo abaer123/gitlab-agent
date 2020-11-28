@@ -10,12 +10,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_internalgitaly"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"gitlab.com/gitlab-org/labkit/errortracking"
@@ -55,7 +56,7 @@ func TestGetObjectsToSynchronizeGitLabClientFailures(t *testing.T) {
 				}),
 		)
 
-		resp := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
+		resp := mock_rpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
 		resp.EXPECT().
 			Context().
 			Return(incomingCtx(ctx, t)).
@@ -96,7 +97,7 @@ func TestGetObjectsToSynchronizeGitLabClientFailures(t *testing.T) {
 					cancel() // exception captured, cancel the context to stop the test
 				}),
 		)
-		resp := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
+		resp := mock_rpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
 		resp.EXPECT().
 			Context().
 			Return(incomingCtx(ctx, t)).
@@ -147,7 +148,7 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	}
 	objectsYAML := kube_testing.ObjsToYAML(t, objects...)
 	projectInfo := projectInfo()
-	resp := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
+	resp := mock_rpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
 	resp.EXPECT().
 		Context().
 		Return(incomingCtx(ctx, t)).
@@ -253,7 +254,7 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 	defer cancel()
 	a, agentInfo, mockCtrl, gitalyPool, gitlabClient, _ := setupKas(t)
 	projectInfo := projectInfo()
-	resp := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
+	resp := mock_rpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
 	resp.EXPECT().
 		Context().
 		Return(incomingCtx(ctx, t)).
@@ -445,7 +446,7 @@ func TestObjectsToSynchronizeVisitor(t *testing.T) {
 	t.Run("blob", func(t *testing.T) {
 		data := []byte("data1")
 		mockCtrl := gomock.NewController(t)
-		stream := mock_agentrpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
+		stream := mock_rpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
 		stream.EXPECT().
 			Send(matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeResponse{
 				Message: &agentrpc.ObjectsToSynchronizeResponse_Object_{
@@ -577,5 +578,25 @@ func TestGlobToGitaly(t *testing.T) {
 			assert.Equal(t, tc.expectedRecursive, gotRecursive)         // nolint: scopelint
 			assert.Equal(t, tc.expectedGlob, gotGlob)                   // nolint: scopelint
 		})
+	}
+}
+
+func projectInfo() *api.ProjectInfo {
+	return &api.ProjectInfo{
+		ProjectId: 234,
+		GitalyInfo: api.GitalyInfo{
+			Address: "127.0.0.1:321321",
+			Token:   "cba",
+			Features: map[string]string{
+				"bla": "false",
+			},
+		},
+		Repository: gitalypb.Repository{
+			StorageName:        "StorageName1",
+			RelativePath:       "RelativePath1",
+			GitObjectDirectory: "GitObjectDirectory1",
+			GlRepository:       "GlRepository1",
+			GlProjectPath:      "GlProjectPath1",
+		},
 	}
 }

@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+// If you make any changes make sure you run: make regenerate-proto
+
+package rpc;
+
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc";
+
+import "pkg/agentcfg/agentcfg.proto";
+
+message ConfigurationRequest {
+    // Last processed commit id. Optional.
+    // Server will only send configuration if the last commit on the branch is a different one.
+    // If a connection breaks, this allows to resume the stream without sending the same data again.
+    string commit_id = 1;
+}
+
+message ConfigurationResponse {
+    agentcfg.AgentConfiguration configuration = 1;
+    // Commit id of the configuration repository.
+    // Can be used to resume connection from where it dropped.
+    string commit_id = 2;
+}
+
+service AgentConfiguration {
+    // Get agentk configuration.
+    rpc GetConfiguration (ConfigurationRequest) returns (stream ConfigurationResponse) {
+    }
+}

@@ -1,4 +1,4 @@
-package agentrpc
+package rpc
 
 import (
 	"context"
@@ -26,7 +26,7 @@ type ConfigurationWatcherInterface interface {
 
 type ConfigurationWatcher struct {
 	Log         *zap.Logger
-	KasClient   KasClient
+	Client      AgentConfigurationClient
 	RetryPeriod time.Duration
 }
 
@@ -38,7 +38,7 @@ func (w *ConfigurationWatcher) Watch(ctx context.Context, callback Configuration
 		req := &ConfigurationRequest{
 			CommitId: lastProcessedCommitId,
 		}
-		res, err := w.KasClient.GetConfiguration(ctx, req)
+		res, err := w.Client.GetConfiguration(ctx, req)
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
 				w.Log.Warn("GetConfiguration failed", zap.Error(err))

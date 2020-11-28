@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_engine"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_grpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -113,7 +113,7 @@ func setupModule(t *testing.T) (*module, *gomock.Controller, *mock_engine.MockGi
 	mockCtrl := gomock.NewController(t)
 	engFactory := mock_engine.NewMockGitOpsEngineFactory(mockCtrl)
 	configFlags := genericclioptions.NewTestConfigFlags()
-	kasConn := mock_grpc.NewMockClientConnInterface(mockCtrl)
+	kasConn := mock_rpc.NewMockClientConnInterface(mockCtrl)
 	factory := Factory{
 		EngineFactory: &mock_engine.ThreadSafeGitOpsEngineFactory{
 			EngineFactory: engFactory,

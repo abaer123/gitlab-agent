@@ -6,9 +6,12 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver",
     visibility = ["//:__subpackages__"],
     deps = [
+        "//internal/api",
+        "//internal/gitaly",
         "//pkg/kascfg",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_gitlab_gitlab_org_labkit//errortracking",
+        "@org_golang_google_grpc//:grpc",
         "@org_uber_go_zap//:zap",
     ],
 )

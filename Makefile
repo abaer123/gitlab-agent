@@ -25,13 +25,13 @@ regenerate-proto: internal-regenerate-proto fmt update-bazel
 .PHONY: internal-regenerate-mocks
 internal-regenerate-mocks:
 	go generate -x -v \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_agentrpc" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_internalgitaly" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modagent" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_engine" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitaly" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_grpc" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_redis" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_errtracker"
 
