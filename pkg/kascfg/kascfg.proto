@@ -10,213 +10,227 @@ import "google/protobuf/duration.proto";
 //import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
 import "validate/validate.proto";
 
-// CF suffix stands for Configuration File, meaning a message is part of ConfigurationFile.
+// CF suffix stands for Configuration File, meaning a message
+// is part of ConfigurationFile.
 
 enum listen_network_enum {
-    tcp = 0; // default value must be 0
-    tcp4 = 1;
-    tcp6 = 2;
-    unix = 3;
+  tcp = 0; // default value must be 0
+  tcp4 = 1;
+  tcp6 = 2;
+  unix = 3;
 }
 
 message ListenAgentCF {
-    // Network type to listen on. Supported values: tcp, tcp4, tcp6, unix.
-    listen_network_enum network = 1 [json_name = "network"];
-    // Address to listen on.
-    string address = 2 [json_name = "address"];
-    // Enable "gRPC through WebSocket" listening mode. Rather than expecting gRPC directly, expect a WebSocket
-    // connection, from which a gRPC stream is then unpacked.
-    bool websocket = 3 [json_name = "websocket"];
-    // X.509 certificate for TLS in PEM format.
-    // TLS is enabled iff both certificate_file and key_file are provided.
-    string certificate_file = 4 [json_name = "certificate_file"];
-    // X.509 key file for TLS in PEM format.
-    // TLS is enabled iff both certificate_file and key_file are provided.
-    string key_file = 5 [json_name = "key_file"];
+  // Network type to listen on. Supported values: tcp, tcp4, tcp6, unix.
+  listen_network_enum network = 1 [json_name = "network"];
+  // Address to listen on.
+  string address = 2 [json_name = "address"];
+  // Enable "gRPC through WebSocket" listening mode.
+  // Rather than expecting gRPC directly, expect a WebSocket
+  // connection, from which a gRPC stream is then unpacked.
+  bool websocket = 3 [json_name = "websocket"];
+  // X.509 certificate for TLS in PEM format.
+  // TLS is enabled iff both certificate_file and key_file are provided.
+  string certificate_file = 4 [json_name = "certificate_file"];
+  // X.509 key file for TLS in PEM format.
+  // TLS is enabled iff both certificate_file and key_file are provided.
+  string key_file = 5 [json_name = "key_file"];
 }
 
 message PrometheusCF {
-    // Expected URL path for requests.
-    string url_path = 1 [json_name = "url_path"];
+  // Expected URL path for requests.
+  string url_path = 1 [json_name = "url_path"];
 }
 
 message ObservabilityListenCF {
-    // Network type to listen on. Supported values: tcp, tcp4, tcp6, unix.
-    listen_network_enum network = 1 [json_name = "network"];
-    // Address to listen on.
-    string address = 2 [json_name = "address"];
+  // Network type to listen on. Supported values: tcp, tcp4, tcp6, unix.
+  listen_network_enum network = 1 [json_name = "network"];
+  // Address to listen on.
+  string address = 2 [json_name = "address"];
 }
 
 message TracingCF {
-    // Connection string to configure LabKit's tracing support. Examples:
-    // * opentracing://jaeger
-    // * opentracing://datadog
-    // * opentracing://lightstep?access_key=12345
-    string connection_string = 1 [json_name = "connection_string"];
+  // Connection string to configure LabKit's tracing support. Examples:
+  // * opentracing://jaeger
+  // * opentracing://datadog
+  // * opentracing://lightstep?access_key=12345
+  string connection_string = 1 [json_name = "connection_string"];
 }
 
 enum logging_level_enum {
-    info = 0; // default value must be 0
-    debug = 1;
-    warn = 2;
-    error = 3;
+  info = 0; // default value must be 0
+  debug = 1;
+  warn = 2;
+  error = 3;
 }
 
 message LoggingCF {
-    // Supported logging levels are: debug, info, warn, error.
-    logging_level_enum level = 1 [json_name = "level"];
+  // Supported logging levels are: debug, info, warn, error.
+  logging_level_enum level = 1 [json_name = "level"];
 }
 
 message GitLabCF {
-    string address = 1 [json_name = "address"];
-    string authentication_secret_file = 2 [json_name = "authentication_secret_file"];
-    // Optional X.509 certificate for TLS in PEM format. Should be set for self-signed certificates.
-    string ca_certificate_file = 3 [json_name = "ca_certificate_file"];
-    // Rate limiting configuration for talking to the GitLab API.
-    TokenBucketRateLimitCF api_rate_limit = 4 [json_name = "api_rate_limit"];
+  string address = 1 [json_name = "address"];
+  string authentication_secret_file = 2 [json_name = "authentication_secret_file"];
+  // Optional X.509 certificate for TLS in PEM format.
+  // Should be set for self-signed certificates.
+  string ca_certificate_file = 3 [json_name = "ca_certificate_file"];
+  // Rate limiting configuration for talking to the GitLab API.
+  TokenBucketRateLimitCF api_rate_limit = 4 [json_name = "api_rate_limit"];
 }
 
 message GitopsCF {
-    // How often to poll GitOps manifest repositories for changes.
-    google.protobuf.Duration poll_period = 1 [json_name = "poll_period", (validate.rules).duration = {gt: {}}];
-    // TTL for successful project info lookups. /api/v4/internal/kubernetes/project_info
-    // Set to zero to disable.
-    google.protobuf.Duration project_info_cache_ttl = 2 [json_name = "project_info_cache_ttl", (validate.rules).duration = {gte: {}}];
-    // TTL for failed project info lookups. /api/v4/internal/kubernetes/project_info
-    google.protobuf.Duration project_info_cache_error_ttl = 3 [json_name = "project_info_cache_error_ttl", (validate.rules).duration = {gt: {}}];
+  // How often to poll GitOps manifest repositories for changes.
+  google.protobuf.Duration poll_period = 1 [json_name = "poll_period", (validate.rules).duration = {gt: {}}];
+  // TTL for successful project info lookups.
+  // /api/v4/internal/kubernetes/project_info
+  // Set to zero to disable.
+  google.protobuf.Duration project_info_cache_ttl = 2 [json_name = "project_info_cache_ttl", (validate.rules).duration = {gte: {}}];
+  // TTL for failed project info lookups.
+  // /api/v4/internal/kubernetes/project_info
+  google.protobuf.Duration project_info_cache_error_ttl = 3 [json_name = "project_info_cache_error_ttl", (validate.rules).duration = {gt: {}}];
 }
 
 message SentryCF {
-    // Sentry DSN https://docs.sentry.io/platforms/go/#configure
-    string dsn = 1 [json_name = "dsn"];
-    // Sentry environment https://docs.sentry.io/product/sentry-basics/environments/
-    string environment = 2 [json_name = "environment"];
+  // Sentry DSN https://docs.sentry.io/platforms/go/#configure
+  string dsn = 1 [json_name = "dsn"];
+  // Sentry environment
+  // https://docs.sentry.io/product/sentry-basics/environments/
+  string environment = 2 [json_name = "environment"];
 }
 
 message AgentCF {
-    // RPC listener configuration for agentk connections.
-    ListenAgentCF listen = 1 [json_name = "listen"];
-    // Configuration for agent's configuration repository.
-    AgentConfigurationCF configuration = 2 [json_name = "configuration"];
-    // Configuration for GitOps.
-    GitopsCF gitops = 3 [json_name = "gitops"];
-    // TTL for successful agent info lookups. /api/v4/internal/kubernetes/agent_info
-    // Set to zero to disable.
-    google.protobuf.Duration info_cache_ttl = 4 [json_name = "info_cache_ttl", (validate.rules).duration = {gte: {}}];
-    // TTL for failed agent info lookups. /api/v4/internal/kubernetes/agent_info
-    google.protobuf.Duration info_cache_error_ttl = 5 [json_name = "info_cache_error_ttl", (validate.rules).duration = {gt: {}}];
-    // Various limiter configurations
-    AgentLimitsCF limits = 6 [json_name = "limits"];
+  // RPC listener configuration for agentk connections.
+  ListenAgentCF listen = 1 [json_name = "listen"];
+  // Configuration for agent's configuration repository.
+  AgentConfigurationCF configuration = 2 [json_name = "configuration"];
+  // Configuration for GitOps.
+  GitopsCF gitops = 3 [json_name = "gitops"];
+  // TTL for successful agent info lookups.
+  // /api/v4/internal/kubernetes/agent_info
+  // Set to zero to disable.
+  google.protobuf.Duration info_cache_ttl = 4 [json_name = "info_cache_ttl", (validate.rules).duration = {gte: {}}];
+  // TTL for failed agent info lookups.
+  // /api/v4/internal/kubernetes/agent_info
+  google.protobuf.Duration info_cache_error_ttl = 5 [json_name = "info_cache_error_ttl", (validate.rules).duration = {gt: {}}];
+  // Various limiter configurations
+  AgentLimitsCF limits = 6 [json_name = "limits"];
 }
 
 message AgentConfigurationCF {
-    // How often to poll agent's configuration repository for changes.
-    google.protobuf.Duration poll_period = 1 [json_name = "poll_period", (validate.rules).duration = {gt: {}}];
+  // How often to poll agent's configuration repository for changes.
+  google.protobuf.Duration poll_period = 1 [json_name = "poll_period", (validate.rules).duration = {gt: {}}];
 }
 
 message GoogleProfilerCF {
-    bool enabled = 1 [json_name = "enabled"];
-    string project_id = 2 [json_name = "project_id"];
-    string credentials_file = 3 [json_name = "credentials_file"];
+  bool enabled = 1 [json_name = "enabled"];
+  string project_id = 2 [json_name = "project_id"];
+  string credentials_file = 3 [json_name = "credentials_file"];
 }
 
 message LivenessProbeCF {
-    // Expected URL path for requests.
-    string url_path = 1 [json_name = "url_path"];
+  // Expected URL path for requests.
+  string url_path = 1 [json_name = "url_path"];
 }
 
 message ReadinessProbeCF {
-    // Expected URL path for requests.
-    string url_path = 1 [json_name = "url_path"];
+  // Expected URL path for requests.
+  string url_path = 1 [json_name = "url_path"];
 }
 
 message ObservabilityCF {
-    // How often to send usage metrics to the main application. /api/v4/internal/kubernetes/usage_ping
-    // Set to zero to disable.
-    google.protobuf.Duration usage_reporting_period = 1 [json_name = "usage_reporting_period", (validate.rules).duration = {gte: {}}];
-    // Listener configuration for HTTP endpoint that exposes Prometheus, pprof, liveness and readiness probes.
-    ObservabilityListenCF listen = 2 [json_name = "listen"];
-    PrometheusCF prometheus = 3 [json_name = "prometheus"];
-    TracingCF tracing = 4 [json_name = "tracing"];
-    SentryCF sentry = 5 [json_name = "sentry"];
-    LoggingCF logging = 6 [json_name = "logging"];
-    // Configuration for the Google Cloud Profiler. See https://pkg.go.dev/cloud.google.com/go/profiler.
-    GoogleProfilerCF google_profiler = 7 [json_name = "google_profiler"];
-    LivenessProbeCF liveness_probe = 8 [json_name = "liveness_probe"];
-    ReadinessProbeCF readiness_probe = 9 [json_name = "readiness_probe"];
+  // How often to send usage metrics to the main application.
+  // /api/v4/internal/kubernetes/usage_ping
+  // Set to zero to disable.
+  google.protobuf.Duration usage_reporting_period = 1 [json_name = "usage_reporting_period", (validate.rules).duration = {gte: {}}];
+  // Listener configuration for HTTP endpoint that exposes Prometheus,
+  // pprof, liveness and readiness probes.
+  ObservabilityListenCF listen = 2 [json_name = "listen"];
+  PrometheusCF prometheus = 3 [json_name = "prometheus"];
+  TracingCF tracing = 4 [json_name = "tracing"];
+  SentryCF sentry = 5 [json_name = "sentry"];
+  LoggingCF logging = 6 [json_name = "logging"];
+  // Configuration for the Google Cloud Profiler.
+  // See https://pkg.go.dev/cloud.google.com/go/profiler.
+  GoogleProfilerCF google_profiler = 7 [json_name = "google_profiler"];
+  LivenessProbeCF liveness_probe = 8 [json_name = "liveness_probe"];
+  ReadinessProbeCF readiness_probe = 9 [json_name = "readiness_probe"];
 }
 
 // See https://pkg.go.dev/golang.org/x/time/rate#Limiter.
 message TokenBucketRateLimitCF {
-    // Number of events per second. A zero allows no events.
-    // How fast the "token bucket" is refilled.
-    double refill_rate_per_second = 1 [json_name = "refill_rate_per_second", (validate.rules).double.gte = 0];
-    // Maximum number of events that are allowed to happen in succession.
-    // Size of the "token bucket".
-    uint32 bucket_size = 2 [json_name = "bucket_size"];
+  // Number of events per second. A zero allows no events.
+  // How fast the "token bucket" is refilled.
+  double refill_rate_per_second = 1 [json_name = "refill_rate_per_second", (validate.rules).double.gte = 0];
+  // Maximum number of events that are allowed to happen in succession.
+  // Size of the "token bucket".
+  uint32 bucket_size = 2 [json_name = "bucket_size"];
 }
 
 message GitalyCF {
-    // Rate limit that is enforced across all Gitaly servers.
-    TokenBucketRateLimitCF global_api_rate_limit = 1 [json_name = "global_api_rate_limit"];
-    // Rate limit that is enforced per each Gitaly server.
-    TokenBucketRateLimitCF per_server_api_rate_limit = 2 [json_name = "per_server_api_rate_limit"];
+  // Rate limit that is enforced across all Gitaly servers.
+  TokenBucketRateLimitCF global_api_rate_limit = 1 [json_name = "global_api_rate_limit"];
+  // Rate limit that is enforced per each Gitaly server.
+  TokenBucketRateLimitCF per_server_api_rate_limit = 2 [json_name = "per_server_api_rate_limit"];
 }
 
 message RedisCF {
-    // Redis URL, e.g. unix:///redis.sock, tcp://localhost:6379, redis://my-redis
-    string url = 1 [json_name = "url"];
-    // The password to use for all connections
-    string password = 2 [json_name = "password"];
-    // The max number of idle connections
-    uint32 max_idle = 3 [json_name = "max_idle"];
-    // The max number of active connections
-    uint32 max_active = 4 [json_name = "max_active"];
-    // Read timeout
-    google.protobuf.Duration read_timeout = 5 [json_name = "read_timeout", (validate.rules).duration = {gt: {}}];
-    // Write timeout
-    google.protobuf.Duration write_timeout = 6 [json_name = "write_timeout", (validate.rules).duration = {gt: {}}];
-    // How long to keep TCP connections alive before being killed
-    // Set to zero to disable.
-    google.protobuf.Duration keepalive = 7 [json_name = "keepalive", (validate.rules).duration = {gte: {}}];
-    // The name of the sentinel master to use
-    string sentinel_master = 8 [json_name = "sentinel_master"];
-    // The URLs for the sentinels
-    repeated string sentinels = 9 [json_name = "sentinels"];
+  // Redis URL, e.g. unix:///redis.sock, tcp://localhost:6379, redis://my-redis
+  string url = 1 [json_name = "url"];
+  // The password to use for all connections
+  string password = 2 [json_name = "password"];
+  // The max number of idle connections
+  uint32 max_idle = 3 [json_name = "max_idle"];
+  // The max number of active connections
+  uint32 max_active = 4 [json_name = "max_active"];
+  // Read timeout
+  google.protobuf.Duration read_timeout = 5 [json_name = "read_timeout", (validate.rules).duration = {gt: {}}];
+  // Write timeout
+  google.protobuf.Duration write_timeout = 6 [json_name = "write_timeout", (validate.rules).duration = {gt: {}}];
+  // How long to keep TCP connections alive before being killed
+  // Set to zero to disable.
+  google.protobuf.Duration keepalive = 7 [json_name = "keepalive", (validate.rules).duration = {gte: {}}];
+  // The name of the sentinel master to use
+  string sentinel_master = 8 [json_name = "sentinel_master"];
+  // The URLs for the sentinels
+  repeated string sentinels = 9 [json_name = "sentinels"];
 }
 
 message AgentLimitsCF {
-    // Maximum number of connections to allow per agent token per minute
-    uint32 connections_per_token_per_minute = 1 [json_name = "connections_per_token_per_minute"];
-    // Prefix to use for agent limit keys in redis
-    string redis_key_prefix = 2 [json_name = "redis_key_prefix"];
-    // Maximum file size of the agent configuration file.
-    uint32 max_configuration_file_size = 3 [json_name = "max_configuration_file_size"];
-    // Maximum size of a GitOps manifest file.
-    uint32 max_gitops_manifest_file_size = 4 [json_name = "max_gitops_manifest_file_size"];
-    // Maximum total size of all GitOps manifest files per GitOps project.
-    uint32 max_gitops_total_manifest_file_size = 5 [json_name = "max_gitops_total_manifest_file_size"];
-    // Maximum number of scanned paths per GitOps project.
-    uint32 max_gitops_number_of_paths = 6 [json_name = "max_gitops_number_of_paths"];
-    // Maximum number of scanned files across all paths per GitOps project.
-    // This limit ensures there are not too many files in the repository that we need to sift though to
-    // find *.yaml, *.yml, *.json files.
-    // All files and directories under a path are counted towards this limit.
-    uint32 max_gitops_number_of_files = 7 [json_name = "max_gitops_number_of_files"];
-    // Max age of a connection. Connection is closed gracefully once it's too old and there is no streaming happening.
-    google.protobuf.Duration connection_max_age = 8 [json_name = "connection_max_age", (validate.rules).duration = {gt: {}}];
+  // Maximum number of connections to allow per agent token per minute
+  uint32 connections_per_token_per_minute = 1 [json_name = "connections_per_token_per_minute"];
+  // Prefix to use for agent limit keys in redis
+  string redis_key_prefix = 2 [json_name = "redis_key_prefix"];
+  // Maximum file size of the agent configuration file.
+  uint32 max_configuration_file_size = 3 [json_name = "max_configuration_file_size"];
+  // Maximum size of a GitOps manifest file.
+  uint32 max_gitops_manifest_file_size = 4 [json_name = "max_gitops_manifest_file_size"];
+  // Maximum total size of all GitOps manifest files per GitOps project.
+  uint32 max_gitops_total_manifest_file_size = 5 [json_name = "max_gitops_total_manifest_file_size"];
+  // Maximum number of scanned paths per GitOps project.
+  uint32 max_gitops_number_of_paths = 6 [json_name = "max_gitops_number_of_paths"];
+  // Maximum number of scanned files across all paths per GitOps project.
+  // This limit ensures there are not too many files in the repository that we need to sift though to
+  // find *.yaml, *.yml, *.json files.
+  // All files and directories under a path are counted towards this limit.
+  uint32 max_gitops_number_of_files = 7 [json_name = "max_gitops_number_of_files"];
+  // Max age of a connection. Connection is closed gracefully once it's
+  // too old and there is no streaming happening.
+  google.protobuf.Duration connection_max_age = 8 [json_name = "connection_max_age", (validate.rules).duration = {gt: {}}];
 }
 
 // ConfigurationFile represents kas configuration file.
 message ConfigurationFile {
-    // Configuration related to interaction with GitLab.
-    GitLabCF gitlab = 1 [json_name = "gitlab"];
-    // Configuration related to the agent. Generally all configuration for user-facing features should be here.
-    AgentCF agent = 2 [json_name = "agent"];
-    // Configuration related to all things observability: metrics, tracing, monitoring, logging, usage metrics, profiling.
-    ObservabilityCF observability = 3 [json_name = "observability"];
-    // Configuration related to interaction with Gitaly.
-    GitalyCF gitaly = 4 [json_name = "gitaly"];
-    // Redis configurations available to kas
-    RedisCF redis = 5 [json_name = "redis"];
+  // Configuration related to interaction with GitLab.
+  GitLabCF gitlab = 1 [json_name = "gitlab"];
+  // Configuration related to the agent. Generally all configuration for
+  // user-facing features should be here.
+  AgentCF agent = 2 [json_name = "agent"];
+  // Configuration related to all things observability: metrics, tracing,
+  // monitoring, logging, usage metrics, profiling.
+  ObservabilityCF observability = 3 [json_name = "observability"];
+  // Configuration related to interaction with Gitaly.
+  GitalyCF gitaly = 4 [json_name = "gitaly"];
+  // Redis configurations available to kas
+  RedisCF redis = 5 [json_name = "redis"];
 }

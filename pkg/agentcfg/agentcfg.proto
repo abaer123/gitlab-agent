@@ -9,72 +9,78 @@ option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/
 //import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
 import "validate/validate.proto";
 
-// CF suffix stands for Configuration File, meaning a message is part of ConfigurationFile.
+// CF suffix stands for Configuration File, meaning a message is
+// part of ConfigurationFile.
 
 message ResourceFilterCF {
-    // Use '*' to match any group.
-    repeated string api_groups = 1 [json_name = "api_groups", (validate.rules).repeated.min_items = 1];
-    // Use '*' to match any kind.
-    repeated string kinds = 2 [json_name = "kinds", (validate.rules).repeated.min_items = 1, (validate.rules).repeated.items.string.min_len = 1];
+  // Use '*' to match any group.
+  repeated string api_groups = 1 [json_name = "api_groups", (validate.rules).repeated.min_items = 1];
+  // Use '*' to match any kind.
+  repeated string kinds = 2 [json_name = "kinds", (validate.rules).repeated.min_items = 1, (validate.rules).repeated.items.string.min_len = 1];
 }
 
 message PathCF {
-    // Glob to use to scan for files in the repository. Directories with names starting with a dot are ignored.
-    // See https://github.com/bmatcuk/doublestar#about and
-    // https://pkg.go.dev/github.com/bmatcuk/doublestar/v2#Match for globbing rules.
-    string glob = 1 [json_name = "glob"];
+  // Glob to use to scan for files in the repository.
+  // Directories with names starting with a dot are ignored.
+  // See https://github.com/bmatcuk/doublestar#about and
+  // https://pkg.go.dev/github.com/bmatcuk/doublestar/v2#Match for
+  // globbing rules.
+  string glob = 1 [json_name = "glob"];
 }
 
 // Project with Kubernetes object manifests.
 message ManifestProjectCF {
-    // Project id.
-    // e.g. gitlab-org/cluster-integration/gitlab-agent
-    string id = 1 [json_name = "id", (validate.rules).string.min_len = 1];
-    // Holds the only api groups and kinds of resources that gitops will monitor.
-    // Inclusion rules are evaluated first, then exclusion rules. If there is still no match,
-    // resource is monitored.
-    repeated ResourceFilterCF resource_inclusions = 2 [json_name = "resource_inclusions"];
-    // Holds the api groups and kinds of resources to exclude from gitops watch.
-    // Inclusion rules are evaluated first, then exclusion rules. If there is still no match,
-    // resource is monitored.
-    repeated ResourceFilterCF resource_exclusions = 3 [json_name = "resource_exclusions"];
-    // Namespace to use if not set explicitly in object manifest.
-    string default_namespace = 4 [json_name = "default_namespace"];
-    // A list of paths inside of the project to scan for .yaml/.yml/.json manifest files.
-    repeated PathCF paths = 5 [json_name = "paths"];
+  // Project id.
+  // e.g. gitlab-org/cluster-integration/gitlab-agent
+  string id = 1 [json_name = "id", (validate.rules).string.min_len = 1];
+  // Holds the only api groups and kinds of resources that gitops will monitor.
+  // Inclusion rules are evaluated first, then exclusion rules. If there is still no match,
+  // resource is monitored.
+  repeated ResourceFilterCF resource_inclusions = 2 [json_name = "resource_inclusions"];
+  // Holds the api groups and kinds of resources to exclude from gitops watch.
+  // Inclusion rules are evaluated first, then exclusion rules. If there is
+  // still no match, resource is monitored.
+  repeated ResourceFilterCF resource_exclusions = 3 [json_name = "resource_exclusions"];
+  // Namespace to use if not set explicitly in object manifest.
+  string default_namespace = 4 [json_name = "default_namespace"];
+  // A list of paths inside of the project to scan for
+  // .yaml/.yml/.json manifest files.
+  repeated PathCF paths = 5 [json_name = "paths"];
 }
 
 message GitopsCF {
-    repeated ManifestProjectCF manifest_projects = 1 [json_name = "manifest_projects"];
+  repeated ManifestProjectCF manifest_projects = 1 [json_name = "manifest_projects"];
 }
 
 message ObservabilityCF {
-    LoggingCF logging = 1 [json_name = "logging"];
+  LoggingCF logging = 1 [json_name = "logging"];
 }
 
 enum logging_level_enum {
-    info = 0; // default value must be 0
-    debug = 1;
-    warn = 2;
-    error = 3;
+  info = 0; // default value must be 0
+  debug = 1;
+  warn = 2;
+  error = 3;
 }
 
 message LoggingCF {
-    // Supported logging levels are: debug, info, warn, error.
-    logging_level_enum level = 1 [json_name = "level"];
+  // Supported logging levels are: debug, info, warn, error.
+  logging_level_enum level = 1 [json_name = "level"];
 }
 
 // ConfigurationFile represents user-facing configuration file.
 message ConfigurationFile {
-    GitopsCF gitops = 1 [json_name = "gitops"];
-    // Configuration related to all things observability. This is about the agent itself, not any observability-related features.
-    ObservabilityCF observability = 2 [json_name = "observability"];
+  GitopsCF gitops = 1 [json_name = "gitops"];
+  // Configuration related to all things observability. This is about the
+  // agent itself, not any observability-related features.
+  ObservabilityCF observability = 2 [json_name = "observability"];
 }
 
 // AgentConfiguration represents configuration for agentk.
-// Note that agentk configuration is not exactly the whole file as the file may contain bits that are not
-// relevant for the agent. For example, some additional config for kas.
+// Note that agentk configuration is not exactly the whole file as the file
+// may contain bits that are not relevant for the agent. For example, some
+// additional config for kas.
 message AgentConfiguration {
-    GitopsCF gitops = 1;
-    ObservabilityCF observability = 2;
+  GitopsCF gitops = 1;
+  ObservabilityCF observability = 2;
 }
