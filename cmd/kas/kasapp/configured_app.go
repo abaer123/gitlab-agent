@@ -327,21 +327,19 @@ func (a *ConfiguredApp) gitLabClient(tracer opentracing.Tracer) (*gitlab.Caching
 	if err != nil {
 		return nil, fmt.Errorf("authentication secret: %v", err)
 	}
-	gitLabClient := &gitlab.RateLimitingClient{
-		Delegate: gitlab.NewClient(
-			gitLabUrl,
-			decodedAuthSecret,
-			gitlab.WithCorrelationClientName(kasName),
-			gitlab.WithUserAgent(kasUserAgent()),
-			gitlab.WithTracer(tracer),
-			gitlab.WithLogger(a.Log),
-			gitlab.WithTLSConfig(clientTLSConfig),
-		),
-		Limiter: rate.NewLimiter(
+	gitLabClient := gitlab.NewClient(
+		gitLabUrl,
+		decodedAuthSecret,
+		gitlab.WithCorrelationClientName(kasName),
+		gitlab.WithUserAgent(kasUserAgent()),
+		gitlab.WithTracer(tracer),
+		gitlab.WithLogger(a.Log),
+		gitlab.WithTLSConfig(clientTLSConfig),
+		gitlab.WithRateLimiter(rate.NewLimiter(
 			rate.Limit(cfg.Gitlab.ApiRateLimit.RefillRatePerSecond),
 			int(cfg.Gitlab.ApiRateLimit.BucketSize),
-		),
-	}
+		)),
+	)
 	return gitlab.NewCachingClient(gitLabClient, gitlab.CacheOptions{
 		CacheTTL:      cfg.Agent.InfoCacheTtl.AsDuration(),
 		CacheErrorTTL: cfg.Agent.InfoCacheErrorTtl.AsDuration(),

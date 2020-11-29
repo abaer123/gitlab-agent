@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/opentracing/opentracing-go"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/tlstool"
 	"go.uber.org/zap"
 )
@@ -18,6 +19,7 @@ type clientConfig struct {
 	tracer      opentracing.Tracer
 	log         *zap.Logger
 	tlsConfig   *tls.Config
+	limiter     httpz.Limiter
 	dialContext func(ctx context.Context, network, address string) (net.Conn, error)
 	proxy       func(*http.Request) (*url.URL, error)
 	clientName  string
@@ -80,5 +82,12 @@ func WithLogger(log *zap.Logger) ClientOption {
 func WithTLSConfig(tlsConfig *tls.Config) ClientOption {
 	return func(config *clientConfig) {
 		config.tlsConfig = tlsConfig
+	}
+}
+
+// WithRateLimiter sets the rate limiter to use.
+func WithRateLimiter(limiter httpz.Limiter) ClientOption {
+	return func(config *clientConfig) {
+		config.limiter = limiter
 	}
 }

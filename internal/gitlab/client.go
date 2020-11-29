@@ -15,6 +15,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go/v4"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/tracing"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"gitlab.com/gitlab-org/labkit/correlation"
@@ -92,21 +93,28 @@ type getAgentInfoResponse struct {
 
 func NewClient(backend *url.URL, authSecret []byte, opts ...ClientOption) *Client {
 	o := applyClientOptions(opts)
+	var transport http.RoundTripper = &http.Transport{
+		Proxy:                 o.proxy,
+		DialContext:           o.dialContext,
+		TLSClientConfig:       o.tlsConfig,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ResponseHeaderTimeout: 20 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+	if o.limiter != nil {
+		transport = &httpz.RateLimitingRoundTripper{
+			Delegate: transport,
+			Limiter:  o.limiter,
+		}
+	}
 	return &Client{
 		Backend: backend,
 		HTTPClient: &http.Client{
 			Transport: tracing.NewRoundTripper(
 				correlation.NewInstrumentedRoundTripper(
-					&http.Transport{
-						Proxy:                 o.proxy,
-						DialContext:           o.dialContext,
-						TLSClientConfig:       o.tlsConfig,
-						MaxIdleConns:          100,
-						IdleConnTimeout:       90 * time.Second,
-						TLSHandshakeTimeout:   10 * time.Second,
-						ResponseHeaderTimeout: 20 * time.Second,
-						ExpectContinueTimeout: 1 * time.Second,
-					},
+					transport,
 					correlation.WithClientName(o.clientName),
 				),
 				tracing.WithRoundTripperTracer(o.tracer),
