@@ -33,7 +33,6 @@ const (
 var (
 	_ ClientInterface = &Client{}
 	_ ClientInterface = &CachingClient{}
-	_ ClientInterface = &RateLimitingClient{}
 )
 
 func TestGetAgentInfo(t *testing.T) {
