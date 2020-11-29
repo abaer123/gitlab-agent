@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.25.0
 // 	protoc        v3.13.0
-// source: internal/agentrpc/agentrpc.proto
+// source: internal/module/gitops/rpc/rpc.proto
 
-package agentrpc
+package rpc
 
 import (
 	context "context"
@@ -44,7 +44,7 @@ type ObjectsToSynchronizeRequest struct {
 func (x *ObjectsToSynchronizeRequest) Reset() {
 	*x = ObjectsToSynchronizeRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_agentrpc_agentrpc_proto_msgTypes[0]
+		mi := &file_internal_module_gitops_rpc_rpc_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -57,7 +57,7 @@ func (x *ObjectsToSynchronizeRequest) String() string {
 func (*ObjectsToSynchronizeRequest) ProtoMessage() {}
 
 func (x *ObjectsToSynchronizeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_agentrpc_agentrpc_proto_msgTypes[0]
+	mi := &file_internal_module_gitops_rpc_rpc_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -70,7 +70,7 @@ func (x *ObjectsToSynchronizeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ObjectsToSynchronizeRequest.ProtoReflect.Descriptor instead.
 func (*ObjectsToSynchronizeRequest) Descriptor() ([]byte, []int) {
-	return file_internal_agentrpc_agentrpc_proto_rawDescGZIP(), []int{0}
+	return file_internal_module_gitops_rpc_rpc_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ObjectsToSynchronizeRequest) GetProjectId() string {
@@ -109,7 +109,7 @@ type ObjectsToSynchronizeResponse struct {
 func (x *ObjectsToSynchronizeResponse) Reset() {
 	*x = ObjectsToSynchronizeResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_agentrpc_agentrpc_proto_msgTypes[1]
+		mi := &file_internal_module_gitops_rpc_rpc_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -122,7 +122,7 @@ func (x *ObjectsToSynchronizeResponse) String() string {
 func (*ObjectsToSynchronizeResponse) ProtoMessage() {}
 
 func (x *ObjectsToSynchronizeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_agentrpc_agentrpc_proto_msgTypes[1]
+	mi := &file_internal_module_gitops_rpc_rpc_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -135,7 +135,7 @@ func (x *ObjectsToSynchronizeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ObjectsToSynchronizeResponse.ProtoReflect.Descriptor instead.
 func (*ObjectsToSynchronizeResponse) Descriptor() ([]byte, []int) {
-	return file_internal_agentrpc_agentrpc_proto_rawDescGZIP(), []int{1}
+	return file_internal_module_gitops_rpc_rpc_proto_rawDescGZIP(), []int{1}
 }
 
 func (m *ObjectsToSynchronizeResponse) GetMessage() isObjectsToSynchronizeResponse_Message {
@@ -199,7 +199,7 @@ type ObjectsToSynchronizeResponse_Headers struct {
 func (x *ObjectsToSynchronizeResponse_Headers) Reset() {
 	*x = ObjectsToSynchronizeResponse_Headers{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_agentrpc_agentrpc_proto_msgTypes[2]
+		mi := &file_internal_module_gitops_rpc_rpc_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -212,7 +212,7 @@ func (x *ObjectsToSynchronizeResponse_Headers) String() string {
 func (*ObjectsToSynchronizeResponse_Headers) ProtoMessage() {}
 
 func (x *ObjectsToSynchronizeResponse_Headers) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_agentrpc_agentrpc_proto_msgTypes[2]
+	mi := &file_internal_module_gitops_rpc_rpc_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -225,7 +225,7 @@ func (x *ObjectsToSynchronizeResponse_Headers) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use ObjectsToSynchronizeResponse_Headers.ProtoReflect.Descriptor instead.
 func (*ObjectsToSynchronizeResponse_Headers) Descriptor() ([]byte, []int) {
-	return file_internal_agentrpc_agentrpc_proto_rawDescGZIP(), []int{1, 0}
+	return file_internal_module_gitops_rpc_rpc_proto_rawDescGZIP(), []int{1, 0}
 }
 
 func (x *ObjectsToSynchronizeResponse_Headers) GetCommitId() string {
@@ -247,7 +247,7 @@ type ObjectsToSynchronizeResponse_Object struct {
 func (x *ObjectsToSynchronizeResponse_Object) Reset() {
 	*x = ObjectsToSynchronizeResponse_Object{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_agentrpc_agentrpc_proto_msgTypes[3]
+		mi := &file_internal_module_gitops_rpc_rpc_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -260,7 +260,7 @@ func (x *ObjectsToSynchronizeResponse_Object) String() string {
 func (*ObjectsToSynchronizeResponse_Object) ProtoMessage() {}
 
 func (x *ObjectsToSynchronizeResponse_Object) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_agentrpc_agentrpc_proto_msgTypes[3]
+	mi := &file_internal_module_gitops_rpc_rpc_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -273,7 +273,7 @@ func (x *ObjectsToSynchronizeResponse_Object) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use ObjectsToSynchronizeResponse_Object.ProtoReflect.Descriptor instead.
 func (*ObjectsToSynchronizeResponse_Object) Descriptor() ([]byte, []int) {
-	return file_internal_agentrpc_agentrpc_proto_rawDescGZIP(), []int{1, 1}
+	return file_internal_module_gitops_rpc_rpc_proto_rawDescGZIP(), []int{1, 1}
 }
 
 func (x *ObjectsToSynchronizeResponse_Object) GetSource() string {
@@ -299,7 +299,7 @@ type ObjectsToSynchronizeResponse_Trailers struct {
 func (x *ObjectsToSynchronizeResponse_Trailers) Reset() {
 	*x = ObjectsToSynchronizeResponse_Trailers{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_agentrpc_agentrpc_proto_msgTypes[4]
+		mi := &file_internal_module_gitops_rpc_rpc_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -312,7 +312,7 @@ func (x *ObjectsToSynchronizeResponse_Trailers) String() string {
 func (*ObjectsToSynchronizeResponse_Trailers) ProtoMessage() {}
 
 func (x *ObjectsToSynchronizeResponse_Trailers) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_agentrpc_agentrpc_proto_msgTypes[4]
+	mi := &file_internal_module_gitops_rpc_rpc_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -325,38 +325,37 @@ func (x *ObjectsToSynchronizeResponse_Trailers) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use ObjectsToSynchronizeResponse_Trailers.ProtoReflect.Descriptor instead.
 func (*ObjectsToSynchronizeResponse_Trailers) Descriptor() ([]byte, []int) {
-	return file_internal_agentrpc_agentrpc_proto_rawDescGZIP(), []int{1, 2}
+	return file_internal_module_gitops_rpc_rpc_proto_rawDescGZIP(), []int{1, 2}
 }
 
-var File_internal_agentrpc_agentrpc_proto protoreflect.FileDescriptor
+var File_internal_module_gitops_rpc_rpc_proto protoreflect.FileDescriptor
 
-var file_internal_agentrpc_agentrpc_proto_rawDesc = []byte{
-	0x0a, 0x20, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x61, 0x67, 0x65, 0x6e, 0x74,
-	0x72, 0x70, 0x63, 0x2f, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x70, 0x63, 0x2e, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x12, 0x08, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x70, 0x63, 0x1a, 0x1b, 0x70, 0x6b,
-	0x67, 0x2f, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x63, 0x66, 0x67, 0x2f, 0x61, 0x67, 0x65, 0x6e, 0x74,
-	0x63, 0x66, 0x67, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x81, 0x01, 0x0a, 0x1b, 0x4f, 0x62,
-	0x6a, 0x65, 0x63, 0x74, 0x73, 0x54, 0x6f, 0x53, 0x79, 0x6e, 0x63, 0x68, 0x72, 0x6f, 0x6e, 0x69,
-	0x7a, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1d, 0x0a, 0x0a, 0x70, 0x72, 0x6f,
-	0x6a, 0x65, 0x63, 0x74, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x70,
-	0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x49, 0x64, 0x12, 0x1b, 0x0a, 0x09, 0x63, 0x6f, 0x6d, 0x6d,
-	0x69, 0x74, 0x5f, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x63, 0x6f, 0x6d,
-	0x6d, 0x69, 0x74, 0x49, 0x64, 0x12, 0x26, 0x0a, 0x05, 0x70, 0x61, 0x74, 0x68, 0x73, 0x18, 0x03,
-	0x20, 0x03, 0x28, 0x0b, 0x32, 0x10, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x63, 0x66, 0x67, 0x2e,
-	0x50, 0x61, 0x74, 0x68, 0x43, 0x46, 0x52, 0x05, 0x70, 0x61, 0x74, 0x68, 0x73, 0x22, 0xf7, 0x02,
-	0x0a, 0x1c, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x54, 0x6f, 0x53, 0x79, 0x6e, 0x63, 0x68,
-	0x72, 0x6f, 0x6e, 0x69, 0x7a, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x4a,
-	0x0a, 0x07, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
-	0x2e, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x70, 0x63, 0x2e, 0x4f, 0x62, 0x6a, 0x65, 0x63,
+var file_internal_module_gitops_rpc_rpc_proto_rawDesc = []byte{
+	0x0a, 0x24, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x6d, 0x6f, 0x64, 0x75, 0x6c,
+	0x65, 0x2f, 0x67, 0x69, 0x74, 0x6f, 0x70, 0x73, 0x2f, 0x72, 0x70, 0x63, 0x2f, 0x72, 0x70, 0x63,
+	0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x03, 0x72, 0x70, 0x63, 0x1a, 0x1b, 0x70, 0x6b, 0x67,
+	0x2f, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x63, 0x66, 0x67, 0x2f, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x63,
+	0x66, 0x67, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x81, 0x01, 0x0a, 0x1b, 0x4f, 0x62, 0x6a,
+	0x65, 0x63, 0x74, 0x73, 0x54, 0x6f, 0x53, 0x79, 0x6e, 0x63, 0x68, 0x72, 0x6f, 0x6e, 0x69, 0x7a,
+	0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1d, 0x0a, 0x0a, 0x70, 0x72, 0x6f, 0x6a,
+	0x65, 0x63, 0x74, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x70, 0x72,
+	0x6f, 0x6a, 0x65, 0x63, 0x74, 0x49, 0x64, 0x12, 0x1b, 0x0a, 0x09, 0x63, 0x6f, 0x6d, 0x6d, 0x69,
+	0x74, 0x5f, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x63, 0x6f, 0x6d, 0x6d,
+	0x69, 0x74, 0x49, 0x64, 0x12, 0x26, 0x0a, 0x05, 0x70, 0x61, 0x74, 0x68, 0x73, 0x18, 0x03, 0x20,
+	0x03, 0x28, 0x0b, 0x32, 0x10, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x63, 0x66, 0x67, 0x2e, 0x50,
+	0x61, 0x74, 0x68, 0x43, 0x46, 0x52, 0x05, 0x70, 0x61, 0x74, 0x68, 0x73, 0x22, 0xe8, 0x02, 0x0a,
+	0x1c, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x54, 0x6f, 0x53, 0x79, 0x6e, 0x63, 0x68, 0x72,
+	0x6f, 0x6e, 0x69, 0x7a, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x45, 0x0a,
+	0x07, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x29,
+	0x2e, 0x72, 0x70, 0x63, 0x2e, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x54, 0x6f, 0x53, 0x79,
+	0x6e, 0x63, 0x68, 0x72, 0x6f, 0x6e, 0x69, 0x7a, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x2e, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x73, 0x48, 0x00, 0x52, 0x07, 0x68, 0x65, 0x61,
+	0x64, 0x65, 0x72, 0x73, 0x12, 0x42, 0x0a, 0x06, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x28, 0x2e, 0x72, 0x70, 0x63, 0x2e, 0x4f, 0x62, 0x6a, 0x65, 0x63,
 	0x74, 0x73, 0x54, 0x6f, 0x53, 0x79, 0x6e, 0x63, 0x68, 0x72, 0x6f, 0x6e, 0x69, 0x7a, 0x65, 0x52,
-	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x73, 0x48,
-	0x00, 0x52, 0x07, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x73, 0x12, 0x47, 0x0a, 0x06, 0x6f, 0x62,
-	0x6a, 0x65, 0x63, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2d, 0x2e, 0x61, 0x67, 0x65,
-	0x6e, 0x74, 0x72, 0x70, 0x63, 0x2e, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x54, 0x6f, 0x53,
-	0x79, 0x6e, 0x63, 0x68, 0x72, 0x6f, 0x6e, 0x69, 0x7a, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
-	0x73, 0x65, 0x2e, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x48, 0x00, 0x52, 0x06, 0x6f, 0x62, 0x6a,
-	0x65, 0x63, 0x74, 0x12, 0x4d, 0x0a, 0x08, 0x74, 0x72, 0x61, 0x69, 0x6c, 0x65, 0x72, 0x73, 0x18,
-	0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2f, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x70, 0x63,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x48, 0x00,
+	0x52, 0x06, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x12, 0x48, 0x0a, 0x08, 0x74, 0x72, 0x61, 0x69,
+	0x6c, 0x65, 0x72, 0x73, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2a, 0x2e, 0x72, 0x70, 0x63,
 	0x2e, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x54, 0x6f, 0x53, 0x79, 0x6e, 0x63, 0x68, 0x72,
 	0x6f, 0x6e, 0x69, 0x7a, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x54, 0x72,
 	0x61, 0x69, 0x6c, 0x65, 0x72, 0x73, 0x48, 0x00, 0x52, 0x08, 0x74, 0x72, 0x61, 0x69, 0x6c, 0x65,
@@ -367,49 +366,50 @@ var file_internal_agentrpc_agentrpc_proto_rawDesc = []byte{
 	0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x12, 0x12, 0x0a, 0x04,
 	0x64, 0x61, 0x74, 0x61, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61,
 	0x1a, 0x0a, 0x0a, 0x08, 0x54, 0x72, 0x61, 0x69, 0x6c, 0x65, 0x72, 0x73, 0x42, 0x09, 0x0a, 0x07,
-	0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x32, 0x73, 0x0a, 0x03, 0x4b, 0x61, 0x73, 0x12, 0x6c,
-	0x0a, 0x17, 0x47, 0x65, 0x74, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x54, 0x6f, 0x53, 0x79,
-	0x6e, 0x63, 0x68, 0x72, 0x6f, 0x6e, 0x69, 0x7a, 0x65, 0x12, 0x25, 0x2e, 0x61, 0x67, 0x65, 0x6e,
-	0x74, 0x72, 0x70, 0x63, 0x2e, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x54, 0x6f, 0x53, 0x79,
-	0x6e, 0x63, 0x68, 0x72, 0x6f, 0x6e, 0x69, 0x7a, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x1a, 0x26, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x70, 0x63, 0x2e, 0x4f, 0x62, 0x6a, 0x65,
-	0x63, 0x74, 0x73, 0x54, 0x6f, 0x53, 0x79, 0x6e, 0x63, 0x68, 0x72, 0x6f, 0x6e, 0x69, 0x7a, 0x65,
-	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x30, 0x01, 0x42, 0x4a, 0x5a, 0x48,
-	0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61,
-	0x62, 0x2d, 0x6f, 0x72, 0x67, 0x2f, 0x63, 0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x2d, 0x69, 0x6e,
-	0x74, 0x65, 0x67, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62,
-	0x2d, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f,
-	0x61, 0x67, 0x65, 0x6e, 0x74, 0x72, 0x70, 0x63, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x32, 0x6c, 0x0a, 0x06, 0x47, 0x69, 0x74, 0x6f, 0x70,
+	0x73, 0x12, 0x62, 0x0a, 0x17, 0x47, 0x65, 0x74, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x54,
+	0x6f, 0x53, 0x79, 0x6e, 0x63, 0x68, 0x72, 0x6f, 0x6e, 0x69, 0x7a, 0x65, 0x12, 0x20, 0x2e, 0x72,
+	0x70, 0x63, 0x2e, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x54, 0x6f, 0x53, 0x79, 0x6e, 0x63,
+	0x68, 0x72, 0x6f, 0x6e, 0x69, 0x7a, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x21,
+	0x2e, 0x72, 0x70, 0x63, 0x2e, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x73, 0x54, 0x6f, 0x53, 0x79,
+	0x6e, 0x63, 0x68, 0x72, 0x6f, 0x6e, 0x69, 0x7a, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x22, 0x00, 0x30, 0x01, 0x42, 0x53, 0x5a, 0x51, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e,
+	0x63, 0x6f, 0x6d, 0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2d, 0x6f, 0x72, 0x67, 0x2f, 0x63,
+	0x6c, 0x75, 0x73, 0x74, 0x65, 0x72, 0x2d, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x72, 0x61, 0x74, 0x69,
+	0x6f, 0x6e, 0x2f, 0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2d, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2f,
+	0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x2f,
+	0x67, 0x69, 0x74, 0x6f, 0x70, 0x73, 0x2f, 0x72, 0x70, 0x63, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x33,
 }
 
 var (
-	file_internal_agentrpc_agentrpc_proto_rawDescOnce sync.Once
-	file_internal_agentrpc_agentrpc_proto_rawDescData = file_internal_agentrpc_agentrpc_proto_rawDesc
+	file_internal_module_gitops_rpc_rpc_proto_rawDescOnce sync.Once
+	file_internal_module_gitops_rpc_rpc_proto_rawDescData = file_internal_module_gitops_rpc_rpc_proto_rawDesc
 )
 
-func file_internal_agentrpc_agentrpc_proto_rawDescGZIP() []byte {
-	file_internal_agentrpc_agentrpc_proto_rawDescOnce.Do(func() {
-		file_internal_agentrpc_agentrpc_proto_rawDescData = protoimpl.X.CompressGZIP(file_internal_agentrpc_agentrpc_proto_rawDescData)
+func file_internal_module_gitops_rpc_rpc_proto_rawDescGZIP() []byte {
+	file_internal_module_gitops_rpc_rpc_proto_rawDescOnce.Do(func() {
+		file_internal_module_gitops_rpc_rpc_proto_rawDescData = protoimpl.X.CompressGZIP(file_internal_module_gitops_rpc_rpc_proto_rawDescData)
 	})
-	return file_internal_agentrpc_agentrpc_proto_rawDescData
+	return file_internal_module_gitops_rpc_rpc_proto_rawDescData
 }
 
-var file_internal_agentrpc_agentrpc_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_internal_agentrpc_agentrpc_proto_goTypes = []interface{}{
-	(*ObjectsToSynchronizeRequest)(nil),           // 0: agentrpc.ObjectsToSynchronizeRequest
-	(*ObjectsToSynchronizeResponse)(nil),          // 1: agentrpc.ObjectsToSynchronizeResponse
-	(*ObjectsToSynchronizeResponse_Headers)(nil),  // 2: agentrpc.ObjectsToSynchronizeResponse.Headers
-	(*ObjectsToSynchronizeResponse_Object)(nil),   // 3: agentrpc.ObjectsToSynchronizeResponse.Object
-	(*ObjectsToSynchronizeResponse_Trailers)(nil), // 4: agentrpc.ObjectsToSynchronizeResponse.Trailers
+var file_internal_module_gitops_rpc_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_internal_module_gitops_rpc_rpc_proto_goTypes = []interface{}{
+	(*ObjectsToSynchronizeRequest)(nil),           // 0: rpc.ObjectsToSynchronizeRequest
+	(*ObjectsToSynchronizeResponse)(nil),          // 1: rpc.ObjectsToSynchronizeResponse
+	(*ObjectsToSynchronizeResponse_Headers)(nil),  // 2: rpc.ObjectsToSynchronizeResponse.Headers
+	(*ObjectsToSynchronizeResponse_Object)(nil),   // 3: rpc.ObjectsToSynchronizeResponse.Object
+	(*ObjectsToSynchronizeResponse_Trailers)(nil), // 4: rpc.ObjectsToSynchronizeResponse.Trailers
 	(*agentcfg.PathCF)(nil),                       // 5: agentcfg.PathCF
 }
-var file_internal_agentrpc_agentrpc_proto_depIdxs = []int32{
-	5, // 0: agentrpc.ObjectsToSynchronizeRequest.paths:type_name -> agentcfg.PathCF
-	2, // 1: agentrpc.ObjectsToSynchronizeResponse.headers:type_name -> agentrpc.ObjectsToSynchronizeResponse.Headers
-	3, // 2: agentrpc.ObjectsToSynchronizeResponse.object:type_name -> agentrpc.ObjectsToSynchronizeResponse.Object
-	4, // 3: agentrpc.ObjectsToSynchronizeResponse.trailers:type_name -> agentrpc.ObjectsToSynchronizeResponse.Trailers
-	0, // 4: agentrpc.Kas.GetObjectsToSynchronize:input_type -> agentrpc.ObjectsToSynchronizeRequest
-	1, // 5: agentrpc.Kas.GetObjectsToSynchronize:output_type -> agentrpc.ObjectsToSynchronizeResponse
+var file_internal_module_gitops_rpc_rpc_proto_depIdxs = []int32{
+	5, // 0: rpc.ObjectsToSynchronizeRequest.paths:type_name -> agentcfg.PathCF
+	2, // 1: rpc.ObjectsToSynchronizeResponse.headers:type_name -> rpc.ObjectsToSynchronizeResponse.Headers
+	3, // 2: rpc.ObjectsToSynchronizeResponse.object:type_name -> rpc.ObjectsToSynchronizeResponse.Object
+	4, // 3: rpc.ObjectsToSynchronizeResponse.trailers:type_name -> rpc.ObjectsToSynchronizeResponse.Trailers
+	0, // 4: rpc.Gitops.GetObjectsToSynchronize:input_type -> rpc.ObjectsToSynchronizeRequest
+	1, // 5: rpc.Gitops.GetObjectsToSynchronize:output_type -> rpc.ObjectsToSynchronizeResponse
 	5, // [5:6] is the sub-list for method output_type
 	4, // [4:5] is the sub-list for method input_type
 	4, // [4:4] is the sub-list for extension type_name
@@ -417,13 +417,13 @@ var file_internal_agentrpc_agentrpc_proto_depIdxs = []int32{
 	0, // [0:4] is the sub-list for field type_name
 }
 
-func init() { file_internal_agentrpc_agentrpc_proto_init() }
-func file_internal_agentrpc_agentrpc_proto_init() {
-	if File_internal_agentrpc_agentrpc_proto != nil {
+func init() { file_internal_module_gitops_rpc_rpc_proto_init() }
+func file_internal_module_gitops_rpc_rpc_proto_init() {
+	if File_internal_module_gitops_rpc_rpc_proto != nil {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_internal_agentrpc_agentrpc_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_module_gitops_rpc_rpc_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ObjectsToSynchronizeRequest); i {
 			case 0:
 				return &v.state
@@ -435,7 +435,7 @@ func file_internal_agentrpc_agentrpc_proto_init() {
 				return nil
 			}
 		}
-		file_internal_agentrpc_agentrpc_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_module_gitops_rpc_rpc_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ObjectsToSynchronizeResponse); i {
 			case 0:
 				return &v.state
@@ -447,7 +447,7 @@ func file_internal_agentrpc_agentrpc_proto_init() {
 				return nil
 			}
 		}
-		file_internal_agentrpc_agentrpc_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_module_gitops_rpc_rpc_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ObjectsToSynchronizeResponse_Headers); i {
 			case 0:
 				return &v.state
@@ -459,7 +459,7 @@ func file_internal_agentrpc_agentrpc_proto_init() {
 				return nil
 			}
 		}
-		file_internal_agentrpc_agentrpc_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_module_gitops_rpc_rpc_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ObjectsToSynchronizeResponse_Object); i {
 			case 0:
 				return &v.state
@@ -471,7 +471,7 @@ func file_internal_agentrpc_agentrpc_proto_init() {
 				return nil
 			}
 		}
-		file_internal_agentrpc_agentrpc_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_module_gitops_rpc_rpc_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ObjectsToSynchronizeResponse_Trailers); i {
 			case 0:
 				return &v.state
@@ -484,7 +484,7 @@ func file_internal_agentrpc_agentrpc_proto_init() {
 			}
 		}
 	}
-	file_internal_agentrpc_agentrpc_proto_msgTypes[1].OneofWrappers = []interface{}{
+	file_internal_module_gitops_rpc_rpc_proto_msgTypes[1].OneofWrappers = []interface{}{
 		(*ObjectsToSynchronizeResponse_Headers_)(nil),
 		(*ObjectsToSynchronizeResponse_Object_)(nil),
 		(*ObjectsToSynchronizeResponse_Trailers_)(nil),
@@ -493,20 +493,20 @@ func file_internal_agentrpc_agentrpc_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: file_internal_agentrpc_agentrpc_proto_rawDesc,
+			RawDescriptor: file_internal_module_gitops_rpc_rpc_proto_rawDesc,
 			NumEnums:      0,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_internal_agentrpc_agentrpc_proto_goTypes,
-		DependencyIndexes: file_internal_agentrpc_agentrpc_proto_depIdxs,
-		MessageInfos:      file_internal_agentrpc_agentrpc_proto_msgTypes,
+		GoTypes:           file_internal_module_gitops_rpc_rpc_proto_goTypes,
+		DependencyIndexes: file_internal_module_gitops_rpc_rpc_proto_depIdxs,
+		MessageInfos:      file_internal_module_gitops_rpc_rpc_proto_msgTypes,
 	}.Build()
-	File_internal_agentrpc_agentrpc_proto = out.File
-	file_internal_agentrpc_agentrpc_proto_rawDesc = nil
-	file_internal_agentrpc_agentrpc_proto_goTypes = nil
-	file_internal_agentrpc_agentrpc_proto_depIdxs = nil
+	File_internal_module_gitops_rpc_rpc_proto = out.File
+	file_internal_module_gitops_rpc_rpc_proto_rawDesc = nil
+	file_internal_module_gitops_rpc_rpc_proto_goTypes = nil
+	file_internal_module_gitops_rpc_rpc_proto_depIdxs = nil
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -517,27 +517,27 @@ var _ grpc.ClientConnInterface
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion6
 
-// KasClient is the client API for Kas service.
+// GitopsClient is the client API for Gitops service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type KasClient interface {
-	GetObjectsToSynchronize(ctx context.Context, in *ObjectsToSynchronizeRequest, opts ...grpc.CallOption) (Kas_GetObjectsToSynchronizeClient, error)
+type GitopsClient interface {
+	GetObjectsToSynchronize(ctx context.Context, in *ObjectsToSynchronizeRequest, opts ...grpc.CallOption) (Gitops_GetObjectsToSynchronizeClient, error)
 }
 
-type kasClient struct {
+type gitopsClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewKasClient(cc grpc.ClientConnInterface) KasClient {
-	return &kasClient{cc}
+func NewGitopsClient(cc grpc.ClientConnInterface) GitopsClient {
+	return &gitopsClient{cc}
 }
 
-func (c *kasClient) GetObjectsToSynchronize(ctx context.Context, in *ObjectsToSynchronizeRequest, opts ...grpc.CallOption) (Kas_GetObjectsToSynchronizeClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Kas_serviceDesc.Streams[0], "/agentrpc.Kas/GetObjectsToSynchronize", opts...)
+func (c *gitopsClient) GetObjectsToSynchronize(ctx context.Context, in *ObjectsToSynchronizeRequest, opts ...grpc.CallOption) (Gitops_GetObjectsToSynchronizeClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Gitops_serviceDesc.Streams[0], "/rpc.Gitops/GetObjectsToSynchronize", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &kasGetObjectsToSynchronizeClient{stream}
+	x := &gitopsGetObjectsToSynchronizeClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -547,16 +547,16 @@ func (c *kasClient) GetObjectsToSynchronize(ctx context.Context, in *ObjectsToSy
 	return x, nil
 }
 
-type Kas_GetObjectsToSynchronizeClient interface {
+type Gitops_GetObjectsToSynchronizeClient interface {
 	Recv() (*ObjectsToSynchronizeResponse, error)
 	grpc.ClientStream
 }
 
-type kasGetObjectsToSynchronizeClient struct {
+type gitopsGetObjectsToSynchronizeClient struct {
 	grpc.ClientStream
 }
 
-func (x *kasGetObjectsToSynchronizeClient) Recv() (*ObjectsToSynchronizeResponse, error) {
+func (x *gitopsGetObjectsToSynchronizeClient) Recv() (*ObjectsToSynchronizeResponse, error) {
 	m := new(ObjectsToSynchronizeResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -564,54 +564,54 @@ func (x *kasGetObjectsToSynchronizeClient) Recv() (*ObjectsToSynchronizeResponse
 	return m, nil
 }
 
-// KasServer is the server API for Kas service.
-type KasServer interface {
-	GetObjectsToSynchronize(*ObjectsToSynchronizeRequest, Kas_GetObjectsToSynchronizeServer) error
+// GitopsServer is the server API for Gitops service.
+type GitopsServer interface {
+	GetObjectsToSynchronize(*ObjectsToSynchronizeRequest, Gitops_GetObjectsToSynchronizeServer) error
 }
 
-// UnimplementedKasServer can be embedded to have forward compatible implementations.
-type UnimplementedKasServer struct {
+// UnimplementedGitopsServer can be embedded to have forward compatible implementations.
+type UnimplementedGitopsServer struct {
 }
 
-func (*UnimplementedKasServer) GetObjectsToSynchronize(*ObjectsToSynchronizeRequest, Kas_GetObjectsToSynchronizeServer) error {
+func (*UnimplementedGitopsServer) GetObjectsToSynchronize(*ObjectsToSynchronizeRequest, Gitops_GetObjectsToSynchronizeServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetObjectsToSynchronize not implemented")
 }
 
-func RegisterKasServer(s *grpc.Server, srv KasServer) {
-	s.RegisterService(&_Kas_serviceDesc, srv)
+func RegisterGitopsServer(s *grpc.Server, srv GitopsServer) {
+	s.RegisterService(&_Gitops_serviceDesc, srv)
 }
 
-func _Kas_GetObjectsToSynchronize_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _Gitops_GetObjectsToSynchronize_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(ObjectsToSynchronizeRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(KasServer).GetObjectsToSynchronize(m, &kasGetObjectsToSynchronizeServer{stream})
+	return srv.(GitopsServer).GetObjectsToSynchronize(m, &gitopsGetObjectsToSynchronizeServer{stream})
 }
 
-type Kas_GetObjectsToSynchronizeServer interface {
+type Gitops_GetObjectsToSynchronizeServer interface {
 	Send(*ObjectsToSynchronizeResponse) error
 	grpc.ServerStream
 }
 
-type kasGetObjectsToSynchronizeServer struct {
+type gitopsGetObjectsToSynchronizeServer struct {
 	grpc.ServerStream
 }
 
-func (x *kasGetObjectsToSynchronizeServer) Send(m *ObjectsToSynchronizeResponse) error {
+func (x *gitopsGetObjectsToSynchronizeServer) Send(m *ObjectsToSynchronizeResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-var _Kas_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "agentrpc.Kas",
-	HandlerType: (*KasServer)(nil),
+var _Gitops_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "rpc.Gitops",
+	HandlerType: (*GitopsServer)(nil),
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "GetObjectsToSynchronize",
-			Handler:       _Kas_GetObjectsToSynchronize_Handler,
+			Handler:       _Gitops_GetObjectsToSynchronize_Handler,
 			ServerStreams: true,
 		},
 	},
-	Metadata: "internal/agentrpc/agentrpc.proto",
+	Metadata: "internal/module/gitops/rpc/rpc.proto",
 }

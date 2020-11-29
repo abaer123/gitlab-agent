@@ -4,33 +4,33 @@ load("@rules_proto_grpc//go:defs.bzl", "go_grpc_compile")
 load("//build:build.bzl", "copy_to_workspace")
 
 proto_library(
-    name = "agentrpc_proto",
-    srcs = ["agentrpc.proto"],
+    name = "rpc_proto",
+    srcs = ["rpc.proto"],
     tags = ["manual"],
     visibility = ["//visibility:public"],
     deps = ["//pkg/agentcfg:agentcfg_proto"],
 )
 
 go_grpc_compile(
-    name = "agent_grpc",
+    name = "grpc",
     tags = ["manual"],
-    deps = [":agentrpc_proto"],
+    deps = [":rpc_proto"],
 )
 
 copy_to_workspace(
     name = "extract_generated",
-    file_to_copy = "agentrpc.pb.go",
-    label = ":agent_grpc",
-    workspace_relative_target_directory = "internal/agentrpc",
+    file_to_copy = "rpc.pb.go",
+    label = ":grpc",
+    workspace_relative_target_directory = "internal/module/gitops/rpc",
 )
 
 go_library(
-    name = "agentrpc",
+    name = "rpc",
     srcs = [
-        "agentrpc.pb.go",
         "obj_to_sync_watcher.go",
+        "rpc.pb.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/tool/grpctool",
@@ -47,10 +47,10 @@ go_library(
 )
 
 go_test(
-    name = "agentrpc_test",
+    name = "rpc_test",
     size = "small",
     srcs = ["obj_to_sync_watcher_test.go"],
-    embed = [":agentrpc"],
+    embed = [":rpc"],
     race = "on",
     deps = [
         "//internal/tool/testing/matcher",

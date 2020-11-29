@@ -7,8 +7,8 @@ import (
 
 	"github.com/argoproj/gitops-engine/pkg/cache"
 	"github.com/argoproj/gitops-engine/pkg/engine"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/protodefault"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
@@ -35,7 +35,7 @@ type module struct {
 	engineFactory                      GitOpsEngineFactory
 	k8sClientGetter                    resource.RESTClientGetter
 	getObjectsToSynchronizeRetryPeriod time.Duration
-	kasClient                          agentrpc.KasClient
+	gitopsClient                       rpc.GitopsClient
 	workers                            map[string]*gitopsWorkerHolder // project id -> worker holder instance
 }
 
@@ -91,10 +91,10 @@ func (m *module) startNewWorker(project *agentcfg.ManifestProjectCF) {
 	l := m.log.With(logz.ProjectId(project.Id))
 	l.Info("Starting synchronization worker")
 	worker := &gitopsWorker{
-		objWatcher: &agentrpc.ObjectsToSynchronizeWatcher{
-			Log:         l,
-			KasClient:   m.kasClient,
-			RetryPeriod: m.getObjectsToSynchronizeRetryPeriod,
+		objWatcher: &rpc.ObjectsToSynchronizeWatcher{
+			Log:          l,
+			GitopsClient: m.gitopsClient,
+			RetryPeriod:  m.getObjectsToSynchronizeRetryPeriod,
 		},
 		engineFactory: m.engineFactory,
 		synchronizerConfig: synchronizerConfig{

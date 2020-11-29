@@ -9,7 +9,7 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_engine"
@@ -36,15 +36,15 @@ func TestRunHappyPathNoObjects(t *testing.T) {
 	w, engine, watcher := setupWorker(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	req := &agentrpc.ObjectsToSynchronizeRequest{
+	req := &rpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
 		Paths:     w.synchronizerConfig.projectConfiguration.Paths,
 	}
 	gomock.InOrder(
 		watcher.EXPECT().
 			Watch(gomock.Any(), matcher.ProtoEq(t, req), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, req *agentrpc.ObjectsToSynchronizeRequest, callback agentrpc.ObjectsToSynchronizeCallback) {
-				callback(ctx, agentrpc.ObjectsToSynchronizeData{
+			DoAndReturn(func(ctx context.Context, req *rpc.ObjectsToSynchronizeRequest, callback rpc.ObjectsToSynchronizeCallback) {
+				callback(ctx, rpc.ObjectsToSynchronizeData{
 					CommitId: revision,
 				})
 				<-ctx.Done()
@@ -63,7 +63,7 @@ func TestRunHappyPath(t *testing.T) {
 	w, engine, watcher := setupWorker(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	req := &agentrpc.ObjectsToSynchronizeRequest{
+	req := &rpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
 		Paths:     w.synchronizerConfig.projectConfiguration.Paths,
 	}
@@ -75,10 +75,10 @@ func TestRunHappyPath(t *testing.T) {
 	gomock.InOrder(
 		watcher.EXPECT().
 			Watch(gomock.Any(), matcher.ProtoEq(t, req), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, req *agentrpc.ObjectsToSynchronizeRequest, callback agentrpc.ObjectsToSynchronizeCallback) {
-				callback(ctx, agentrpc.ObjectsToSynchronizeData{
+			DoAndReturn(func(ctx context.Context, req *rpc.ObjectsToSynchronizeRequest, callback rpc.ObjectsToSynchronizeCallback) {
+				callback(ctx, rpc.ObjectsToSynchronizeData{
 					CommitId: revision,
-					Sources: []agentrpc.ObjectSource{
+					Sources: []rpc.ObjectSource{
 						{
 							Name: "obj1.yaml",
 							Data: kube_testing.ObjsToYAML(t, objs[0]),
@@ -109,7 +109,7 @@ func TestRunHappyPathSyncCancellation(t *testing.T) {
 	w, engine, watcher := setupWorker(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	req := &agentrpc.ObjectsToSynchronizeRequest{
+	req := &rpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
 		Paths:     w.synchronizerConfig.projectConfiguration.Paths,
 	}
@@ -121,10 +121,10 @@ func TestRunHappyPathSyncCancellation(t *testing.T) {
 	job1started := make(chan struct{})
 	watcher.EXPECT().
 		Watch(gomock.Any(), matcher.ProtoEq(t, req), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, req *agentrpc.ObjectsToSynchronizeRequest, callback agentrpc.ObjectsToSynchronizeCallback) {
-			callback(ctx, agentrpc.ObjectsToSynchronizeData{
+		DoAndReturn(func(ctx context.Context, req *rpc.ObjectsToSynchronizeRequest, callback rpc.ObjectsToSynchronizeCallback) {
+			callback(ctx, rpc.ObjectsToSynchronizeData{
 				CommitId: revision,
-				Sources: []agentrpc.ObjectSource{
+				Sources: []rpc.ObjectSource{
 					{
 						Name: "obj1.yaml",
 						Data: kube_testing.ObjsToYAML(t, objs[0]),
@@ -136,7 +136,7 @@ func TestRunHappyPathSyncCancellation(t *testing.T) {
 				},
 			})
 			<-job1started
-			callback(ctx, agentrpc.ObjectsToSynchronizeData{
+			callback(ctx, rpc.ObjectsToSynchronizeData{
 				CommitId: revision,
 			})
 			<-ctx.Done()

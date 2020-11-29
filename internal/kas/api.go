@@ -24,10 +24,6 @@ const (
 	connectionMaxAgeJitterPercent = 5
 )
 
-var (
-	_ modserver.API = &API{}
-)
-
 type API struct {
 	GitLabClient gitlab.ClientInterface
 	ErrorTracker errortracking.Tracker

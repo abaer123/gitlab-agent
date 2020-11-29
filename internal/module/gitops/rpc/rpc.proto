@@ -2,9 +2,9 @@ syntax = "proto3";
 
 // If you make any changes make sure you run: make regenerate-proto
 
-package agentrpc;
+package rpc;
 
-option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc";
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc";
 
 import "pkg/agentcfg/agentcfg.proto";
 
@@ -34,24 +34,24 @@ message ObjectsToSynchronizeResponse {
         // to form the whole blob of data.
         string source = 1;
 
-        // YAML object manifest.
-        // Might be partial data, see comment for source.
-        bytes data = 2;
-    }
-    // Last message of the stream.
-    message Trailers {
-    }
-    oneof message {
-        Headers headers = 1;
-        Object object = 2;
-        Trailers trailers = 3;
-    }
+    // YAML object manifest.
+    // Might be partial data, see comment for source.
+    bytes data = 2;
+  }
+  // Last message of the stream.
+  message Trailers {
+  }
+  oneof message {
+    Headers headers = 1;
+    Object object = 2;
+    Trailers trailers = 3;
+  }
 }
 
-service Kas {
-    // Fetch Kubernetes objects to synchronize with the cluster.
-    // Server closes the stream when it's done transmitting the full batch of objects. New request should be
-    // made after that to get the next batch.
-    rpc GetObjectsToSynchronize (ObjectsToSynchronizeRequest) returns (stream ObjectsToSynchronizeResponse) {
-    }
+service Gitops {
+  // Fetch Kubernetes objects to synchronize with the cluster.
+  // Server closes the stream when it's done transmitting the full batch of objects. New request should be
+  // made after that to get the next batch.
+  rpc GetObjectsToSynchronize (ObjectsToSynchronizeRequest) returns (stream ObjectsToSynchronizeResponse) {
+  }
 }

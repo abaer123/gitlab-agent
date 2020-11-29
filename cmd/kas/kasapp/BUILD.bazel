@@ -11,12 +11,12 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//cmd",
-        "//internal/agentrpc",
         "//internal/api/apiutil",
         "//internal/gitaly",
         "//internal/gitlab",
         "//internal/kas",
         "//internal/module/agent_configuration/server",
+        "//internal/module/gitops/server",
         "//internal/module/google_profiler/server",
         "//internal/module/modserver",
         "//internal/module/observability/server",

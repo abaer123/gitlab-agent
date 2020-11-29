@@ -1,18 +1,21 @@
-package kas
+package server
 
 import (
 	"context"
 	"path"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/bmatcuk/doublestar/v2"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
@@ -32,51 +35,73 @@ var (
 	globPrefix = regexp.MustCompile(`^/?([^\\*?[\]{}]+)/(.*)$`)
 )
 
-func (s *Server) GetObjectsToSynchronize(req *agentrpc.ObjectsToSynchronizeRequest, stream agentrpc.Kas_GetObjectsToSynchronizeServer) error {
-	ctx := stream.Context()
+type module struct {
+	log                            *zap.Logger
+	api                            modserver.API
+	gitalyPool                     gitaly.PoolInterface
+	gitLabClient                   gitlab.ClientInterface
+	gitopsSyncCount                usage_metrics.Counter
+	gitopsPollPeriod               time.Duration
+	connectionMaxAge               time.Duration
+	maxGitopsManifestFileSize      int64
+	maxGitopsTotalManifestFileSize int64
+	maxGitopsNumberOfPaths         uint32
+	maxGitopsNumberOfFiles         uint32
+}
+
+func (m *module) Run(ctx context.Context) error {
+	return nil
+}
+
+func (m *module) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, server rpc.Gitops_GetObjectsToSynchronizeServer) error {
+	ctx := server.Context()
 	agentMeta := apiutil.AgentMetaFromContext(ctx)
-	l := s.log.With(logz.CorrelationIdFromContext(ctx))
-	agentInfo, err, retErr := s.api.GetAgentInfo(ctx, l, agentMeta, false)
+	l := m.log.With(logz.CorrelationIdFromContext(ctx))
+	agentInfo, err, retErr := m.api.GetAgentInfo(ctx, l, agentMeta, false)
 	if retErr {
 		return err
 	}
-	err = s.validateGetObjectsToSynchronizeRequest(req)
+	err = m.validateGetObjectsToSynchronizeRequest(req)
 	if err != nil {
 		return err // no wrap
 	}
-	return s.api.PollImmediateUntil(ctx, s.gitopsPollPeriod, s.connectionMaxAge, s.sendObjectsToSynchronize(agentInfo, req, stream))
+	return m.api.PollImmediateUntil(ctx, m.gitopsPollPeriod, m.connectionMaxAge, m.sendObjectsToSynchronize(agentInfo, req, server))
 }
 
-func (s *Server) validateGetObjectsToSynchronizeRequest(req *agentrpc.ObjectsToSynchronizeRequest) error {
+func (m *module) Name() string {
+	return gitops.ModuleName
+}
+
+func (m *module) validateGetObjectsToSynchronizeRequest(req *rpc.ObjectsToSynchronizeRequest) error {
 	numberOfPaths := uint32(len(req.Paths))
-	if numberOfPaths > s.maxGitopsNumberOfPaths {
+	if numberOfPaths > m.maxGitopsNumberOfPaths {
 		// TODO validate config in GetConfiguration too and send it somewhere the user can see it https://gitlab.com/gitlab-org/gitlab/-/issues/277323
 		// This check must be here, but there too.
-		return status.Errorf(codes.InvalidArgument, "maximum number of GitOps paths per manifest project is %d, but %d was requested", s.maxGitopsNumberOfPaths, numberOfPaths)
+		return status.Errorf(codes.InvalidArgument, "maximum number of GitOps paths per manifest project is %d, but %d was requested", m.maxGitopsNumberOfPaths, numberOfPaths)
 	}
 	return nil
 }
 
-func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrpc.ObjectsToSynchronizeRequest, stream agentrpc.Kas_GetObjectsToSynchronizeServer) modserver.ConditionFunc {
-	ctx := stream.Context()
-	l := s.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(req.ProjectId), logz.CorrelationIdFromContext(ctx))
+func (m *module) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *rpc.ObjectsToSynchronizeRequest, server rpc.Gitops_GetObjectsToSynchronizeServer) modserver.ConditionFunc {
+	ctx := server.Context()
+	l := m.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(req.ProjectId), logz.CorrelationIdFromContext(ctx))
 	return func() (bool /*done*/, error) {
 		// This call is made on each poll because:
 		// - it checks that the agent's token is still valid
 		// - repository location in Gitaly might have changed
-		projectInfo, err, retErr := s.getProjectInfo(ctx, l, &agentInfo.Meta, req.ProjectId)
+		projectInfo, err, retErr := m.getProjectInfo(ctx, l, &agentInfo.Meta, req.ProjectId)
 		if retErr {
 			return false, err
 		}
 		revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
-		p, err := s.gitalyPool.Poller(ctx, &projectInfo.GitalyInfo)
+		p, err := m.gitalyPool.Poller(ctx, &projectInfo.GitalyInfo)
 		if err != nil {
-			s.api.HandleProcessingError(ctx, l, "GitOps: Poller", err)
+			m.api.HandleProcessingError(ctx, l, "GitOps: Poller", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		info, err := p.Poll(ctx, &projectInfo.Repository, req.CommitId, revision)
 		if err != nil {
-			s.api.HandleProcessingError(ctx, l, "GitOps: repository poll failed", err)
+			m.api.HandleProcessingError(ctx, l, "GitOps: repository poll failed", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		if !info.UpdateAvailable {
@@ -86,50 +111,50 @@ func (s *Server) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *agentrp
 		// Create a new l variable, don't want to mutate the one from the outer scope
 		l := l.With(logz.CommitId(info.CommitId)) // nolint:govet
 		l.Info("GitOps: new commit")
-		err = s.sendObjectsToSynchronizeHeaders(stream, l, info.CommitId)
+		err = m.sendObjectsToSynchronizeHeaders(server, l, info.CommitId)
 		if err != nil {
 			return false, err // no wrap
 		}
-		numberOfFiles, err := s.sendObjectsToSynchronizeBody(req, stream, l, &projectInfo.Repository, &projectInfo.GitalyInfo, info.CommitId)
+		numberOfFiles, err := m.sendObjectsToSynchronizeBody(req, server, l, &projectInfo.Repository, &projectInfo.GitalyInfo, info.CommitId)
 		if err != nil {
 			return false, err // no wrap
 		}
-		err = s.sendObjectsToSynchronizeTrailers(stream, l)
+		err = m.sendObjectsToSynchronizeTrailers(server, l)
 		if err != nil {
 			return false, err // no wrap
 		}
 		l.Info("GitOps: fetched files", logz.NumberOfFiles(numberOfFiles))
-		s.gitopsSyncCount.Inc()
+		m.gitopsSyncCount.Inc()
 		return true, nil
 	}
 }
 
-func (s *Server) sendObjectsToSynchronizeHeaders(stream agentrpc.Kas_GetObjectsToSynchronizeServer, log *zap.Logger, commitId string) error {
-	err := stream.Send(&agentrpc.ObjectsToSynchronizeResponse{
-		Message: &agentrpc.ObjectsToSynchronizeResponse_Headers_{
-			Headers: &agentrpc.ObjectsToSynchronizeResponse_Headers{
+func (m *module) sendObjectsToSynchronizeHeaders(server rpc.Gitops_GetObjectsToSynchronizeServer, log *zap.Logger, commitId string) error {
+	err := server.Send(&rpc.ObjectsToSynchronizeResponse{
+		Message: &rpc.ObjectsToSynchronizeResponse_Headers_{
+			Headers: &rpc.ObjectsToSynchronizeResponse_Headers{
 				CommitId: commitId,
 			},
 		},
 	})
 	if err != nil {
-		return s.api.HandleSendError(log, "GitOps: failed to send headers for objects to synchronize", err)
+		return m.api.HandleSendError(log, "GitOps: failed to send headers for objects to synchronize", err)
 	}
 	return nil
 }
 
-func (s *Server) sendObjectsToSynchronizeBody(req *agentrpc.ObjectsToSynchronizeRequest, stream agentrpc.Kas_GetObjectsToSynchronizeServer, log *zap.Logger, repo *gitalypb.Repository, gitalyInfo *api.GitalyInfo, commitId string) (uint32, error) {
-	ctx := stream.Context()
-	pf, err := s.gitalyPool.PathFetcher(ctx, gitalyInfo)
+func (m *module) sendObjectsToSynchronizeBody(req *rpc.ObjectsToSynchronizeRequest, server rpc.Gitops_GetObjectsToSynchronizeServer, log *zap.Logger, repo *gitalypb.Repository, gitalyInfo *api.GitalyInfo, commitId string) (uint32, error) {
+	ctx := server.Context()
+	pf, err := m.gitalyPool.PathFetcher(ctx, gitalyInfo)
 	if err != nil {
-		s.api.HandleProcessingError(ctx, log, "GitOps: PathFetcher", err)
+		m.api.HandleProcessingError(ctx, log, "GitOps: PathFetcher", err)
 		return 0, status.Error(codes.Unavailable, "GitOps: PathFetcher")
 	}
 	v := &objectsToSynchronizeVisitor{
-		stream:                 stream,
-		remainingTotalFileSize: s.maxGitopsTotalManifestFileSize,
-		fileSizeLimit:          s.maxGitopsManifestFileSize,
-		maxNumberOfFiles:       s.maxGitopsNumberOfFiles,
+		server:                 server,
+		remainingTotalFileSize: m.maxGitopsTotalManifestFileSize,
+		fileSizeLimit:          m.maxGitopsManifestFileSize,
+		maxNumberOfFiles:       m.maxGitopsNumberOfFiles,
 	}
 	vChunk := gitaly.ChunkingFetchVisitor{
 		MaxChunkSize: gitOpsManifestMaxChunkSize,
@@ -138,12 +163,12 @@ func (s *Server) sendObjectsToSynchronizeBody(req *agentrpc.ObjectsToSynchronize
 	for _, p := range req.Paths {
 		repoPath, recursive, glob := globToGitaly(p.Glob)
 		v.glob = glob // set new glob for each path
-		err := pf.Visit(ctx, repo, []byte(commitId), repoPath, recursive, vChunk)
+		err = pf.Visit(ctx, repo, []byte(commitId), repoPath, recursive, vChunk)
 		if err != nil {
 			if v.sendFailed {
-				return 0, s.api.HandleSendError(log, "GitOps: failed to send objects to synchronize", err)
+				return 0, m.api.HandleSendError(log, "GitOps: failed to send objects to synchronize", err)
 			} else {
-				s.api.HandleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
+				m.api.HandleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
 				return 0, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
 			}
 		}
@@ -151,20 +176,20 @@ func (s *Server) sendObjectsToSynchronizeBody(req *agentrpc.ObjectsToSynchronize
 	return v.numberOfFiles, nil
 }
 
-func (s *Server) sendObjectsToSynchronizeTrailers(stream agentrpc.Kas_GetObjectsToSynchronizeServer, log *zap.Logger) error {
-	err := stream.Send(&agentrpc.ObjectsToSynchronizeResponse{
-		Message: &agentrpc.ObjectsToSynchronizeResponse_Trailers_{
-			Trailers: &agentrpc.ObjectsToSynchronizeResponse_Trailers{},
+func (m *module) sendObjectsToSynchronizeTrailers(server rpc.Gitops_GetObjectsToSynchronizeServer, log *zap.Logger) error {
+	err := server.Send(&rpc.ObjectsToSynchronizeResponse{
+		Message: &rpc.ObjectsToSynchronizeResponse_Trailers_{
+			Trailers: &rpc.ObjectsToSynchronizeResponse_Trailers{},
 		},
 	})
 	if err != nil {
-		return s.api.HandleSendError(log, "GitOps: failed to send trailers for objects to synchronize", err)
+		return m.api.HandleSendError(log, "GitOps: failed to send trailers for objects to synchronize", err)
 	}
 	return nil
 }
 
-func (s *Server) getProjectInfo(ctx context.Context, log *zap.Logger, agentMeta *api.AgentMeta, projectId string) (*api.ProjectInfo, error, bool /* return the error? */) {
-	projectInfo, err := s.gitLabClient.GetProjectInfo(ctx, agentMeta, projectId)
+func (m *module) getProjectInfo(ctx context.Context, log *zap.Logger, agentMeta *api.AgentMeta, projectId string) (*api.ProjectInfo, error, bool /* return the error? */) {
+	projectInfo, err := m.gitLabClient.GetProjectInfo(ctx, agentMeta, projectId)
 	switch {
 	case err == nil:
 		return projectInfo, nil, false
@@ -175,14 +200,14 @@ func (s *Server) getProjectInfo(ctx context.Context, log *zap.Logger, agentMeta 
 	case gitlab.IsUnauthorized(err):
 		err = status.Error(codes.Unauthenticated, "unauthenticated")
 	default:
-		s.api.LogAndCapture(ctx, log, "GetProjectInfo()", err)
+		m.api.LogAndCapture(ctx, log, "GetProjectInfo()", err)
 		err = nil // don't want to close the response stream, so report no error
 	}
 	return nil, err, true
 }
 
 type objectsToSynchronizeVisitor struct {
-	stream                 agentrpc.Kas_GetObjectsToSynchronizeServer
+	server                 rpc.Gitops_GetObjectsToSynchronizeServer
 	glob                   string
 	remainingTotalFileSize int64
 	fileSizeLimit          int64
@@ -214,9 +239,9 @@ func (v *objectsToSynchronizeVisitor) StreamChunk(path []byte, data []byte) (boo
 		// i.e. we should have gotten an error from Gitaly if file is bigger than the limit.
 		return false, status.Error(codes.Internal, "unexpected negative remaining total file size")
 	}
-	err := v.stream.Send(&agentrpc.ObjectsToSynchronizeResponse{
-		Message: &agentrpc.ObjectsToSynchronizeResponse_Object_{
-			Object: &agentrpc.ObjectsToSynchronizeResponse_Object{
+	err := v.server.Send(&rpc.ObjectsToSynchronizeResponse{
+		Message: &rpc.ObjectsToSynchronizeResponse_Object_{
+			Object: &rpc.ObjectsToSynchronizeResponse_Object{
 				Source: string(path),
 				Data:   data,
 			},

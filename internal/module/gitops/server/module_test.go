@@ -1,26 +1,36 @@
-package kas
+package server
 
 import (
 	"context"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_internalgitaly"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
-	"gitlab.com/gitlab-org/labkit/errortracking"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,58 +39,39 @@ import (
 
 const (
 	defaultGitOpsManifestPathGlob = "**/*.{yaml,yml,json}"
+
+	token            = "abfaasdfasdfasdf"
+	projectId        = "some/project"
+	revision         = "507ebc6de9bcac25628aa7afd52802a91a0685d8"
+	manifestRevision = "7afd52802a91a0685d8507ebc6de9bcac25628aa"
 )
 
-func TestGetObjectsToSynchronizeGitLabClientFailures(t *testing.T) {
-	t.Parallel()
-	t.Run("GetAgentInfo failures", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		k, mockCtrl, _, gitlabClient, errTracker := setupKasBare(t)
-		agentInfo := agentInfoObj()
+var (
+	_ modserver.Module        = &module{}
+	_ modserver.Factory       = &Factory{}
+	_ modserver.ApplyDefaults = ApplyDefaults
+)
 
-		gomock.InOrder(
-			gitlabClient.EXPECT().
-				GetAgentInfo(gomock.Any(), &agentInfo.Meta).
-				Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindForbidden, StatusCode: http.StatusForbidden}),
-			gitlabClient.EXPECT().
-				GetAgentInfo(gomock.Any(), &agentInfo.Meta).
-				Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindUnauthorized, StatusCode: http.StatusUnauthorized}),
-			gitlabClient.EXPECT().
-				GetAgentInfo(gomock.Any(), &agentInfo.Meta).
-				Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}),
-			errTracker.EXPECT().
-				Capture(gomock.Any(), gomock.Any()).
-				DoAndReturn(func(err error, opts ...errortracking.CaptureOption) {
-					cancel() // exception captured, cancel the context to stop the test
-				}),
-		)
-
-		resp := mock_rpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
-		resp.EXPECT().
-			Context().
-			Return(incomingCtx(ctx, t)).
-			MinTimes(1)
-		err := k.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, resp)
-		require.Error(t, err)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
-		err = k.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, resp)
-		require.Error(t, err)
-		assert.Equal(t, codes.Unauthenticated, status.Code(err))
-		err = k.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, resp)
-		require.Error(t, err)
-		assert.Equal(t, codes.Unavailable, status.Code(err))
-	})
+func TestGetObjectsToSynchronizeGetProjectInfoFailures(t *testing.T) {
 	t.Run("GetProjectInfo failures", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		k, mockCtrl, _, gitlabClient, errTracker := setupKasBare(t)
+		m, mockCtrl, mockApi, _, gitlabClient := setupModuleBare(t, 1)
 		agentInfo := agentInfoObj()
-		gitlabClient.EXPECT().
-			GetAgentInfo(gomock.Any(), &agentInfo.Meta).
-			Return(agentInfo, nil).
+		mockApi.EXPECT().
+			GetAgentInfo(gomock.Any(), gomock.Any(), &agentInfo.Meta, false).
+			Return(agentInfo, nil, false).
 			Times(3)
-
+		mockApi.EXPECT().
+			PollImmediateUntil(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, interval, connectionMaxAge time.Duration, condition modserver.ConditionFunc) error {
+				done, err := condition()
+				if err != nil || done {
+					return err
+				}
+				return nil
+			}).Times(2)
+		expectedErr := &gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}
 		gomock.InOrder(
 			gitlabClient.EXPECT().
 				GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
@@ -90,34 +81,33 @@ func TestGetObjectsToSynchronizeGitLabClientFailures(t *testing.T) {
 				Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindUnauthorized, StatusCode: http.StatusUnauthorized}),
 			gitlabClient.EXPECT().
 				GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
-				Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}),
-			errTracker.EXPECT().
-				Capture(matcher.ErrorEq("GetProjectInfo(): error kind: 0; status: 500"), gomock.Any()).
-				DoAndReturn(func(err error, opts ...errortracking.CaptureOption) {
+				Return(nil, expectedErr),
+			mockApi.EXPECT().
+				LogAndCapture(gomock.Any(), gomock.Any(), "GetProjectInfo()", expectedErr).
+				DoAndReturn(func(ctx context.Context, log *zap.Logger, msg string, err error) {
 					cancel() // exception captured, cancel the context to stop the test
 				}),
 		)
-		resp := mock_rpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
-		resp.EXPECT().
+		server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(mockCtrl)
+		server.EXPECT().
 			Context().
 			Return(incomingCtx(ctx, t)).
 			MinTimes(1)
-		err := k.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, resp)
+		err := m.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, server)
 		require.Error(t, err)
 		assert.Equal(t, codes.PermissionDenied, status.Code(err))
-		err = k.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, resp)
+		err = m.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, server)
 		require.Error(t, err)
 		assert.Equal(t, codes.Unauthenticated, status.Code(err))
-		err = k.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, resp)
+		err = m.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, server)
 		require.NoError(t, err)
 	})
 }
 
 func TestGetObjectsToSynchronize(t *testing.T) {
-	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	a, agentInfo, mockCtrl, gitalyPool, gitlabClient, _ := setupKas(t)
+	a, agentInfo, mockCtrl, gitalyPool, gitlabClient := setupModule(t, 1)
 	a.gitopsSyncCount.(*mock_usage_metrics.MockCounter).EXPECT().Inc()
 
 	objects := []runtime.Object{
@@ -144,73 +134,73 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 		},
 	}
 	objectsYAML := kube_testing.ObjsToYAML(t, objects...)
-	projectInfo := projectInfo()
-	resp := mock_rpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
-	resp.EXPECT().
+	projInfo := projectInfo()
+	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(mockCtrl)
+	server.EXPECT().
 		Context().
 		Return(incomingCtx(ctx, t)).
 		MinTimes(1)
 	gomock.InOrder(
-		resp.EXPECT().
-			Send(matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeResponse{
-				Message: &agentrpc.ObjectsToSynchronizeResponse_Headers_{
-					Headers: &agentrpc.ObjectsToSynchronizeResponse_Headers{
+		server.EXPECT().
+			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
+				Message: &rpc.ObjectsToSynchronizeResponse_Headers_{
+					Headers: &rpc.ObjectsToSynchronizeResponse_Headers{
 						CommitId: revision,
 					},
 				},
 			})).
 			Return(nil),
-		resp.EXPECT().
-			Send(matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeResponse{
-				Message: &agentrpc.ObjectsToSynchronizeResponse_Object_{
-					Object: &agentrpc.ObjectsToSynchronizeResponse_Object{
+		server.EXPECT().
+			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
+				Message: &rpc.ObjectsToSynchronizeResponse_Object_{
+					Object: &rpc.ObjectsToSynchronizeResponse_Object{
 						Source: "manifest.yaml",
 						Data:   objectsYAML[:1],
 					},
 				},
 			})).
 			Return(nil),
-		resp.EXPECT().
-			Send(matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeResponse{
-				Message: &agentrpc.ObjectsToSynchronizeResponse_Object_{
-					Object: &agentrpc.ObjectsToSynchronizeResponse_Object{
+		server.EXPECT().
+			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
+				Message: &rpc.ObjectsToSynchronizeResponse_Object_{
+					Object: &rpc.ObjectsToSynchronizeResponse_Object{
 						Source: "manifest.yaml",
 						Data:   objectsYAML[1:],
 					},
 				},
 			})).
 			Return(nil),
-		resp.EXPECT().
-			Send(matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeResponse{
-				Message: &agentrpc.ObjectsToSynchronizeResponse_Trailers_{
-					Trailers: &agentrpc.ObjectsToSynchronizeResponse_Trailers{},
+		server.EXPECT().
+			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
+				Message: &rpc.ObjectsToSynchronizeResponse_Trailers_{
+					Trailers: &rpc.ObjectsToSynchronizeResponse_Trailers{},
 				},
 			})).
-			DoAndReturn(func(resp *agentrpc.ObjectsToSynchronizeResponse) error {
+			DoAndReturn(func(resp *rpc.ObjectsToSynchronizeResponse) error {
 				cancel() // stop streaming call after the first response has been sent
 				return nil
 			}),
 	)
 	gitlabClient.EXPECT().
 		GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
-		Return(projectInfo, nil)
+		Return(projInfo, nil)
 	p := mock_internalgitaly.NewMockPollerInterface(mockCtrl)
 	pf := mock_internalgitaly.NewMockPathFetcherInterface(mockCtrl)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
-			Poller(gomock.Any(), &projectInfo.GitalyInfo).
+			Poller(gomock.Any(), &projInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), &projectInfo.Repository, "", gitaly.DefaultBranch).
+			Poll(gomock.Any(), &projInfo.Repository, "", gitaly.DefaultBranch).
 			Return(&gitaly.PollInfo{
 				UpdateAvailable: true,
 				CommitId:        revision,
 			}, nil),
 		gitalyPool.EXPECT().
-			PathFetcher(gomock.Any(), &projectInfo.GitalyInfo).
+			PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
 			Return(pf, nil),
 		pf.EXPECT().
-			Visit(gomock.Any(), &projectInfo.Repository, []byte(revision), []byte("."), true, gomock.Any()).
+			Visit(gomock.Any(), &projInfo.Repository, []byte(revision), []byte("."), true, gomock.Any()).
 			DoAndReturn(func(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, recursive bool, visitor gitaly.FetchVisitor) error {
 				download, maxSize, err := visitor.Entry(&gitalypb.TreeEntry{
 					Path:      []byte("manifest.yaml"),
@@ -218,7 +208,7 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 					CommitOid: manifestRevision,
 				})
 				require.NoError(t, err)
-				assert.EqualValues(t, gitOpsManifestMaxChunkSize, maxSize)
+				assert.EqualValues(t, defaultAgentLimitsMaxGitopsManifestFileSize, maxSize)
 				assert.True(t, download)
 
 				done, err := visitor.StreamChunk([]byte("manifest.yaml"), objectsYAML[:1])
@@ -230,25 +220,24 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 				return nil
 			}),
 	)
-	err := a.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{
+	err := a.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
 		Paths: []*agentcfg.PathCF{
 			{
 				Glob: defaultGitOpsManifestPathGlob,
 			},
 		},
-	}, resp)
+	}, server)
 	require.NoError(t, err)
 }
 
 func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
-	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	a, agentInfo, mockCtrl, gitalyPool, gitlabClient, _ := setupKas(t)
-	projectInfo := projectInfo()
-	resp := mock_rpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
-	resp.EXPECT().
+	m, agentInfo, mockCtrl, gitalyPool, gitlabClient := setupModule(t, 1)
+	projInfo := projectInfo()
+	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(mockCtrl)
+	server.EXPECT().
 		Context().
 		Return(incomingCtx(ctx, t)).
 		MinTimes(1)
@@ -256,12 +245,12 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 	gomock.InOrder(
 		gitlabClient.EXPECT().
 			GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
-			Return(projectInfo, nil),
+			Return(projInfo, nil),
 		gitalyPool.EXPECT().
-			Poller(gomock.Any(), &projectInfo.GitalyInfo).
+			Poller(gomock.Any(), &projInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), &projectInfo.Repository, revision, gitaly.DefaultBranch).
+			Poll(gomock.Any(), &projInfo.Repository, revision, gitaly.DefaultBranch).
 			DoAndReturn(func(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*gitaly.PollInfo, error) {
 				cancel() // stop the test
 				return &gitaly.PollInfo{
@@ -270,10 +259,10 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 				}, nil
 			}),
 	)
-	err := a.GetObjectsToSynchronize(&agentrpc.ObjectsToSynchronizeRequest{
+	err := m.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
 		CommitId:  revision,
-	}, resp)
+	}, server)
 	require.NoError(t, err)
 }
 
@@ -291,42 +280,42 @@ func TestObjectsToSynchronizeVisitor(t *testing.T) {
 			path:             "manifest1.yaml",
 			glob:             defaultGitOpsManifestPathGlob,
 			expectedDownload: true,
-			expectedMaxSize:  maxGitopsManifestFileSize,
+			expectedMaxSize:  defaultAgentLimitsMaxGitopsManifestFileSize,
 		},
 		{
 			name:             "YML file",
 			path:             "manifest1.yml",
 			glob:             defaultGitOpsManifestPathGlob,
 			expectedDownload: true,
-			expectedMaxSize:  maxGitopsManifestFileSize,
+			expectedMaxSize:  defaultAgentLimitsMaxGitopsManifestFileSize,
 		},
 		{
 			name:             "JSON file",
 			path:             "manifest1.json",
 			glob:             defaultGitOpsManifestPathGlob,
 			expectedDownload: true,
-			expectedMaxSize:  maxGitopsManifestFileSize,
+			expectedMaxSize:  defaultAgentLimitsMaxGitopsManifestFileSize,
 		},
 		{
 			name:             "nested YAML file",
 			path:             "dir/manifest1.yaml",
 			glob:             defaultGitOpsManifestPathGlob,
 			expectedDownload: true,
-			expectedMaxSize:  maxGitopsManifestFileSize,
+			expectedMaxSize:  defaultAgentLimitsMaxGitopsManifestFileSize,
 		},
 		{
 			name:             "nested YML file",
 			path:             "dir/manifest1.yml",
 			glob:             defaultGitOpsManifestPathGlob,
 			expectedDownload: true,
-			expectedMaxSize:  maxGitopsManifestFileSize,
+			expectedMaxSize:  defaultAgentLimitsMaxGitopsManifestFileSize,
 		},
 		{
 			name:             "nested JSON file",
 			path:             "dir/manifest1.json",
 			glob:             defaultGitOpsManifestPathGlob,
 			expectedDownload: true,
-			expectedMaxSize:  maxGitopsManifestFileSize,
+			expectedMaxSize:  defaultAgentLimitsMaxGitopsManifestFileSize,
 		},
 		{
 			name:             "TXT file",
@@ -369,30 +358,30 @@ func TestObjectsToSynchronizeVisitor(t *testing.T) {
 			path:             "manifest1.yaml",
 			glob:             "**.yaml",
 			expectedDownload: true,
-			expectedMaxSize:  maxGitopsManifestFileSize,
+			expectedMaxSize:  defaultAgentLimitsMaxGitopsManifestFileSize,
 		},
 		{
 			name:             "all files 1",
 			path:             "manifest1.yaml",
 			glob:             "**",
 			expectedDownload: true,
-			expectedMaxSize:  maxGitopsManifestFileSize,
+			expectedMaxSize:  defaultAgentLimitsMaxGitopsManifestFileSize,
 		},
 		{
 			name:             "all files 2",
 			path:             "dir1/manifest1.yaml",
 			glob:             "**",
 			expectedDownload: true,
-			expectedMaxSize:  maxGitopsManifestFileSize,
+			expectedMaxSize:  defaultAgentLimitsMaxGitopsManifestFileSize,
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			v := objectsToSynchronizeVisitor{
 				glob:                   tc.glob, // nolint: scopelint
-				remainingTotalFileSize: maxGitopsTotalManifestFileSize,
-				fileSizeLimit:          maxGitopsManifestFileSize,
-				maxNumberOfFiles:       maxGitopsNumberOfFiles,
+				remainingTotalFileSize: defaultAgentLimitsMaxGitopsTotalManifestFileSize,
+				fileSizeLimit:          defaultAgentLimitsMaxGitopsManifestFileSize,
+				maxNumberOfFiles:       defaultAgentLimitsMaxGitopsNumberOfFiles,
 			}
 			download, maxSize, err := v.Entry(&gitalypb.TreeEntry{
 				Path: []byte(tc.path), // nolint: scopelint
@@ -410,15 +399,15 @@ func TestObjectsToSynchronizeVisitor(t *testing.T) {
 	t.Run("too many files", func(t *testing.T) {
 		v := objectsToSynchronizeVisitor{
 			glob:                   defaultGitOpsManifestPathGlob,
-			remainingTotalFileSize: maxGitopsTotalManifestFileSize,
-			fileSizeLimit:          maxGitopsManifestFileSize,
+			remainingTotalFileSize: defaultAgentLimitsMaxGitopsTotalManifestFileSize,
+			fileSizeLimit:          defaultAgentLimitsMaxGitopsManifestFileSize,
 			maxNumberOfFiles:       1,
 		}
 		download, maxSize, err := v.Entry(&gitalypb.TreeEntry{
 			Path: []byte("manifest1.yaml"),
 		})
 		require.NoError(t, err)
-		assert.EqualValues(t, maxGitopsManifestFileSize, maxSize)
+		assert.EqualValues(t, defaultAgentLimitsMaxGitopsManifestFileSize, maxSize)
 		assert.True(t, download)
 
 		_, _, err = v.Entry(&gitalypb.TreeEntry{
@@ -430,8 +419,8 @@ func TestObjectsToSynchronizeVisitor(t *testing.T) {
 		v := objectsToSynchronizeVisitor{
 			glob:                   defaultGitOpsManifestPathGlob,
 			remainingTotalFileSize: 1,
-			fileSizeLimit:          maxGitopsManifestFileSize,
-			maxNumberOfFiles:       maxGitopsNumberOfFiles,
+			fileSizeLimit:          defaultAgentLimitsMaxGitopsManifestFileSize,
+			maxNumberOfFiles:       defaultAgentLimitsMaxGitopsNumberOfFiles,
 		}
 		_, err := v.StreamChunk([]byte("manifest2.yaml"), []byte("data1"))
 		assert.EqualError(t, err, "rpc error: code = Internal desc = unexpected negative remaining total file size")
@@ -439,11 +428,11 @@ func TestObjectsToSynchronizeVisitor(t *testing.T) {
 	t.Run("blob", func(t *testing.T) {
 		data := []byte("data1")
 		mockCtrl := gomock.NewController(t)
-		stream := mock_rpc.NewMockKas_GetObjectsToSynchronizeServer(mockCtrl)
-		stream.EXPECT().
-			Send(matcher.ProtoEq(t, &agentrpc.ObjectsToSynchronizeResponse{
-				Message: &agentrpc.ObjectsToSynchronizeResponse_Object_{
-					Object: &agentrpc.ObjectsToSynchronizeResponse_Object{
+		server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(mockCtrl)
+		server.EXPECT().
+			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
+				Message: &rpc.ObjectsToSynchronizeResponse_Object_{
+					Object: &rpc.ObjectsToSynchronizeResponse_Object{
 						Source: "manifest2.yaml",
 						Data:   data,
 					},
@@ -451,16 +440,16 @@ func TestObjectsToSynchronizeVisitor(t *testing.T) {
 			})).
 			Return(nil)
 		v := objectsToSynchronizeVisitor{
-			stream:                 stream,
+			server:                 server,
 			glob:                   defaultGitOpsManifestPathGlob,
-			remainingTotalFileSize: maxGitopsTotalManifestFileSize,
-			fileSizeLimit:          maxGitopsManifestFileSize,
-			maxNumberOfFiles:       maxGitopsNumberOfFiles,
+			remainingTotalFileSize: defaultAgentLimitsMaxGitopsTotalManifestFileSize,
+			fileSizeLimit:          defaultAgentLimitsMaxGitopsManifestFileSize,
+			maxNumberOfFiles:       defaultAgentLimitsMaxGitopsNumberOfFiles,
 		}
 		done, err := v.StreamChunk([]byte("manifest2.yaml"), data)
 		require.NoError(t, err)
 		assert.False(t, done)
-		assert.EqualValues(t, maxGitopsTotalManifestFileSize-len(data), v.remainingTotalFileSize)
+		assert.EqualValues(t, defaultAgentLimitsMaxGitopsTotalManifestFileSize-len(data), v.remainingTotalFileSize)
 	})
 }
 
@@ -590,6 +579,77 @@ func projectInfo() *api.ProjectInfo {
 			GitObjectDirectory: "GitObjectDirectory1",
 			GlRepository:       "GlRepository1",
 			GlProjectPath:      "GlProjectPath1",
+		},
+	}
+}
+
+func incomingCtx(ctx context.Context, t *testing.T) context.Context {
+	creds := apiutil.NewTokenCredentials(token, false)
+	meta, err := creds.GetRequestMetadata(context.Background())
+	require.NoError(t, err)
+	ctx = metadata.NewIncomingContext(ctx, metadata.New(meta))
+	agentMeta, err := apiutil.AgentMetaFromRawContext(ctx)
+	require.NoError(t, err)
+	return apiutil.InjectAgentMeta(ctx, agentMeta)
+}
+
+func setupModule(t *testing.T, pollTimes int) (*module, *api.AgentInfo, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_gitlab.MockClientInterface) {
+	m, mockCtrl, mockApi, gitalyPool, gitlabClient := setupModuleBare(t, pollTimes)
+	agentInfo := agentInfoObj()
+	mockApi.EXPECT().
+		GetAgentInfo(gomock.Any(), gomock.Any(), &agentInfo.Meta, false).
+		Return(agentInfo, nil, false)
+
+	return m, agentInfo, mockCtrl, gitalyPool, gitlabClient
+}
+
+func setupModuleBare(t *testing.T, pollTimes int) (*module, *gomock.Controller, *mock_modserver.MockAPI, *mock_internalgitaly.MockPoolInterface, *mock_gitlab.MockClientInterface) {
+	ctrl := gomock.NewController(t)
+	gitalyPool := mock_internalgitaly.NewMockPoolInterface(ctrl)
+	gitlabClient := mock_gitlab.NewMockClientInterface(ctrl)
+	mockApi := mock_modserver.NewMockAPIWithMockPoller(ctrl, pollTimes)
+	usageTracker := mock_usage_metrics.NewMockUsageTrackerInterface(ctrl)
+	usageTracker.EXPECT().
+		RegisterCounter(gitopsSyncCountKnownMetric).
+		Return(mock_usage_metrics.NewMockCounter(ctrl))
+
+	f := Factory{
+		GitLabClient: gitlabClient,
+	}
+	config := &kascfg.ConfigurationFile{}
+	ApplyDefaults(config)
+	m := f.New(&modserver.Config{
+		Log:          zaptest.NewLogger(t),
+		Api:          mockApi,
+		Config:       config,
+		Registerer:   prometheus.NewPedanticRegistry(),
+		UsageTracker: usageTracker,
+		AgentServer:  grpc.NewServer(),
+		Gitaly:       gitalyPool,
+	})
+	return m.(*module), ctrl, mockApi, gitalyPool, gitlabClient
+}
+
+func agentInfoObj() *api.AgentInfo {
+	return &api.AgentInfo{
+		Meta: api.AgentMeta{
+			Token: token,
+		},
+		Id:   123,
+		Name: "agent1",
+		GitalyInfo: api.GitalyInfo{
+			Address: "127.0.0.1:123123",
+			Token:   "abc",
+			Features: map[string]string{
+				"bla": "true",
+			},
+		},
+		Repository: gitalypb.Repository{
+			StorageName:        "StorageName",
+			RelativePath:       "RelativePath",
+			GitObjectDirectory: "GitObjectDirectory",
+			GlRepository:       "GlRepository",
+			GlProjectPath:      "GlProjectPath",
 		},
 	}
 }

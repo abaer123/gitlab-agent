@@ -5,7 +5,7 @@ import (
 	"context"
 
 	"github.com/argoproj/gitops-engine/pkg/engine"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
@@ -32,18 +32,18 @@ type resourceInfo struct {
 type synchronizer struct {
 	synchronizerConfig
 	engine       engine.GitOpsEngine
-	desiredState chan agentrpc.ObjectsToSynchronizeData
+	desiredState chan rpc.ObjectsToSynchronizeData
 }
 
 func newSynchronizer(config synchronizerConfig, engine engine.GitOpsEngine) *synchronizer {
 	return &synchronizer{
 		synchronizerConfig: config,
 		engine:             engine,
-		desiredState:       make(chan agentrpc.ObjectsToSynchronizeData),
+		desiredState:       make(chan rpc.ObjectsToSynchronizeData),
 	}
 }
 
-func (s *synchronizer) setDesiredState(ctx context.Context, state agentrpc.ObjectsToSynchronizeData) bool {
+func (s *synchronizer) setDesiredState(ctx context.Context, state rpc.ObjectsToSynchronizeData) bool {
 	select {
 	case <-ctx.Done():
 		return false
@@ -101,7 +101,7 @@ func (s *synchronizer) run(ctx context.Context) {
 	}
 }
 
-func (s *synchronizer) decodeObjectsToSynchronize(sources []agentrpc.ObjectSource) ([]*unstructured.Unstructured, error) {
+func (s *synchronizer) decodeObjectsToSynchronize(sources []rpc.ObjectSource) ([]*unstructured.Unstructured, error) {
 	if len(sources) == 0 {
 		return nil, nil
 	}

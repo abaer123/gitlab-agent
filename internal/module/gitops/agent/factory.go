@@ -3,7 +3,7 @@ package agent
 import (
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 )
 
@@ -18,7 +18,7 @@ func (f *Factory) New(config *modagent.Config) modagent.Module {
 		engineFactory:                      f.EngineFactory,
 		k8sClientGetter:                    config.K8sClientGetter,
 		getObjectsToSynchronizeRetryPeriod: f.GetObjectsToSynchronizeRetryPeriod,
-		kasClient:                          agentrpc.NewKasClient(config.KasConn),
+		gitopsClient:                       rpc.NewGitopsClient(config.KasConn),
 		workers:                            make(map[string]*gitopsWorkerHolder),
 	}
 }

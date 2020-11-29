@@ -4,15 +4,15 @@ go_library(
     name = "mock_rpc",
     srcs = [
         "agent_configuration.go",
-        "agentrpc.go",
         "doc.go",
+        "gitops.go",
         "grpc.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc",
     visibility = ["//:__subpackages__"],
     deps = [
-        "//internal/agentrpc",
         "//internal/module/agent_configuration/rpc",
+        "//internal/module/gitops/rpc",
         "@com_github_golang_mock//gomock",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//metadata",
