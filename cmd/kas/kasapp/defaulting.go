@@ -4,6 +4,7 @@ import (
 	"time"
 
 	agent_configuration_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/server"
+	gitops_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/server"
 	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/google_profiler/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/server"
@@ -22,17 +23,9 @@ const (
 	defaultAgentInfoCacheTTL      = 5 * time.Minute
 	defaultAgentInfoCacheErrorTTL = 1 * time.Minute
 
-	defaultAgentLimitsConnectionsPerTokenPerMinute   = 100
-	defaultAgentLimitsRedisKeyPrefix                 = "kas:agent_limits"
-	defaultAgentLimitsMaxGitopsManifestFileSize      = 1024 * 1024
-	defaultAgentLimitsMaxGitopsTotalManifestFileSize = 2 * 1024 * 1024
-	defaultAgentLimitsMaxGitopsNumberOfPaths         = 100
-	defaultAgentLimitsMaxGitopsNumberOfFiles         = 1000
-	defaultAgentLimitsConnectionMaxAge               = 30 * time.Minute
-
-	defaultGitOpsPollPeriod               = 20 * time.Second
-	defaultGitOpsProjectInfoCacheTTL      = 5 * time.Minute
-	defaultGitOpsProjectInfoCacheErrorTTL = 1 * time.Minute
+	defaultAgentLimitsConnectionsPerTokenPerMinute = 100
+	defaultAgentLimitsRedisKeyPrefix               = "kas:agent_limits"
+	defaultAgentLimitsConnectionMaxAge             = 30 * time.Minute
 
 	defaultGitalyGlobalApiRefillRate    = 10.0
 	defaultGitalyGlobalApiBucketSize    = 50
@@ -52,6 +45,7 @@ var (
 		google_profiler_server.ApplyDefaults,
 		agent_configuration_server.ApplyDefaults,
 		usage_metrics_server.ApplyDefaults,
+		gitops_server.ApplyDefaults,
 	}
 )
 
@@ -85,21 +79,12 @@ func defaultAgent(a *kascfg.AgentCF) {
 	protodefault.NotNil(&a.Listen)
 	protodefault.String(&a.Listen.Address, defaultAgentListenAddress)
 
-	protodefault.NotNil(&a.Gitops)
-	protodefault.Duration(&a.Gitops.PollPeriod, defaultGitOpsPollPeriod)
-	protodefault.Duration(&a.Gitops.ProjectInfoCacheTtl, defaultGitOpsProjectInfoCacheTTL)
-	protodefault.Duration(&a.Gitops.ProjectInfoCacheErrorTtl, defaultGitOpsProjectInfoCacheErrorTTL)
-
 	protodefault.Duration(&a.InfoCacheTtl, defaultAgentInfoCacheTTL)
 	protodefault.Duration(&a.InfoCacheErrorTtl, defaultAgentInfoCacheErrorTTL)
 
 	protodefault.NotNil(&a.Limits)
 	protodefault.Uint32(&a.Limits.ConnectionsPerTokenPerMinute, defaultAgentLimitsConnectionsPerTokenPerMinute)
 	protodefault.String(&a.Limits.RedisKeyPrefix, defaultAgentLimitsRedisKeyPrefix)
-	protodefault.Uint32(&a.Limits.MaxGitopsManifestFileSize, defaultAgentLimitsMaxGitopsManifestFileSize)
-	protodefault.Uint32(&a.Limits.MaxGitopsTotalManifestFileSize, defaultAgentLimitsMaxGitopsTotalManifestFileSize)
-	protodefault.Uint32(&a.Limits.MaxGitopsNumberOfPaths, defaultAgentLimitsMaxGitopsNumberOfPaths)
-	protodefault.Uint32(&a.Limits.MaxGitopsNumberOfFiles, defaultAgentLimitsMaxGitopsNumberOfFiles)
 	protodefault.Duration(&a.Limits.ConnectionMaxAge, defaultAgentLimitsConnectionMaxAge)
 }
 

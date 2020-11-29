@@ -15,12 +15,12 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/kas"
 	agent_configuration_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/server"
+	gitops_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/server"
 	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/google_profiler/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/server"
@@ -75,26 +75,18 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 
 	cfg := a.Configuration
 
-	gitLabUrl, err := url.Parse(cfg.Gitlab.Address)
-	if err != nil {
-		return err
-	}
-	// TLS cert for talking to GitLab/Workhorse.
-	clientTLSConfig, err := tlstool.DefaultClientTLSConfigWithCACert(cfg.Gitlab.CaCertificateFile)
-	if err != nil {
-		return err
-	}
-	// Secret for JWT signing
-	decodedAuthSecret, err := a.loadAuthSecret()
-	if err != nil {
-		return fmt.Errorf("authentication secret: %v", err)
-	}
 	// Tracing
 	tracer, closer, err := tracing.ConstructTracer(kasName, cfg.Observability.Tracing.ConnectionString)
 	if err != nil {
 		return fmt.Errorf("tracing: %v", err)
 	}
 	defer closer.Close() // nolint: errcheck
+
+	// GitLab REST client
+	gitLabClient, err := a.gitLabClient(tracer)
+	if err != nil {
+		return err
+	}
 
 	// Sentry
 	errTracker, err := a.constructErrorTracker()
@@ -123,57 +115,10 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 		lis = wsWrapper.Wrap(lis)
 	}
 
-	userAgent := kasUserAgent()
-	gitalyClientPool := constructGitalyPool(cfg.Gitaly, csh, tracer, userAgent)
+	gitalyClientPool := constructGitalyPool(cfg.Gitaly, csh, tracer)
 	defer gitalyClientPool.Close() // nolint: errcheck
-	gitLabClient := &gitlab.RateLimitingClient{
-		Delegate: gitlab.NewClient(
-			gitLabUrl,
-			decodedAuthSecret,
-			gitlab.WithCorrelationClientName(kasName),
-			gitlab.WithUserAgent(userAgent),
-			gitlab.WithTracer(tracer),
-			gitlab.WithLogger(a.Log),
-			gitlab.WithTLSConfig(clientTLSConfig),
-		),
-		Limiter: rate.NewLimiter(
-			rate.Limit(cfg.Gitlab.ApiRateLimit.RefillRatePerSecond),
-			int(cfg.Gitlab.ApiRateLimit.BucketSize),
-		),
-	}
-	gitLabCachingClient := gitlab.NewCachingClient(gitLabClient, gitlab.CacheOptions{
-		CacheTTL:      cfg.Agent.InfoCacheTtl.AsDuration(),
-		CacheErrorTTL: cfg.Agent.InfoCacheErrorTtl.AsDuration(),
-	}, gitlab.CacheOptions{
-		CacheTTL:      cfg.Agent.Gitops.ProjectInfoCacheTtl.AsDuration(),
-		CacheErrorTTL: cfg.Agent.Gitops.ProjectInfoCacheErrorTtl.AsDuration(),
-	})
 
-	kasApi := &kas.API{
-		GitLabClient: gitLabCachingClient,
-		ErrorTracker: errTracker,
-	}
-	gitalyPool := &gitaly.Pool{
-		ClientPool: gitalyClientPool,
-	}
 	usageTracker := usage_metrics.NewUsageTracker()
-	srv, cleanup, err := kas.NewServer(kas.Config{
-		Log:                            a.Log,
-		Api:                            kasApi,
-		GitalyPool:                     gitalyPool,
-		GitLabClient:                   gitLabCachingClient,
-		Registerer:                     registerer,
-		UsageTracker:                   usageTracker,
-		GitopsPollPeriod:               cfg.Agent.Gitops.PollPeriod.AsDuration(),
-		MaxGitopsManifestFileSize:      cfg.Agent.Limits.MaxGitopsManifestFileSize,
-		MaxGitopsTotalManifestFileSize: cfg.Agent.Limits.MaxGitopsTotalManifestFileSize,
-		MaxGitopsNumberOfPaths:         cfg.Agent.Limits.MaxGitopsNumberOfPaths,
-		MaxGitopsNumberOfFiles:         cfg.Agent.Limits.MaxGitopsNumberOfFiles,
-	})
-	if err != nil {
-		return fmt.Errorf("kas.NewServer: %v", err)
-	}
-	defer cleanup()
 
 	interceptorsCtx, interceptorsCancel := context.WithCancel(context.Background())
 	defer interceptorsCancel()
@@ -268,7 +213,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 	}
 
 	agentServer := grpc.NewServer(serverOpts...)
-	agentrpc.RegisterKasServer(agentServer, srv)
 
 	factories := []modserver.Factory{
 		&observability_server.Factory{
@@ -276,22 +220,30 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 		},
 		&google_profiler_server.Factory{},
 		&agent_configuration_server.Factory{},
+		&gitops_server.Factory{
+			GitLabClient: gitLabClient,
+		},
 		&usage_metrics_server.Factory{
 			UsageTracker: usageTracker,
 			GitLabClient: gitLabClient,
 		},
 	}
 	modconfig := &modserver.Config{
-		Log:          a.Log,
-		Api:          kasApi,
+		Log: a.Log,
+		Api: &kas.API{
+			GitLabClient: gitLabClient,
+			ErrorTracker: errTracker,
+		},
 		Config:       cfg,
 		Registerer:   registerer,
 		UsageTracker: usageTracker,
 		AgentServer:  agentServer,
-		Gitaly:       gitalyPool,
-		KasName:      kasName,
-		Version:      cmd.Version,
-		Commit:       cmd.Commit,
+		Gitaly: &gitaly.Pool{
+			ClientPool: gitalyClientPool,
+		},
+		KasName: kasName,
+		Version: cmd.Version,
+		Commit:  cmd.Commit,
 	}
 
 	// Start things up
@@ -358,14 +310,55 @@ func (a *ConfiguredApp) loadAuthSecret() ([]byte, error) {
 	return decodedAuthSecret, nil
 }
 
-func constructGitalyPool(g *kascfg.GitalyCF, csh stats.Handler, tracer opentracing.Tracer, userAgent string) *client.Pool {
+func (a *ConfiguredApp) gitLabClient(tracer opentracing.Tracer) (*gitlab.CachingClient, error) {
+	cfg := a.Configuration
+
+	gitLabUrl, err := url.Parse(cfg.Gitlab.Address)
+	if err != nil {
+		return nil, err
+	}
+	// TLS cert for talking to GitLab/Workhorse.
+	clientTLSConfig, err := tlstool.DefaultClientTLSConfigWithCACert(cfg.Gitlab.CaCertificateFile)
+	if err != nil {
+		return nil, err
+	}
+	// Secret for JWT signing
+	decodedAuthSecret, err := a.loadAuthSecret()
+	if err != nil {
+		return nil, fmt.Errorf("authentication secret: %v", err)
+	}
+	gitLabClient := &gitlab.RateLimitingClient{
+		Delegate: gitlab.NewClient(
+			gitLabUrl,
+			decodedAuthSecret,
+			gitlab.WithCorrelationClientName(kasName),
+			gitlab.WithUserAgent(kasUserAgent()),
+			gitlab.WithTracer(tracer),
+			gitlab.WithLogger(a.Log),
+			gitlab.WithTLSConfig(clientTLSConfig),
+		),
+		Limiter: rate.NewLimiter(
+			rate.Limit(cfg.Gitlab.ApiRateLimit.RefillRatePerSecond),
+			int(cfg.Gitlab.ApiRateLimit.BucketSize),
+		),
+	}
+	return gitlab.NewCachingClient(gitLabClient, gitlab.CacheOptions{
+		CacheTTL:      cfg.Agent.InfoCacheTtl.AsDuration(),
+		CacheErrorTTL: cfg.Agent.InfoCacheErrorTtl.AsDuration(),
+	}, gitlab.CacheOptions{
+		CacheTTL:      cfg.Agent.Gitops.ProjectInfoCacheTtl.AsDuration(),
+		CacheErrorTTL: cfg.Agent.Gitops.ProjectInfoCacheErrorTtl.AsDuration(),
+	}), nil
+}
+
+func constructGitalyPool(g *kascfg.GitalyCF, csh stats.Handler, tracer opentracing.Tracer) *client.Pool {
 	globalGitalyRpcLimiter := rate.NewLimiter(
 		rate.Limit(g.GlobalApiRateLimit.RefillRatePerSecond),
 		int(g.GlobalApiRateLimit.BucketSize),
 	)
 	return client.NewPoolWithOptions(
 		client.WithDialOptions(
-			grpc.WithUserAgent(userAgent),
+			grpc.WithUserAgent(kasUserAgent()),
 			grpc.WithStatsHandler(csh),
 			// Don't put interceptors here as order is important. Put them below.
 		),

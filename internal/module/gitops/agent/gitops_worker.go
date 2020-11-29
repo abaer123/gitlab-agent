@@ -8,7 +8,7 @@ import (
 	"github.com/argoproj/gitops-engine/pkg/engine"
 	"github.com/ash2k/stager"
 	"github.com/go-logr/zapr"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentrpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 	"go.uber.org/zap"
 )
@@ -18,7 +18,7 @@ const (
 )
 
 type gitopsWorker struct {
-	objWatcher    agentrpc.ObjectsToSynchronizeWatcherInterface
+	objWatcher    rpc.ObjectsToSynchronizeWatcherInterface
 	engineFactory GitOpsEngineFactory
 	synchronizerConfig
 }
@@ -64,11 +64,11 @@ func (d *gitopsWorker) Run(ctx context.Context) {
 	})
 	stage = st.NextStage()
 	stage.Go(func(ctx context.Context) error {
-		req := &agentrpc.ObjectsToSynchronizeRequest{
+		req := &rpc.ObjectsToSynchronizeRequest{
 			ProjectId: d.projectConfiguration.Id,
 			Paths:     d.projectConfiguration.Paths,
 		}
-		d.objWatcher.Watch(ctx, req, func(ctx context.Context, data agentrpc.ObjectsToSynchronizeData) {
+		d.objWatcher.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
 			s.setDesiredState(ctx, data)
 		})
 		return nil

@@ -1,4 +1,4 @@
-package agentrpc
+package rpc
 
 import (
 	"context"
@@ -38,9 +38,9 @@ type ObjectsToSynchronizeWatcherInterface interface {
 }
 
 type ObjectsToSynchronizeWatcher struct {
-	Log         *zap.Logger
-	KasClient   KasClient
-	RetryPeriod time.Duration
+	Log          *zap.Logger
+	GitopsClient GitopsClient
+	RetryPeriod  time.Duration
 }
 
 func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToSynchronizeRequest, callback ObjectsToSynchronizeCallback) {
@@ -49,7 +49,7 @@ func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToS
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel() // ensure streaming call is canceled
 		req.CommitId = lastProcessedCommitId
-		res, err := o.KasClient.GetObjectsToSynchronize(ctx, req)
+		res, err := o.GitopsClient.GetObjectsToSynchronize(ctx, req)
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
 				o.Log.Error("GetObjectsToSynchronize failed", zap.Error(err))

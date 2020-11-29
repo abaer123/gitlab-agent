@@ -14,8 +14,8 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/agent",
     visibility = ["//:__subpackages__"],
     deps = [
-        "//internal/agentrpc",
         "//internal/module/gitops",
+        "//internal/module/gitops/rpc",
         "//internal/module/modagent",
         "//internal/tool/errz",
         "//internal/tool/logz",
@@ -50,7 +50,7 @@ go_test(
     embed = [":agent"],
     race = "on",
     deps = [
-        "//internal/agentrpc",
+        "//internal/module/gitops/rpc",
         "//internal/module/modagent",
         "//internal/tool/testing/kube_testing",
         "//internal/tool/testing/matcher",
