@@ -81,6 +81,7 @@ func NewClient(backend *url.URL, authSecret []byte, opts ...ClientOption) *Clien
 // meta may be nil to avoid sending Authorization header (not acting as agentk).
 // body may be nil to avoid sending a request payload.
 // response may be nil to avoid sending an Accept header and ignore the response payload, if any.
+// query may be nil to avoid sending any URL query parameters.
 func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Values, agentMeta *api.AgentMeta, body, response interface{}) error {
 	var bodyReader io.Reader
 	if body != nil {
@@ -90,49 +91,16 @@ func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Valu
 		}
 		bodyReader = bytes.NewReader(bodyBytes)
 	}
-	u := *c.Backend
-	u.Path = path
-	u.RawQuery = query.Encode() // handles query == nil
-	r, err := http.NewRequestWithContext(ctx, method, u.String(), bodyReader)
-	if err != nil {
-		return fmt.Errorf("NewRequestWithContext: %v", err)
-	}
-	now := time.Now()
-	claims := jwt.StandardClaims{
-		Audience:  jwt.ClaimStrings{jwtGitLabAudience},
-		ExpiresAt: jwt.At(now.Add(jwtValidFor)),
-		IssuedAt:  jwt.At(now),
-		Issuer:    jwtIssuer,
-		NotBefore: jwt.At(now.Add(-jwtNotBefore)),
-	}
-	signedClaims, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).
-		SignedString(c.AuthSecret)
-	if err != nil {
-		return fmt.Errorf("sign JWT: %v", err)
-	}
-
-	if agentMeta != nil {
-		r.Header.Set("Authorization", "Bearer "+string(agentMeta.Token))
-	}
-	r.Header.Set(jwtRequestHeader, signedClaims)
-	if c.UserAgent != "" {
-		r.Header.Set("User-Agent", c.UserAgent)
-	}
+	h := make(http.Header)
 	if response != nil {
-		r.Header.Set("Accept", "application/json")
+		h.Set("Accept", "application/json")
 	}
 	if bodyReader != nil {
-		r.Header.Set("Content-Type", "application/json")
+		h.Set("Content-Type", "application/json")
 	}
-
-	resp, err := c.HTTPClient.Do(r)
+	resp, err := c.DoStream(ctx, method, path, h, query, agentMeta, bodyReader)
 	if err != nil {
-		select {
-		case <-ctx.Done(): // assume request errored out because of context
-			return ctx.Err()
-		default:
-			return fmt.Errorf("GitLab request: %v", err)
-		}
+		return err
 	}
 	defer resp.Body.Close() // nolint: errcheck
 	switch {
@@ -142,13 +110,13 @@ func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Valu
 			return nil
 		}
 		if !isApplicationJSON(resp) {
-			return fmt.Errorf("unexpected Content-Type in response: %q", r.Header.Get("Content-Type"))
+			return fmt.Errorf("unexpected Content-Type in response: %q", resp.Header.Get("Content-Type"))
 		}
 		data, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return fmt.Errorf("request body read: %v", err)
 		}
-		if err := json.Unmarshal(data, response); err != nil {
+		if err = json.Unmarshal(data, response); err != nil {
 			return fmt.Errorf("json.Unmarshal: %v", err)
 		}
 		return nil
@@ -170,6 +138,55 @@ func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Valu
 			StatusCode: resp.StatusCode,
 		}
 	}
+}
+
+// DoStream can be used to access GitLab API using streams rather than fixed size payloads.
+// meta may be nil to avoid sending Authorization header (not acting as agentk).
+// body may be nil to avoid sending a request payload.
+// query may be nil to avoid sending any URL query parameters.
+// headers may be used to send extra headers. May be nil.
+func (c *Client) DoStream(ctx context.Context, method, path string, headers http.Header, query url.Values, agentMeta *api.AgentMeta, body io.Reader) (*http.Response, error) {
+	u := *c.Backend
+	u.Path = path
+	u.RawQuery = query.Encode() // handles query == nil
+	r, err := http.NewRequestWithContext(ctx, method, u.String(), body)
+	if err != nil {
+		return nil, fmt.Errorf("NewRequestWithContext: %v", err)
+	}
+	now := time.Now()
+	claims := jwt.StandardClaims{
+		Audience:  jwt.ClaimStrings{jwtGitLabAudience},
+		ExpiresAt: jwt.At(now.Add(jwtValidFor)),
+		IssuedAt:  jwt.At(now),
+		Issuer:    jwtIssuer,
+		NotBefore: jwt.At(now.Add(-jwtNotBefore)),
+	}
+	signedClaims, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).
+		SignedString(c.AuthSecret)
+	if err != nil {
+		return nil, fmt.Errorf("sign JWT: %v", err)
+	}
+	if headers != nil {
+		r.Header = headers
+	}
+	if agentMeta != nil {
+		r.Header.Set("Authorization", "Bearer "+string(agentMeta.Token))
+	}
+	r.Header.Set(jwtRequestHeader, signedClaims)
+	if c.UserAgent != "" {
+		r.Header.Set("User-Agent", c.UserAgent)
+	}
+
+	resp, err := c.HTTPClient.Do(r)
+	if err != nil {
+		select {
+		case <-ctx.Done(): // assume request errored out because of context
+			return nil, ctx.Err()
+		default:
+			return nil, fmt.Errorf("GitLab request: %v", err)
+		}
+	}
+	return resp, nil
 }
 
 func isContentType(expected, actual string) bool {

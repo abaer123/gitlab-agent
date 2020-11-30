@@ -6,6 +6,8 @@ package mock_gitlab
 
 import (
 	context "context"
+	io "io"
+	http "net/http"
 	url "net/url"
 	reflect "reflect"
 
@@ -48,4 +50,19 @@ func (m *MockClientInterface) DoJSON(arg0 context.Context, arg1, arg2 string, ar
 func (mr *MockClientInterfaceMockRecorder) DoJSON(arg0, arg1, arg2, arg3, arg4, arg5, arg6 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoJSON", reflect.TypeOf((*MockClientInterface)(nil).DoJSON), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+}
+
+// DoStream mocks base method
+func (m *MockClientInterface) DoStream(arg0 context.Context, arg1, arg2 string, arg3 http.Header, arg4 url.Values, arg5 *api.AgentMeta, arg6 io.Reader) (*http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DoStream", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	ret0, _ := ret[0].(*http.Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DoStream indicates an expected call of DoStream
+func (mr *MockClientInterfaceMockRecorder) DoStream(arg0, arg1, arg2, arg3, arg4, arg5, arg6 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoStream", reflect.TypeOf((*MockClientInterface)(nil).DoStream), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
 }
