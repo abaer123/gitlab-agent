@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -32,6 +33,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/durationpb"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -53,55 +55,56 @@ var (
 )
 
 func TestGetObjectsToSynchronizeGetProjectInfoFailures(t *testing.T) {
-	t.Run("GetProjectInfo failures", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		m, mockCtrl, mockApi, _, gitlabClient := setupModuleBare(t, 1)
-		agentInfo := agentInfoObj()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	m, mockCtrl, mockApi, _, gitlabClient := setupModuleBare(t, 1)
+	agentInfo := agentInfoObj()
+	mockApi.EXPECT().
+		GetAgentInfo(gomock.Any(), gomock.Any(), &agentInfo.Meta, false).
+		Return(agentInfo, nil, false).
+		Times(3)
+	mockApi.EXPECT().
+		PollImmediateUntil(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, interval, connectionMaxAge time.Duration, condition modserver.ConditionFunc) error {
+			done, err := condition()
+			if err != nil || done {
+				return err
+			}
+			return nil
+		}).Times(2)
+	expectedErr := &gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}
+	query := url.Values{
+		projectIdQueryParam: []string{projectId},
+	}
+	gomock.InOrder(
+		gitlabClient.EXPECT().
+			DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, &agentInfo.Meta, nil, gomock.Any()).
+			Return(&gitlab.ClientError{Kind: gitlab.ErrorKindForbidden, StatusCode: http.StatusForbidden}),
+		gitlabClient.EXPECT().
+			DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, &agentInfo.Meta, nil, gomock.Any()).
+			Return(&gitlab.ClientError{Kind: gitlab.ErrorKindUnauthorized, StatusCode: http.StatusUnauthorized}),
+		gitlabClient.EXPECT().
+			DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, &agentInfo.Meta, nil, gomock.Any()).
+			Return(expectedErr),
 		mockApi.EXPECT().
-			GetAgentInfo(gomock.Any(), gomock.Any(), &agentInfo.Meta, false).
-			Return(agentInfo, nil, false).
-			Times(3)
-		mockApi.EXPECT().
-			PollImmediateUntil(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, interval, connectionMaxAge time.Duration, condition modserver.ConditionFunc) error {
-				done, err := condition()
-				if err != nil || done {
-					return err
-				}
-				return nil
-			}).Times(2)
-		expectedErr := &gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}
-		gomock.InOrder(
-			gitlabClient.EXPECT().
-				GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
-				Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindForbidden, StatusCode: http.StatusForbidden}),
-			gitlabClient.EXPECT().
-				GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
-				Return(nil, &gitlab.ClientError{Kind: gitlab.ErrorKindUnauthorized, StatusCode: http.StatusUnauthorized}),
-			gitlabClient.EXPECT().
-				GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
-				Return(nil, expectedErr),
-			mockApi.EXPECT().
-				LogAndCapture(gomock.Any(), gomock.Any(), "GetProjectInfo()", expectedErr).
-				DoAndReturn(func(ctx context.Context, log *zap.Logger, msg string, err error) {
-					cancel() // exception captured, cancel the context to stop the test
-				}),
-		)
-		server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(mockCtrl)
-		server.EXPECT().
-			Context().
-			Return(incomingCtx(ctx, t)).
-			MinTimes(1)
-		err := m.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, server)
-		require.Error(t, err)
-		assert.Equal(t, codes.PermissionDenied, status.Code(err))
-		err = m.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, server)
-		require.Error(t, err)
-		assert.Equal(t, codes.Unauthenticated, status.Code(err))
-		err = m.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, server)
-		require.NoError(t, err)
-	})
+			LogAndCapture(gomock.Any(), gomock.Any(), "GetProjectInfo()", expectedErr).
+			DoAndReturn(func(ctx context.Context, log *zap.Logger, msg string, err error) {
+				cancel() // exception captured, cancel the context to stop the test
+			}),
+	)
+	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(mockCtrl)
+	server.EXPECT().
+		Context().
+		Return(incomingCtx(ctx, t)).
+		MinTimes(1)
+	err := m.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, server)
+	require.Error(t, err)
+	assert.Equal(t, codes.PermissionDenied, status.Code(err))
+	err = m.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, server)
+	require.Error(t, err)
+	assert.Equal(t, codes.Unauthenticated, status.Code(err))
+	err = m.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, server)
+	require.NoError(t, err)
 }
 
 func TestGetObjectsToSynchronize(t *testing.T) {
@@ -181,9 +184,15 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 				return nil
 			}),
 	)
+	query := url.Values{
+		projectIdQueryParam: []string{projectId},
+	}
 	gitlabClient.EXPECT().
-		GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
-		Return(projInfo, nil)
+		DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, &agentInfo.Meta, nil, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, method, path string, query url.Values, agentMeta *api.AgentMeta, body, response interface{}) error {
+			mock_gitlab.AssignResult(response, projectInfoRest())
+			return nil
+		})
 	p := mock_internalgitaly.NewMockPollerInterface(mockCtrl)
 	pf := mock_internalgitaly.NewMockPathFetcherInterface(mockCtrl)
 	gomock.InOrder(
@@ -242,10 +251,16 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 		Return(incomingCtx(ctx, t)).
 		MinTimes(1)
 	p := mock_internalgitaly.NewMockPollerInterface(mockCtrl)
+	query := url.Values{
+		projectIdQueryParam: []string{projectId},
+	}
 	gomock.InOrder(
 		gitlabClient.EXPECT().
-			GetProjectInfo(gomock.Any(), &agentInfo.Meta, projectId).
-			Return(projInfo, nil),
+			DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, &agentInfo.Meta, nil, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, method, path string, query url.Values, agentMeta *api.AgentMeta, body, response interface{}) error {
+				mock_gitlab.AssignResult(response, projectInfoRest())
+				return nil
+			}),
 		gitalyPool.EXPECT().
 			Poller(gomock.Any(), &projInfo.GitalyInfo).
 			Return(p, nil),
@@ -563,23 +578,31 @@ func TestGlobToGitaly(t *testing.T) {
 	}
 }
 
-func projectInfo() *api.ProjectInfo {
-	return &api.ProjectInfo{
+func projectInfoRest() *projectInfoResponse {
+	return &projectInfoResponse{
 		ProjectId: 234,
-		GitalyInfo: api.GitalyInfo{
+		GitalyInfo: gitlab.GitalyInfo{
 			Address: "127.0.0.1:321321",
 			Token:   "cba",
 			Features: map[string]string{
 				"bla": "false",
 			},
 		},
-		Repository: gitalypb.Repository{
-			StorageName:        "StorageName1",
-			RelativePath:       "RelativePath1",
-			GitObjectDirectory: "GitObjectDirectory1",
-			GlRepository:       "GlRepository1",
-			GlProjectPath:      "GlProjectPath1",
+		GitalyRepository: gitlab.GitalyRepository{
+			StorageName:   "StorageName1",
+			RelativePath:  "RelativePath1",
+			GlRepository:  "GlRepository1",
+			GlProjectPath: "GlProjectPath1",
 		},
+	}
+}
+
+func projectInfo() *api.ProjectInfo {
+	rest := projectInfoRest()
+	return &api.ProjectInfo{
+		ProjectId:  rest.ProjectId,
+		GitalyInfo: rest.GitalyInfo.ToGitalyInfo(),
+		Repository: rest.GitalyRepository.ToProtoRepository(),
 	}
 }
 
@@ -613,15 +636,16 @@ func setupModuleBare(t *testing.T, pollTimes int) (*module, *gomock.Controller, 
 		RegisterCounter(gitopsSyncCountKnownMetric).
 		Return(mock_usage_metrics.NewMockCounter(ctrl))
 
-	f := Factory{
-		GitLabClient: gitlabClient,
-	}
+	f := Factory{}
 	config := &kascfg.ConfigurationFile{}
 	ApplyDefaults(config)
+	config.Agent.Gitops.ProjectInfoCacheTtl = durationpb.New(0)
+	config.Agent.Gitops.ProjectInfoCacheErrorTtl = durationpb.New(0)
 	m := f.New(&modserver.Config{
 		Log:          zaptest.NewLogger(t),
 		Api:          mockApi,
 		Config:       config,
+		GitLabClient: gitlabClient,
 		Registerer:   prometheus.NewPedanticRegistry(),
 		UsageTracker: usageTracker,
 		AgentServer:  grpc.NewServer(),

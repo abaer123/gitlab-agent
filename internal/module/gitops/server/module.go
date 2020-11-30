@@ -39,7 +39,7 @@ type module struct {
 	log                            *zap.Logger
 	api                            modserver.API
 	gitalyPool                     gitaly.PoolInterface
-	gitLabClient                   gitlab.ClientInterface
+	projectInfoClient              *projectInfoClient
 	gitopsSyncCount                usage_metrics.Counter
 	gitopsPollPeriod               time.Duration
 	connectionMaxAge               time.Duration
@@ -189,7 +189,7 @@ func (m *module) sendObjectsToSynchronizeTrailers(server rpc.Gitops_GetObjectsTo
 }
 
 func (m *module) getProjectInfo(ctx context.Context, log *zap.Logger, agentMeta *api.AgentMeta, projectId string) (*api.ProjectInfo, error, bool /* return the error? */) {
-	projectInfo, err := m.gitLabClient.GetProjectInfo(ctx, agentMeta, projectId)
+	projectInfo, err := m.projectInfoClient.GetProjectInfo(ctx, agentMeta, projectId)
 	switch {
 	case err == nil:
 		return projectInfo, nil, false

@@ -6,11 +6,11 @@ package mock_gitlab
 
 import (
 	context "context"
+	url "net/url"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
 	api "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
-	gitlab "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 )
 
 // MockClientInterface is a mock of ClientInterface interface
@@ -36,46 +36,16 @@ func (m *MockClientInterface) EXPECT() *MockClientInterfaceMockRecorder {
 	return m.recorder
 }
 
-// GetAgentInfo mocks base method
-func (m *MockClientInterface) GetAgentInfo(arg0 context.Context, arg1 *api.AgentMeta) (*api.AgentInfo, error) {
+// DoJSON mocks base method
+func (m *MockClientInterface) DoJSON(arg0 context.Context, arg1, arg2 string, arg3 url.Values, arg4 *api.AgentMeta, arg5, arg6 interface{}) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAgentInfo", arg0, arg1)
-	ret0, _ := ret[0].(*api.AgentInfo)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetAgentInfo indicates an expected call of GetAgentInfo
-func (mr *MockClientInterfaceMockRecorder) GetAgentInfo(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAgentInfo", reflect.TypeOf((*MockClientInterface)(nil).GetAgentInfo), arg0, arg1)
-}
-
-// GetProjectInfo mocks base method
-func (m *MockClientInterface) GetProjectInfo(arg0 context.Context, arg1 *api.AgentMeta, arg2 string) (*api.ProjectInfo, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetProjectInfo", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*api.ProjectInfo)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetProjectInfo indicates an expected call of GetProjectInfo
-func (mr *MockClientInterfaceMockRecorder) GetProjectInfo(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProjectInfo", reflect.TypeOf((*MockClientInterface)(nil).GetProjectInfo), arg0, arg1, arg2)
-}
-
-// SendUsage mocks base method
-func (m *MockClientInterface) SendUsage(arg0 context.Context, arg1 gitlab.UsageData) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendUsage", arg0, arg1)
+	ret := m.ctrl.Call(m, "DoJSON", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// SendUsage indicates an expected call of SendUsage
-func (mr *MockClientInterfaceMockRecorder) SendUsage(arg0, arg1 interface{}) *gomock.Call {
+// DoJSON indicates an expected call of DoJSON
+func (mr *MockClientInterfaceMockRecorder) DoJSON(arg0, arg1, arg2, arg3, arg4, arg5, arg6 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendUsage", reflect.TypeOf((*MockClientInterface)(nil).SendUsage), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoJSON", reflect.TypeOf((*MockClientInterface)(nil).DoJSON), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
 }
