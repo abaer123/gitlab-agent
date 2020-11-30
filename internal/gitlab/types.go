@@ -2,6 +2,8 @@ package gitlab
 
 import (
 	"context"
+	"io"
+	"net/http"
 	"net/url"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
@@ -10,6 +12,7 @@ import (
 
 type ClientInterface interface {
 	DoJSON(ctx context.Context, method, path string, query url.Values, agentMeta *api.AgentMeta, body, response interface{}) error
+	DoStream(ctx context.Context, method, path string, headers http.Header, query url.Values, agentMeta *api.AgentMeta, body io.Reader) (*http.Response, error)
 }
 
 // Some shared types below.
