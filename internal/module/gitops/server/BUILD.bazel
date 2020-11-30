@@ -7,6 +7,7 @@ go_library(
         "factory.go",
         "module.go",
         "project_info_client.go",
+        "visitor.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/server",
     visibility = ["//:__subpackages__"],
