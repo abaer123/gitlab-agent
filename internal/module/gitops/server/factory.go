@@ -1,9 +1,11 @@
 package server
 
 import (
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
+	"time"
+
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/cache"
 )
 
 const (
@@ -11,15 +13,21 @@ const (
 )
 
 type Factory struct {
-	GitLabClient gitlab.ClientInterface
 }
 
 func (f *Factory) New(config *modserver.Config) modserver.Module {
+	projectInfoCacheTtl := config.Config.Agent.Gitops.ProjectInfoCacheTtl.AsDuration()
+	projectInfoCacheErrorTtl := config.Config.Agent.Gitops.ProjectInfoCacheErrorTtl.AsDuration()
 	m := &module{
-		log:                            config.Log,
-		api:                            config.Api,
-		gitalyPool:                     config.Gitaly,
-		gitLabClient:                   f.GitLabClient,
+		log:        config.Log,
+		api:        config.Api,
+		gitalyPool: config.Gitaly,
+		projectInfoClient: &projectInfoClient{
+			GitLabClient:             config.GitLabClient,
+			ProjectInfoCacheTtl:      projectInfoCacheTtl,
+			ProjectInfoCacheErrorTtl: projectInfoCacheErrorTtl,
+			ProjectInfoCache:         cache.New(minDuration(projectInfoCacheTtl, projectInfoCacheErrorTtl)),
+		},
 		gitopsSyncCount:                config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
 		gitopsPollPeriod:               config.Config.Agent.Gitops.PollPeriod.AsDuration(),
 		connectionMaxAge:               config.Config.Agent.Limits.ConnectionMaxAge.AsDuration(),
@@ -30,4 +38,12 @@ func (f *Factory) New(config *modserver.Config) modserver.Module {
 	}
 	rpc.RegisterGitopsServer(config.AgentServer, m)
 	return m
+}
+
+func minDuration(a, b time.Duration) time.Duration {
+	if a < b {
+		return a
+	}
+
+	return b
 }

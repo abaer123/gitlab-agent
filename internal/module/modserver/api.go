@@ -7,6 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"gitlab.com/gitlab-org/labkit/errortracking"
@@ -20,9 +21,10 @@ type ApplyDefaults func(*kascfg.ConfigurationFile)
 
 // Config holds configuration for a Module.
 type Config struct {
-	Log    *zap.Logger
-	Api    API
-	Config *kascfg.ConfigurationFile
+	Log          *zap.Logger
+	Api          API
+	Config       *kascfg.ConfigurationFile
+	GitLabClient gitlab.ClientInterface
 	// Registerer allows to register metrics.
 	// Metrics should be registered in Run and unregistered before Run returns.
 	Registerer   prometheus.Registerer

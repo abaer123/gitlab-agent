@@ -220,21 +220,21 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 		},
 		&google_profiler_server.Factory{},
 		&agent_configuration_server.Factory{},
-		&gitops_server.Factory{
-			GitLabClient: gitLabClient,
-		},
+		&gitops_server.Factory{},
 		&usage_metrics_server.Factory{
 			UsageTracker: usageTracker,
-			GitLabClient: gitLabClient,
 		},
 	}
 	modconfig := &modserver.Config{
 		Log: a.Log,
-		Api: &kas.API{
-			GitLabClient: gitLabClient,
-			ErrorTracker: errTracker,
-		},
+		Api: kas.NewAPI(kas.APIConfig{
+			GitLabClient:           gitLabClient,
+			ErrorTracker:           errTracker,
+			AgentInfoCacheTtl:      cfg.Agent.InfoCacheTtl.AsDuration(),
+			AgentInfoCacheErrorTtl: cfg.Agent.InfoCacheErrorTtl.AsDuration(),
+		}),
 		Config:       cfg,
+		GitLabClient: gitLabClient,
 		Registerer:   registerer,
 		UsageTracker: usageTracker,
 		AgentServer:  agentServer,
@@ -310,7 +310,7 @@ func (a *ConfiguredApp) loadAuthSecret() ([]byte, error) {
 	return decodedAuthSecret, nil
 }
 
-func (a *ConfiguredApp) gitLabClient(tracer opentracing.Tracer) (*gitlab.CachingClient, error) {
+func (a *ConfiguredApp) gitLabClient(tracer opentracing.Tracer) (*gitlab.Client, error) {
 	cfg := a.Configuration
 
 	gitLabUrl, err := url.Parse(cfg.Gitlab.Address)
@@ -327,7 +327,7 @@ func (a *ConfiguredApp) gitLabClient(tracer opentracing.Tracer) (*gitlab.Caching
 	if err != nil {
 		return nil, fmt.Errorf("authentication secret: %v", err)
 	}
-	gitLabClient := gitlab.NewClient(
+	return gitlab.NewClient(
 		gitLabUrl,
 		decodedAuthSecret,
 		gitlab.WithCorrelationClientName(kasName),
@@ -339,14 +339,7 @@ func (a *ConfiguredApp) gitLabClient(tracer opentracing.Tracer) (*gitlab.Caching
 			rate.Limit(cfg.Gitlab.ApiRateLimit.RefillRatePerSecond),
 			int(cfg.Gitlab.ApiRateLimit.BucketSize),
 		)),
-	)
-	return gitlab.NewCachingClient(gitLabClient, gitlab.CacheOptions{
-		CacheTTL:      cfg.Agent.InfoCacheTtl.AsDuration(),
-		CacheErrorTTL: cfg.Agent.InfoCacheErrorTtl.AsDuration(),
-	}, gitlab.CacheOptions{
-		CacheTTL:      cfg.Agent.Gitops.ProjectInfoCacheTtl.AsDuration(),
-		CacheErrorTTL: cfg.Agent.Gitops.ProjectInfoCacheErrorTtl.AsDuration(),
-	}), nil
+	), nil
 }
 
 func constructGitalyPool(g *kascfg.GitalyCF, csh stats.Handler, tracer opentracing.Tracer) *client.Pool {

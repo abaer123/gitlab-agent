@@ -6,6 +6,7 @@ go_library(
         "defaulting.go",
         "factory.go",
         "module.go",
+        "project_info_client.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/server",
     visibility = ["//:__subpackages__"],
@@ -18,6 +19,7 @@ go_library(
         "//internal/module/gitops/rpc",
         "//internal/module/modserver",
         "//internal/module/usage_metrics",
+        "//internal/tool/cache",
         "//internal/tool/errz",
         "//internal/tool/logz",
         "//internal/tool/protodefault",
@@ -33,7 +35,10 @@ go_library(
 go_test(
     name = "server_test",
     size = "small",
-    srcs = ["module_test.go"],
+    srcs = [
+        "module_test.go",
+        "project_info_client_test.go",
+    ],
     embed = [":server"],
     race = "on",
     deps = [
@@ -43,6 +48,7 @@ go_test(
         "//internal/gitlab",
         "//internal/module/gitops/rpc",
         "//internal/module/modserver",
+        "//internal/tool/cache",
         "//internal/tool/testing/kube_testing",
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_gitlab",
@@ -64,6 +70,7 @@ go_test(
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//metadata",
         "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//types/known/durationpb",
         "@org_uber_go_zap//:zap",
         "@org_uber_go_zap//zaptest",
     ],

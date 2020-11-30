@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
@@ -9,6 +10,10 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"go.uber.org/zap"
+)
+
+const (
+	usagePingApiPath = "/api/v4/internal/kubernetes/usage_metrics"
 )
 
 type module struct {
@@ -45,7 +50,7 @@ func (m *module) sendUsageInternal(ctx context.Context) error {
 		// No new counts
 		return nil
 	}
-	err := m.gitLabClient.SendUsage(ctx, usageData.Counters)
+	err := m.gitLabClient.DoJSON(ctx, http.MethodPost, usagePingApiPath, nil, nil, usageData.Counters, nil)
 	if err != nil {
 		return err // don't wrap
 	}

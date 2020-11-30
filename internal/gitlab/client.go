@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -17,7 +16,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/tracing"
-	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"gitlab.com/gitlab-org/labkit/correlation"
 )
 
@@ -28,12 +26,6 @@ const (
 	jwtNotBefore      = 5 * time.Second
 	jwtIssuer         = "gitlab-kas"
 	jwtGitLabAudience = "gitlab"
-
-	projectIdQueryParam = "id"
-
-	agentInfoApiPath   = "/api/v4/internal/kubernetes/agent_info"
-	projectInfoApiPath = "/api/v4/internal/kubernetes/project_info"
-	usagePingApiPath   = "/api/v4/internal/kubernetes/usage_metrics"
 )
 
 type HTTPClient interface {
@@ -45,50 +37,6 @@ type Client struct {
 	HTTPClient HTTPClient
 	AuthSecret []byte
 	UserAgent  string
-}
-
-type gitalyInfo struct {
-	Address  string            `json:"address"`
-	Token    string            `json:"token"`
-	Features map[string]string `json:"features"`
-}
-
-func (g *gitalyInfo) ToGitalyInfo() api.GitalyInfo {
-	return api.GitalyInfo{
-		Address:  g.Address,
-		Token:    g.Token,
-		Features: g.Features,
-	}
-}
-
-type gitalyRepository struct {
-	StorageName   string `json:"storage_name"`
-	RelativePath  string `json:"relative_path"`
-	GlRepository  string `json:"gl_repository"`
-	GlProjectPath string `json:"gl_project_path"`
-}
-
-func (r *gitalyRepository) ToProtoRepository() gitalypb.Repository {
-	return gitalypb.Repository{
-		StorageName:   r.StorageName,
-		RelativePath:  r.RelativePath,
-		GlRepository:  r.GlRepository,
-		GlProjectPath: r.GlProjectPath,
-	}
-}
-
-type projectInfoResponse struct {
-	ProjectId        int64            `json:"project_id"`
-	GitalyInfo       gitalyInfo       `json:"gitaly_info"`
-	GitalyRepository gitalyRepository `json:"gitaly_repository"`
-}
-
-type getAgentInfoResponse struct {
-	ProjectId        int64            `json:"project_id"`
-	AgentId          int64            `json:"agent_id"`
-	AgentName        string           `json:"agent_name"`
-	GitalyInfo       gitalyInfo       `json:"gitaly_info"`
-	GitalyRepository gitalyRepository `json:"gitaly_repository"`
 }
 
 func NewClient(backend *url.URL, authSecret []byte, opts ...ClientOption) *Client {
@@ -129,57 +77,11 @@ func NewClient(backend *url.URL, authSecret []byte, opts ...ClientOption) *Clien
 	}
 }
 
-func (c *Client) GetAgentInfo(ctx context.Context, meta *api.AgentMeta) (*api.AgentInfo, error) {
-	u := *c.Backend
-	u.Path = agentInfoApiPath
-	response := getAgentInfoResponse{}
-	err := c.doJSON(ctx, http.MethodGet, meta, &u, nil, &response)
-	if err != nil {
-		return nil, err
-	}
-	return &api.AgentInfo{
-		Meta:       *meta,
-		Id:         response.AgentId,
-		ProjectId:  response.ProjectId,
-		Name:       response.AgentName,
-		GitalyInfo: response.GitalyInfo.ToGitalyInfo(),
-		Repository: response.GitalyRepository.ToProtoRepository(),
-	}, nil
-}
-
-func (c *Client) GetProjectInfo(ctx context.Context, meta *api.AgentMeta, projectId string) (*api.ProjectInfo, error) {
-	u := *c.Backend
-	u.Path = projectInfoApiPath
-	query := u.Query()
-	query.Set(projectIdQueryParam, projectId)
-	u.RawQuery = query.Encode()
-	response := projectInfoResponse{}
-	err := c.doJSON(ctx, http.MethodGet, meta, &u, nil, &response)
-	if err != nil {
-		return nil, err
-	}
-	return &api.ProjectInfo{
-		ProjectId:  response.ProjectId,
-		GitalyInfo: response.GitalyInfo.ToGitalyInfo(),
-		Repository: response.GitalyRepository.ToProtoRepository(),
-	}, nil
-}
-
-func (c *Client) SendUsage(ctx context.Context, data UsageData) error {
-	u := *c.Backend
-	u.Path = usagePingApiPath
-	err := c.doJSON(ctx, http.MethodPost, nil, &u, data, nil)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// doJSON sends a request with JSON payload (optional) and expects a response with JSON payload (optional).
+// DoJSON sends a request with JSON payload (optional) and expects a response with JSON payload (optional).
 // meta may be nil to avoid sending Authorization header (not acting as agentk).
 // body may be nil to avoid sending a request payload.
 // response may be nil to avoid sending an Accept header and ignore the response payload, if any.
-func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta, url *url.URL, body, response interface{}) error {
+func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Values, agentMeta *api.AgentMeta, body, response interface{}) error {
 	var bodyReader io.Reader
 	if body != nil {
 		bodyBytes, err := json.Marshal(body)
@@ -188,7 +90,9 @@ func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta,
 		}
 		bodyReader = bytes.NewReader(bodyBytes)
 	}
-	u := *url
+	u := *c.Backend
+	u.Path = path
+	u.RawQuery = query.Encode() // handles query == nil
 	r, err := http.NewRequestWithContext(ctx, method, u.String(), bodyReader)
 	if err != nil {
 		return fmt.Errorf("NewRequestWithContext: %v", err)
@@ -207,8 +111,8 @@ func (c *Client) doJSON(ctx context.Context, method string, meta *api.AgentMeta,
 		return fmt.Errorf("sign JWT: %v", err)
 	}
 
-	if meta != nil {
-		r.Header.Set("Authorization", "Bearer "+string(meta.Token))
+	if agentMeta != nil {
+		r.Header.Set("Authorization", "Bearer "+string(agentMeta.Token))
 	}
 	r.Header.Set(jwtRequestHeader, signedClaims)
 	if c.UserAgent != "" {
@@ -276,53 +180,4 @@ func isContentType(expected, actual string) bool {
 func isApplicationJSON(r *http.Response) bool {
 	contentType := r.Header.Get("Content-Type")
 	return isContentType("application/json", contentType)
-}
-
-type ErrorKind int
-
-const (
-	ErrorKindOther ErrorKind = iota
-	ErrorKindForbidden
-	ErrorKindUnauthorized
-)
-
-type ClientError struct {
-	Kind       ErrorKind
-	StatusCode int
-}
-
-func (c *ClientError) Error() string {
-	return fmt.Sprintf("error kind: %d; status: %d", c.Kind, c.StatusCode)
-}
-
-func IsForbidden(err error) bool {
-	var e *ClientError
-	if !errors.As(err, &e) {
-		return false
-	}
-	return e.Kind == ErrorKindForbidden
-}
-
-func IsUnauthorized(err error) bool {
-	var e *ClientError
-	if !errors.As(err, &e) {
-		return false
-	}
-	return e.Kind == ErrorKindUnauthorized
-}
-
-func IsClientError(err error) bool {
-	var e *ClientError
-	if !errors.As(err, &e) {
-		return false
-	}
-	return e.StatusCode >= 400 && e.StatusCode < 500
-}
-
-func IsServerError(err error) bool {
-	var e *ClientError
-	if !errors.As(err, &e) {
-		return false
-	}
-	return e.StatusCode >= 500 && e.StatusCode < 600
 }

@@ -35,6 +35,8 @@ go_test(
         "//internal/tool/testing/mock_usage_metrics",
         "//pkg/kascfg",
         "@com_github_golang_mock//gomock",
+        "@com_github_google_go_cmp//cmp",
+        "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@org_golang_google_protobuf//types/known/durationpb",
         "@org_uber_go_zap//:zap",
