@@ -9,13 +9,14 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modserver.Config) modserver.Module {
+	agent := config.Config.Agent
 	m := &module{
 		log:                          config.Log,
 		api:                          config.Api,
 		gitaly:                       config.Gitaly,
-		maxConfigurationFileSize:     int64(config.Config.Agent.Limits.MaxConfigurationFileSize),
-		agentConfigurationPollPeriod: config.Config.Agent.Configuration.PollPeriod.AsDuration(),
-		connectionMaxAge:             config.Config.Agent.Limits.ConnectionMaxAge.AsDuration(),
+		maxConfigurationFileSize:     int64(agent.Configuration.MaxConfigurationFileSize),
+		agentConfigurationPollPeriod: agent.Configuration.PollPeriod.AsDuration(),
+		maxConnectionAge:             agent.Listen.MaxConnectionAge.AsDuration(),
 	}
 	rpc.RegisterAgentConfigurationServer(config.AgentServer, m)
 	return m

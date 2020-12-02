@@ -54,6 +54,29 @@ func (m *ListenAgentCF) Validate() error {
 
 	// no validation rules for KeyFile
 
+	// no validation rules for ConnectionsPerTokenPerMinute
+
+	if d := m.GetMaxConnectionAge(); d != nil {
+		dur, err := ptypes.Duration(d)
+		if err != nil {
+			return ListenAgentCFValidationError{
+				field:  "MaxConnectionAge",
+				reason: "value is not a valid duration",
+				cause:  err,
+			}
+		}
+
+		gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+		if dur <= gt {
+			return ListenAgentCFValidationError{
+				field:  "MaxConnectionAge",
+				reason: "value must be greater than 0s",
+			}
+		}
+
+	}
+
 	return nil
 }
 
@@ -531,6 +554,14 @@ func (m *GitopsCF) Validate() error {
 
 	}
 
+	// no validation rules for MaxManifestFileSize
+
+	// no validation rules for MaxTotalManifestFileSize
+
+	// no validation rules for MaxNumberOfPaths
+
+	// no validation rules for MaxNumberOfFiles
+
 	return nil
 }
 
@@ -830,6 +861,8 @@ func (m *AgentConfigurationCF) Validate() error {
 		}
 
 	}
+
+	// no validation rules for MaxConfigurationFileSize
 
 	return nil
 }
@@ -1566,40 +1599,7 @@ func (m *AgentLimitsCF) Validate() error {
 		return nil
 	}
 
-	// no validation rules for ConnectionsPerTokenPerMinute
-
 	// no validation rules for RedisKeyPrefix
-
-	// no validation rules for MaxConfigurationFileSize
-
-	// no validation rules for MaxGitopsManifestFileSize
-
-	// no validation rules for MaxGitopsTotalManifestFileSize
-
-	// no validation rules for MaxGitopsNumberOfPaths
-
-	// no validation rules for MaxGitopsNumberOfFiles
-
-	if d := m.GetConnectionMaxAge(); d != nil {
-		dur, err := ptypes.Duration(d)
-		if err != nil {
-			return AgentLimitsCFValidationError{
-				field:  "ConnectionMaxAge",
-				reason: "value is not a valid duration",
-				cause:  err,
-			}
-		}
-
-		gt := time.Duration(0*time.Second + 0*time.Nanosecond)
-
-		if dur <= gt {
-			return AgentLimitsCFValidationError{
-				field:  "ConnectionMaxAge",
-				reason: "value must be greater than 0s",
-			}
-		}
-
-	}
 
 	return nil
 }

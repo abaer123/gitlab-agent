@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	connectionMaxAgeJitterPercent = 5
+	maxConnectionAgeJitterPercent = 5
 
 	agentInfoApiPath = "/api/v4/internal/kubernetes/agent_info"
 )
@@ -73,9 +73,9 @@ func (a *API) GetAgentInfo(ctx context.Context, log *zap.Logger, agentMeta *api.
 	return nil, err, true
 }
 
-func (a *API) PollImmediateUntil(ctx context.Context, interval, connectionMaxAge time.Duration, condition modserver.ConditionFunc) error {
+func (a *API) PollImmediateUntil(ctx context.Context, interval, maxConnectionAge time.Duration, condition modserver.ConditionFunc) error {
 	// this context must only be used here, not inside of condition() - connection should be closed only when idle.
-	ageCtx, cancel := context.WithTimeout(ctx, mathz.DurationWithJitter(connectionMaxAge, connectionMaxAgeJitterPercent))
+	ageCtx, cancel := context.WithTimeout(ctx, mathz.DurationWithJitter(maxConnectionAge, maxConnectionAgeJitterPercent))
 	defer cancel()
 	err := retry.PollImmediateUntil(ageCtx, interval, wait.ConditionFunc(condition))
 	if errors.Is(err, wait.ErrWaitTimeout) {

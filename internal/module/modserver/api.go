@@ -50,7 +50,7 @@ type API interface {
 	GetAgentInfo(ctx context.Context, log *zap.Logger, agentMeta *api.AgentMeta, noErrorOnUnknownError bool) (*api.AgentInfo, error, bool /* return the error? */)
 	// PollImmediateUntil should be used by the top-level polling, so that it can be gracefully interrupted
 	// by the server when necessary.
-	PollImmediateUntil(ctx context.Context, interval, connectionMaxAge time.Duration, condition ConditionFunc) error
+	PollImmediateUntil(ctx context.Context, interval, maxConnectionAge time.Duration, condition ConditionFunc) error
 	HandleProcessingError(ctx context.Context, log *zap.Logger, msg string, err error)
 	HandleSendError(log *zap.Logger, msg string, err error) error
 	LogAndCapture(ctx context.Context, log *zap.Logger, msg string, err error)

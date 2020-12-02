@@ -34,17 +34,17 @@ var (
 )
 
 type module struct {
-	log                            *zap.Logger
-	api                            modserver.API
-	gitalyPool                     gitaly.PoolInterface
-	projectInfoClient              *projectInfoClient
-	gitopsSyncCount                usage_metrics.Counter
-	gitopsPollPeriod               time.Duration
-	connectionMaxAge               time.Duration
-	maxGitopsManifestFileSize      int64
-	maxGitopsTotalManifestFileSize int64
-	maxGitopsNumberOfPaths         uint32
-	maxGitopsNumberOfFiles         uint32
+	log                      *zap.Logger
+	api                      modserver.API
+	gitalyPool               gitaly.PoolInterface
+	projectInfoClient        *projectInfoClient
+	syncCount                usage_metrics.Counter
+	pollPeriod               time.Duration
+	maxConnectionAge         time.Duration
+	maxManifestFileSize      int64
+	maxTotalManifestFileSize int64
+	maxNumberOfPaths         uint32
+	maxNumberOfFiles         uint32
 }
 
 func (m *module) Run(ctx context.Context) error {
@@ -63,7 +63,7 @@ func (m *module) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 	if err != nil {
 		return err // no wrap
 	}
-	return m.api.PollImmediateUntil(ctx, m.gitopsPollPeriod, m.connectionMaxAge, m.sendObjectsToSynchronize(agentInfo, req, server))
+	return m.api.PollImmediateUntil(ctx, m.pollPeriod, m.maxConnectionAge, m.sendObjectsToSynchronize(agentInfo, req, server))
 }
 
 func (m *module) Name() string {
@@ -72,10 +72,10 @@ func (m *module) Name() string {
 
 func (m *module) validateGetObjectsToSynchronizeRequest(req *rpc.ObjectsToSynchronizeRequest) error {
 	numberOfPaths := uint32(len(req.Paths))
-	if numberOfPaths > m.maxGitopsNumberOfPaths {
+	if numberOfPaths > m.maxNumberOfPaths {
 		// TODO validate config in GetConfiguration too and send it somewhere the user can see it https://gitlab.com/gitlab-org/gitlab/-/issues/277323
 		// This check must be here, but there too.
-		return status.Errorf(codes.InvalidArgument, "maximum number of GitOps paths per manifest project is %d, but %d was requested", m.maxGitopsNumberOfPaths, numberOfPaths)
+		return status.Errorf(codes.InvalidArgument, "maximum number of GitOps paths per manifest project is %d, but %d was requested", m.maxNumberOfPaths, numberOfPaths)
 	}
 	return nil
 }
@@ -122,7 +122,7 @@ func (m *module) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *rpc.Obj
 			return false, err // no wrap
 		}
 		l.Info("GitOps: fetched files", logz.NumberOfFiles(numberOfFiles))
-		m.gitopsSyncCount.Inc()
+		m.syncCount.Inc()
 		return true, nil
 	}
 }
@@ -150,9 +150,9 @@ func (m *module) sendObjectsToSynchronizeBody(req *rpc.ObjectsToSynchronizeReque
 	}
 	v := &objectsToSynchronizeVisitor{
 		server:                 server,
-		remainingTotalFileSize: m.maxGitopsTotalManifestFileSize,
-		fileSizeLimit:          m.maxGitopsManifestFileSize,
-		maxNumberOfFiles:       m.maxGitopsNumberOfFiles,
+		remainingTotalFileSize: m.maxTotalManifestFileSize,
+		fileSizeLimit:          m.maxManifestFileSize,
+		maxNumberOfFiles:       m.maxNumberOfFiles,
 	}
 	vChunk := gitaly.ChunkingFetchVisitor{
 		MaxChunkSize: gitOpsManifestMaxChunkSize,

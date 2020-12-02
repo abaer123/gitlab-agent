@@ -16,8 +16,9 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modserver.Config) modserver.Module {
-	projectInfoCacheTtl := config.Config.Agent.Gitops.ProjectInfoCacheTtl.AsDuration()
-	projectInfoCacheErrorTtl := config.Config.Agent.Gitops.ProjectInfoCacheErrorTtl.AsDuration()
+	gitops := config.Config.Agent.Gitops
+	projectInfoCacheTtl := gitops.ProjectInfoCacheTtl.AsDuration()
+	projectInfoCacheErrorTtl := gitops.ProjectInfoCacheErrorTtl.AsDuration()
 	m := &module{
 		log:        config.Log,
 		api:        config.Api,
@@ -28,13 +29,13 @@ func (f *Factory) New(config *modserver.Config) modserver.Module {
 			ProjectInfoCacheErrorTtl: projectInfoCacheErrorTtl,
 			ProjectInfoCache:         cache.New(minDuration(projectInfoCacheTtl, projectInfoCacheErrorTtl)),
 		},
-		gitopsSyncCount:                config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
-		gitopsPollPeriod:               config.Config.Agent.Gitops.PollPeriod.AsDuration(),
-		connectionMaxAge:               config.Config.Agent.Limits.ConnectionMaxAge.AsDuration(),
-		maxGitopsManifestFileSize:      int64(config.Config.Agent.Limits.MaxGitopsManifestFileSize),
-		maxGitopsTotalManifestFileSize: int64(config.Config.Agent.Limits.MaxGitopsTotalManifestFileSize),
-		maxGitopsNumberOfPaths:         config.Config.Agent.Limits.MaxGitopsNumberOfPaths,
-		maxGitopsNumberOfFiles:         config.Config.Agent.Limits.MaxGitopsNumberOfFiles,
+		syncCount:                config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
+		pollPeriod:               gitops.PollPeriod.AsDuration(),
+		maxConnectionAge:         config.Config.Agent.Listen.MaxConnectionAge.AsDuration(),
+		maxManifestFileSize:      int64(gitops.MaxManifestFileSize),
+		maxTotalManifestFileSize: int64(gitops.MaxTotalManifestFileSize),
+		maxNumberOfPaths:         gitops.MaxNumberOfPaths,
+		maxNumberOfFiles:         gitops.MaxNumberOfFiles,
 	}
 	rpc.RegisterGitopsServer(config.AgentServer, m)
 	return m
