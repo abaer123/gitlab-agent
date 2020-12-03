@@ -18,14 +18,14 @@ const (
 	defaultGitLabApiRateLimitRefillRate = 10.0
 	defaultGitLabApiRateLimitBucketSize = 50
 
-	defaultAgentListenAddress = "127.0.0.1:8150"
-
 	defaultAgentInfoCacheTTL      = 5 * time.Minute
 	defaultAgentInfoCacheErrorTTL = 1 * time.Minute
 
-	defaultAgentLimitsConnectionsPerTokenPerMinute = 100
-	defaultAgentLimitsRedisKeyPrefix               = "kas:agent_limits"
-	defaultAgentLimitsConnectionMaxAge             = 30 * time.Minute
+	defaultAgentListenAddress                      = "127.0.0.1:8150"
+	defaultAgentListenConnectionsPerTokenPerMinute = 100
+	defaultAgentListenMaxConnectionAge             = 30 * time.Minute
+
+	defaultAgentLimitsRedisKeyPrefix = "kas:agent_limits"
 
 	defaultGitalyGlobalApiRefillRate    = 10.0
 	defaultGitalyGlobalApiBucketSize    = 50
@@ -76,16 +76,16 @@ func defaultGitLab(g *kascfg.GitLabCF) {
 }
 
 func defaultAgent(a *kascfg.AgentCF) {
-	protodefault.NotNil(&a.Listen)
-	protodefault.String(&a.Listen.Address, defaultAgentListenAddress)
-
 	protodefault.Duration(&a.InfoCacheTtl, defaultAgentInfoCacheTTL)
 	protodefault.Duration(&a.InfoCacheErrorTtl, defaultAgentInfoCacheErrorTTL)
 
+	protodefault.NotNil(&a.Listen)
+	protodefault.String(&a.Listen.Address, defaultAgentListenAddress)
+	protodefault.Uint32(&a.Listen.ConnectionsPerTokenPerMinute, defaultAgentListenConnectionsPerTokenPerMinute)
+	protodefault.Duration(&a.Listen.MaxConnectionAge, defaultAgentListenMaxConnectionAge)
+
 	protodefault.NotNil(&a.Limits)
-	protodefault.Uint32(&a.Limits.ConnectionsPerTokenPerMinute, defaultAgentLimitsConnectionsPerTokenPerMinute)
 	protodefault.String(&a.Limits.RedisKeyPrefix, defaultAgentLimitsRedisKeyPrefix)
-	protodefault.Duration(&a.Limits.ConnectionMaxAge, defaultAgentLimitsConnectionMaxAge)
 }
 
 func defaultGitaly(g *kascfg.GitalyCF) {

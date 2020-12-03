@@ -111,7 +111,7 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	a, agentInfo, mockCtrl, gitalyPool, gitlabClient := setupModule(t, 1)
-	a.gitopsSyncCount.(*mock_usage_metrics.MockCounter).EXPECT().Inc()
+	a.syncCount.(*mock_usage_metrics.MockCounter).EXPECT().Inc()
 
 	objects := []runtime.Object{
 		&corev1.ConfigMap{
@@ -217,7 +217,7 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 					CommitOid: manifestRevision,
 				})
 				require.NoError(t, err)
-				assert.EqualValues(t, defaultAgentLimitsMaxGitopsManifestFileSize, maxSize)
+				assert.EqualValues(t, defaultGitopsMaxManifestFileSize, maxSize)
 				assert.True(t, download)
 
 				done, err := visitor.StreamChunk([]byte("manifest.yaml"), objectsYAML[:1])
@@ -295,42 +295,42 @@ func TestObjectsToSynchronizeVisitor(t *testing.T) {
 			path:             "manifest1.yaml",
 			glob:             defaultGitOpsManifestPathGlob,
 			expectedDownload: true,
-			expectedMaxSize:  defaultAgentLimitsMaxGitopsManifestFileSize,
+			expectedMaxSize:  defaultGitopsMaxManifestFileSize,
 		},
 		{
 			name:             "YML file",
 			path:             "manifest1.yml",
 			glob:             defaultGitOpsManifestPathGlob,
 			expectedDownload: true,
-			expectedMaxSize:  defaultAgentLimitsMaxGitopsManifestFileSize,
+			expectedMaxSize:  defaultGitopsMaxManifestFileSize,
 		},
 		{
 			name:             "JSON file",
 			path:             "manifest1.json",
 			glob:             defaultGitOpsManifestPathGlob,
 			expectedDownload: true,
-			expectedMaxSize:  defaultAgentLimitsMaxGitopsManifestFileSize,
+			expectedMaxSize:  defaultGitopsMaxManifestFileSize,
 		},
 		{
 			name:             "nested YAML file",
 			path:             "dir/manifest1.yaml",
 			glob:             defaultGitOpsManifestPathGlob,
 			expectedDownload: true,
-			expectedMaxSize:  defaultAgentLimitsMaxGitopsManifestFileSize,
+			expectedMaxSize:  defaultGitopsMaxManifestFileSize,
 		},
 		{
 			name:             "nested YML file",
 			path:             "dir/manifest1.yml",
 			glob:             defaultGitOpsManifestPathGlob,
 			expectedDownload: true,
-			expectedMaxSize:  defaultAgentLimitsMaxGitopsManifestFileSize,
+			expectedMaxSize:  defaultGitopsMaxManifestFileSize,
 		},
 		{
 			name:             "nested JSON file",
 			path:             "dir/manifest1.json",
 			glob:             defaultGitOpsManifestPathGlob,
 			expectedDownload: true,
-			expectedMaxSize:  defaultAgentLimitsMaxGitopsManifestFileSize,
+			expectedMaxSize:  defaultGitopsMaxManifestFileSize,
 		},
 		{
 			name:             "TXT file",
@@ -373,30 +373,30 @@ func TestObjectsToSynchronizeVisitor(t *testing.T) {
 			path:             "manifest1.yaml",
 			glob:             "**.yaml",
 			expectedDownload: true,
-			expectedMaxSize:  defaultAgentLimitsMaxGitopsManifestFileSize,
+			expectedMaxSize:  defaultGitopsMaxManifestFileSize,
 		},
 		{
 			name:             "all files 1",
 			path:             "manifest1.yaml",
 			glob:             "**",
 			expectedDownload: true,
-			expectedMaxSize:  defaultAgentLimitsMaxGitopsManifestFileSize,
+			expectedMaxSize:  defaultGitopsMaxManifestFileSize,
 		},
 		{
 			name:             "all files 2",
 			path:             "dir1/manifest1.yaml",
 			glob:             "**",
 			expectedDownload: true,
-			expectedMaxSize:  defaultAgentLimitsMaxGitopsManifestFileSize,
+			expectedMaxSize:  defaultGitopsMaxManifestFileSize,
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			v := objectsToSynchronizeVisitor{
 				glob:                   tc.glob, // nolint: scopelint
-				remainingTotalFileSize: defaultAgentLimitsMaxGitopsTotalManifestFileSize,
-				fileSizeLimit:          defaultAgentLimitsMaxGitopsManifestFileSize,
-				maxNumberOfFiles:       defaultAgentLimitsMaxGitopsNumberOfFiles,
+				remainingTotalFileSize: defaultGitopsMaxTotalManifestFileSize,
+				fileSizeLimit:          defaultGitopsMaxManifestFileSize,
+				maxNumberOfFiles:       defaultGitopsMaxNumberOfFiles,
 			}
 			download, maxSize, err := v.Entry(&gitalypb.TreeEntry{
 				Path: []byte(tc.path), // nolint: scopelint
@@ -414,15 +414,15 @@ func TestObjectsToSynchronizeVisitor(t *testing.T) {
 	t.Run("too many files", func(t *testing.T) {
 		v := objectsToSynchronizeVisitor{
 			glob:                   defaultGitOpsManifestPathGlob,
-			remainingTotalFileSize: defaultAgentLimitsMaxGitopsTotalManifestFileSize,
-			fileSizeLimit:          defaultAgentLimitsMaxGitopsManifestFileSize,
+			remainingTotalFileSize: defaultGitopsMaxTotalManifestFileSize,
+			fileSizeLimit:          defaultGitopsMaxManifestFileSize,
 			maxNumberOfFiles:       1,
 		}
 		download, maxSize, err := v.Entry(&gitalypb.TreeEntry{
 			Path: []byte("manifest1.yaml"),
 		})
 		require.NoError(t, err)
-		assert.EqualValues(t, defaultAgentLimitsMaxGitopsManifestFileSize, maxSize)
+		assert.EqualValues(t, defaultGitopsMaxManifestFileSize, maxSize)
 		assert.True(t, download)
 
 		_, _, err = v.Entry(&gitalypb.TreeEntry{
@@ -434,8 +434,8 @@ func TestObjectsToSynchronizeVisitor(t *testing.T) {
 		v := objectsToSynchronizeVisitor{
 			glob:                   defaultGitOpsManifestPathGlob,
 			remainingTotalFileSize: 1,
-			fileSizeLimit:          defaultAgentLimitsMaxGitopsManifestFileSize,
-			maxNumberOfFiles:       defaultAgentLimitsMaxGitopsNumberOfFiles,
+			fileSizeLimit:          defaultGitopsMaxManifestFileSize,
+			maxNumberOfFiles:       defaultGitopsMaxNumberOfFiles,
 		}
 		_, err := v.StreamChunk([]byte("manifest2.yaml"), []byte("data1"))
 		assert.EqualError(t, err, "rpc error: code = Internal desc = unexpected negative remaining total file size")
@@ -457,14 +457,14 @@ func TestObjectsToSynchronizeVisitor(t *testing.T) {
 		v := objectsToSynchronizeVisitor{
 			server:                 server,
 			glob:                   defaultGitOpsManifestPathGlob,
-			remainingTotalFileSize: defaultAgentLimitsMaxGitopsTotalManifestFileSize,
-			fileSizeLimit:          defaultAgentLimitsMaxGitopsManifestFileSize,
-			maxNumberOfFiles:       defaultAgentLimitsMaxGitopsNumberOfFiles,
+			remainingTotalFileSize: defaultGitopsMaxTotalManifestFileSize,
+			fileSizeLimit:          defaultGitopsMaxManifestFileSize,
+			maxNumberOfFiles:       defaultGitopsMaxNumberOfFiles,
 		}
 		done, err := v.StreamChunk([]byte("manifest2.yaml"), data)
 		require.NoError(t, err)
 		assert.False(t, done)
-		assert.EqualValues(t, defaultAgentLimitsMaxGitopsTotalManifestFileSize-len(data), v.remainingTotalFileSize)
+		assert.EqualValues(t, defaultGitopsMaxTotalManifestFileSize-len(data), v.remainingTotalFileSize)
 	})
 }
 

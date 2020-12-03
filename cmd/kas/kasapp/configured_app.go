@@ -168,14 +168,14 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 			a.Log,
 			redisPool,
 			cfg.Agent.Limits.RedisKeyPrefix,
-			uint64(cfg.Agent.Limits.ConnectionsPerTokenPerMinute),
+			uint64(cfg.Agent.Listen.ConnectionsPerTokenPerMinute),
 			func(ctx context.Context) string { return string(apiutil.AgentTokenFromContext(ctx)) },
 		)
 		grpcStreamServerInterceptors = append(grpcStreamServerInterceptors, grpctool.StreamServerLimitingInterceptor(agentConnectionLimiter))
 		grpcUnaryServerInterceptors = append(grpcUnaryServerInterceptors, grpctool.UnaryServerLimitingInterceptor(agentConnectionLimiter))
 	}
 
-	connectionMaxAge := cfg.Agent.Limits.ConnectionMaxAge.AsDuration()
+	maxConnectionAge := cfg.Agent.Listen.MaxConnectionAge.AsDuration()
 	serverOpts := []grpc.ServerOption{
 		grpc.StatsHandler(ssh),
 		grpc.ChainStreamInterceptor(grpcStreamServerInterceptors...),
@@ -185,14 +185,14 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 			PermitWithoutStream: true,
 		}),
 		grpc.KeepaliveParams(keepalive.ServerParameters{
-			// MaxConnectionAge should be below connectionMaxAge so that when kas closes a long running response
+			// MaxConnectionAge should be below maxConnectionAge so that when kas closes a long running response
 			// stream, gRPC will close the underlying connection. -20% to account for jitter (see doc for the field)
-			// and ensure it's somewhat below connectionMaxAge.
+			// and ensure it's somewhat below maxConnectionAge.
 			// See https://github.com/grpc/grpc-go/blob/v1.33.1/internal/transport/http2_server.go#L949-L1047 to better understand how this all works.
-			MaxConnectionAge: time.Duration(0.8 * float64(connectionMaxAge)),
+			MaxConnectionAge: time.Duration(0.8 * float64(maxConnectionAge)),
 			// Give pending RPCs plenty of time to complete.
-			// In practice it will happen in 10-30% of connectionMaxAge time (see above).
-			MaxConnectionAgeGrace: connectionMaxAge,
+			// In practice it will happen in 10-30% of maxConnectionAge time (see above).
+			MaxConnectionAgeGrace: maxConnectionAge,
 			// trying to stay below 60 seconds (typical load-balancer timeout)
 			Time: 50 * time.Second,
 		}),

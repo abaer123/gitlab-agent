@@ -24,7 +24,11 @@ func TestValidation_Valid(t *testing.T) {
 		{
 			name: "GitopsCF",
 			valid: &GitopsCF{
-				ProjectInfoCacheTtl: durationpb.New(0), // zero means "disabled"
+				ProjectInfoCacheTtl:      durationpb.New(0), // zero means "disabled"
+				MaxManifestFileSize:      0,                 // zero means "use default value"
+				MaxTotalManifestFileSize: 0,                 // zero means "use default value"
+				MaxNumberOfPaths:         0,                 // zero means "use default value"
+				MaxNumberOfFiles:         0,                 // zero means "use default value"
 			},
 		},
 		{
@@ -55,14 +59,15 @@ func TestValidation_Valid(t *testing.T) {
 			},
 		},
 		{
-			name: "AgentLimitsCF",
-			valid: &AgentLimitsCF{
-				ConnectionsPerTokenPerMinute:   0, // zero means "use default value"
-				MaxConfigurationFileSize:       0, // zero means "use default value"
-				MaxGitopsManifestFileSize:      0, // zero means "use default value"
-				MaxGitopsTotalManifestFileSize: 0, // zero means "use default value"
-				MaxGitopsNumberOfPaths:         0, // zero means "use default value"
-				MaxGitopsNumberOfFiles:         0, // zero means "use default value"
+			name: "AgentConfigurationCF",
+			valid: &AgentConfigurationCF{
+				MaxConfigurationFileSize: 0, // zero means "use default value"
+			},
+		},
+		{
+			name: "ListenAgentCF",
+			valid: &ListenAgentCF{
+				ConnectionsPerTokenPerMinute: 0, // zero means "use default value"
 			},
 		},
 	}
@@ -199,17 +204,17 @@ func TestValidation_Invalid(t *testing.T) {
 			},
 		},
 		{
-			name:      "zero AgentLimitsCF.ConnectionMaxAge",
-			errString: "invalid AgentLimitsCF.ConnectionMaxAge: value must be greater than 0s",
-			invalid: &AgentLimitsCF{
-				ConnectionMaxAge: durationpb.New(0),
+			name:      "zero ListenAgentCF.MaxConnectionAge",
+			errString: "invalid ListenAgentCF.MaxConnectionAge: value must be greater than 0s",
+			invalid: &ListenAgentCF{
+				MaxConnectionAge: durationpb.New(0),
 			},
 		},
 		{
-			name:      "negative AgentLimitsCF.ConnectionMaxAge",
-			errString: "invalid AgentLimitsCF.ConnectionMaxAge: value must be greater than 0s",
-			invalid: &AgentLimitsCF{
-				ConnectionMaxAge: durationpb.New(-1),
+			name:      "negative ListenAgentCF.MaxConnectionAge",
+			errString: "invalid ListenAgentCF.MaxConnectionAge: value must be greater than 0s",
+			invalid: &ListenAgentCF{
+				MaxConnectionAge: durationpb.New(-1),
 			},
 		},
 	}

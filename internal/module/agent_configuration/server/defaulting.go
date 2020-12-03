@@ -8,17 +8,16 @@ import (
 )
 
 const (
-	defaultAgentConfigurationPollPeriod        = 20 * time.Second
-	defaultAgentLimitsMaxConfigurationFileSize = 128 * 1024
+	defaultAgentConfigurationPollPeriod               = 20 * time.Second
+	defaultAgentConfigurationMaxConfigurationFileSize = 128 * 1024
 )
 
 func ApplyDefaults(config *kascfg.ConfigurationFile) {
 	protodefault.NotNil(&config.Agent)
-	a := config.Agent
+	protodefault.NotNil(&config.Agent.Configuration)
+	protodefault.NotNil(&config.Agent.Listen)
 
-	protodefault.NotNil(&a.Configuration)
-	protodefault.Duration(&a.Configuration.PollPeriod, defaultAgentConfigurationPollPeriod)
-
-	protodefault.NotNil(&a.Limits)
-	protodefault.Uint32(&a.Limits.MaxConfigurationFileSize, defaultAgentLimitsMaxConfigurationFileSize)
+	c := config.Agent.Configuration
+	protodefault.Duration(&c.PollPeriod, defaultAgentConfigurationPollPeriod)
+	protodefault.Uint32(&c.MaxConfigurationFileSize, defaultAgentConfigurationMaxConfigurationFileSize)
 }

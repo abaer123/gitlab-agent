@@ -31,7 +31,7 @@ type module struct {
 	gitaly                       gitaly.PoolInterface
 	maxConfigurationFileSize     int64
 	agentConfigurationPollPeriod time.Duration
-	connectionMaxAge             time.Duration
+	maxConnectionAge             time.Duration
 }
 
 func (m *module) Run(ctx context.Context) error {
@@ -43,7 +43,7 @@ func (m *module) Name() string {
 }
 
 func (m *module) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.AgentConfiguration_GetConfigurationServer) error {
-	return m.api.PollImmediateUntil(server.Context(), m.agentConfigurationPollPeriod, m.connectionMaxAge, m.sendConfiguration(req.CommitId, server))
+	return m.api.PollImmediateUntil(server.Context(), m.agentConfigurationPollPeriod, m.maxConnectionAge, m.sendConfiguration(req.CommitId, server))
 }
 
 func (m *module) sendConfiguration(lastProcessedCommitId string, server rpc.AgentConfiguration_GetConfigurationServer) modserver.ConditionFunc {

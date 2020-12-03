@@ -15,23 +15,23 @@ agent:
     websocket: false
     # certificate_file: /server-cert.pem
     # key_file: /server-key.pem
+    connections_per_token_per_minute: 100
+    max_connection_age: "1800s"
   configuration:
     poll_period: "20s"
+    max_configuration_file_size: 131072
   gitops:
     poll_period: "20s"
     project_info_cache_ttl: "300s"
     project_info_cache_error_ttl: "60s"
+    max_manifest_file_size: 1048576
+    max_total_manifest_file_size: 2097152
+    max_number_of_paths: 100
+    max_number_of_files: 1000
   info_cache_ttl: "300s"
   info_cache_error_ttl: "60s"
   limits:
-    connections_per_token_per_minute: 100
     redis_key_prefix: kas:agent_limits
-    max_configuration_file_size: 131072
-    max_gitops_manifest_file_size: 1048576
-    max_gitops_total_manifest_file_size: 2097152
-    max_gitops_number_of_paths: 100
-    max_gitops_number_of_files: 1000
-    connection_max_age: "1800s"
 observability:
   usage_reporting_period: "60s"
   listen:
