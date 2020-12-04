@@ -8,7 +8,10 @@ proto_library(
     srcs = ["rpc.proto"],
     tags = ["manual"],
     visibility = ["//visibility:public"],
-    deps = ["//pkg/agentcfg:agentcfg_proto"],
+    deps = [
+        "//internal/tool/grpctool/automata:automata_proto",
+        "//pkg/agentcfg:agentcfg_proto",
+    ],
 )
 
 go_grpc_compile(
@@ -34,6 +37,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/tool/grpctool",
+        "//internal/tool/grpctool/automata",
         "//internal/tool/retry",
         "//pkg/agentcfg",
         "@com_github_golang_protobuf//proto",
@@ -57,6 +61,7 @@ go_test(
         "//internal/tool/testing/mock_rpc",
         "//pkg/agentcfg",
         "@com_github_golang_mock//gomock",
+        "@com_github_stretchr_testify//require",
         "@org_uber_go_zap//zaptest",
     ],
 )

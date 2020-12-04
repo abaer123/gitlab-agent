@@ -7,6 +7,7 @@ package rpc;
 option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc";
 
 import "pkg/agentcfg/agentcfg.proto";
+import "internal/tool/grpctool/automata/automata.proto";
 
 message ObjectsToSynchronizeRequest {
   // Project to fetch Kubernetes object manifests from.
@@ -44,9 +45,12 @@ message ObjectsToSynchronizeResponse {
   message Trailers {
   }
   oneof message {
-    Headers headers = 1;
-    Object object = 2;
-    Trailers trailers = 3;
+
+    option (automata.first_allowed_field) = 1;
+
+    Headers headers = 1 [(automata.automata).next_allowed_field = 2, (automata.automata).next_allowed_field = 3];
+    Object object = 2 [(automata.automata).next_allowed_field = 2, (automata.automata).next_allowed_field = 3];
+    Trailers trailers = 3 [(automata.automata).next_allowed_field = -1];
   }
 }
 

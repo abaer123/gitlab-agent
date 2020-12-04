@@ -43,11 +43,12 @@ func TestRunHappyPathNoObjects(t *testing.T) {
 	gomock.InOrder(
 		watcher.EXPECT().
 			Watch(gomock.Any(), matcher.ProtoEq(t, req), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, req *rpc.ObjectsToSynchronizeRequest, callback rpc.ObjectsToSynchronizeCallback) {
+			DoAndReturn(func(ctx context.Context, req *rpc.ObjectsToSynchronizeRequest, callback rpc.ObjectsToSynchronizeCallback) error {
 				callback(ctx, rpc.ObjectsToSynchronizeData{
 					CommitId: revision,
 				})
 				<-ctx.Done()
+				return nil
 			}),
 		engine.EXPECT().
 			Sync(gomock.Any(), gomock.Len(0), gomock.Any(), revision, defaultNamespace, gomock.Any()).
@@ -75,7 +76,7 @@ func TestRunHappyPath(t *testing.T) {
 	gomock.InOrder(
 		watcher.EXPECT().
 			Watch(gomock.Any(), matcher.ProtoEq(t, req), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, req *rpc.ObjectsToSynchronizeRequest, callback rpc.ObjectsToSynchronizeCallback) {
+			DoAndReturn(func(ctx context.Context, req *rpc.ObjectsToSynchronizeRequest, callback rpc.ObjectsToSynchronizeCallback) error {
 				callback(ctx, rpc.ObjectsToSynchronizeData{
 					CommitId: revision,
 					Sources: []rpc.ObjectSource{
@@ -90,6 +91,7 @@ func TestRunHappyPath(t *testing.T) {
 					},
 				})
 				<-ctx.Done()
+				return nil
 			}),
 		engine.EXPECT().
 			Sync(gomock.Any(), matcher.K8sObjectEq(t, objs, kube_testing.IgnoreAnnotation(managedObjectAnnotationName)), gomock.Any(), revision, defaultNamespace, gomock.Any()).
@@ -121,7 +123,7 @@ func TestRunHappyPathSyncCancellation(t *testing.T) {
 	job1started := make(chan struct{})
 	watcher.EXPECT().
 		Watch(gomock.Any(), matcher.ProtoEq(t, req), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, req *rpc.ObjectsToSynchronizeRequest, callback rpc.ObjectsToSynchronizeCallback) {
+		DoAndReturn(func(ctx context.Context, req *rpc.ObjectsToSynchronizeRequest, callback rpc.ObjectsToSynchronizeCallback) error {
 			callback(ctx, rpc.ObjectsToSynchronizeData{
 				CommitId: revision,
 				Sources: []rpc.ObjectSource{
@@ -140,6 +142,7 @@ func TestRunHappyPathSyncCancellation(t *testing.T) {
 				CommitId: revision,
 			})
 			<-ctx.Done()
+			return nil
 		})
 	gomock.InOrder(
 		engine.EXPECT().

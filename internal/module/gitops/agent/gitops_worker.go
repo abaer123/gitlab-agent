@@ -68,10 +68,9 @@ func (d *gitopsWorker) Run(ctx context.Context) {
 			ProjectId: d.projectConfiguration.Id,
 			Paths:     d.projectConfiguration.Paths,
 		}
-		d.objWatcher.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
+		return d.objWatcher.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
 			s.setDesiredState(ctx, data)
 		})
-		return nil
 	})
 	_ = st.Run(ctx) // no errors possible
 }

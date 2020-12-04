@@ -3,10 +3,12 @@ package rpc_test
 import (
 	"context"
 	"io"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
@@ -44,24 +46,24 @@ func TestObjectsToSynchronizeWatcherResumeConnection(t *testing.T) {
 			GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, req)).
 			Return(stream1, nil),
 		stream1.EXPECT().
-			Recv().
-			Return(&rpc.ObjectsToSynchronizeResponse{
+			RecvMsg(gomock.Any()).
+			Do(retMsg(&rpc.ObjectsToSynchronizeResponse{
 				Message: &rpc.ObjectsToSynchronizeResponse_Headers_{
 					Headers: &rpc.ObjectsToSynchronizeResponse_Headers{
 						CommitId: revision,
 					},
 				},
-			}, nil),
+			})),
 		stream1.EXPECT().
-			Recv().
-			Return(&rpc.ObjectsToSynchronizeResponse{
+			RecvMsg(gomock.Any()).
+			Do(retMsg(&rpc.ObjectsToSynchronizeResponse{
 				Message: &rpc.ObjectsToSynchronizeResponse_Trailers_{
 					Trailers: &rpc.ObjectsToSynchronizeResponse_Trailers{},
 				},
-			}, nil),
+			})),
 		stream1.EXPECT().
-			Recv().
-			Return(nil, io.EOF),
+			RecvMsg(gomock.Any()).
+			Return(io.EOF),
 		client.EXPECT().
 			GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeRequest{
 				ProjectId: projectId,
@@ -70,10 +72,10 @@ func TestObjectsToSynchronizeWatcherResumeConnection(t *testing.T) {
 			})).
 			Return(stream2, nil),
 		stream2.EXPECT().
-			Recv().
-			DoAndReturn(func() (*rpc.ObjectsToSynchronizeResponse, error) {
+			RecvMsg(gomock.Any()).
+			DoAndReturn(func(msg interface{}) error {
 				cancel()
-				return nil, io.EOF
+				return io.EOF
 			}),
 	)
 	w := rpc.ObjectsToSynchronizeWatcher{
@@ -81,9 +83,10 @@ func TestObjectsToSynchronizeWatcherResumeConnection(t *testing.T) {
 		GitopsClient: client,
 		RetryPeriod:  10 * time.Millisecond,
 	}
-	w.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
+	err := w.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
 		// Don't care
 	})
+	require.NoError(t, err)
 }
 
 func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
@@ -171,22 +174,23 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 			}
 			if tc.eof { // nolint:scopelint
 				for _, streamItem := range tc.stream { // nolint:scopelint
-					calls = append(calls, stream1.EXPECT().Recv().Return(streamItem, nil))
+					calls = append(calls, stream1.EXPECT().RecvMsg(gomock.Any()).Do(retMsg(streamItem)))
 				}
 				calls = append(calls, stream1.EXPECT().
-					Recv().
-					DoAndReturn(func() (*rpc.ObjectsToSynchronizeResponse, error) {
+					RecvMsg(gomock.Any()).
+					DoAndReturn(func(msg interface{}) error {
 						cancel()
-						return nil, io.EOF
+						return io.EOF
 					}))
 			} else {
 				for i := 0; i < len(tc.stream)-1; i++ { // nolint:scopelint
 					streamItem := tc.stream[i] // nolint:scopelint
-					calls = append(calls, stream1.EXPECT().Recv().Return(streamItem, nil))
+					calls = append(calls, stream1.EXPECT().RecvMsg(gomock.Any()).Do(retMsg(streamItem)))
 				}
-				calls = append(calls, stream1.EXPECT().Recv().DoAndReturn(func() (*rpc.ObjectsToSynchronizeResponse, error) {
+				calls = append(calls, stream1.EXPECT().RecvMsg(gomock.Any()).DoAndReturn(func(msg interface{}) error {
+					setMsg(msg, tc.stream[len(tc.stream)-1]) // nolint:scopelint
 					cancel()
-					return tc.stream[len(tc.stream)-1], nil // nolint:scopelint
+					return nil
 				}))
 			}
 			gomock.InOrder(calls...)
@@ -195,10 +199,24 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 				GitopsClient: client,
 				RetryPeriod:  10 * time.Millisecond,
 			}
-			w.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
+			err := w.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
 				// Must not be called
 				t.FailNow()
 			})
+			require.NoError(t, err)
 		})
 	}
+}
+
+func retMsg(value interface{}) func(interface{}) {
+	return func(msg interface{}) {
+		setMsg(msg, value)
+	}
+}
+
+// setMsg sets msg to value.
+// msg must be a pointer. i.e. *blaProtoMsgType
+// value must of the same type as msg.
+func setMsg(msg, value interface{}) {
+	reflect.ValueOf(msg).Elem().Set(reflect.ValueOf(value).Elem())
 }

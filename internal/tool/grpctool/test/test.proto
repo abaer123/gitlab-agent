@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+// If you make any changes make sure you run: make regenerate-proto
+
+package test;
+
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/automata/test";
+
+import "internal/tool/grpctool/automata/automata.proto";
+
+message Response {
+  // First message of the stream.
+  message First {
+  }
+  // Subsequent messages of the stream.
+  message Data {
+  }
+  // Last message of the stream.
+  message Last {
+  }
+  oneof message {
+
+    option (automata.first_allowed_field) = 1;
+
+    First first = 1 [(automata.automata).next_allowed_field = 2];
+    Data data = 2 [(automata.automata).next_allowed_field = 2, (automata.automata).next_allowed_field = 3];
+    Last last = 3 [(automata.automata).next_allowed_field = -1];
+  }
+}
+
+message NoOneofs {
+}
+
+message TwoOneofs {
+  oneof message1 {
+
+    option (automata.first_allowed_field) = 1;
+
+    int32 m11 = 1;
+    int32 m12 = 2;
+  }
+  oneof message2 {
+
+    option (automata.first_allowed_field) = 3;
+
+    int32 m21 = 3;
+    int32 m22 = 4;
+  }
+}
+
+message TwoValidOneofs {
+  oneof message1 {
+
+    option (automata.first_allowed_field) = 1;
+
+    int32 m11 = 1 [(automata.automata).next_allowed_field = 2];
+    int32 m12 = 2 [(automata.automata).next_allowed_field = -1];
+  }
+  oneof message2 {
+
+    option (automata.first_allowed_field) = 3;
+
+    int32 m21 = 3 [(automata.automata).next_allowed_field = 4];
+    int32 m22 = 4 [(automata.automata).next_allowed_field = -1];
+  }
+}
+
+message OutOfOneof {
+  int32 x = 1;
+  oneof message {
+
+    option (automata.first_allowed_field) = 2;
+
+    int32 m1 = 2 [(automata.automata).next_allowed_field = 1];
+    int32 m2 = 3 [(automata.automata).next_allowed_field = -1];
+  }
+}
+
+message NotAllReachable {
+  oneof message {
+
+    option (automata.first_allowed_field) = 1;
+
+    int32 m1 = 1 [(automata.automata).next_allowed_field = -1];
+    int32 m2 = 2 [(automata.automata).next_allowed_field = -1];
+  }
+}
