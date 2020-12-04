@@ -7,16 +7,22 @@ go_library(
         "client_limiting.go",
         "server_ctx.go",
         "server_limiting.go",
+        "stream_visitor.go",
+        "stream_visitor_options.go",
         "tools.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/tool/errz",
+        "//internal/tool/grpctool/automata",
         "@com_github_grpc_ecosystem_go_grpc_middleware//:go-grpc-middleware",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//types/descriptorpb",
     ],
 )
 
@@ -25,11 +31,13 @@ go_test(
     size = "small",
     srcs = [
         "server_limiting_test.go",
+        "stream_visitor_test.go",
         "tools_test.go",
     ],
     embed = [":grpctool"],
     race = "on",
     deps = [
+        "//internal/tool/grpctool/test",
         "//internal/tool/testing/mock_rpc",
         "@com_github_golang_mock//gomock",
         "@com_github_stretchr_testify//assert",
@@ -37,5 +45,7 @@ go_test(
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//reflect/protoreflect",
     ],
 )

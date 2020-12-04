@@ -1,0 +1,40 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@rules_proto_grpc//go:defs.bzl", "go_proto_compile")
+load("//build:build.bzl", "copy_to_workspace")
+
+proto_library(
+    name = "automata_proto",
+    srcs = ["automata.proto"],
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_google_protobuf//:descriptor_proto",
+    ],
+)
+
+go_proto_compile(
+    name = "proto",
+    tags = ["manual"],
+    deps = [":automata_proto"],
+)
+
+copy_to_workspace(
+    name = "extract_generated",
+    file_to_copy = "automata.pb.go",
+    label = ":proto",
+    workspace_relative_target_directory = "internal/tool/grpctool/automata",
+)
+
+go_library(
+    name = "automata",
+    srcs = ["automata.pb.go"],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/automata",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "@com_github_golang_protobuf//proto",
+        "@com_github_golang_protobuf//protoc-gen-go/descriptor",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+    ],
+)
