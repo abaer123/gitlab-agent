@@ -1,4 +1,4 @@
-package doc
+package kascfg_test
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	kasConfigExampleFile = "kas_config_example.yaml"
+	kasConfigExampleFile = "config_example.yaml"
 )
 
 func TestExampleConfigHasCorrectDefaults(t *testing.T) {
