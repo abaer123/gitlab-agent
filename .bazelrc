@@ -10,3 +10,5 @@ build --define gotags=tracer_static,tracer_static_jaeger
 
 test --test_output=errors
 test --test_verbose_timeout_warnings
+test --test_env=KUBE_PATCH_CONVERSION_DETECTOR=true
+test --test_env=KUBE_CACHE_MUTATION_DETECTOR=true

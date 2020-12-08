@@ -65,8 +65,6 @@ test: fmt update-bazel test-ci
 .PHONY: test-ci
 test-ci:
 	bazel test \
-		--test_env=KUBE_PATCH_CONVERSION_DETECTOR=true \
-		--test_env=KUBE_CACHE_MUTATION_DETECTOR=true \
 		-- //...
 	bazel build $$(bazel query 'attr(tags, manual, kind(test, //it/...))')
 
@@ -80,8 +78,6 @@ test-it: fmt update-bazel
 		--test_env=KUBECONFIG=$(KUBECONFIG) \
 		--test_env=KUBECONTEXT=$(KUBECONTEXT) \
 		--test_env=TEST_LOG_FORMATTER=$(TEST_LOG_FORMATTER) \
-		--test_env=KUBE_PATCH_CONVERSION_DETECTOR=true \
-		--test_env=KUBE_CACHE_MUTATION_DETECTOR=true \
 		--test_output=all \
 		--test_arg=-test.v \
 		-- $$(bazel query 'attr(tags, manual, kind(test, //it/...))')
@@ -89,8 +85,6 @@ test-it: fmt update-bazel
 .PHONY: quick-test
 quick-test:
 	bazel test \
-		--test_env=KUBE_PATCH_CONVERSION_DETECTOR=true \
-		--test_env=KUBE_CACHE_MUTATION_DETECTOR=true \
 		--build_tests_only \
 		-- //...
 
