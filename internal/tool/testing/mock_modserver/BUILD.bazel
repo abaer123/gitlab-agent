@@ -6,14 +6,18 @@ go_library(
         "api.go",
         "doc.go",
         "mock_api.go",
+        "testing_helpers.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",
         "//internal/module/modserver",
+        "//internal/tool/grpctool",
         "@com_github_golang_mock//gomock",
+        "@com_github_stretchr_testify//require",
         "@com_gitlab_gitlab_org_labkit//errortracking",
+        "@org_golang_google_grpc//metadata",
         "@org_uber_go_zap//:zap",
     ],
 )

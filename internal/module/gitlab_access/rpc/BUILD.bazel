@@ -1,0 +1,46 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@rules_proto_grpc//go:defs.bzl", "go_grpc_compile")
+load("//build:build.bzl", "copy_to_workspace")
+
+proto_library(
+    name = "rpc_proto",
+    srcs = ["rpc.proto"],
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/tool/grpctool/automata:automata_proto",
+    ],
+)
+
+go_grpc_compile(
+    name = "grpc",
+    tags = ["manual"],
+    deps = [":rpc_proto"],
+)
+
+copy_to_workspace(
+    name = "extract_generated",
+    file_to_copy = "rpc.pb.go",
+    label = ":grpc",
+    workspace_relative_target_directory = "internal/module/gitlab_access/rpc",
+)
+
+go_library(
+    name = "rpc",
+    srcs = [
+        "extra_methods.go",
+        "rpc.pb.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/rpc",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/tool/grpctool/automata",
+        "@com_github_golang_protobuf//proto",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+    ],
+)

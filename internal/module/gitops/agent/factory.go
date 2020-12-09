@@ -3,6 +3,7 @@ package agent
 import (
 	"time"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 )
@@ -21,4 +22,8 @@ func (f *Factory) New(config *modagent.Config) modagent.Module {
 		gitopsClient:                       rpc.NewGitopsClient(config.KasConn),
 		workers:                            make(map[string]*gitopsWorkerHolder),
 	}
+}
+
+func (f *Factory) Name() string {
+	return gitops.ModuleName
 }

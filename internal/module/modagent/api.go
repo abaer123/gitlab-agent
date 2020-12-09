@@ -2,6 +2,10 @@ package modagent
 
 import (
 	"context"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"net/url"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
@@ -21,13 +25,23 @@ type Config struct {
 	KasConn grpc.ClientConnInterface
 }
 
+type GitLabResponse struct {
+	Status     string // e.g. "200 OK"
+	StatusCode int32  // e.g. 200
+	Header     http.Header
+	Body       io.ReadCloser
+}
+
 // API provides the API for the module to use.
 type API interface {
+	MakeGitLabRequest(ctx context.Context, path string, opts ...GitLabRequestOption) (*GitLabResponse, error)
 }
 
 type Factory interface {
 	// New creates a new instance of a Module.
 	New(*Config) Module
+	// Name returns module's name.
+	Name() string
 }
 
 type Module interface {
@@ -43,4 +57,65 @@ type Module interface {
 	SetConfiguration(config *agentcfg.AgentConfiguration) error
 	// Name returns module's name.
 	Name() string
+}
+
+type GitLabRequestConfig struct {
+	Method  string
+	Headers http.Header
+	Query   url.Values
+	Body    io.ReadCloser
+}
+
+func defaultRequestConfig() *GitLabRequestConfig {
+	return &GitLabRequestConfig{
+		Method:  http.MethodGet,
+		Headers: make(http.Header),
+		Query:   make(url.Values),
+	}
+}
+
+func ApplyRequestOptions(opts []GitLabRequestOption) *GitLabRequestConfig {
+	c := defaultRequestConfig()
+	for _, o := range opts {
+		o(c)
+	}
+	return c
+}
+
+type GitLabRequestOption func(*GitLabRequestConfig)
+
+func WithRequestHeaders(headers http.Header) GitLabRequestOption {
+	return func(c *GitLabRequestConfig) {
+		c.Headers = headers
+	}
+}
+
+func WithRequestHeader(header string, values ...string) GitLabRequestOption {
+	return func(c *GitLabRequestConfig) {
+		c.Headers[header] = values
+	}
+}
+
+func WithRequestQueryParam(key string, values ...string) GitLabRequestOption {
+	return func(c *GitLabRequestConfig) {
+		c.Query[key] = values
+	}
+}
+
+func WithRequestQuery(query url.Values) GitLabRequestOption {
+	return func(c *GitLabRequestConfig) {
+		c.Query = query
+	}
+}
+
+// WithRequestBody specifies request body to send.
+// If body implements io.ReadCloser, its Close() method will be called once the data has been sent.
+func WithRequestBody(body io.Reader) GitLabRequestOption {
+	return func(c *GitLabRequestConfig) {
+		if rc, ok := body.(io.ReadCloser); ok {
+			c.Body = rc
+		} else {
+			c.Body = ioutil.NopCloser(body)
+		}
+	}
 }

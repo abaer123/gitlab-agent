@@ -16,7 +16,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab"
@@ -31,7 +30,6 @@ import (
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
 	corev1 "k8s.io/api/core/v1"
@@ -51,6 +49,7 @@ var (
 	_ modserver.Module        = &module{}
 	_ modserver.Factory       = &Factory{}
 	_ modserver.ApplyDefaults = ApplyDefaults
+	_ rpc.GitopsServer        = &module{}
 )
 
 func TestGetObjectsToSynchronizeGetProjectInfoFailures(t *testing.T) {
@@ -94,7 +93,7 @@ func TestGetObjectsToSynchronizeGetProjectInfoFailures(t *testing.T) {
 	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(mockCtrl)
 	server.EXPECT().
 		Context().
-		Return(incomingCtx(ctx, t)).
+		Return(mock_modserver.IncomingCtx(ctx, t, mock_gitlab.AgentkToken)).
 		MinTimes(1)
 	err := m.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{ProjectId: projectId}, server)
 	require.Error(t, err)
@@ -140,7 +139,7 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(mockCtrl)
 	server.EXPECT().
 		Context().
-		Return(incomingCtx(ctx, t)).
+		Return(mock_modserver.IncomingCtx(ctx, t, mock_gitlab.AgentkToken)).
 		MinTimes(1)
 	gomock.InOrder(
 		server.EXPECT().
@@ -247,7 +246,7 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(mockCtrl)
 	server.EXPECT().
 		Context().
-		Return(incomingCtx(ctx, t)).
+		Return(mock_modserver.IncomingCtx(ctx, t, mock_gitlab.AgentkToken)).
 		MinTimes(1)
 	p := mock_internalgitaly.NewMockPollerInterface(mockCtrl)
 	query := url.Values{
@@ -603,16 +602,6 @@ func projectInfo() *api.ProjectInfo {
 		GitalyInfo: rest.GitalyInfo.ToGitalyInfo(),
 		Repository: rest.GitalyRepository.ToProtoRepository(),
 	}
-}
-
-func incomingCtx(ctx context.Context, t *testing.T) context.Context {
-	creds := grpctool.NewTokenCredentials(mock_gitlab.AgentkToken, false)
-	meta, err := creds.GetRequestMetadata(context.Background())
-	require.NoError(t, err)
-	ctx = metadata.NewIncomingContext(ctx, metadata.New(meta))
-	agentMeta, err := grpctool.AgentMDFromRawContext(ctx)
-	require.NoError(t, err)
-	return api.InjectAgentMD(ctx, agentMeta)
 }
 
 func setupModule(t *testing.T, pollTimes int) (*module, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_gitlab.MockClientInterface) {

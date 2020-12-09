@@ -11,13 +11,16 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/agent_configuration/rpc",
+        "//internal/module/gitlab_access/rpc",
         "//internal/module/modagent",
         "//internal/module/modshared",
+        "//internal/tool/grpctool",
         "//internal/tool/logz",
         "//pkg/agentcfg",
         "@com_github_ash2k_stager//:stager",
         "@io_k8s_cli_runtime//pkg/resource",
         "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_uber_go_zap//:zap",
     ],
 )

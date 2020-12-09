@@ -20,6 +20,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/kas"
 	agent_configuration_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/server"
+	gitlab_access_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/server"
 	gitops_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/server"
 	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/google_profiler/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
@@ -224,6 +225,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 		&usage_metrics_server.Factory{
 			UsageTracker: usageTracker,
 		},
+		&gitlab_access_server.Factory{},
 	}
 	modconfig := &modserver.Config{
 		Log: a.Log,

@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+// If you make any changes make sure you run: make regenerate-proto
+
+package rpc;
+
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/rpc";
+
+import "internal/tool/grpctool/automata/automata.proto";
+
+message Values {
+  repeated string value = 1;
+}
+
+message Request {
+  // First message of the stream.
+  message Headers {
+    // Name of the module that' is making the request.
+    string module_name = 1;
+    // HTTP method.
+    string method = 2;
+    // HTTP headers.
+    map<string, Values> headers = 3;
+    // URL path component that goes after /api/v4/internal/kubernetes/modules/{module_name}
+    // Should start with a slash.
+    string url_path = 4;
+    // query is the URL query part without the leading question mark.
+    map<string, Values> query = 5;
+  }
+  // Subsequent messages of the stream.
+  message Data {
+    // A chunk of request body.
+    bytes data = 1;
+  }
+  // Last message of the stream.
+  message Trailers {
+  }
+  oneof message {
+
+    option (automata.first_allowed_field) = 1;
+
+    Headers headers = 1 [(automata.automata).next_allowed_field = 2, (automata.automata).next_allowed_field = 3];
+    Data data = 2 [(automata.automata).next_allowed_field = 2, (automata.automata).next_allowed_field = 3];
+    Trailers trailers = 3 [(automata.automata).next_allowed_field = -1];
+  }
+}
+
+message Response {
+  // First message of the stream.
+  message Headers {
+    // HTTP status code.
+    int32 status_code = 1;
+    // HTTP status message.
+    string status = 2;
+    // HTTP headers.
+    map<string, Values> headers = 3;
+  }
+  // Subsequent messages of the stream.
+  message Data {
+    // A chunk of response body.
+    bytes data = 1;
+  }
+  // Last message of the stream.
+  message Trailers {
+  }
+  oneof message {
+
+    option (automata.first_allowed_field) = 1;
+
+    Headers headers = 1 [(automata.automata).next_allowed_field = 2, (automata.automata).next_allowed_field = 3];
+    Data data = 2 [(automata.automata).next_allowed_field = 2, (automata.automata).next_allowed_field = 3];
+    Trailers trailers = 3 [(automata.automata).next_allowed_field = -1];
+  }
+}
+
+service GitlabAccess {
+  // MakeRequest allows to make a HTTP request to GitLab internal API for modules.
+  rpc MakeRequest (stream Request) returns (stream Response) {
+  }
+}

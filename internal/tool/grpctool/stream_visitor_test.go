@@ -1,8 +1,6 @@
 package grpctool_test
 
 import (
-	"io"
-	"reflect"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -11,7 +9,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/test"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -23,7 +20,7 @@ const (
 
 func TestStreamVisitorHappyPath(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	stream, calls := mockStream(ctrl, true,
+	stream, calls := mock_rpc.InitMockClientStream(ctrl, true,
 		&test.Response{
 			Message: &test.Response_First_{
 				First: &test.Response_First{},
@@ -82,7 +79,7 @@ func TestStreamVisitorHappyPath(t *testing.T) {
 
 func TestStreamVisitorHappyPathNoEof(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	stream, calls := mockStream(ctrl, true,
+	stream, calls := mock_rpc.InitMockClientStream(ctrl, true,
 		&test.Response{
 			Message: &test.Response_First_{
 				First: &test.Response_First{},
@@ -130,7 +127,7 @@ func TestStreamVisitorHappyPathNoEof(t *testing.T) {
 
 func TestStreamVisitorMissingCallback(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	stream, calls := mockStream(ctrl, false,
+	stream, calls := mock_rpc.InitMockClientStream(ctrl, false,
 		&test.Response{
 			Message: &test.Response_First_{
 				First: &test.Response_First{},
@@ -168,35 +165,4 @@ func TestStreamVisitorNumberOutOfOneof(t *testing.T) {
 func TestStreamVisitorNotAllFieldsReachable(t *testing.T) {
 	_, err := grpctool.NewStreamVisitor(&test.NotAllReachable{})
 	require.EqualError(t, err, "not all oneof test.NotAllReachable.message fields are reachable")
-}
-
-// setMsg sets msg to value.
-// msg must be a pointer. i.e. *blaProtoMsgType
-// value must of the same type as msg.
-func setMsg(msg, value interface{}) {
-	reflect.ValueOf(msg).Elem().Set(reflect.ValueOf(value).Elem())
-}
-
-func mockStream(ctrl *gomock.Controller, eof bool, msgs ...proto.Message) (*mock_rpc.MockClientStream, []*gomock.Call) {
-	stream := mock_rpc.NewMockClientStream(ctrl)
-	var res []*gomock.Call
-	for _, msg := range msgs {
-		msg := msg // ensure the right message variable is captured by the closure below
-		call := stream.EXPECT().
-			RecvMsg(gomock.Any()).
-			DoAndReturn(func(m interface{}) error {
-				setMsg(m, msg)
-				return nil
-			})
-		res = append(res, call)
-	}
-	if eof {
-		call := stream.EXPECT().
-			RecvMsg(gomock.Any()).
-			DoAndReturn(func(msg interface{}) error {
-				return io.EOF
-			})
-		res = append(res, call)
-	}
-	return stream, res
 }
