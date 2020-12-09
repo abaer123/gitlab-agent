@@ -78,11 +78,11 @@ func NewClient(backend *url.URL, authSecret []byte, opts ...ClientOption) *Clien
 }
 
 // DoJSON sends a request with JSON payload (optional) and expects a response with JSON payload (optional).
-// meta may be nil to avoid sending Authorization header (not acting as agentk).
+// agentToken may be empty to avoid sending Authorization header (not acting as agentk).
 // body may be nil to avoid sending a request payload.
 // response may be nil to avoid sending an Accept header and ignore the response payload, if any.
 // query may be nil to avoid sending any URL query parameters.
-func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Values, agentMeta *api.AgentMeta, body, response interface{}) error {
+func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Values, agentToken api.AgentToken, body, response interface{}) error {
 	var bodyReader io.Reader
 	if body != nil {
 		bodyBytes, err := json.Marshal(body)
@@ -98,7 +98,7 @@ func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Valu
 	if bodyReader != nil {
 		h.Set("Content-Type", "application/json")
 	}
-	resp, err := c.DoStream(ctx, method, path, h, query, agentMeta, bodyReader)
+	resp, err := c.DoStream(ctx, method, path, h, query, agentToken, bodyReader)
 	if err != nil {
 		return err
 	}
@@ -141,11 +141,11 @@ func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Valu
 }
 
 // DoStream can be used to access GitLab API using streams rather than fixed size payloads.
-// meta may be nil to avoid sending Authorization header (not acting as agentk).
+// agentToken may be empty to avoid sending Authorization header (not acting as agentk).
 // body may be nil to avoid sending a request payload.
 // query may be nil to avoid sending any URL query parameters.
 // headers may be used to send extra headers. May be nil.
-func (c *Client) DoStream(ctx context.Context, method, path string, headers http.Header, query url.Values, agentMeta *api.AgentMeta, body io.Reader) (*http.Response, error) {
+func (c *Client) DoStream(ctx context.Context, method, path string, headers http.Header, query url.Values, agentToken api.AgentToken, body io.Reader) (*http.Response, error) {
 	u := *c.Backend
 	u.Path = path
 	u.RawQuery = query.Encode() // handles query == nil
@@ -169,8 +169,8 @@ func (c *Client) DoStream(ctx context.Context, method, path string, headers http
 	if headers != nil {
 		r.Header = headers
 	}
-	if agentMeta != nil {
-		r.Header.Set("Authorization", "Bearer "+string(agentMeta.Token))
+	if agentToken != "" {
+		r.Header.Set("Authorization", "Bearer "+string(agentToken))
 	}
 	r.Header.Set(jwtRequestHeader, signedClaims)
 	if c.UserAgent != "" {

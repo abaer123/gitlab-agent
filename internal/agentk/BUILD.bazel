@@ -12,6 +12,7 @@ go_library(
     deps = [
         "//internal/module/agent_configuration/rpc",
         "//internal/module/modagent",
+        "//internal/module/modshared",
         "//internal/tool/logz",
         "//pkg/agentcfg",
         "@com_github_ash2k_stager//:stager",

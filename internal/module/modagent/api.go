@@ -3,6 +3,7 @@ package modagent
 import (
 	"context"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -11,8 +12,9 @@ import (
 
 // Config holds configuration for a Module.
 type Config struct {
-	Log *zap.Logger
-	Api API
+	Log       *zap.Logger
+	AgentMeta *modshared.AgentMeta
+	Api       API
 	// K8sClientGetter provides means to interact with the Kubernetes cluster agentk is running in.
 	K8sClientGetter resource.RESTClientGetter
 	// KasConn is the gRPC connection to gitlab-kas.

@@ -23,20 +23,29 @@ spec:
         fsGroup: 65532
       serviceAccountName: gitlab-agent
       containers:
-      - name: agent
-        image: "registry.gitlab.com/gitlab-org/cluster-integration/gitlab-agent/agentk:latest"
-        args:
-        - --token-file=/config/token
-        - --kas-address
-        - grpc://127.0.0.1:8150 # {"$openapi":"kas-address"}
-        # - grpc://host.docker.internal:8150 # use this when connecting from within Docker e.g. from kind
-        volumeMounts:
-        - name: token-volume
-          mountPath: /config
+        - name: agent
+          image: "registry.gitlab.com/gitlab-org/cluster-integration/gitlab-agent/agentk:latest"
+          args:
+            - --token-file=/config/token
+            - --kas-address
+            - grpc://127.0.0.1:8150 # {"$openapi":"kas-address"}
+          # - grpc://host.docker.internal:8150 # use this when connecting from within Docker e.g. from kind
+          volumeMounts:
+            - name: token-volume
+              mountPath: /config
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
       volumes:
-      - name: token-volume
-        secret:
-          secretName: gitlab-agent-token
+        - name: token-volume
+          secret:
+            secretName: gitlab-agent-token
   strategy:
     type: RollingUpdate
     rollingUpdate:

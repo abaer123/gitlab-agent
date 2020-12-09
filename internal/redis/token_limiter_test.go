@@ -11,7 +11,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_redis"
 )
 
@@ -22,11 +21,11 @@ func TestTokenLimiter(t *testing.T) {
 
 	limitPerMinute := uint64(1)
 	limiter := NewTokenLimiter(zaptest.NewLogger(t), mockPool, "key_prefix", limitPerMinute,
-		func(ctx context.Context) string { return string(apiutil.AgentTokenFromContext(ctx)) },
+		func(ctx context.Context) string { return string(api.AgentTokenFromContext(ctx)) },
 	)
 	token := api.AgentToken("0123456789")
-	meta := &api.AgentMeta{Token: token}
-	ctx := apiutil.InjectAgentMeta(context.Background(), meta)
+	meta := &api.AgentMD{Token: token}
+	ctx := api.InjectAgentMD(context.Background(), meta)
 	key := limiter.buildKey(string(token))
 
 	require.True(t, strings.HasPrefix(string(key), "key_prefix:"), "Key should have the key prefix")

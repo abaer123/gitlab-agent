@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops"
@@ -53,9 +52,9 @@ func (m *module) Run(ctx context.Context) error {
 
 func (m *module) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, server rpc.Gitops_GetObjectsToSynchronizeServer) error {
 	ctx := server.Context()
-	agentMeta := apiutil.AgentMetaFromContext(ctx)
-	l := m.log.With(logz.CorrelationIdFromContext(ctx))
-	agentInfo, err, retErr := m.api.GetAgentInfo(ctx, l, agentMeta, false)
+	agentMeta := api.AgentMDFromContext(ctx)
+	log := m.log.With(logz.CorrelationIdFromContext(ctx))
+	agentInfo, err, retErr := m.api.GetAgentInfo(ctx, log, agentMeta.Token, false)
 	if retErr {
 		return err
 	}
@@ -63,7 +62,8 @@ func (m *module) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 	if err != nil {
 		return err // no wrap
 	}
-	return m.api.PollImmediateUntil(ctx, m.pollPeriod, m.maxConnectionAge, m.sendObjectsToSynchronize(agentInfo, req, server))
+	log = log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(req.ProjectId))
+	return m.api.PollImmediateUntil(ctx, m.pollPeriod, m.maxConnectionAge, m.sendObjectsToSynchronize(log, req, server))
 }
 
 func (m *module) Name() string {
@@ -80,48 +80,48 @@ func (m *module) validateGetObjectsToSynchronizeRequest(req *rpc.ObjectsToSynchr
 	return nil
 }
 
-func (m *module) sendObjectsToSynchronize(agentInfo *api.AgentInfo, req *rpc.ObjectsToSynchronizeRequest, server rpc.Gitops_GetObjectsToSynchronizeServer) modserver.ConditionFunc {
+func (m *module) sendObjectsToSynchronize(log *zap.Logger, req *rpc.ObjectsToSynchronizeRequest, server rpc.Gitops_GetObjectsToSynchronizeServer) modserver.ConditionFunc {
 	ctx := server.Context()
-	l := m.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(req.ProjectId), logz.CorrelationIdFromContext(ctx))
+	agentToken := api.AgentMDFromContext(ctx).Token
 	return func() (bool /*done*/, error) {
 		// This call is made on each poll because:
 		// - it checks that the agent's token is still valid
 		// - repository location in Gitaly might have changed
-		projectInfo, err, retErr := m.getProjectInfo(ctx, l, &agentInfo.Meta, req.ProjectId)
+		projectInfo, err, retErr := m.getProjectInfo(ctx, log, agentToken, req.ProjectId)
 		if retErr {
 			return false, err
 		}
 		revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
 		p, err := m.gitalyPool.Poller(ctx, &projectInfo.GitalyInfo)
 		if err != nil {
-			m.api.HandleProcessingError(ctx, l, "GitOps: Poller", err)
+			m.api.HandleProcessingError(ctx, log, "GitOps: Poller", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		info, err := p.Poll(ctx, &projectInfo.Repository, req.CommitId, revision)
 		if err != nil {
-			m.api.HandleProcessingError(ctx, l, "GitOps: repository poll failed", err)
+			m.api.HandleProcessingError(ctx, log, "GitOps: repository poll failed", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		if !info.UpdateAvailable {
-			l.Debug("GitOps: no updates", logz.CommitId(req.CommitId))
+			log.Debug("GitOps: no updates", logz.CommitId(req.CommitId))
 			return false, nil
 		}
-		// Create a new l variable, don't want to mutate the one from the outer scope
-		l := l.With(logz.CommitId(info.CommitId)) // nolint:govet
-		l.Info("GitOps: new commit")
-		err = m.sendObjectsToSynchronizeHeaders(server, l, info.CommitId)
+		// Create a new log variable, don't want to mutate the one from the outer scope
+		log := log.With(logz.CommitId(info.CommitId)) // nolint:govet
+		log.Info("GitOps: new commit")
+		err = m.sendObjectsToSynchronizeHeaders(server, log, info.CommitId)
 		if err != nil {
 			return false, err // no wrap
 		}
-		numberOfFiles, err := m.sendObjectsToSynchronizeBody(req, server, l, &projectInfo.Repository, &projectInfo.GitalyInfo, info.CommitId)
+		numberOfFiles, err := m.sendObjectsToSynchronizeBody(req, server, log, &projectInfo.Repository, &projectInfo.GitalyInfo, info.CommitId)
 		if err != nil {
 			return false, err // no wrap
 		}
-		err = m.sendObjectsToSynchronizeTrailers(server, l)
+		err = m.sendObjectsToSynchronizeTrailers(server, log)
 		if err != nil {
 			return false, err // no wrap
 		}
-		l.Info("GitOps: fetched files", logz.NumberOfFiles(numberOfFiles))
+		log.Info("GitOps: fetched files", logz.NumberOfFiles(numberOfFiles))
 		m.syncCount.Inc()
 		return true, nil
 	}
@@ -186,8 +186,8 @@ func (m *module) sendObjectsToSynchronizeTrailers(server rpc.Gitops_GetObjectsTo
 	return nil
 }
 
-func (m *module) getProjectInfo(ctx context.Context, log *zap.Logger, agentMeta *api.AgentMeta, projectId string) (*api.ProjectInfo, error, bool /* return the error? */) {
-	projectInfo, err := m.projectInfoClient.GetProjectInfo(ctx, agentMeta, projectId)
+func (m *module) getProjectInfo(ctx context.Context, log *zap.Logger, agentToken api.AgentToken, projectId string) (*api.ProjectInfo, error, bool /* return the error? */) {
+	projectInfo, err := m.projectInfoClient.GetProjectInfo(ctx, agentToken, projectId)
 	switch {
 	case err == nil:
 		return projectInfo, nil, false
