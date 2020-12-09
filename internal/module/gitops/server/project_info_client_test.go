@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab"
@@ -50,9 +49,6 @@ func TestGetProjectInfo(t *testing.T) {
 
 	u, err := url.Parse(s.URL)
 	require.NoError(t, err)
-	agentMeta := &api.AgentMeta{
-		Token: mock_gitlab.AgentkToken,
-	}
 	pic := projectInfoClient{
 		GitLabClient:             gitlab.NewClient(u, []byte(mock_gitlab.AuthSecretKey), mock_gitlab.ClientOptionsForTest()...),
 		ProjectInfoCacheTtl:      0, // no cache
@@ -60,7 +56,7 @@ func TestGetProjectInfo(t *testing.T) {
 		ProjectInfoCache:         cache.New(0),
 	}
 
-	projInfo, err := pic.GetProjectInfo(ctx, agentMeta, projectId)
+	projInfo, err := pic.GetProjectInfo(ctx, mock_gitlab.AgentkToken, projectId)
 	require.NoError(t, err)
 
 	assert.Equal(t, response.ProjectId, projInfo.ProjectId)

@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
@@ -46,7 +48,7 @@ func TestSendUsage(t *testing.T) {
 			CloneUsageData().
 			Return(ud, false),
 		client.EXPECT().
-			DoJSON(ctx, http.MethodPost, usagePingApiPath, nil, nil, counters, nil),
+			DoJSON(ctx, http.MethodPost, usagePingApiPath, nil, api.AgentToken(""), counters, nil),
 		tracker.EXPECT().
 			Subtract(ud),
 		tracker.EXPECT().
@@ -77,9 +79,10 @@ func TestSendUsageFailureAndRetry(t *testing.T) {
 			CloneUsageData().
 			Return(ud1, false),
 		client.EXPECT().
-			DoJSON(ctx, http.MethodPost, usagePingApiPath, nil, nil, counters1, nil).
+			DoJSON(ctx, http.MethodPost, usagePingApiPath, nil, api.AgentToken(""), counters1, nil).
 			Return(expectedErr),
-		mockApi.EXPECT().LogAndCapture(gomock.Any(), gomock.Any(), "Failed to send usage data", expectedErr).
+		mockApi.EXPECT().
+			LogAndCapture(gomock.Any(), gomock.Any(), "Failed to send usage data", expectedErr).
 			DoAndReturn(func(ctx context.Context, log *zap.Logger, msg string, err error) {
 				cancel()
 			}),
@@ -87,7 +90,7 @@ func TestSendUsageFailureAndRetry(t *testing.T) {
 			CloneUsageData().
 			Return(ud2, false),
 		client.EXPECT().
-			DoJSON(ctx, http.MethodPost, usagePingApiPath, nil, nil, counters2, nil),
+			DoJSON(ctx, http.MethodPost, usagePingApiPath, nil, api.AgentToken(""), counters2, nil),
 		tracker.EXPECT().
 			Subtract(ud2),
 		tracker.EXPECT().

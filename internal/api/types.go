@@ -2,17 +2,22 @@ package api
 
 import "gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 
-const (
-	MetadataAuthorization = "authorization"
-)
-
 // AgentToken is agentk's bearer access token.
 type AgentToken string
+
+// ClientAgentMeta contains information about agentk that it sends on each request as gRPC metadata.
+type ClientAgentMeta struct {
+	Version      string
+	CommitId     string
+	PodNamespace string
+	PodName      string
+}
 
 // AgentMeta contains information received from agentk with a request.
 // It's passed as gRPC metadata.
 type AgentMeta struct {
 	Token AgentToken
+	ClientAgentMeta
 }
 
 type GitalyInfo struct {
@@ -23,7 +28,6 @@ type GitalyInfo struct {
 
 // AgentInfo contains information about an agentk.
 type AgentInfo struct {
-	Meta AgentMeta
 	// Id is the agent's id in the database.
 	Id int64
 	// ProjectId is the id of the configuration project of the agent.

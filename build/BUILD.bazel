@@ -42,6 +42,7 @@ multirun(
         "//pkg/agentcfg:extract_generated_validator",
         "//pkg/kascfg:extract_generated",
         "//pkg/kascfg:extract_generated_validator",
+        "//internal/module/modshared:extract_generated",
         "//internal/module/agent_configuration/rpc:extract_generated",
         "//internal/module/gitops/rpc:extract_generated",
         "//internal/tool/grpctool/automata:extract_generated",

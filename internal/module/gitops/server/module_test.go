@@ -17,6 +17,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab"
@@ -42,7 +43,6 @@ import (
 const (
 	defaultGitOpsManifestPathGlob = "**/*.{yaml,yml,json}"
 
-	token            = "abfaasdfasdfasdf"
 	projectId        = "some/project"
 	revision         = "507ebc6de9bcac25628aa7afd52802a91a0685d8"
 	manifestRevision = "7afd52802a91a0685d8507ebc6de9bcac25628aa"
@@ -60,7 +60,7 @@ func TestGetObjectsToSynchronizeGetProjectInfoFailures(t *testing.T) {
 	m, mockCtrl, mockApi, _, gitlabClient := setupModuleBare(t, 1)
 	agentInfo := agentInfoObj()
 	mockApi.EXPECT().
-		GetAgentInfo(gomock.Any(), gomock.Any(), &agentInfo.Meta, false).
+		GetAgentInfo(gomock.Any(), gomock.Any(), mock_gitlab.AgentkToken, false).
 		Return(agentInfo, nil, false).
 		Times(3)
 	mockApi.EXPECT().
@@ -78,13 +78,13 @@ func TestGetObjectsToSynchronizeGetProjectInfoFailures(t *testing.T) {
 	}
 	gomock.InOrder(
 		gitlabClient.EXPECT().
-			DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, &agentInfo.Meta, nil, gomock.Any()).
+			DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, mock_gitlab.AgentkToken, nil, gomock.Any()).
 			Return(&gitlab.ClientError{Kind: gitlab.ErrorKindForbidden, StatusCode: http.StatusForbidden}),
 		gitlabClient.EXPECT().
-			DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, &agentInfo.Meta, nil, gomock.Any()).
+			DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, mock_gitlab.AgentkToken, nil, gomock.Any()).
 			Return(&gitlab.ClientError{Kind: gitlab.ErrorKindUnauthorized, StatusCode: http.StatusUnauthorized}),
 		gitlabClient.EXPECT().
-			DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, &agentInfo.Meta, nil, gomock.Any()).
+			DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, mock_gitlab.AgentkToken, nil, gomock.Any()).
 			Return(expectedErr),
 		mockApi.EXPECT().
 			LogAndCapture(gomock.Any(), gomock.Any(), "GetProjectInfo()", expectedErr).
@@ -110,7 +110,7 @@ func TestGetObjectsToSynchronizeGetProjectInfoFailures(t *testing.T) {
 func TestGetObjectsToSynchronize(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	a, agentInfo, mockCtrl, gitalyPool, gitlabClient := setupModule(t, 1)
+	a, mockCtrl, gitalyPool, gitlabClient := setupModule(t, 1)
 	a.syncCount.(*mock_usage_metrics.MockCounter).EXPECT().Inc()
 
 	objects := []runtime.Object{
@@ -188,8 +188,8 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 		projectIdQueryParam: []string{projectId},
 	}
 	gitlabClient.EXPECT().
-		DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, &agentInfo.Meta, nil, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, method, path string, query url.Values, agentMeta *api.AgentMeta, body, response interface{}) error {
+		DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, mock_gitlab.AgentkToken, nil, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, method, path string, query url.Values, agentToken api.AgentToken, body, response interface{}) error {
 			mock_gitlab.AssignResult(response, projectInfoRest())
 			return nil
 		})
@@ -243,7 +243,7 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	m, agentInfo, mockCtrl, gitalyPool, gitlabClient := setupModule(t, 1)
+	m, mockCtrl, gitalyPool, gitlabClient := setupModule(t, 1)
 	projInfo := projectInfo()
 	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(mockCtrl)
 	server.EXPECT().
@@ -256,8 +256,8 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 	}
 	gomock.InOrder(
 		gitlabClient.EXPECT().
-			DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, &agentInfo.Meta, nil, gomock.Any()).
-			DoAndReturn(func(ctx context.Context, method, path string, query url.Values, agentMeta *api.AgentMeta, body, response interface{}) error {
+			DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, mock_gitlab.AgentkToken, nil, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, method, path string, query url.Values, agentToken api.AgentToken, body, response interface{}) error {
 				mock_gitlab.AssignResult(response, projectInfoRest())
 				return nil
 			}),
@@ -607,23 +607,23 @@ func projectInfo() *api.ProjectInfo {
 }
 
 func incomingCtx(ctx context.Context, t *testing.T) context.Context {
-	creds := apiutil.NewTokenCredentials(token, false)
+	creds := grpctool.NewTokenCredentials(mock_gitlab.AgentkToken, false)
 	meta, err := creds.GetRequestMetadata(context.Background())
 	require.NoError(t, err)
 	ctx = metadata.NewIncomingContext(ctx, metadata.New(meta))
-	agentMeta, err := apiutil.AgentMetaFromRawContext(ctx)
+	agentMeta, err := grpctool.AgentMetaFromRawContext(ctx)
 	require.NoError(t, err)
 	return apiutil.InjectAgentMeta(ctx, agentMeta)
 }
 
-func setupModule(t *testing.T, pollTimes int) (*module, *api.AgentInfo, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_gitlab.MockClientInterface) {
+func setupModule(t *testing.T, pollTimes int) (*module, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_gitlab.MockClientInterface) {
 	m, mockCtrl, mockApi, gitalyPool, gitlabClient := setupModuleBare(t, pollTimes)
 	agentInfo := agentInfoObj()
 	mockApi.EXPECT().
-		GetAgentInfo(gomock.Any(), gomock.Any(), &agentInfo.Meta, false).
+		GetAgentInfo(gomock.Any(), gomock.Any(), mock_gitlab.AgentkToken, false).
 		Return(agentInfo, nil, false)
 
-	return m, agentInfo, mockCtrl, gitalyPool, gitlabClient
+	return m, mockCtrl, gitalyPool, gitlabClient
 }
 
 func setupModuleBare(t *testing.T, pollTimes int) (*module, *gomock.Controller, *mock_modserver.MockAPI, *mock_internalgitaly.MockPoolInterface, *mock_gitlab.MockClientInterface) {
@@ -656,9 +656,6 @@ func setupModuleBare(t *testing.T, pollTimes int) (*module, *gomock.Controller, 
 
 func agentInfoObj() *api.AgentInfo {
 	return &api.AgentInfo{
-		Meta: api.AgentMeta{
-			Token: token,
-		},
 		Id:   123,
 		Name: "agent1",
 		GitalyInfo: api.GitalyInfo{

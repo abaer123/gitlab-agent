@@ -48,36 +48,36 @@ func (m *module) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 
 func (m *module) sendConfiguration(lastProcessedCommitId string, server rpc.AgentConfiguration_GetConfigurationServer) modserver.ConditionFunc {
 	ctx := server.Context()
-	agentMeta := apiutil.AgentMetaFromContext(ctx)
-	l := m.log.With(logz.CorrelationIdFromContext(ctx))
+	agentToken := apiutil.AgentMetaFromContext(ctx).Token
+	log := m.log.With(logz.CorrelationIdFromContext(ctx))
 	return func() (bool /*done*/, error) {
 		// This call is made on each poll because:
 		// - it checks that the agent's token is still valid
 		// - repository location in Gitaly might have changed
-		agentInfo, err, retErr := m.api.GetAgentInfo(ctx, l, agentMeta, true) // don't want to close the response stream, so report no error
+		agentInfo, err, retErr := m.api.GetAgentInfo(ctx, log, agentToken, true) // don't want to close the response stream, so report no error
 		if retErr {
 			return false, err
 		}
-		// Create a new l variable, don't want to mutate the one from the outer scope
-		l := l.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath)) // nolint:govet
+		// Create a new log variable, don't want to mutate the one from the outer scope
+		log := log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath)) // nolint:govet
 		p, err := m.gitaly.Poller(ctx, &agentInfo.GitalyInfo)
 		if err != nil {
-			m.api.HandleProcessingError(ctx, l, "Config: Poller", err)
+			m.api.HandleProcessingError(ctx, log, "Config: Poller", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		info, err := p.Poll(ctx, &agentInfo.Repository, lastProcessedCommitId, gitaly.DefaultBranch)
 		if err != nil {
-			m.api.HandleProcessingError(ctx, l, "Config: repository poll failed", err)
+			m.api.HandleProcessingError(ctx, log, "Config: repository poll failed", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		if !info.UpdateAvailable {
-			l.Debug("Config: no updates", logz.CommitId(lastProcessedCommitId))
+			log.Debug("Config: no updates", logz.CommitId(lastProcessedCommitId))
 			return false, nil // don't want to close the response stream, so report no error
 		}
-		l.Info("Config: new commit", logz.CommitId(info.CommitId))
+		log.Info("Config: new commit", logz.CommitId(info.CommitId))
 		config, err := m.fetchConfiguration(ctx, agentInfo, info.CommitId)
 		if err != nil {
-			m.api.HandleProcessingError(ctx, l, "Config: failed to fetch", err)
+			m.api.HandleProcessingError(ctx, log, "Config: failed to fetch", err)
 			return false, nil // don't want to close the response stream, so report no error
 		}
 		err = server.Send(&rpc.ConfigurationResponse{
@@ -85,7 +85,7 @@ func (m *module) sendConfiguration(lastProcessedCommitId string, server rpc.Agen
 			CommitId:      info.CommitId,
 		})
 		if err != nil {
-			return false, m.api.HandleSendError(l, "Config: failed to send config", err)
+			return false, m.api.HandleSendError(log, "Config: failed to send config", err)
 		}
 		lastProcessedCommitId = info.CommitId
 		return false, nil

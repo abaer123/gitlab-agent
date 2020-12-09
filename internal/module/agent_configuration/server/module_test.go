@@ -15,7 +15,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_internalgitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
@@ -28,7 +30,6 @@ import (
 )
 
 const (
-	token     = "abfaasdfasdfasdf"
 	projectId = "some/project"
 	revision  = "507ebc6de9bcac25628aa7afd52802a91a0685d8"
 
@@ -177,7 +178,7 @@ func setupModule(t *testing.T) (*module, *api.AgentInfo, *gomock.Controller, *mo
 	}
 	agentInfo := agentInfoObj()
 	mockApi.EXPECT().
-		GetAgentInfo(gomock.Any(), gomock.Any(), &agentInfo.Meta, true).
+		GetAgentInfo(gomock.Any(), gomock.Any(), mock_gitlab.AgentkToken, true).
 		Return(agentInfo, nil, false)
 	return m, agentInfo, ctrl, gitalyPool
 }
@@ -203,20 +204,17 @@ func sampleConfig() *agentcfg.ConfigurationFile {
 }
 
 func incomingCtx(ctx context.Context, t *testing.T) context.Context {
-	creds := apiutil.NewTokenCredentials(token, false)
+	creds := grpctool.NewTokenCredentials(mock_gitlab.AgentkToken, false)
 	meta, err := creds.GetRequestMetadata(context.Background())
 	require.NoError(t, err)
 	ctx = metadata.NewIncomingContext(ctx, metadata.New(meta))
-	agentMeta, err := apiutil.AgentMetaFromRawContext(ctx)
+	agentMeta, err := grpctool.AgentMetaFromRawContext(ctx)
 	require.NoError(t, err)
 	return apiutil.InjectAgentMeta(ctx, agentMeta)
 }
 
 func agentInfoObj() *api.AgentInfo {
 	return &api.AgentInfo{
-		Meta: api.AgentMeta{
-			Token: token,
-		},
 		Id:   123,
 		Name: "agent1",
 		GitalyInfo: api.GitalyInfo{

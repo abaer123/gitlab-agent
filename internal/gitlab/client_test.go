@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab"
 )
@@ -41,19 +40,16 @@ func TestErrorCodes(t *testing.T) {
 	u, err := url.Parse(s.URL)
 	require.NoError(t, err)
 	c := gitlab.NewClient(u, []byte(mock_gitlab.AuthSecretKey), mock_gitlab.ClientOptionsForTest()...)
-	agentMeta := &api.AgentMeta{
-		Token: mock_gitlab.AgentkToken,
-	}
 
-	err = c.DoJSON(context.Background(), http.MethodGet, "/forbidden", nil, agentMeta, nil, nil)
+	err = c.DoJSON(context.Background(), http.MethodGet, "/forbidden", nil, mock_gitlab.AgentkToken, nil, nil)
 	require.Error(t, err)
 	assert.True(t, gitlab.IsForbidden(err))
 
-	err = c.DoJSON(context.Background(), http.MethodGet, "/unauthorized", nil, agentMeta, nil, nil)
+	err = c.DoJSON(context.Background(), http.MethodGet, "/unauthorized", nil, mock_gitlab.AgentkToken, nil, nil)
 	require.Error(t, err)
 	assert.True(t, gitlab.IsUnauthorized(err))
 
-	err = c.DoJSON(ctxClient, http.MethodGet, "/cancel", nil, agentMeta, nil, nil)
+	err = c.DoJSON(ctxClient, http.MethodGet, "/cancel", nil, mock_gitlab.AgentkToken, nil, nil)
 	cancelServer() // unblock server
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, context.Canceled))

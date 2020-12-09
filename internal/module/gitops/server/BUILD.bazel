@@ -50,6 +50,7 @@ go_test(
         "//internal/module/gitops/rpc",
         "//internal/module/modserver",
         "//internal/tool/cache",
+        "//internal/tool/grpctool",
         "//internal/tool/testing/kube_testing",
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_gitlab",

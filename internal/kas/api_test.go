@@ -10,7 +10,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
@@ -29,9 +28,6 @@ var (
 func TestGetAgentInfoFailures(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	agentMeta := &api.AgentMeta{
-		Token: mock_gitlab.AgentkToken,
-	}
 	l := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
 	gitlabClient := mock_gitlab.NewMockClientInterface(ctrl)
@@ -44,13 +40,13 @@ func TestGetAgentInfoFailures(t *testing.T) {
 	})
 	gomock.InOrder(
 		gitlabClient.EXPECT().
-			DoJSON(gomock.Any(), http.MethodGet, agentInfoApiPath, nil, agentMeta, nil, gomock.Any()).
+			DoJSON(gomock.Any(), http.MethodGet, agentInfoApiPath, nil, mock_gitlab.AgentkToken, nil, gomock.Any()).
 			Return(&gitlab.ClientError{Kind: gitlab.ErrorKindForbidden, StatusCode: http.StatusForbidden}),
 		gitlabClient.EXPECT().
-			DoJSON(gomock.Any(), http.MethodGet, agentInfoApiPath, nil, agentMeta, nil, gomock.Any()).
+			DoJSON(gomock.Any(), http.MethodGet, agentInfoApiPath, nil, mock_gitlab.AgentkToken, nil, gomock.Any()).
 			Return(&gitlab.ClientError{Kind: gitlab.ErrorKindUnauthorized, StatusCode: http.StatusUnauthorized}),
 		gitlabClient.EXPECT().
-			DoJSON(gomock.Any(), http.MethodGet, agentInfoApiPath, nil, agentMeta, nil, gomock.Any()).
+			DoJSON(gomock.Any(), http.MethodGet, agentInfoApiPath, nil, mock_gitlab.AgentkToken, nil, gomock.Any()).
 			Return(&gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}),
 		errTracker.EXPECT().
 			Capture(matcher.ErrorEq("GetAgentInfo(): error kind: 0; status: 500"), gomock.Any()).
@@ -58,17 +54,17 @@ func TestGetAgentInfoFailures(t *testing.T) {
 				cancel() // exception captured, cancel the context to stop the test
 			}),
 	)
-	info, err, retErr := apiObj.GetAgentInfo(ctx, l, agentMeta, false)
+	info, err, retErr := apiObj.GetAgentInfo(ctx, l, mock_gitlab.AgentkToken, false)
 	require.True(t, retErr)
 	assert.Equal(t, codes.PermissionDenied, status.Code(err))
 	assert.Nil(t, info)
 
-	info, err, retErr = apiObj.GetAgentInfo(ctx, l, agentMeta, false)
+	info, err, retErr = apiObj.GetAgentInfo(ctx, l, mock_gitlab.AgentkToken, false)
 	require.True(t, retErr)
 	assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	assert.Nil(t, info)
 
-	info, err, retErr = apiObj.GetAgentInfo(ctx, l, agentMeta, false)
+	info, err, retErr = apiObj.GetAgentInfo(ctx, l, mock_gitlab.AgentkToken, false)
 	require.True(t, retErr)
 	assert.Equal(t, codes.Unavailable, status.Code(err))
 	assert.Nil(t, info)
@@ -110,16 +106,13 @@ func TestGetAgentInfo(t *testing.T) {
 	require.NoError(t, err)
 	l := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
-	agentMeta := &api.AgentMeta{
-		Token: mock_gitlab.AgentkToken,
-	}
 	apiObj := NewAPI(APIConfig{
 		GitLabClient:           gitlab.NewClient(u, []byte(mock_gitlab.AuthSecretKey), mock_gitlab.ClientOptionsForTest()...),
 		ErrorTracker:           mock_errtracker.NewMockTracker(ctrl),
 		AgentInfoCacheTtl:      0, // no cache!
 		AgentInfoCacheErrorTtl: 0,
 	})
-	agentInfo, err, retErr := apiObj.GetAgentInfo(ctx, l, agentMeta, false)
+	agentInfo, err, retErr := apiObj.GetAgentInfo(ctx, l, mock_gitlab.AgentkToken, false)
 	require.False(t, retErr)
 	require.NoError(t, err)
 

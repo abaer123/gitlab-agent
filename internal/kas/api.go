@@ -51,8 +51,8 @@ func (a *API) Capture(err error, opts ...errortracking.CaptureOption) {
 	a.cfg.ErrorTracker.Capture(err, opts...)
 }
 
-func (a *API) GetAgentInfo(ctx context.Context, log *zap.Logger, agentMeta *api.AgentMeta, noErrorOnUnknownError bool) (*api.AgentInfo, error, bool) {
-	agentInfo, err := a.getAgentInfoCached(ctx, agentMeta)
+func (a *API) GetAgentInfo(ctx context.Context, log *zap.Logger, agentToken api.AgentToken, noErrorOnUnknownError bool) (*api.AgentInfo, error, bool) {
+	agentInfo, err := a.getAgentInfoCached(ctx, agentToken)
 	switch {
 	case err == nil:
 		return agentInfo, nil, false
@@ -115,19 +115,19 @@ func (a *API) LogAndCapture(ctx context.Context, log *zap.Logger, msg string, er
 	a.Capture(fmt.Errorf("%s: %v", msg, err), errortracking.WithContext(ctx))
 }
 
-func (a *API) getAgentInfoCached(ctx context.Context, agentMeta *api.AgentMeta) (*api.AgentInfo, error) {
+func (a *API) getAgentInfoCached(ctx context.Context, agentToken api.AgentToken) (*api.AgentInfo, error) {
 	if a.cfg.AgentInfoCacheTtl == 0 {
-		return a.getAgentInfoDirect(ctx, agentMeta)
+		return a.getAgentInfoDirect(ctx, agentToken)
 	}
 	a.agentInfoCache.EvictExpiredEntries()
-	entry := a.agentInfoCache.GetOrCreateCacheEntry(agentMeta.Token)
+	entry := a.agentInfoCache.GetOrCreateCacheEntry(agentToken)
 	if !entry.Lock(ctx) { // a concurrent caller may be refreshing the entry. Block until exclusive access is available.
 		return nil, ctx.Err()
 	}
 	defer entry.Unlock()
 	var item agentInfoCacheItem
 	if entry.IsNeedRefreshLocked() {
-		item.agentInfo, item.err = a.getAgentInfoDirect(ctx, agentMeta)
+		item.agentInfo, item.err = a.getAgentInfoDirect(ctx, agentToken)
 		var ttl time.Duration
 		if item.err == nil {
 			ttl = a.cfg.AgentInfoCacheTtl
@@ -142,14 +142,13 @@ func (a *API) getAgentInfoCached(ctx context.Context, agentMeta *api.AgentMeta) 
 	return item.agentInfo, item.err
 }
 
-func (a *API) getAgentInfoDirect(ctx context.Context, agentMeta *api.AgentMeta) (*api.AgentInfo, error) {
+func (a *API) getAgentInfoDirect(ctx context.Context, agentToken api.AgentToken) (*api.AgentInfo, error) {
 	response := getAgentInfoResponse{}
-	err := a.cfg.GitLabClient.DoJSON(ctx, http.MethodGet, agentInfoApiPath, nil, agentMeta, nil, &response)
+	err := a.cfg.GitLabClient.DoJSON(ctx, http.MethodGet, agentInfoApiPath, nil, agentToken, nil, &response)
 	if err != nil {
 		return nil, err
 	}
 	return &api.AgentInfo{
-		Meta:       *agentMeta,
 		Id:         response.AgentId,
 		ProjectId:  response.ProjectId,
 		Name:       response.AgentName,

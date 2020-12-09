@@ -47,7 +47,7 @@ type API interface {
 	// GetAgentInfo encapsulates error checking logic.
 	// The signature is not conventional on purpose - the caller is not supposed to inspect the error,
 	// but instead return it if the bool is true. If the bool is false, AgentInfo is non-nil.
-	GetAgentInfo(ctx context.Context, log *zap.Logger, agentMeta *api.AgentMeta, noErrorOnUnknownError bool) (*api.AgentInfo, error, bool /* return the error? */)
+	GetAgentInfo(ctx context.Context, log *zap.Logger, agentToken api.AgentToken, noErrorOnUnknownError bool) (*api.AgentInfo, error, bool /* return the error? */)
 	// PollImmediateUntil should be used by the top-level polling, so that it can be gracefully interrupted
 	// by the server when necessary.
 	PollImmediateUntil(ctx context.Context, interval, maxConnectionAge time.Duration, condition ConditionFunc) error

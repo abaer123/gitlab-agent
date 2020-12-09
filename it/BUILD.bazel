@@ -15,8 +15,10 @@ go_test(
         "requires-network",
     ],
     deps = [
+        "//cmd",
         "//cmd/agentk/agentkapp",
         "//cmd/kas/kasapp",
+        "//internal/api",
         "//pkg/kascfg",
         "@com_github_ash2k_stager//:stager",
         "@com_github_stretchr_testify//assert",

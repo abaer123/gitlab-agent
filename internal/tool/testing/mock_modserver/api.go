@@ -57,7 +57,7 @@ func (mr *MockAPIMockRecorder) Capture(arg0 interface{}, arg1 ...interface{}) *g
 }
 
 // GetAgentInfo mocks base method
-func (m *MockAPI) GetAgentInfo(arg0 context.Context, arg1 *zap.Logger, arg2 *api.AgentMeta, arg3 bool) (*api.AgentInfo, error, bool) {
+func (m *MockAPI) GetAgentInfo(arg0 context.Context, arg1 *zap.Logger, arg2 api.AgentToken, arg3 bool) (*api.AgentInfo, error, bool) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAgentInfo", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(*api.AgentInfo)

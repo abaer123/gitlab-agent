@@ -8,11 +8,12 @@ go_library(
     deps = [
         "//cmd",
         "//internal/agentk",
-        "//internal/api/apiutil",
+        "//internal/api",
         "//internal/module/agent_configuration/rpc",
         "//internal/module/gitops/agent",
         "//internal/module/modagent",
         "//internal/module/observability/agent",
+        "//internal/tool/grpctool",
         "//internal/tool/logz",
         "//internal/tool/tlstool",
         "//internal/tool/wstunnel",

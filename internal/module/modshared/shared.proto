@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+// If you make any changes make sure you run: make regenerate-proto
+
+package modshared;
+
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared";
+
+message AgentMeta {
+  string version = 1;
+  string commit_id = 2;
+  string pod_namespace = 3;
+  string pod_name = 4;
+}

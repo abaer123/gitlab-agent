@@ -8,17 +8,19 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/go-logr/zapr"
 	"github.com/spf13/pflag"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentk"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc"
 	gitops_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	observability_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/agent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/tlstool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/wstunnel"
@@ -43,11 +45,15 @@ const (
 
 	defaultMaxMessageSize = 10 * 1024 * 1024
 	correlationClientName = "gitlab-agent"
+
+	envVarPodNamespace = "POD_NAMESPACE"
+	envVarPodName      = "POD_NAME"
 )
 
 type App struct {
-	Log      *zap.Logger
-	LogLevel zap.AtomicLevel
+	Log       *zap.Logger
+	LogLevel  zap.AtomicLevel
+	AgentMeta api.ClientAgentMeta
 	// KasAddress specifies the address of kas.
 	KasAddress      string
 	CACertFile      string
@@ -71,7 +77,7 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	kasConn, err := kasConnection(ctx, a.KasAddress, string(tokenData), tlsConfig)
+	kasConn, err := a.kasConnection(ctx, api.AgentToken(tokenData), tlsConfig)
 	if err != nil {
 		return err
 	}
@@ -101,12 +107,12 @@ func (a *App) Run(ctx context.Context) error {
 	return agent.Run(ctx)
 }
 
-func kasConnection(ctx context.Context, kasAddress, token string, tlsConfig *tls.Config) (*grpc.ClientConn, error) {
-	u, err := url.Parse(kasAddress)
+func (a *App) kasConnection(ctx context.Context, token api.AgentToken, tlsConfig *tls.Config) (*grpc.ClientConn, error) {
+	u, err := url.Parse(a.KasAddress)
 	if err != nil {
 		return nil, fmt.Errorf("invalid gitlab-kas address: %v", err)
 	}
-	userAgent := fmt.Sprintf("agentk/%s/%s", cmd.Version, cmd.Commit)
+	userAgent := fmt.Sprintf("agentk/%s/%s", a.AgentMeta.Version, a.AgentMeta.CommitId)
 	opts := []grpc.DialOption{
 		grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)),
 		grpc.WithUserAgent(userAgent),
@@ -121,9 +127,11 @@ func kasConnection(ctx context.Context, kasAddress, token string, tlsConfig *tls
 		}),
 		grpc.WithChainStreamInterceptor(
 			grpccorrelation.StreamClientCorrelationInterceptor(grpccorrelation.WithClientName(correlationClientName)),
+			grpctool.StreamClientAgentMetaInterceptor(&a.AgentMeta),
 		),
 		grpc.WithChainUnaryInterceptor(
 			grpccorrelation.UnaryClientCorrelationInterceptor(grpccorrelation.WithClientName(correlationClientName)),
+			grpctool.UnaryClientAgentMetaInterceptor(&a.AgentMeta),
 		),
 	}
 	var addressToDial string
@@ -132,7 +140,7 @@ func kasConnection(ctx context.Context, kasAddress, token string, tlsConfig *tls
 	secure := u.Scheme == "grpcs"
 	switch u.Scheme {
 	case "ws", "wss":
-		addressToDial = kasAddress
+		addressToDial = a.KasAddress
 		dialer := net.Dialer{
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,
@@ -168,7 +176,7 @@ func kasConnection(ctx context.Context, kasAddress, token string, tlsConfig *tls
 	if !secure {
 		opts = append(opts, grpc.WithInsecure())
 	}
-	opts = append(opts, grpc.WithPerRPCCredentials(apiutil.NewTokenCredentials(token, !secure)))
+	opts = append(opts, grpc.WithPerRPCCredentials(grpctool.NewTokenCredentials(token, !secure)))
 	conn, err := grpc.DialContext(ctx, addressToDial, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("gRPC.dial: %v", err)
@@ -184,6 +192,12 @@ func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, err
 	app := &App{
 		Log:      log,
 		LogLevel: level,
+		AgentMeta: api.ClientAgentMeta{
+			Version:      cmd.Version,
+			CommitId:     cmd.Commit,
+			PodNamespace: os.Getenv(envVarPodNamespace),
+			PodName:      os.Getenv(envVarPodName),
+		},
 	}
 	flagset.StringVar(&app.KasAddress, "kas-address", "", "GitLab Kubernetes Agent Server address")
 	flagset.StringVar(&app.CACertFile, "ca-cert-file", "", "Optional file with X.509 certificate authority certificate in PEM format")

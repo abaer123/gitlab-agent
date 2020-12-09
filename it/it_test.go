@@ -14,8 +14,10 @@ import (
 	"github.com/ash2k/stager"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/agentk/agentkapp"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kas/kasapp"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
@@ -72,8 +74,14 @@ func testFetchConfiguration(t *testing.T, websocket bool) {
 	configFlags.WithClientConfig(getKubeConfig())
 	level := zap.NewAtomicLevelAt(zap.DebugLevel)
 	ak := agentkapp.App{
-		Log:             zaptest.NewLogger(t, zaptest.Level(level)),
-		LogLevel:        level,
+		Log:      zaptest.NewLogger(t, zaptest.Level(level)),
+		LogLevel: level,
+		AgentMeta: api.ClientAgentMeta{
+			Version:      cmd.Version,
+			CommitId:     cmd.Commit,
+			PodNamespace: "",
+			PodName:      "",
+		},
 		KasAddress:      address,
 		TokenFile:       agentkTokenFile,
 		K8sClientGetter: configFlags,

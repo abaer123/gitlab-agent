@@ -125,15 +125,15 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
-		grpc_prometheus.StreamServerInterceptor, // This one should be the first one to measure all invocations
-		apiutil.StreamAgentMetaInterceptor(),    // This one should be the second one to ensure agent presents a token
+		grpc_prometheus.StreamServerInterceptor,     // This one should be the first one to measure all invocations
+		grpctool.StreamServerAgentMetaInterceptor(), // This one should be the second one to ensure agent presents a token
 		grpccorrelation.StreamServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()),
 		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)),
 	}
 	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
-		grpc_prometheus.UnaryServerInterceptor, // This one should be the first one to measure all invocations
-		apiutil.UnaryAgentMetaInterceptor(),    // This one should be the second one to ensure agent presents a token
+		grpc_prometheus.UnaryServerInterceptor,     // This one should be the first one to measure all invocations
+		grpctool.UnaryServerAgentMetaInterceptor(), // This one should be the second one to ensure agent presents a token
 		grpccorrelation.UnaryServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()),
 		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)),
