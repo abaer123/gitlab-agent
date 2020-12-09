@@ -29,7 +29,6 @@ go_test(
     embed = [":kas"],
     race = "on",
     deps = [
-        "//internal/api",
         "//internal/gitlab",
         "//internal/module/modserver",
         "//internal/tool/testing/matcher",

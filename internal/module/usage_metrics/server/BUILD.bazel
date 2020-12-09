@@ -27,6 +27,7 @@ go_test(
     embed = [":server"],
     race = "on",
     deps = [
+        "//internal/api",
         "//internal/gitlab",
         "//internal/module/modserver",
         "//internal/module/usage_metrics",

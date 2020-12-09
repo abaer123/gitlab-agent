@@ -39,7 +39,7 @@ func (m *MockClientInterface) EXPECT() *MockClientInterfaceMockRecorder {
 }
 
 // DoJSON mocks base method
-func (m *MockClientInterface) DoJSON(arg0 context.Context, arg1, arg2 string, arg3 url.Values, arg4 *api.AgentMeta, arg5, arg6 interface{}) error {
+func (m *MockClientInterface) DoJSON(arg0 context.Context, arg1, arg2 string, arg3 url.Values, arg4 api.AgentToken, arg5, arg6 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DoJSON", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
 	ret0, _ := ret[0].(error)
@@ -53,7 +53,7 @@ func (mr *MockClientInterfaceMockRecorder) DoJSON(arg0, arg1, arg2, arg3, arg4, 
 }
 
 // DoStream mocks base method
-func (m *MockClientInterface) DoStream(arg0 context.Context, arg1, arg2 string, arg3 http.Header, arg4 url.Values, arg5 *api.AgentMeta, arg6 io.Reader) (*http.Response, error) {
+func (m *MockClientInterface) DoStream(arg0 context.Context, arg1, arg2 string, arg3 http.Header, arg4 url.Values, arg5 api.AgentToken, arg6 io.Reader) (*http.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DoStream", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
 	ret0, _ := ret[0].(*http.Response)

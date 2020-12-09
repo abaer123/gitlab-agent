@@ -15,7 +15,7 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api/apiutil"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/kas"
@@ -125,15 +125,15 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
-		grpc_prometheus.StreamServerInterceptor, // This one should be the first one to measure all invocations
-		apiutil.StreamAgentMetaInterceptor(),    // This one should be the second one to ensure agent presents a token
+		grpc_prometheus.StreamServerInterceptor,   // This one should be the first one to measure all invocations
+		grpctool.StreamServerAgentMDInterceptor(), // This one should be the second one to ensure agent presents a token
 		grpccorrelation.StreamServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()),
 		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)),
 	}
 	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
-		grpc_prometheus.UnaryServerInterceptor, // This one should be the first one to measure all invocations
-		apiutil.UnaryAgentMetaInterceptor(),    // This one should be the second one to ensure agent presents a token
+		grpc_prometheus.UnaryServerInterceptor,   // This one should be the first one to measure all invocations
+		grpctool.UnaryServerAgentMDInterceptor(), // This one should be the second one to ensure agent presents a token
 		grpccorrelation.UnaryServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()),
 		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)),
@@ -169,7 +169,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 			redisPool,
 			cfg.Agent.Limits.RedisKeyPrefix,
 			uint64(cfg.Agent.Listen.ConnectionsPerTokenPerMinute),
-			func(ctx context.Context) string { return string(apiutil.AgentTokenFromContext(ctx)) },
+			func(ctx context.Context) string { return string(api.AgentTokenFromContext(ctx)) },
 		)
 		grpcStreamServerInterceptors = append(grpcStreamServerInterceptors, grpctool.StreamServerLimitingInterceptor(agentConnectionLimiter))
 		grpcUnaryServerInterceptors = append(grpcUnaryServerInterceptors, grpctool.UnaryServerLimitingInterceptor(agentConnectionLimiter))
@@ -241,9 +241,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 		Gitaly: &gitaly.Pool{
 			ClientPool: gitalyClientPool,
 		},
-		KasName: kasName,
-		Version: cmd.Version,
-		Commit:  cmd.Commit,
+		KasName:  kasName,
+		Version:  cmd.Version,
+		CommitId: cmd.Commit,
 	}
 
 	// Start things up

@@ -27,7 +27,6 @@ go_test(
     race = "on",
     deps = [
         "//internal/api",
-        "//internal/api/apiutil",
         "//internal/tool/testing/mock_redis",
         "@com_github_golang_mock//gomock",
         "@com_github_stretchr_testify//require",

@@ -1,0 +1,36 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@rules_proto_grpc//go:defs.bzl", "go_proto_compile")
+load("//build:build.bzl", "copy_to_workspace")
+
+proto_library(
+    name = "shared_proto",
+    srcs = ["shared.proto"],
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
+)
+
+go_proto_compile(
+    name = "shared",
+    tags = ["manual"],
+    deps = [":shared_proto"],
+)
+
+copy_to_workspace(
+    name = "extract_generated",
+    file_to_copy = "shared.pb.go",
+    label = ":shared",
+    workspace_relative_target_directory = "internal/module/modshared",
+)
+
+go_library(
+    name = "modshared",
+    srcs = ["shared.pb.go"],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "@com_github_golang_protobuf//proto",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+    ],
+)

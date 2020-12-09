@@ -7,6 +7,7 @@ import (
 	"github.com/ash2k/stager"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
@@ -16,6 +17,7 @@ import (
 
 type Agent struct {
 	Log                  *zap.Logger
+	AgentMeta            *modshared.AgentMeta
 	KasConn              grpc.ClientConnInterface
 	K8sClientGetter      resource.RESTClientGetter
 	ConfigurationWatcher rpc.ConfigurationWatcherInterface
@@ -34,6 +36,7 @@ func (a *Agent) Run(ctx context.Context) error {
 func (a *Agent) startModules(st stager.Stager) []modagent.Module {
 	cfg := &modagent.Config{
 		Log:             a.Log,
+		AgentMeta:       a.AgentMeta,
 		Api:             &api{},
 		K8sClientGetter: a.K8sClientGetter,
 		KasConn:         a.KasConn,

@@ -13,7 +13,6 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",
-        "//internal/api/apiutil",
         "//internal/gitaly",
         "//internal/gitlab",
         "//internal/module/gitops",
@@ -44,12 +43,12 @@ go_test(
     race = "on",
     deps = [
         "//internal/api",
-        "//internal/api/apiutil",
         "//internal/gitaly",
         "//internal/gitlab",
         "//internal/module/gitops/rpc",
         "//internal/module/modserver",
         "//internal/tool/cache",
+        "//internal/tool/grpctool",
         "//internal/tool/testing/kube_testing",
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_gitlab",

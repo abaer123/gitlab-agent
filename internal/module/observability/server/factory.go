@@ -17,6 +17,6 @@ func (f *Factory) New(config *modserver.Config) modserver.Module {
 		cfg:        config.Config.Observability,
 		gatherer:   f.Gatherer,
 		registerer: config.Registerer,
-		serverName: fmt.Sprintf("%s/%s/%s", config.KasName, config.Version, config.Commit),
+		serverName: fmt.Sprintf("%s/%s/%s", config.KasName, config.Version, config.CommitId),
 	}
 }

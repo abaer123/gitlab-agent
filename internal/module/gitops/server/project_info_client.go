@@ -23,13 +23,13 @@ type projectInfoClient struct {
 	ProjectInfoCache         *cache.Cache
 }
 
-func (c *projectInfoClient) GetProjectInfo(ctx context.Context, agentMeta *api.AgentMeta, projectId string) (*api.ProjectInfo, error) {
+func (c *projectInfoClient) GetProjectInfo(ctx context.Context, agentToken api.AgentToken, projectId string) (*api.ProjectInfo, error) {
 	if c.ProjectInfoCacheTtl == 0 {
-		return c.getProjectInfoDirect(ctx, agentMeta, projectId)
+		return c.getProjectInfoDirect(ctx, agentToken, projectId)
 	}
 	c.ProjectInfoCache.EvictExpiredEntries()
 	entry := c.ProjectInfoCache.GetOrCreateCacheEntry(projectInfoCacheKey{
-		agentToken: agentMeta.Token,
+		agentToken: agentToken,
 		projectId:  projectId,
 	})
 	if !entry.Lock(ctx) { // a concurrent caller may be refreshing the entry. Block until exclusive access is available.
@@ -38,7 +38,7 @@ func (c *projectInfoClient) GetProjectInfo(ctx context.Context, agentMeta *api.A
 	defer entry.Unlock()
 	var item projectInfoCacheItem
 	if entry.IsNeedRefreshLocked() {
-		item.projectInfo, item.err = c.getProjectInfoDirect(ctx, agentMeta, projectId)
+		item.projectInfo, item.err = c.getProjectInfoDirect(ctx, agentToken, projectId)
 		var ttl time.Duration
 		if item.err == nil {
 			ttl = c.ProjectInfoCacheTtl
@@ -53,12 +53,12 @@ func (c *projectInfoClient) GetProjectInfo(ctx context.Context, agentMeta *api.A
 	return item.projectInfo, item.err
 }
 
-func (c *projectInfoClient) getProjectInfoDirect(ctx context.Context, agentMeta *api.AgentMeta, projectId string) (*api.ProjectInfo, error) {
+func (c *projectInfoClient) getProjectInfoDirect(ctx context.Context, agentToken api.AgentToken, projectId string) (*api.ProjectInfo, error) {
 	query := url.Values{
 		projectIdQueryParam: []string{projectId},
 	}
 	response := projectInfoResponse{}
-	err := c.GitLabClient.DoJSON(ctx, http.MethodGet, projectInfoApiPath, query, agentMeta, nil, &response)
+	err := c.GitLabClient.DoJSON(ctx, http.MethodGet, projectInfoApiPath, query, agentToken, nil, &response)
 	if err != nil {
 		return nil, err
 	}
