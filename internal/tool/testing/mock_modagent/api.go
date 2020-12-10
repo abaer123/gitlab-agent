@@ -36,6 +36,26 @@ func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 	return m.recorder
 }
 
+// MakeGitLabRequest mocks base method
+func (m *MockAPI) MakeGitLabRequest(arg0 context.Context, arg1 string, arg2 ...modagent.GitLabRequestOption) (*modagent.GitLabResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "MakeGitLabRequest", varargs...)
+	ret0, _ := ret[0].(*modagent.GitLabResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MakeGitLabRequest indicates an expected call of MakeGitLabRequest
+func (mr *MockAPIMockRecorder) MakeGitLabRequest(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MakeGitLabRequest", reflect.TypeOf((*MockAPI)(nil).MakeGitLabRequest), varargs...)
+}
+
 // MockFactory is a mock of Factory interface
 type MockFactory struct {
 	ctrl     *gomock.Controller
@@ -57,6 +77,20 @@ func NewMockFactory(ctrl *gomock.Controller) *MockFactory {
 // EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockFactory) EXPECT() *MockFactoryMockRecorder {
 	return m.recorder
+}
+
+// Name mocks base method
+func (m *MockFactory) Name() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Name indicates an expected call of Name
+func (mr *MockFactoryMockRecorder) Name() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockFactory)(nil).Name))
 }
 
 // New mocks base method

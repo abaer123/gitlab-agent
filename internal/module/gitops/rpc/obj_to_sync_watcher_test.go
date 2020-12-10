@@ -3,7 +3,6 @@ package rpc_test
 import (
 	"context"
 	"io"
-	"reflect"
 	"testing"
 	"time"
 
@@ -47,7 +46,7 @@ func TestObjectsToSynchronizeWatcherResumeConnection(t *testing.T) {
 			Return(stream1, nil),
 		stream1.EXPECT().
 			RecvMsg(gomock.Any()).
-			Do(retMsg(&rpc.ObjectsToSynchronizeResponse{
+			Do(mock_rpc.RetMsg(&rpc.ObjectsToSynchronizeResponse{
 				Message: &rpc.ObjectsToSynchronizeResponse_Headers_{
 					Headers: &rpc.ObjectsToSynchronizeResponse_Headers{
 						CommitId: revision,
@@ -56,7 +55,7 @@ func TestObjectsToSynchronizeWatcherResumeConnection(t *testing.T) {
 			})),
 		stream1.EXPECT().
 			RecvMsg(gomock.Any()).
-			Do(retMsg(&rpc.ObjectsToSynchronizeResponse{
+			Do(mock_rpc.RetMsg(&rpc.ObjectsToSynchronizeResponse{
 				Message: &rpc.ObjectsToSynchronizeResponse_Trailers_{
 					Trailers: &rpc.ObjectsToSynchronizeResponse_Trailers{},
 				},
@@ -174,7 +173,7 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 			}
 			if tc.eof { // nolint:scopelint
 				for _, streamItem := range tc.stream { // nolint:scopelint
-					calls = append(calls, stream1.EXPECT().RecvMsg(gomock.Any()).Do(retMsg(streamItem)))
+					calls = append(calls, stream1.EXPECT().RecvMsg(gomock.Any()).Do(mock_rpc.RetMsg(streamItem)))
 				}
 				calls = append(calls, stream1.EXPECT().
 					RecvMsg(gomock.Any()).
@@ -185,10 +184,10 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 			} else {
 				for i := 0; i < len(tc.stream)-1; i++ { // nolint:scopelint
 					streamItem := tc.stream[i] // nolint:scopelint
-					calls = append(calls, stream1.EXPECT().RecvMsg(gomock.Any()).Do(retMsg(streamItem)))
+					calls = append(calls, stream1.EXPECT().RecvMsg(gomock.Any()).Do(mock_rpc.RetMsg(streamItem)))
 				}
 				calls = append(calls, stream1.EXPECT().RecvMsg(gomock.Any()).DoAndReturn(func(msg interface{}) error {
-					setMsg(msg, tc.stream[len(tc.stream)-1]) // nolint:scopelint
+					mock_rpc.SetMsg(msg, tc.stream[len(tc.stream)-1]) // nolint:scopelint
 					cancel()
 					return nil
 				}))
@@ -206,17 +205,4 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
-}
-
-func retMsg(value interface{}) func(interface{}) {
-	return func(msg interface{}) {
-		setMsg(msg, value)
-	}
-}
-
-// setMsg sets msg to value.
-// msg must be a pointer. i.e. *blaProtoMsgType
-// value must of the same type as msg.
-func setMsg(msg, value interface{}) {
-	reflect.ValueOf(msg).Elem().Set(reflect.ValueOf(value).Elem())
 }

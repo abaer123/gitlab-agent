@@ -5,9 +5,11 @@ import (
 	"fmt"
 
 	"github.com/ash2k/stager"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc"
+	agent_configuration_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc"
+	gitlab_access_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
@@ -20,41 +22,52 @@ type Agent struct {
 	AgentMeta            *modshared.AgentMeta
 	KasConn              grpc.ClientConnInterface
 	K8sClientGetter      resource.RESTClientGetter
-	ConfigurationWatcher rpc.ConfigurationWatcherInterface
+	ConfigurationWatcher agent_configuration_rpc.ConfigurationWatcherInterface
+	GitlabAccessClient   gitlab_access_rpc.GitlabAccessClient
 	ModuleFactories      []modagent.Factory
 }
 
 func (a *Agent) Run(ctx context.Context) error {
 	st := stager.New()
 	// A stage to start all modules.
-	modules := a.startModules(st)
+	modules, err := a.startModules(st)
+	if err != nil {
+		return err
+	}
 	// Configuration refresh stage. Starts after all modules and stops before all modules are stopped.
 	a.startConfigurationRefresh(st, modules)
 	return st.Run(ctx)
 }
 
-func (a *Agent) startModules(st stager.Stager) []modagent.Module {
-	cfg := &modagent.Config{
-		Log:             a.Log,
-		AgentMeta:       a.AgentMeta,
-		Api:             &api{},
-		K8sClientGetter: a.K8sClientGetter,
-		KasConn:         a.KasConn,
+func (a *Agent) startModules(st stager.Stager) ([]modagent.Module, error) {
+	sv, err := grpctool.NewStreamVisitor(&gitlab_access_rpc.Response{})
+	if err != nil {
+		return nil, err
 	}
 	stage := st.NextStage()
 	modules := make([]modagent.Module, 0, len(a.ModuleFactories))
 	for _, factory := range a.ModuleFactories {
-		module := factory.New(cfg)
+		module := factory.New(&modagent.Config{
+			Log:       a.Log,
+			AgentMeta: a.AgentMeta,
+			Api: &api{
+				ModuleName:      factory.Name(),
+				Client:          a.GitlabAccessClient,
+				ResponseVisitor: sv,
+			},
+			K8sClientGetter: a.K8sClientGetter,
+			KasConn:         a.KasConn,
+		})
 		modules = append(modules, module)
 		stage.Go(module.Run)
 	}
-	return modules
+	return modules, nil
 }
 
 func (a *Agent) startConfigurationRefresh(st stager.Stager, modules []modagent.Module) {
 	stage := st.NextStage()
 	stage.Go(func(ctx context.Context) error {
-		a.ConfigurationWatcher.Watch(ctx, func(ctx context.Context, data rpc.ConfigurationData) {
+		a.ConfigurationWatcher.Watch(ctx, func(ctx context.Context, data agent_configuration_rpc.ConfigurationData) {
 			err := a.applyConfiguration(modules, data.CommitId, data.Config)
 			if err != nil {
 				a.Log.Error("Failed to apply configuration", logz.CommitId(data.CommitId), zap.Error(err))

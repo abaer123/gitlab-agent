@@ -14,7 +14,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_internalgitaly"
@@ -23,7 +22,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"go.uber.org/zap/zaptest"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"sigs.k8s.io/yaml"
 )
@@ -36,9 +34,10 @@ const (
 )
 
 var (
-	_ modserver.Module        = &module{}
-	_ modserver.Factory       = &Factory{}
-	_ modserver.ApplyDefaults = ApplyDefaults
+	_ modserver.Module             = &module{}
+	_ modserver.Factory            = &Factory{}
+	_ modserver.ApplyDefaults      = ApplyDefaults
+	_ rpc.AgentConfigurationServer = &module{}
 )
 
 func TestYAMLToConfigurationAndBack(t *testing.T) {
@@ -98,7 +97,7 @@ func TestGetConfiguration(t *testing.T) {
 	resp := mock_rpc.NewMockAgentConfiguration_GetConfigurationServer(ctrl)
 	resp.EXPECT().
 		Context().
-		Return(incomingCtx(ctx, t)).
+		Return(mock_modserver.IncomingCtx(ctx, t, mock_gitlab.AgentkToken)).
 		MinTimes(1)
 	resp.EXPECT().
 		Send(matcher.ProtoEq(t, &rpc.ConfigurationResponse{
@@ -144,7 +143,7 @@ func TestGetConfigurationResumeConnection(t *testing.T) {
 	resp := mock_rpc.NewMockAgentConfiguration_GetConfigurationServer(ctrl)
 	resp.EXPECT().
 		Context().
-		Return(incomingCtx(ctx, t)).
+		Return(mock_modserver.IncomingCtx(ctx, t, mock_gitlab.AgentkToken)).
 		MinTimes(1)
 	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 	gomock.InOrder(
@@ -200,16 +199,6 @@ func sampleConfig() *agentcfg.ConfigurationFile {
 			},
 		},
 	}
-}
-
-func incomingCtx(ctx context.Context, t *testing.T) context.Context {
-	creds := grpctool.NewTokenCredentials(mock_gitlab.AgentkToken, false)
-	meta, err := creds.GetRequestMetadata(context.Background())
-	require.NoError(t, err)
-	ctx = metadata.NewIncomingContext(ctx, metadata.New(meta))
-	agentMeta, err := grpctool.AgentMDFromRawContext(ctx)
-	require.NoError(t, err)
-	return api.InjectAgentMD(ctx, agentMeta)
 }
 
 func agentInfoObj() *api.AgentInfo {

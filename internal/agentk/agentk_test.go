@@ -53,6 +53,9 @@ func TestConfigurationIsApplied(t *testing.T) {
 	)
 	gomock.InOrder(
 		f.EXPECT().
+			Name().
+			Return("name"),
+		f.EXPECT().
 			New(gomock.Any()).
 			Return(m),
 		watcher.EXPECT().

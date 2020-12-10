@@ -29,6 +29,7 @@ require (
 	gitlab.com/gitlab-org/gitaly v1.87.1-0.20201117220727-89c1ee804f27
 	gitlab.com/gitlab-org/labkit v1.0.0
 	go.uber.org/zap v1.16.0
+	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	golang.org/x/tools v0.0.0-20201017001424-6003fad69a88
 	google.golang.org/api v0.34.0
