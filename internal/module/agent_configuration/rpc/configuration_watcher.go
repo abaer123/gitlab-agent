@@ -6,6 +6,7 @@ import (
 	"io"
 	"time"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
@@ -26,6 +27,7 @@ type ConfigurationWatcherInterface interface {
 
 type ConfigurationWatcher struct {
 	Log         *zap.Logger
+	AgentMeta   *modshared.AgentMeta
 	Client      AgentConfigurationClient
 	RetryPeriod time.Duration
 }
@@ -36,7 +38,8 @@ func (w *ConfigurationWatcher) Watch(ctx context.Context, callback Configuration
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel() // ensure streaming call is canceled
 		req := &ConfigurationRequest{
-			CommitId: lastProcessedCommitId,
+			CommitId:  lastProcessedCommitId,
+			AgentMeta: w.AgentMeta,
 		}
 		res, err := w.Client.GetConfiguration(ctx, req)
 		if err != nil {
