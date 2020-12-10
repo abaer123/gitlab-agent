@@ -7,6 +7,7 @@ package rpc;
 option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc";
 
 import "pkg/agentcfg/agentcfg.proto";
+import "internal/module/modshared/shared.proto";
 
 message ConfigurationRequest {
   // Last processed commit id. Optional.
@@ -14,6 +15,8 @@ message ConfigurationRequest {
   // is a different one. If a connection breaks, this allows to resume
   // the stream without sending the same data again.
   string commit_id = 1;
+  // Information about the agent.
+  modshared.AgentMeta agent_meta = 2;
 }
 
 message ConfigurationResponse {

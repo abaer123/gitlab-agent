@@ -8,7 +8,10 @@ proto_library(
     srcs = ["rpc.proto"],
     tags = ["manual"],
     visibility = ["//visibility:public"],
-    deps = ["//pkg/agentcfg:agentcfg_proto"],
+    deps = [
+        "//internal/module/modshared:shared_proto",
+        "//pkg/agentcfg:agentcfg_proto",
+    ],
 )
 
 go_grpc_compile(
@@ -33,6 +36,7 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc",
     visibility = ["//:__subpackages__"],
     deps = [
+        "//internal/module/modshared",
         "//internal/tool/grpctool",
         "//internal/tool/retry",
         "//pkg/agentcfg",

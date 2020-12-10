@@ -90,6 +90,7 @@ func (a *App) Run(ctx context.Context) error {
 		K8sClientGetter: a.K8sClientGetter,
 		ConfigurationWatcher: &rpc.ConfigurationWatcher{
 			Log:         a.Log,
+			AgentMeta:   a.AgentMeta,
 			Client:      rpc.NewAgentConfigurationClient(kasConn),
 			RetryPeriod: defaultRefreshConfigurationRetryPeriod,
 		},
