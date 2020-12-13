@@ -13,14 +13,15 @@ The easiest way to test the agent locally is to run `kas` and `agentk` yourself.
 
 First you need to setup two files:
 
-1. `cfg.yaml`. This is easiest to copy off the example [`kas_config_example.yaml`](kas_config_example.yaml).
+1. `cfg.yaml`.
    For reference, here's an example file:
 
    ```yaml
-   listen_agent:
-     network: tcp
-     address: 127.0.0.1:8150
-     websocket: false
+   agent:
+     listen:
+       network: tcp
+       address: 127.0.0.1:8150
+       websocket: false
    gitlab:
      address: http://localhost:3000
      authentication_secret_file: /Users/tkuah/code/ee-gdk/gitlab/.gitlab_kas_secret
