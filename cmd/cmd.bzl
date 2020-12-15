@@ -94,7 +94,7 @@ def define_command_targets(name, binary_embed):
         format = "Docker",
         image = ":container",
         registry = "registry.gitlab.com",
-        repository = "gitlab-org/cluster-integration/gitlab-agent/%s" % name,
+        repository = "{STABLE_CONTAINER_REPOSITORY_PATH}/%s" % name,
         tag = "{STABLE_BUILD_GIT_TAG}",
         tags = ["manual"],
     )
@@ -104,7 +104,7 @@ def define_command_targets(name, binary_embed):
         format = "Docker",
         image = ":container_race",
         registry = "registry.gitlab.com",
-        repository = "gitlab-org/cluster-integration/gitlab-agent/%s" % name,
+        repository = "{STABLE_CONTAINER_REPOSITORY_PATH}/%s" % name,
         tag = "{STABLE_BUILD_GIT_TAG}-race",
         tags = ["manual"],
     )
@@ -114,7 +114,7 @@ def define_command_targets(name, binary_embed):
         format = "Docker",
         image = ":container",
         registry = "registry.gitlab.com",
-        repository = "gitlab-org/cluster-integration/gitlab-agent/%s" % name,
+        repository="{STABLE_CONTAINER_REPOSITORY_PATH}/%s" % name,
         tag = "{STABLE_BUILD_GIT_COMMIT}",
         tags = ["manual"],
     )
@@ -124,7 +124,7 @@ def define_command_targets(name, binary_embed):
         format = "Docker",
         image = ":container_race",
         registry = "registry.gitlab.com",
-        repository = "gitlab-org/cluster-integration/gitlab-agent/%s" % name,
+        repository="{STABLE_CONTAINER_REPOSITORY_PATH}/%s" % name,
         tag = "{STABLE_BUILD_GIT_COMMIT}-race",
         tags = ["manual"],
     )
@@ -134,7 +134,7 @@ def define_command_targets(name, binary_embed):
         format = "Docker",
         image = ":container",
         registry = "registry.gitlab.com",
-        repository = "gitlab-org/cluster-integration/gitlab-agent/%s" % name,
+        repository="{STABLE_CONTAINER_REPOSITORY_PATH}/%s" % name,
         tag = "latest",
         tags = ["manual"],
     )
@@ -144,7 +144,7 @@ def define_command_targets(name, binary_embed):
         format = "Docker",
         image = ":container_race",
         registry = "registry.gitlab.com",
-        repository = "gitlab-org/cluster-integration/gitlab-agent/%s" % name,
+        repository="{STABLE_CONTAINER_REPOSITORY_PATH}/%s" % name,
         tag = "latest-race",
         tags = ["manual"],
     )
