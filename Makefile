@@ -208,11 +208,20 @@ gdk-install:
 	bazel run //build:extract_race_binaries_for_gdk -- "$(TARGET_DIRECTORY)"
 
 # Set TARGET_DIRECTORY variable to the target directory before running this target
-GIT_COMMIT = $(shell git rev-parse --short HEAD)
-GIT_TAG = $(shell git tag --points-at HEAD 2>/dev/null || true)
-ifeq ($(GIT_TAG), )
-	GIT_TAG = "v0.0.0"
+
+GIT_COMMIT = ${KAS_GIT_COMMIT}
+ifeq ($(GIT_COMMIT), )
+	GIT_COMMIT = $(shell git rev-parse --short HEAD)
 endif
+
+GIT_TAG = ${KAS_GIT_TAG}
+ifeq ($(GIT_TAG), )
+	GIT_TAG = $(shell git tag --points-at HEAD 2>/dev/null || true)
+	ifeq ($(GIT_TAG), )
+		GIT_TAG = "v0.0.0"
+	endif
+endif
+
 .PHONY: kas
 kas:
 	go build \
