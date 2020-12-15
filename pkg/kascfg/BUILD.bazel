@@ -46,6 +46,7 @@ go_library(
     srcs = [
         "kascfg.pb.go",
         "kascfg.pb.validate.go",
+        "kascfg_extra.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg",
     visibility = ["//visibility:public"],

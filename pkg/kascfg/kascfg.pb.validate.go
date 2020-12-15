@@ -766,10 +766,30 @@ func (m *AgentCF) Validate() error {
 
 	}
 
-	if v, ok := interface{}(m.GetLimits()).(interface{ Validate() error }); ok {
+	if v, ok := interface{}(m.GetRedisConnInfoTtl()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return AgentCFValidationError{
-				field:  "Limits",
+				field:  "RedisConnInfoTtl",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetRedisConnInfoRefresh()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return AgentCFValidationError{
+				field:  "RedisConnInfoRefresh",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetRedisConnInfoGc()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return AgentCFValidationError{
+				field:  "RedisConnInfoGc",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -1534,6 +1554,8 @@ func (m *RedisCF) Validate() error {
 
 	// no validation rules for SentinelMaster
 
+	// no validation rules for KeyPrefix
+
 	return nil
 }
 
@@ -1590,73 +1612,6 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = RedisCFValidationError{}
-
-// Validate checks the field values on AgentLimitsCF with the rules defined in
-// the proto definition for this message. If any rules are violated, an error
-// is returned.
-func (m *AgentLimitsCF) Validate() error {
-	if m == nil {
-		return nil
-	}
-
-	// no validation rules for RedisKeyPrefix
-
-	return nil
-}
-
-// AgentLimitsCFValidationError is the validation error returned by
-// AgentLimitsCF.Validate if the designated constraints aren't met.
-type AgentLimitsCFValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e AgentLimitsCFValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e AgentLimitsCFValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e AgentLimitsCFValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e AgentLimitsCFValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e AgentLimitsCFValidationError) ErrorName() string { return "AgentLimitsCFValidationError" }
-
-// Error satisfies the builtin error interface
-func (e AgentLimitsCFValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sAgentLimitsCF.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = AgentLimitsCFValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = AgentLimitsCFValidationError{}
 
 // Validate checks the field values on ConfigurationFile with the rules defined
 // in the proto definition for this message. If any rules are violated, an

@@ -17,6 +17,12 @@ func Int63n(n int64) int64 {
 	return r.Int63n(n)
 }
 
+func Int63() int64 {
+	mu.Lock()
+	defer mu.Unlock()
+	return r.Int63()
+}
+
 // DurationWithJitter returns d with an added jitter between +/- jitterPercent% of the value.
 func DurationWithJitter(d time.Duration, jitterPercent int64) time.Duration {
 	r := (int64(d) * jitterPercent) / 100

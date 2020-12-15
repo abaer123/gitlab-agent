@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ash2k/stager"
+	redigo "github.com/gomodule/redigo/redis"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/opentracing/opentracing-go"
@@ -20,6 +21,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/kas"
 	agent_configuration_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/server"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_tracker"
 	gitlab_access_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/server"
 	gitops_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/server"
 	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/google_profiler/server"
@@ -84,7 +86,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 	defer closer.Close() // nolint: errcheck
 
 	// GitLab REST client
-	gitLabClient, err := a.gitLabClient(tracer)
+	gitLabClient, err := a.constructGitLabClient(tracer)
 	if err != nil {
 		return err
 	}
@@ -93,6 +95,12 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 	errTracker, err := a.constructErrorTracker()
 	if err != nil {
 		return fmt.Errorf("error tracker: %v", err)
+	}
+
+	// Redis
+	redisPool, err := a.constructRedisPool()
+	if err != nil {
+		return err
 	}
 
 	// gRPC listener
@@ -116,11 +124,17 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 		lis = wsWrapper.Wrap(lis)
 	}
 
-	gitalyClientPool := constructGitalyPool(cfg.Gitaly, csh, tracer)
+	// Gitaly client
+	gitalyClientPool := a.constructGitalyPool(csh, tracer)
 	defer gitalyClientPool.Close() // nolint: errcheck
 
+	// Usage tracker
 	usageTracker := usage_metrics.NewUsageTracker()
 
+	// Agent tracker
+	agentTracker := a.constructAgentTracker(redisPool)
+
+	// Interceptors
 	interceptorsCtx, interceptorsCancel := context.WithCancel(context.Background())
 	defer interceptorsCancel()
 
@@ -139,36 +153,12 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)),
 	}
-	if cfg.Redis != nil {
-		redisCfg := &redis.Config{
-			// Url is parsed below
-			Password:       cfg.Redis.Password,
-			MaxIdle:        int32(cfg.Redis.MaxIdle),
-			MaxActive:      int32(cfg.Redis.MaxActive),
-			ReadTimeout:    cfg.Redis.ReadTimeout.AsDuration(),
-			WriteTimeout:   cfg.Redis.WriteTimeout.AsDuration(),
-			KeepAlive:      cfg.Redis.Keepalive.AsDuration(),
-			SentinelMaster: cfg.Redis.SentinelMaster,
-			// Sentinels is parsed below
-		}
-		if cfg.Redis.Url != "" {
-			redisCfg.URL, err = url.Parse(cfg.Redis.Url)
-			if err != nil {
-				return fmt.Errorf("kas.redis.NewPool: redis.url is not a valid URL: %v", err)
-			}
-		}
-		for i, addr := range cfg.Redis.Sentinels {
-			u, err := url.Parse(addr)
-			if err != nil {
-				return fmt.Errorf("kas.redis.NewPool: redis.sentinels[%d] is not a valid URL: %v", i, err)
-			}
-			redisCfg.Sentinels = append(redisCfg.Sentinels, u)
-		}
-		redisPool := redis.NewPool(redisCfg)
+
+	if redisPool != nil {
 		agentConnectionLimiter := redis.NewTokenLimiter(
 			a.Log,
 			redisPool,
-			cfg.Agent.Limits.RedisKeyPrefix,
+			cfg.Redis.KeyPrefix+":agent_limit",
 			uint64(cfg.Agent.Listen.ConnectionsPerTokenPerMinute),
 			func(ctx context.Context) string { return string(api.AgentTokenFromContext(ctx)) },
 		)
@@ -220,7 +210,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 			Gatherer: gatherer,
 		},
 		&google_profiler_server.Factory{},
-		&agent_configuration_server.Factory{},
+		&agent_configuration_server.Factory{
+			AgentTracker: agentTracker,
+		},
 		&gitops_server.Factory{},
 		&usage_metrics_server.Factory{
 			UsageTracker: usageTracker,
@@ -250,7 +242,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 
 	// Start things up
 	st := stager.New()
-	stage := st.NextStage() // modules stage
+	stage := st.NextStage() // agent tracker stage
+	stage.Go(agentTracker.Run)
+	stage = st.NextStage() // modules stage
 	for _, factory := range factories {
 		module := factory.New(modconfig)
 		stage.Go(func(ctx context.Context) error {
@@ -278,10 +272,25 @@ func kasUserAgent() string {
 	return fmt.Sprintf("gitlab-kas/%s/%s", cmd.Version, cmd.Commit)
 }
 
+func (a *ConfiguredApp) constructAgentTracker(redisPool *redigo.Pool) agent_tracker.Tracker {
+	if redisPool == nil {
+		return nopAgentTracker{}
+	}
+	cfg := a.Configuration
+	return agent_tracker.NewRedisTracker(
+		a.Log,
+		redisPool,
+		cfg.Redis.KeyPrefix+":agent_tracker",
+		cfg.Agent.RedisConnInfoTtl.AsDuration(),
+		cfg.Agent.RedisConnInfoRefresh.AsDuration(),
+		cfg.Agent.RedisConnInfoGc.AsDuration(),
+	)
+}
+
 func (a *ConfiguredApp) constructErrorTracker() (errortracking.Tracker, error) {
 	s := a.Configuration.Observability.Sentry
 	if s.Dsn == "" {
-		return nopTracker{}, nil
+		return nopErrTracker{}, nil
 	}
 	a.Log.Debug("Initializing Sentry error tracking", logz.SentryDSN(s.Dsn), logz.SentryEnv(s.Environment))
 	tracker, err := errortracking.NewTracker(
@@ -312,7 +321,7 @@ func (a *ConfiguredApp) loadAuthSecret() ([]byte, error) {
 	return decodedAuthSecret, nil
 }
 
-func (a *ConfiguredApp) gitLabClient(tracer opentracing.Tracer) (*gitlab.Client, error) {
+func (a *ConfiguredApp) constructGitLabClient(tracer opentracing.Tracer) (*gitlab.Client, error) {
 	cfg := a.Configuration
 
 	gitLabUrl, err := url.Parse(cfg.Gitlab.Address)
@@ -344,7 +353,8 @@ func (a *ConfiguredApp) gitLabClient(tracer opentracing.Tracer) (*gitlab.Client,
 	), nil
 }
 
-func constructGitalyPool(g *kascfg.GitalyCF, csh stats.Handler, tracer opentracing.Tracer) *client.Pool {
+func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tracer opentracing.Tracer) *client.Pool {
+	g := a.Configuration.Gitaly
 	globalGitalyRpcLimiter := rate.NewLimiter(
 		rate.Limit(g.GlobalApiRateLimit.RefillRatePerSecond),
 		int(g.GlobalApiRateLimit.BucketSize),
@@ -382,9 +392,62 @@ func constructGitalyPool(g *kascfg.GitalyCF, csh stats.Handler, tracer opentraci
 	)
 }
 
-// nopTracker is the state of the art error tracking facility.
-type nopTracker struct {
+func (a *ConfiguredApp) constructRedisPool() (*redigo.Pool, error) {
+	cfg := a.Configuration.Redis
+	if cfg == nil {
+		return nil, nil
+	}
+	redisCfg := &redis.Config{
+		// Url is parsed below
+		Password:       cfg.Password,
+		MaxIdle:        int32(cfg.MaxIdle),
+		MaxActive:      int32(cfg.MaxActive),
+		ReadTimeout:    cfg.ReadTimeout.AsDuration(),
+		WriteTimeout:   cfg.WriteTimeout.AsDuration(),
+		KeepAlive:      cfg.Keepalive.AsDuration(),
+		SentinelMaster: cfg.SentinelMaster,
+		// Sentinels is parsed below
+	}
+	if cfg.Url != "" {
+		var err error
+		redisCfg.URL, err = url.Parse(cfg.Url)
+		if err != nil {
+			return nil, fmt.Errorf("kas.redis.NewPool: redis.url is not a valid URL: %v", err)
+		}
+	}
+	for i, addr := range cfg.Sentinels {
+		u, err := url.Parse(addr)
+		if err != nil {
+			return nil, fmt.Errorf("kas.redis.NewPool: redis.sentinels[%d] is not a valid URL: %v", i, err)
+		}
+		redisCfg.Sentinels = append(redisCfg.Sentinels, u)
+	}
+	return redis.NewPool(redisCfg), nil
 }
 
-func (n nopTracker) Capture(err error, opts ...errortracking.CaptureOption) {
+var (
+	_ errortracking.Tracker = nopErrTracker{}
+	_ agent_tracker.Tracker = nopAgentTracker{}
+)
+
+// nopErrTracker is the state of the art error tracking facility.
+type nopErrTracker struct {
+}
+
+func (n nopErrTracker) Capture(err error, opts ...errortracking.CaptureOption) {
+}
+
+type nopAgentTracker struct {
+}
+
+func (n nopAgentTracker) Run(ctx context.Context) error {
+	return nil
+}
+
+func (n nopAgentTracker) RegisterConnection(ctx context.Context, info *agent_tracker.ConnectedAgentInfo) bool {
+	return true
+}
+
+func (n nopAgentTracker) UnregisterConnection(ctx context.Context, info *agent_tracker.ConnectedAgentInfo) bool {
+	return true
 }

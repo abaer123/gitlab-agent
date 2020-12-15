@@ -22,8 +22,10 @@ var (
 // - are v2 protobuf messages (i.e. implement "google.golang.org/protobuf/proto".Message).
 // - have fields of the above types.
 // See https://blog.golang.org/protobuf-apiv2 for v1 vs v2 details.
-func ProtoEq(t *testing.T, msg interface{}) gomock.Matcher {
-	return Cmp(t, msg, protocmp.Transform())
+func ProtoEq(t *testing.T, msg interface{}, opts ...cmp.Option) gomock.Matcher {
+	o := []cmp.Option{protocmp.Transform()}
+	o = append(o, opts...)
+	return Cmp(t, msg, o...)
 }
 
 func ErrorEq(expectedError string) gomock.Matcher {

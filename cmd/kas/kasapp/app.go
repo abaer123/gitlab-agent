@@ -21,11 +21,15 @@ type App struct {
 }
 
 func (a *App) Run(ctx context.Context) error {
-	cfg, err := a.maybeLoadConfigurationFile()
+	cfg, err := LoadConfigurationFile(a.ConfigurationFile)
 	if err != nil {
 		return err
 	}
 	ApplyDefaultsToKasConfigurationFile(cfg)
+	err = cfg.ValidateExtra()
+	if err != nil {
+		return fmt.Errorf("kascfg.ValidateExtra: %v", err)
+	}
 	logger, err := loggerFromConfig(cfg.Observability.Logging)
 	if err != nil {
 		return err
@@ -38,13 +42,6 @@ func (a *App) Run(ctx context.Context) error {
 		Configuration: cfg,
 	}
 	return app.Run(ctx)
-}
-
-func (a *App) maybeLoadConfigurationFile() (*kascfg.ConfigurationFile, error) {
-	if a.ConfigurationFile == "" {
-		return &kascfg.ConfigurationFile{}, nil
-	}
-	return LoadConfigurationFile(a.ConfigurationFile)
 }
 
 func LoadConfigurationFile(configFile string) (*kascfg.ConfigurationFile, error) {

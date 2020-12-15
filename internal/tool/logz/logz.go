@@ -40,10 +40,6 @@ func NetNetwork(listenNetwork string) zap.Field {
 	return zap.String("net_network", listenNetwork)
 }
 
-func UrlPath(urlPath string) zap.Field {
-	return zap.String("url_path", urlPath)
-}
-
 func IsWebSocket(isWebSocket bool) zap.Field {
 	return zap.Bool("is_websocket", isWebSocket)
 }
@@ -97,6 +93,10 @@ func U64Count(count uint64) zap.Field {
 // Use for any integer counters.
 func TokenLimit(limit uint64) zap.Field {
 	return zap.Uint64("token_limit", limit)
+}
+
+func RemovedAgentConnectionRecords(n int) zap.Field {
+	return zap.Int("removed_agent_connection_records", n)
 }
 
 // This should be in https://gitlab.com/gitlab-org/labkit/-/blob/master/mask/url.go
