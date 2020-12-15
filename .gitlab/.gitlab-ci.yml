@@ -31,10 +31,13 @@ stages:
     - echo "build --verbose_failures" >> .bazelrc
     - echo "build --curses=no" >> .bazelrc
     - echo "build --show_timestamps" >> .bazelrc
-    - echo "build --google_default_credentials" >> .bazelrc
-    - echo "build --remote_cache=https://storage.googleapis.com/gitlab-kubernetes-test-bucket/$BUILD_IMAGE_SHA" >> .bazelrc
-    - echo "build --remote_download_minimal" >> .bazelrc
-    - echo "run --remote_download_outputs=toplevel" >> .bazelrc
+    - |
+      if [[ -f "$GOOGLE_APPLICATION_CREDENTIALS" ]]; then
+        echo "build --google_default_credentials" >> .bazelrc
+        echo "build --remote_cache=https://storage.googleapis.com/gitlab-kubernetes-test-bucket/$BUILD_IMAGE_SHA" >> .bazelrc
+        echo "build --remote_download_minimal" >> .bazelrc
+        echo "run --remote_download_outputs=toplevel" >> .bazelrc
+      fi
     - echo "test --test_output=all" >> .bazelrc
     - echo "test --test_arg=-test.v" >> .bazelrc
   #    - echo "build --sandbox_base=/dev/shm" >> .bazelrc # disabled because it's not big enough
@@ -138,7 +141,7 @@ container_scanning_kas:
   stage: test
   image: $SECURE_ANALYZERS_PREFIX/klar:$CS_MAJOR_VERSION
   variables:
-    CI_APPLICATION_REPOSITORY: registry.gitlab.com/gitlab-org/cluster-integration/gitlab-agent/kas
+    CI_APPLICATION_REPOSITORY: "$CI_REGISTRY_IMAGE/kas"
     CI_APPLICATION_TAG: latest
     # By default, use the latest clair vulnerabilities database, however, allow it to be overridden here with a specific image
     # to enable container scanning to run offline, or to provide a consistent list of vulnerabilities for integration testing purposes
@@ -170,7 +173,7 @@ container_scanning_agentk:
   stage: test
   image: $SECURE_ANALYZERS_PREFIX/klar:$CS_MAJOR_VERSION
   variables:
-    CI_APPLICATION_REPOSITORY: registry.gitlab.com/gitlab-org/cluster-integration/gitlab-agent/agentk
+    CI_APPLICATION_REPOSITORY: "$CI_REGISTRY_IMAGE/agentk"
     CI_APPLICATION_TAG: latest
     # By default, use the latest clair vulnerabilities database, however, allow it to be overridden here with a specific image
     # to enable container scanning to run offline, or to provide a consistent list of vulnerabilities for integration testing purposes
