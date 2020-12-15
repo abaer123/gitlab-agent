@@ -164,5 +164,5 @@ func TestStreamVisitorNumberOutOfOneof(t *testing.T) {
 
 func TestStreamVisitorNotAllFieldsReachable(t *testing.T) {
 	_, err := grpctool.NewStreamVisitor(&test.NotAllReachable{})
-	require.EqualError(t, err, "not all oneof test.NotAllReachable.message fields are reachable")
+	require.EqualError(t, err, "unreachable fields in oneof test.NotAllReachable.message: [1 2]")
 }

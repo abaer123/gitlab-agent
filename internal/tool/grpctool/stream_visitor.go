@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"sort"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/automata"
 	"google.golang.org/protobuf/proto"
@@ -118,7 +119,6 @@ func allowedTransitionsForOneof(oneof protoreflect.OneofDescriptor) (map[protore
 	fields := oneof.Fields()
 	l := fields.Len()
 	res := make(map[protoreflect.FieldNumber][]protoreflect.FieldNumber, l)
-	reachable := make(map[protoreflect.FieldNumber]struct{}, l)
 	for i := 0; i < l; i++ { // iterate fields of oneof
 		field := fields.Get(i)
 		options := field.Options().(*descriptorpb.FieldOptions)
@@ -131,12 +131,6 @@ func allowedTransitionsForOneof(oneof protoreflect.OneofDescriptor) (map[protore
 			return nil, err
 		}
 		res[field.Number()] = allowed
-		for _, n := range allowed {
-			reachable[n] = struct{}{}
-		}
-	}
-	if len(reachable) != l {
-		return nil, fmt.Errorf("not all oneof %s fields are reachable", oneof.FullName())
 	}
 	oneofOptions := oneof.Options().(*descriptorpb.OneofOptions)
 	firstAllowedFieldsInts := proto.GetExtension(oneofOptions, automata.E_FirstAllowedField).([]int32)
@@ -146,8 +140,45 @@ func allowedTransitionsForOneof(oneof protoreflect.OneofDescriptor) (map[protore
 	}
 	res[startState] = firstAllowedFieldsNumbers
 
+	unreachables := getUnreachableFields(startState, res)
+	if len(unreachables) > 0 {
+		return nil, fmt.Errorf("unreachable fields in oneof %s: %v", oneof.FullName(), unreachables)
+	}
+
 	return res, nil
 }
+
+func getUnreachableFields(root protoreflect.FieldNumber, graph map[protoreflect.FieldNumber][]protoreflect.FieldNumber) []protoreflect.FieldNumber {
+	stack := []protoreflect.FieldNumber{root}
+	remaining := make(map[protoreflect.FieldNumber]struct{}, len(graph))
+	for node := range graph {
+		remaining[node] = struct{}{}
+	}
+	delete(remaining, root)
+	// non-recursive DFS, removing nodes from remaining as they are visited
+	for len(stack) > 0 {
+		var node protoreflect.FieldNumber
+		node, stack = stack[len(stack)-1], stack[:len(stack)-1]
+		for _, child := range graph[node] {
+			if _, isRemaining := remaining[child]; isRemaining {
+				delete(remaining, child)
+				stack = append(stack, child)
+			}
+		}
+	}
+	result := make([]protoreflect.FieldNumber, 0, len(remaining))
+	for f := range remaining {
+		result = append(result, f)
+	}
+	sort.Sort(protoFieldNumbers(result)) // sort to ensure deterministic results
+	return result
+}
+
+// implement sort.Interface
+type protoFieldNumbers []protoreflect.FieldNumber
+func (p protoFieldNumbers) Len() int { return len(p) }
+func (p protoFieldNumbers) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
+func (p protoFieldNumbers) Less(i, j int) bool { return p[i] < p[j] }
 
 func intsToNumbers(oneofDescr protoreflect.OneofDescriptor, ints []int32) ([]protoreflect.FieldNumber, error) {
 	if len(ints) == 0 {

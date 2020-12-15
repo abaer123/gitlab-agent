@@ -79,9 +79,10 @@ message OutOfOneof {
 message NotAllReachable {
   oneof message {
 
-    option (automata.first_allowed_field) = 1;
+    option (automata.first_allowed_field) = 3;
 
-    int32 m1 = 1 [(automata.automata).next_allowed_field = -1];
-    int32 m2 = 2 [(automata.automata).next_allowed_field = -1];
+    int32 m1 = 1 [(automata.automata).next_allowed_field = 2];
+    int32 m2 = 2 [(automata.automata).next_allowed_field = 1];
+    int32 m3 = 3 [(automata.automata).next_allowed_field = -1];
   }
 }
