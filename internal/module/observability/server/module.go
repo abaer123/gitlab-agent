@@ -6,6 +6,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"go.uber.org/zap"
@@ -19,12 +20,12 @@ type module struct {
 	serverName string
 }
 
-func (m *module) Run(ctx context.Context) error {
+func (m *module) Run(ctx context.Context) (retErr error) {
 	lis, err := net.Listen(m.cfg.Listen.Network.String(), m.cfg.Listen.Address)
 	if err != nil {
 		return err
 	}
-	defer lis.Close() // nolint: errcheck
+	defer errz.SafeClose(lis, &retErr)
 
 	m.log.Info("Observability endpoint is up",
 		logz.NetNetworkFromAddr(lis.Addr()),

@@ -12,6 +12,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",
+        "//internal/tool/errz",
         "//internal/tool/httpz",
         "//internal/tool/tlstool",
         "//internal/tool/tracing",

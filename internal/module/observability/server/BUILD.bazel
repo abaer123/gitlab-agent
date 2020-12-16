@@ -13,6 +13,7 @@ go_library(
     deps = [
         "//internal/module/modserver",
         "//internal/module/observability",
+        "//internal/tool/errz",
         "//internal/tool/logz",
         "//internal/tool/process",
         "//internal/tool/protodefault",

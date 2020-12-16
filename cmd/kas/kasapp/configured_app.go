@@ -30,6 +30,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
 	usage_metrics_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/redis"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/metric"
@@ -61,7 +62,7 @@ type ConfiguredApp struct {
 	Configuration *kascfg.ConfigurationFile
 }
 
-func (a *ConfiguredApp) Run(ctx context.Context) error {
+func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Metrics
 	// TODO use an independent registry with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	// reg := prometheus.NewPedanticRegistry()
@@ -83,7 +84,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("tracing: %v", err)
 	}
-	defer closer.Close() // nolint: errcheck
+	defer errz.SafeClose(closer, &retErr)
 
 	// GitLab REST client
 	gitLabClient, err := a.constructGitLabClient(tracer)
@@ -103,12 +104,22 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 		return err
 	}
 
+	// Interceptors
+	interceptorsCtx, interceptorsCancel := context.WithCancel(context.Background())
+	defer interceptorsCancel()
+
+	// Agent API server
+	agentServer, err := a.constructAgentServer(interceptorsCtx, tracer, redisPool, ssh)
+	if err != nil {
+		return err
+	}
+
 	// gRPC listener
 	lis, err := net.Listen(cfg.Agent.Listen.Network.String(), cfg.Agent.Listen.Address)
 	if err != nil {
 		return err
 	}
-	defer lis.Close() // nolint: errcheck
+	defer errz.SafeClose(lis, &retErr)
 
 	a.Log.Info("Listening for agentk connections",
 		logz.NetNetworkFromAddr(lis.Addr()),
@@ -126,7 +137,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 
 	// Gitaly client
 	gitalyClientPool := a.constructGitalyPool(csh, tracer)
-	defer gitalyClientPool.Close() // nolint: errcheck
+	defer errz.SafeClose(gitalyClientPool, &retErr)
 
 	// Usage tracker
 	usageTracker := usage_metrics.NewUsageTracker()
@@ -134,10 +145,80 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 	// Agent tracker
 	agentTracker := a.constructAgentTracker(redisPool)
 
-	// Interceptors
-	interceptorsCtx, interceptorsCancel := context.WithCancel(context.Background())
-	defer interceptorsCancel()
+	// Module factories
+	factories := []modserver.Factory{
+		&observability_server.Factory{
+			Gatherer: gatherer,
+		},
+		&google_profiler_server.Factory{},
+		&agent_configuration_server.Factory{
+			AgentTracker: agentTracker,
+		},
+		&gitops_server.Factory{},
+		&usage_metrics_server.Factory{
+			UsageTracker: usageTracker,
+		},
+		&gitlab_access_server.Factory{},
+	}
 
+	// Configuration for modules
+	modconfig := &modserver.Config{
+		Log: a.Log,
+		Api: kas.NewAPI(kas.APIConfig{
+			GitLabClient:           gitLabClient,
+			ErrorTracker:           errTracker,
+			AgentInfoCacheTtl:      cfg.Agent.InfoCacheTtl.AsDuration(),
+			AgentInfoCacheErrorTtl: cfg.Agent.InfoCacheErrorTtl.AsDuration(),
+		}),
+		Config:       cfg,
+		GitLabClient: gitLabClient,
+		Registerer:   registerer,
+		UsageTracker: usageTracker,
+		AgentServer:  agentServer,
+		Gitaly: &gitaly.Pool{
+			ClientPool: gitalyClientPool,
+		},
+		KasName:  kasName,
+		Version:  cmd.Version,
+		CommitId: cmd.Commit,
+	}
+
+	// Start things up
+	st := stager.New()
+
+	// Agent tracker stage
+	stage := st.NextStage()
+	stage.Go(agentTracker.Run)
+
+	// Modules stage
+	stage = st.NextStage()
+	for _, factory := range factories {
+		module := factory.New(modconfig)
+		stage.Go(func(ctx context.Context) error {
+			err := module.Run(ctx)
+			if err != nil {
+				return fmt.Errorf("%s: %v", module.Name(), err)
+			}
+			return nil
+		})
+	}
+
+	// gRPC server stage
+	stage = st.NextStage()
+	stage.Go(func(ctx context.Context) error {
+		return agentServer.Serve(lis)
+	})
+	stage.Go(func(ctx context.Context) error {
+		<-ctx.Done() // can be cancelled because Serve() failed or main ctx was canceled or some stage failed
+		interceptorsCancel()
+		agentServer.GracefulStop()
+		return nil
+	})
+	return st.Run(ctx)
+}
+
+func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tracer opentracing.Tracer, redisPool redis.Pool, ssh stats.Handler) (*grpc.Server, error) {
+	cfg := a.Configuration
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
 		grpc_prometheus.StreamServerInterceptor,   // This one should be the first one to measure all invocations
@@ -195,81 +276,15 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 	case certFile != "" && keyFile != "":
 		config, err := tlstool.DefaultServerTLSConfig(certFile, keyFile)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		serverOpts = append(serverOpts, grpc.Creds(credentials.NewTLS(config)))
 	case certFile == "" && keyFile == "":
 	default:
-		return fmt.Errorf("both certificate_file (%s) and key_file (%s) must be either set or not set", certFile, keyFile)
+		return nil, fmt.Errorf("both certificate_file (%s) and key_file (%s) must be either set or not set", certFile, keyFile)
 	}
 
-	agentServer := grpc.NewServer(serverOpts...)
-
-	factories := []modserver.Factory{
-		&observability_server.Factory{
-			Gatherer: gatherer,
-		},
-		&google_profiler_server.Factory{},
-		&agent_configuration_server.Factory{
-			AgentTracker: agentTracker,
-		},
-		&gitops_server.Factory{},
-		&usage_metrics_server.Factory{
-			UsageTracker: usageTracker,
-		},
-		&gitlab_access_server.Factory{},
-	}
-	modconfig := &modserver.Config{
-		Log: a.Log,
-		Api: kas.NewAPI(kas.APIConfig{
-			GitLabClient:           gitLabClient,
-			ErrorTracker:           errTracker,
-			AgentInfoCacheTtl:      cfg.Agent.InfoCacheTtl.AsDuration(),
-			AgentInfoCacheErrorTtl: cfg.Agent.InfoCacheErrorTtl.AsDuration(),
-		}),
-		Config:       cfg,
-		GitLabClient: gitLabClient,
-		Registerer:   registerer,
-		UsageTracker: usageTracker,
-		AgentServer:  agentServer,
-		Gitaly: &gitaly.Pool{
-			ClientPool: gitalyClientPool,
-		},
-		KasName:  kasName,
-		Version:  cmd.Version,
-		CommitId: cmd.Commit,
-	}
-
-	// Start things up
-	st := stager.New()
-	stage := st.NextStage() // agent tracker stage
-	stage.Go(agentTracker.Run)
-	stage = st.NextStage() // modules stage
-	for _, factory := range factories {
-		module := factory.New(modconfig)
-		stage.Go(func(ctx context.Context) error {
-			err := module.Run(ctx)
-			if err != nil {
-				return fmt.Errorf("%s: %v", module.Name(), err)
-			}
-			return nil
-		})
-	}
-	stage = st.NextStage() // gRPC server stage
-	stage.Go(func(ctx context.Context) error {
-		return agentServer.Serve(lis)
-	})
-	stage.Go(func(ctx context.Context) error {
-		<-ctx.Done() // can be cancelled because Serve() failed or main ctx was canceled or some stage failed
-		interceptorsCancel()
-		agentServer.GracefulStop()
-		return nil
-	})
-	return st.Run(ctx)
-}
-
-func kasUserAgent() string {
-	return fmt.Sprintf("gitlab-kas/%s/%s", cmd.Version, cmd.Commit)
+	return grpc.NewServer(serverOpts...), nil
 }
 
 func (a *ConfiguredApp) constructAgentTracker(redisPool *redigo.Pool) agent_tracker.Tracker {
@@ -423,6 +438,10 @@ func (a *ConfiguredApp) constructRedisPool() (*redigo.Pool, error) {
 		redisCfg.Sentinels = append(redisCfg.Sentinels, u)
 	}
 	return redis.NewPool(redisCfg), nil
+}
+
+func kasUserAgent() string {
+	return fmt.Sprintf("gitlab-kas/%s/%s", cmd.Version, cmd.Commit)
 }
 
 var (

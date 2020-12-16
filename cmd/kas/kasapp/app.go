@@ -8,6 +8,7 @@ import (
 	"github.com/go-logr/zapr"
 	"github.com/spf13/pflag"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"go.uber.org/zap"
@@ -20,7 +21,7 @@ type App struct {
 	ConfigurationFile string
 }
 
-func (a *App) Run(ctx context.Context) error {
+func (a *App) Run(ctx context.Context) (retErr error) {
 	cfg, err := LoadConfigurationFile(a.ConfigurationFile)
 	if err != nil {
 		return err
@@ -34,7 +35,7 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer logger.Sync() // nolint: errcheck
+	defer errz.SafeCall(logger.Sync, &retErr)
 	// Kubernetes uses klog so here we pipe all logs from it to our logger via an adapter.
 	klog.SetLogger(zapr.NewLogger(logger))
 	app := ConfiguredApp{
