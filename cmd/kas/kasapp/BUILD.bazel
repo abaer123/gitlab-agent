@@ -25,6 +25,7 @@ go_library(
         "//internal/module/usage_metrics",
         "//internal/module/usage_metrics/server",
         "//internal/redis",
+        "//internal/tool/errz",
         "//internal/tool/grpctool",
         "//internal/tool/logz",
         "//internal/tool/metric",

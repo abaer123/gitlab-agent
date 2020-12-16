@@ -21,6 +21,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared"
 	observability_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/agent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/tlstool"
@@ -62,8 +63,8 @@ type App struct {
 	K8sClientGetter resource.RESTClientGetter
 }
 
-func (a *App) Run(ctx context.Context) error {
-	defer a.Log.Sync() // nolint: errcheck
+func (a *App) Run(ctx context.Context) (retErr error) {
+	defer errz.SafeCall(a.Log.Sync, &retErr)
 	// Kubernetes uses klog so here we pipe all logs from it to our logger via an adapter.
 	klog.SetLogger(zapr.NewLogger(a.Log))
 	restConfig, err := a.K8sClientGetter.ToRESTConfig()
@@ -82,7 +83,7 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer kasConn.Close() // nolint: errcheck
+	defer errz.SafeClose(kasConn, &retErr)
 	agent := agentk.Agent{
 		Log:             a.Log,
 		AgentMeta:       a.AgentMeta,

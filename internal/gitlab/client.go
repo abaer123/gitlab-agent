@@ -14,6 +14,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go/v4"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/tracing"
 	"gitlab.com/gitlab-org/labkit/correlation"
@@ -82,7 +83,7 @@ func NewClient(backend *url.URL, authSecret []byte, opts ...ClientOption) *Clien
 // body may be nil to avoid sending a request payload.
 // response may be nil to avoid sending an Accept header and ignore the response payload, if any.
 // query may be nil to avoid sending any URL query parameters.
-func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Values, agentToken api.AgentToken, body, response interface{}) error {
+func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Values, agentToken api.AgentToken, body, response interface{}) (retErr error) {
 	var bodyReader io.Reader
 	if body != nil {
 		bodyBytes, err := json.Marshal(body)
@@ -102,7 +103,7 @@ func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Valu
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close() // nolint: errcheck
+	defer errz.SafeClose(resp.Body, &retErr)
 	switch {
 	case resp.StatusCode == http.StatusOK:
 		if response == nil {

@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"io"
 	"time"
 
 	redigo "github.com/gomodule/redigo/redis"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/redis"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
@@ -322,7 +322,7 @@ func withConn(ctx context.Context, pool redis.Pool, f func(redigo.Conn) error) (
 	if err != nil {
 		return err
 	}
-	defer safeClose(conn, &retErr)
+	defer errz.SafeClose(conn, &retErr)
 	err = f(conn)
 	if err != nil {
 		return err
@@ -348,12 +348,5 @@ func removeFromMap(m map[int64]map[int64]infoHolder, key1, key2 int64) {
 	delete(nm, key2)
 	if len(nm) == 0 {
 		delete(m, key1)
-	}
-}
-
-func safeClose(toClose io.Closer, err *error) {
-	e := toClose.Close()
-	if *err == nil {
-		*err = e
 	}
 }

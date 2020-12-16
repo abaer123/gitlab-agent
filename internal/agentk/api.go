@@ -8,6 +8,7 @@ import (
 
 	gitlab_access_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
@@ -111,7 +112,7 @@ func (a *api) MakeGitLabRequest(ctx context.Context, path string, opts ...modage
 }
 
 func (a *api) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequestClient, path string, config *modagent.GitLabRequestConfig) (retErr error) {
-	defer safeClose(config.Body, &retErr)
+	defer errz.SafeClose(config.Body, &retErr)
 	err := client.Send(&gitlab_access_rpc.Request{
 		Message: &gitlab_access_rpc.Request_Headers_{
 			Headers: &gitlab_access_rpc.Request_Headers{
@@ -163,16 +164,6 @@ func (a *api) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequestClien
 		return fmt.Errorf("close request stream: %w", err) // wrap
 	}
 	return nil
-}
-
-func safeClose(toClose io.Closer, err *error) {
-	if toClose == nil {
-		return
-	}
-	e := toClose.Close()
-	if *err == nil {
-		*err = e
-	}
 }
 
 type cancelingReadCloser struct {

@@ -87,11 +87,11 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 		case h = <-headersMsg:
 		}
 		urlPath := urlPathForModules + url.PathEscape(h.ModuleName) + h.UrlPath
-		resp, err := m.gitLabClient.DoStream(ctx, h.Method, urlPath, h.ToHttpHeader(), h.ToUrlQuery(), agentToken, pr)
+		resp, err := m.gitLabClient.DoStream(ctx, h.Method, urlPath, h.ToHttpHeader(), h.ToUrlQuery(), agentToken, pr) // nolint:bodyclose
 		if err != nil {
 			return err
 		}
-		defer safeClose(resp.Body, &retErr)
+		defer errz.SafeClose(resp.Body, &retErr)
 
 		err = server.Send(&rpc.Response{
 			Message: &rpc.Response_Headers_{
@@ -158,11 +158,4 @@ func (m *module) Run(ctx context.Context) error {
 
 func (m *module) Name() string {
 	return gitlab_access.ModuleName
-}
-
-func safeClose(toClose io.Closer, err *error) {
-	e := toClose.Close()
-	if *err == nil {
-		*err = e
-	}
 }

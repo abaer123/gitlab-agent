@@ -30,6 +30,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
 	usage_metrics_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/redis"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/metric"
@@ -61,7 +62,7 @@ type ConfiguredApp struct {
 	Configuration *kascfg.ConfigurationFile
 }
 
-func (a *ConfiguredApp) Run(ctx context.Context) error {
+func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Metrics
 	// TODO use an independent registry with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	// reg := prometheus.NewPedanticRegistry()
@@ -83,7 +84,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("tracing: %v", err)
 	}
-	defer closer.Close() // nolint: errcheck
+	defer errz.SafeClose(closer, &retErr)
 
 	// GitLab REST client
 	gitLabClient, err := a.constructGitLabClient(tracer)
@@ -118,7 +119,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer lis.Close() // nolint: errcheck
+	defer errz.SafeClose(lis, &retErr)
 
 	a.Log.Info("Listening for agentk connections",
 		logz.NetNetworkFromAddr(lis.Addr()),
@@ -136,7 +137,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) error {
 
 	// Gitaly client
 	gitalyClientPool := a.constructGitalyPool(csh, tracer)
-	defer gitalyClientPool.Close() // nolint: errcheck
+	defer errz.SafeClose(gitalyClientPool, &retErr)
 
 	// Usage tracker
 	usageTracker := usage_metrics.NewUsageTracker()

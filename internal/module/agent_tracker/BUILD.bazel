@@ -39,6 +39,7 @@ go_library(
     deps = [
         "//internal/module/modshared",
         "//internal/redis",
+        "//internal/tool/errz",
         "//internal/tool/logz",
         "@com_github_golang_protobuf//proto",
         "@com_github_golang_protobuf//ptypes/any",
