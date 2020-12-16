@@ -7,7 +7,7 @@ package rpc;
 option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc";
 
 import "pkg/agentcfg/agentcfg.proto";
-import "internal/module/modshared/shared.proto";
+import "internal/module/modshared/modshared.proto";
 
 message ConfigurationRequest {
   // Last processed commit id. Optional.

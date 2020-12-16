@@ -4,28 +4,28 @@ load("@rules_proto_grpc//go:defs.bzl", "go_proto_compile")
 load("//build:build.bzl", "copy_to_workspace")
 
 proto_library(
-    name = "shared_proto",
-    srcs = ["shared.proto"],
+    name = "modshared_proto",
+    srcs = ["modshared.proto"],
     tags = ["manual"],
     visibility = ["//visibility:public"],
 )
 
 go_proto_compile(
-    name = "shared",
+    name = "proto",
     tags = ["manual"],
-    deps = [":shared_proto"],
+    deps = [":modshared_proto"],
 )
 
 copy_to_workspace(
     name = "extract_generated",
-    file_to_copy = "shared.pb.go",
-    label = ":shared",
+    file_to_copy = "modshared.pb.go",
+    label = ":proto",
     workspace_relative_target_directory = "internal/module/modshared",
 )
 
 go_library(
     name = "modshared",
-    srcs = ["shared.pb.go"],
+    srcs = ["modshared.pb.go"],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared",
     visibility = ["//:__subpackages__"],
     deps = [

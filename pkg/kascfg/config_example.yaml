@@ -30,8 +30,9 @@ agent:
     max_number_of_files: 1000
   info_cache_ttl: "300s"
   info_cache_error_ttl: "60s"
-  limits:
-    redis_key_prefix: kas:agent_limits
+  redis_conn_info_ttl: "300s"
+  redis_conn_info_refresh: "240s"
+  redis_conn_info_gc: "600s"
 observability:
   usage_reporting_period: "60s"
   listen:
@@ -71,3 +72,4 @@ gitaly:
 #   keepalive: "300s"
 #   # sentinel_master: my-master
 #   # sentinels: [ tcp://host-1, tcp://host-2]
+#   # key_prefix: gitlab-kas

@@ -129,8 +129,13 @@ message AgentCF {
   // TTL for failed agent info lookups.
   // /api/v4/internal/kubernetes/agent_info
   google.protobuf.Duration info_cache_error_ttl = 5 [json_name = "info_cache_error_ttl", (validate.rules).duration = {gt: {}}];
-  // Various limiter configurations
-  AgentLimitsCF limits = 6 [json_name = "limits"];
+  // TTL for information about connected agents, stored in Redis.
+  google.protobuf.Duration redis_conn_info_ttl = 7 [json_name = "redis_conn_info_ttl"];
+  // Refresh period for information about connected agents, stored in Redis.
+  google.protobuf.Duration redis_conn_info_refresh = 8 [json_name = "redis_conn_info_refresh"];
+  // Garbage collection period for information about connected agents, stored in Redis.
+  // If gitlab-kas crashes, another gitlab-kas instance will clean up stale data. This is how often this cleanup runs.
+  google.protobuf.Duration redis_conn_info_gc = 9 [json_name = "redis_conn_info_gc"];
 }
 
 message AgentConfigurationCF {
@@ -212,11 +217,8 @@ message RedisCF {
   string sentinel_master = 8 [json_name = "sentinel_master"];
   // The URLs for the sentinels
   repeated string sentinels = 9 [json_name = "sentinels"];
-}
-
-message AgentLimitsCF {
-  // Prefix to use for agent limit keys in redis
-  string redis_key_prefix = 1 [json_name = "redis_key_prefix"];
+  // Key prefix for everything gitlab-kas stores in Redis.
+  string key_prefix = 10 [json_name = "key_prefix"];
 }
 
 // ConfigurationFile represents kas configuration file.

@@ -18,14 +18,15 @@ const (
 	defaultGitLabApiRateLimitRefillRate = 10.0
 	defaultGitLabApiRateLimitBucketSize = 50
 
-	defaultAgentInfoCacheTTL      = 5 * time.Minute
-	defaultAgentInfoCacheErrorTTL = 1 * time.Minute
+	defaultAgentInfoCacheTTL         = 5 * time.Minute
+	defaultAgentInfoCacheErrorTTL    = 1 * time.Minute
+	defaultAgentRedisConnInfoTTL     = 5 * time.Minute
+	defaultAgentRedisConnInfoRefresh = 4 * time.Minute
+	defaultAgentRedisConnInfoGC      = 10 * time.Minute
 
 	defaultAgentListenAddress                      = "127.0.0.1:8150"
 	defaultAgentListenConnectionsPerTokenPerMinute = 100
 	defaultAgentListenMaxConnectionAge             = 30 * time.Minute
-
-	defaultAgentLimitsRedisKeyPrefix = "kas:agent_limits"
 
 	defaultGitalyGlobalApiRefillRate    = 10.0
 	defaultGitalyGlobalApiBucketSize    = 50
@@ -37,6 +38,7 @@ const (
 	defaultRedisReadTimeout  = 1 * time.Second
 	defaultRedisWriteTimeout = 1 * time.Second
 	defaultRedisKeepAlive    = 5 * time.Minute
+	defaultRedisKeyPrefix    = "gitlab-kas"
 )
 
 var (
@@ -76,16 +78,16 @@ func defaultGitLab(g *kascfg.GitLabCF) {
 }
 
 func defaultAgent(a *kascfg.AgentCF) {
-	protodefault.Duration(&a.InfoCacheTtl, defaultAgentInfoCacheTTL)
-	protodefault.Duration(&a.InfoCacheErrorTtl, defaultAgentInfoCacheErrorTTL)
-
 	protodefault.NotNil(&a.Listen)
 	protodefault.String(&a.Listen.Address, defaultAgentListenAddress)
 	protodefault.Uint32(&a.Listen.ConnectionsPerTokenPerMinute, defaultAgentListenConnectionsPerTokenPerMinute)
 	protodefault.Duration(&a.Listen.MaxConnectionAge, defaultAgentListenMaxConnectionAge)
 
-	protodefault.NotNil(&a.Limits)
-	protodefault.String(&a.Limits.RedisKeyPrefix, defaultAgentLimitsRedisKeyPrefix)
+	protodefault.Duration(&a.InfoCacheTtl, defaultAgentInfoCacheTTL)
+	protodefault.Duration(&a.InfoCacheErrorTtl, defaultAgentInfoCacheErrorTTL)
+	protodefault.Duration(&a.RedisConnInfoTtl, defaultAgentRedisConnInfoTTL)
+	protodefault.Duration(&a.RedisConnInfoRefresh, defaultAgentRedisConnInfoRefresh)
+	protodefault.Duration(&a.RedisConnInfoGc, defaultAgentRedisConnInfoGC)
 }
 
 func defaultGitaly(g *kascfg.GitalyCF) {
@@ -104,4 +106,5 @@ func defaultRedis(r *kascfg.RedisCF) {
 	protodefault.Duration(&r.ReadTimeout, defaultRedisReadTimeout)
 	protodefault.Duration(&r.WriteTimeout, defaultRedisWriteTimeout)
 	protodefault.Duration(&r.Keepalive, defaultRedisKeepAlive)
+	protodefault.String(&r.KeyPrefix, defaultRedisKeyPrefix)
 }

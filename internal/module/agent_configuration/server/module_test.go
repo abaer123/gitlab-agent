@@ -13,8 +13,11 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_agent_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_internalgitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver"
@@ -23,6 +26,7 @@ import (
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/testing/protocmp"
 	"sigs.k8s.io/yaml"
 )
 
@@ -132,7 +136,9 @@ func TestGetConfiguration(t *testing.T) {
 			FetchFile(gomock.Any(), &agentInfo.Repository, []byte(revision), []byte(configFileName), int64(maxConfigurationFileSize)).
 			Return(configToBytes(t, configFile), nil),
 	)
-	err := m.GetConfiguration(&rpc.ConfigurationRequest{}, resp)
+	err := m.GetConfiguration(&rpc.ConfigurationRequest{
+		AgentMeta: agentMeta(),
+	}, resp)
 	require.NoError(t, err)
 }
 
@@ -158,7 +164,8 @@ func TestGetConfigurationResumeConnection(t *testing.T) {
 			}, nil),
 	)
 	err := m.GetConfiguration(&rpc.ConfigurationRequest{
-		CommitId: revision, // same commit id
+		CommitId:  revision, // same commit id
+		AgentMeta: agentMeta(),
 	}, resp)
 	require.NoError(t, err)
 }
@@ -167,17 +174,30 @@ func setupModule(t *testing.T) (*module, *api.AgentInfo, *gomock.Controller, *mo
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver.NewMockAPIWithMockPoller(ctrl, 1)
 	gitalyPool := mock_internalgitaly.NewMockPoolInterface(ctrl)
+	agentTracker := mock_agent_tracker.NewMockTracker(ctrl)
 	m := &module{
 		log:                          zaptest.NewLogger(t),
 		api:                          mockApi,
+		agentTracker:                 agentTracker,
 		gitaly:                       gitalyPool,
 		maxConfigurationFileSize:     maxConfigurationFileSize,
 		agentConfigurationPollPeriod: 10 * time.Minute,
 	}
 	agentInfo := agentInfoObj()
-	mockApi.EXPECT().
-		GetAgentInfo(gomock.Any(), gomock.Any(), mock_gitlab.AgentkToken, true).
-		Return(agentInfo, nil, false)
+	connMatcher := matcher.ProtoEq(t, &agent_tracker.ConnectedAgentInfo{
+		AgentMeta: agentMeta(),
+		Id:        agentInfo.Id,
+		ProjectId: agentInfo.ProjectId,
+	}, protocmp.IgnoreFields(&agent_tracker.ConnectedAgentInfo{}, "connected_at", "connection_id"))
+	gomock.InOrder(
+		mockApi.EXPECT().
+			GetAgentInfo(gomock.Any(), gomock.Any(), mock_gitlab.AgentkToken, true).
+			Return(agentInfo, nil, false),
+		agentTracker.EXPECT().
+			RegisterConnection(gomock.Any(), connMatcher),
+	)
+	agentTracker.EXPECT().
+		UnregisterConnection(gomock.Any(), connMatcher)
 	return m, agentInfo, ctrl, gitalyPool
 }
 
@@ -219,5 +239,14 @@ func agentInfoObj() *api.AgentInfo {
 			GlRepository:       "GlRepository",
 			GlProjectPath:      "GlProjectPath",
 		},
+	}
+}
+
+func agentMeta() *modshared.AgentMeta {
+	return &modshared.AgentMeta{
+		Version:      "v1.2.3",
+		CommitId:     "32452345",
+		PodNamespace: "ns1",
+		PodName:      "n1",
 	}
 }

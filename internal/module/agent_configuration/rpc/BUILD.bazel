@@ -9,7 +9,7 @@ proto_library(
     tags = ["manual"],
     visibility = ["//visibility:public"],
     deps = [
-        "//internal/module/modshared:shared_proto",
+        "//internal/module/modshared:modshared_proto",
         "//pkg/agentcfg:agentcfg_proto",
     ],
 )
