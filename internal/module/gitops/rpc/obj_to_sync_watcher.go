@@ -78,16 +78,13 @@ type objectsToSynchronizeVisitor struct {
 	objs ObjectsToSynchronizeData
 }
 
-func (v *objectsToSynchronizeVisitor) OnHeaders(message *ObjectsToSynchronizeResponse) error {
-	h := message.Message.(*ObjectsToSynchronizeResponse_Headers_)
-	v.objs.CommitId = h.Headers.CommitId
+func (v *objectsToSynchronizeVisitor) OnHeaders(headers *ObjectsToSynchronizeResponse_Headers) error {
+	v.objs.CommitId = headers.CommitId
 	return nil
 }
 
-func (v *objectsToSynchronizeVisitor) OnObject(message *ObjectsToSynchronizeResponse) error {
-	o := message.Message.(*ObjectsToSynchronizeResponse_Object_)
+func (v *objectsToSynchronizeVisitor) OnObject(object *ObjectsToSynchronizeResponse_Object) error {
 	lastIdx := len(v.objs.Sources) - 1
-	object := o.Object
 	if lastIdx >= 0 && v.objs.Sources[lastIdx].Name == object.Source {
 		// Same source, append to the actual slice
 		v.objs.Sources[lastIdx].Data = append(v.objs.Sources[lastIdx].Data, object.Data...)
@@ -101,7 +98,7 @@ func (v *objectsToSynchronizeVisitor) OnObject(message *ObjectsToSynchronizeResp
 	return nil
 }
 
-func (v *objectsToSynchronizeVisitor) OnTrailers(message *ObjectsToSynchronizeResponse) error {
+func (v *objectsToSynchronizeVisitor) OnTrailers(trailers *ObjectsToSynchronizeResponse_Trailers) error {
 	// Nothing to do at the moment
 	return nil
 }

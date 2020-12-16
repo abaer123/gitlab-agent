@@ -53,19 +53,19 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 	// Pipe gRPC request -> HTTP request
 	g.Go(func() error {
 		return m.streamVisitor.Visit(server,
-			grpctool.WithCallback(headersFieldNumber, func(r *rpc.Request) error {
+			grpctool.WithCallback(headersFieldNumber, func(headers *rpc.Request_Headers) error {
 				select {
 				case <-ctx.Done():
 					return ctx.Err()
-				case headersMsg <- r.Message.(*rpc.Request_Headers_).Headers:
+				case headersMsg <- headers:
 					return nil
 				}
 			}),
-			grpctool.WithCallback(dataFieldNumber, func(r *rpc.Request) error {
-				_, err := pw.Write(r.Message.(*rpc.Request_Data_).Data.Data)
+			grpctool.WithCallback(dataFieldNumber, func(data *rpc.Request_Data) error {
+				_, err := pw.Write(data.Data)
 				return err
 			}),
-			grpctool.WithCallback(trailersFieldNumber, func(r *rpc.Request) error {
+			grpctool.WithCallback(trailersFieldNumber, func(trailers *rpc.Request_Trailers) error {
 				// Nothing to do
 				return nil
 			}),

@@ -56,12 +56,11 @@ func (a *api) MakeGitLabRequest(ctx context.Context, path string, opts ...modage
 	go func() {
 		responseSent := false
 		err := a.ResponseVisitor.Visit(client,
-			grpctool.WithCallback(headersFieldNumber, func(r *gitlab_access_rpc.Response) error {
-				h := r.Message.(*gitlab_access_rpc.Response_Headers_).Headers
+			grpctool.WithCallback(headersFieldNumber, func(headers *gitlab_access_rpc.Response_Headers) error {
 				resp := &modagent.GitLabResponse{
-					Status:     h.Status,
-					StatusCode: h.StatusCode,
-					Header:     h.ToHttpHeader(),
+					Status:     headers.Status,
+					StatusCode: headers.StatusCode,
+					Header:     headers.ToHttpHeader(),
 					Body: cancelingReadCloser{
 						ReadCloser: pr,
 						cancel:     cancel,
@@ -75,11 +74,11 @@ func (a *api) MakeGitLabRequest(ctx context.Context, path string, opts ...modage
 					return nil
 				}
 			}),
-			grpctool.WithCallback(dataFieldNumber, func(r *gitlab_access_rpc.Response) error {
-				_, err := pw.Write(r.Message.(*gitlab_access_rpc.Response_Data_).Data.Data)
+			grpctool.WithCallback(dataFieldNumber, func(data *gitlab_access_rpc.Response_Data) error {
+				_, err := pw.Write(data.Data)
 				return err
 			}),
-			grpctool.WithCallback(trailersFieldNumber, func(r *gitlab_access_rpc.Response) error {
+			grpctool.WithCallback(trailersFieldNumber, func(trailers *gitlab_access_rpc.Response_Trailers) error {
 				return nil
 			}),
 			grpctool.WithEOFCallback(func() error {
