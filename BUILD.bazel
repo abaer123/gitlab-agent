@@ -9,6 +9,9 @@ load("@com_github_bazelbuild_buildtools//buildifier:def.bzl", "buildifier")
 # gazelle:go_naming_convention import
 # gazelle:go_naming_convention_external import
 
+# We apply a patch below and use the added target instead of the default one to avoid proto conflicts.
+# gazelle:resolve go github.com/envoyproxy/protoc-gen-validate/validate @com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library
+
 gazelle(
     name = "gazelle",
     prefix = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent",

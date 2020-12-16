@@ -176,8 +176,9 @@ func getUnreachableFields(root protoreflect.FieldNumber, graph map[protoreflect.
 
 // implement sort.Interface
 type protoFieldNumbers []protoreflect.FieldNumber
-func (p protoFieldNumbers) Len() int { return len(p) }
-func (p protoFieldNumbers) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
+
+func (p protoFieldNumbers) Len() int           { return len(p) }
+func (p protoFieldNumbers) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p protoFieldNumbers) Less(i, j int) bool { return p[i] < p[j] }
 
 func intsToNumbers(oneofDescr protoreflect.OneofDescriptor, ints []int32) ([]protoreflect.FieldNumber, error) {

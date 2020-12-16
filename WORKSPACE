@@ -7,10 +7,10 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 # Also update to the same version/commit in go.mod.
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "207fad3e6689135c5d8713e5a17ba9d1290238f47b9ba545b63d9303406209c6",
+    sha256 = "6f111c57fd50baf5b8ee9d63024874dd2a014b069426156c55adbf6d3d22cb7b",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.24.7/rules_go-v0.24.7.tar.gz",
-        "https://github.com/bazelbuild/rules_go/releases/download/v0.24.7/rules_go-v0.24.7.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.25.0/rules_go-v0.25.0.tar.gz",
+        "https://github.com/bazelbuild/rules_go/releases/download/v0.25.0/rules_go-v0.25.0.tar.gz",
     ],
 )
 
@@ -97,23 +97,25 @@ go_repository(
         "tracer_static_jaeger",
     ],  # keep
     importpath = "gitlab.com/gitlab-org/labkit",
-    sum = "h1:t2Wr8ygtvHfXAMlCkoEdk5pdb5Gy1IYdr41H7t4kAYw=",
-    version = "v1.0.0",
+    sum = "h1:PjuoAl+Uxgy3lAYrq3HPFDTkCWvQjR/s4VQZ66vKnAo=",
+    version = "v1.2.0",
 )
 
 go_repository(
     name = "com_github_envoyproxy_protoc_gen_validate",
     build_file_proto_mode = "disable_global",
     build_naming_convention = "go_default_library",
+    commit = "55d2c3c2500f8069bc4279a17c2eb8cc93031f0b",  # keep
     importpath = "github.com/envoyproxy/protoc-gen-validate",
     patch_args = ["-p1"],
     # patch addresses https://github.com/bazelbuild/bazel-gazelle/issues/941
-    # patch created by manually editing the build file and running `diff -urN dir_original dir_modified`
+    # patch created by manually editing the build file and running `diff -urN protoc-gen-validate protoc-gen-validate-copy`
     patches = [
         "@gitlab_k8s_agent//build:validate_dependency.patch",
     ],
-    sum = "h1:A9nAQ7H0O/o654GnqyDZtNAdbvXIl5hf+OsYAzBfDx0=",
-    version = "v0.4.2-0.20200930220426-ec9cd95372b9",
+    # This uses a fork which the upstream PR has not been merged https://github.com/envoyproxy/protoc-gen-validate/pull/413
+    remote = "https://github.com/ash2k/protoc-gen-validate",  # keep
+    vcs = "git",  # keep
 )
 
 # Copied from rules_go to keep patches in place
@@ -128,13 +130,22 @@ http_archive(
         # gazelle args: -repo_root . -go_prefix golang.org/x/tools -go_naming_convention import_alias
         "@io_bazel_rules_go//third_party:org_golang_x_tools-gazelle.patch",
     ],
-    sha256 = "5b330e3bd29a52c235648457e1aa899d948cb1eb90a8b5caa0ac882be75572db",
-    strip_prefix = "tools-c024452afbcdebb4a0fbe1bb0eaea0d2dbff835b",
-    # master, as of 2020-08-24
+    sha256 = "fe3987ccdff6a0e7e5a8353d4d1d2ca3ada5a72ea69462ba7b9b7343b5a25e06",
+    strip_prefix = "tools-a1b87a1c0de44760bd00894ef736a8c36548068f",
+    # master, as of 2020-12-01
     urls = [
-        "https://mirror.bazel.build/github.com/golang/tools/archive/c024452afbcdebb4a0fbe1bb0eaea0d2dbff835b.zip",
-        "https://github.com/golang/tools/archive/c024452afbcdebb4a0fbe1bb0eaea0d2dbff835b.zip",
+        "https://mirror.bazel.build/github.com/golang/tools/archive/a1b87a1c0de44760bd00894ef736a8c36548068f.zip",
+        "https://github.com/golang/tools/archive/a1b87a1c0de44760bd00894ef736a8c36548068f.zip",
     ],
+)
+
+# Here to set build_file_proto_mode=default. repositories.bzl sets it to disable_global which is not what we want.
+go_repository(
+    name = "com_github_lyft_protoc_gen_star",
+    build_file_proto_mode = "default",
+    importpath = "github.com/lyft/protoc-gen-star",
+    sum = "h1:sImehRT+p7lW9n6R7MQc5hVgzWGEkDVZU4AsBQ4Isu8=",
+    version = "v0.5.1",
 )
 
 load("//build:repositories.bzl", "go_repositories")
@@ -148,7 +159,9 @@ bazel_skylib_workspace()
 
 go_rules_dependencies()
 
-go_register_toolchains()
+go_register_toolchains(
+    version = "1.15.6",
+)
 
 gazelle_dependencies()
 
