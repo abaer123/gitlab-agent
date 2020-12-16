@@ -18,8 +18,13 @@ func TestValidation_Valid(t *testing.T) {
 		valid validatable
 	}{
 		{
-			name:  "empty",
-			valid: &ConfigurationFile{},
+			name: "minimal",
+			valid: &ConfigurationFile{
+				Gitlab: &GitLabCF{
+					Address:                  "http://localhost:8080",
+					AuthenticationSecretFile: "/some/file",
+				},
+			},
 		},
 		{
 			name: "GitopsCF",
@@ -53,9 +58,10 @@ func TestValidation_Valid(t *testing.T) {
 		{
 			name: "RedisCF",
 			valid: &RedisCF{
-				MaxIdle:   0,                 // zero means "use default value"
-				MaxActive: 0,                 // zero means "use default value"
-				Keepalive: durationpb.New(0), // zero means "disabled"
+				Url:       "unix:///tmp/redis.sock", // some value - it's a required field
+				MaxIdle:   0,                        // zero means "use default value"
+				MaxActive: 0,                        // zero means "use default value"
+				Keepalive: durationpb.New(0),        // zero means "disabled"
 			},
 		},
 		{
@@ -172,6 +178,7 @@ func TestValidation_Invalid(t *testing.T) {
 			name:      "zero RedisCF.ReadTimeout",
 			errString: "invalid RedisCF.ReadTimeout: value must be greater than 0s",
 			invalid: &RedisCF{
+				Url:         "unix:///tmp/redis.sock",
 				ReadTimeout: durationpb.New(0),
 			},
 		},
@@ -179,6 +186,7 @@ func TestValidation_Invalid(t *testing.T) {
 			name:      "negative RedisCF.ReadTimeout",
 			errString: "invalid RedisCF.ReadTimeout: value must be greater than 0s",
 			invalid: &RedisCF{
+				Url:         "unix:///tmp/redis.sock",
 				ReadTimeout: durationpb.New(-1),
 			},
 		},
@@ -186,6 +194,7 @@ func TestValidation_Invalid(t *testing.T) {
 			name:      "zero RedisCF.WriteTimeout",
 			errString: "invalid RedisCF.WriteTimeout: value must be greater than 0s",
 			invalid: &RedisCF{
+				Url:          "unix:///tmp/redis.sock",
 				WriteTimeout: durationpb.New(0),
 			},
 		},
@@ -193,6 +202,7 @@ func TestValidation_Invalid(t *testing.T) {
 			name:      "negative RedisCF.WriteTimeout",
 			errString: "invalid RedisCF.WriteTimeout: value must be greater than 0s",
 			invalid: &RedisCF{
+				Url:          "unix:///tmp/redis.sock",
 				WriteTimeout: durationpb.New(-1),
 			},
 		},
@@ -200,7 +210,20 @@ func TestValidation_Invalid(t *testing.T) {
 			name:      "negative RedisCF.Keepalive",
 			errString: "invalid RedisCF.Keepalive: value must be greater than or equal to 0s",
 			invalid: &RedisCF{
+				Url:       "unix:///tmp/redis.sock",
 				Keepalive: durationpb.New(-1),
+			},
+		},
+		{
+			name:      "empty RedisCF.Url",
+			errString: "invalid RedisCF.Url: value length must be at least 1 runes",
+			invalid:   &RedisCF{},
+		},
+		{
+			name:      "relative RedisCF.Url",
+			errString: "invalid RedisCF.Url: value must be absolute",
+			invalid: &RedisCF{
+				Url: "/redis.sock",
 			},
 		},
 		{
@@ -216,6 +239,44 @@ func TestValidation_Invalid(t *testing.T) {
 			invalid: &ListenAgentCF{
 				MaxConnectionAge: durationpb.New(-1),
 			},
+		},
+		{
+			name:      "empty GitLabCF.Address",
+			errString: "invalid GitLabCF.Address: value length must be at least 1 runes",
+			invalid: &GitLabCF{
+				AuthenticationSecretFile: "/some/file",
+			},
+		},
+		{
+			name:      "relative GitLabCF.Address",
+			errString: "invalid GitLabCF.Address: value must be absolute",
+			invalid: &GitLabCF{
+				Address:                  "/path",
+				AuthenticationSecretFile: "/some/file",
+			},
+		},
+		{
+			name:      "empty GitLabCF.AuthenticationSecretFile",
+			errString: "invalid GitLabCF.AuthenticationSecretFile: value length must be at least 1 runes",
+			invalid: &GitLabCF{
+				Address: "http://localhost:8080",
+			},
+		},
+		// TODO uncomment when Redis becomes a hard dependency
+		//{
+		//	name:      "missing ConfigurationFile.Redis",
+		//	errString: "invalid ConfigurationFile.Redis: value is required",
+		//	invalid: &ConfigurationFile{
+		//		Gitlab: &GitLabCF{
+		//			Address:                  "http://localhost:8080",
+		//			AuthenticationSecretFile: "/some/file",
+		//		},
+		//	},
+		//},
+		{
+			name:      "missing ConfigurationFile.Gitlab",
+			errString: "invalid ConfigurationFile.Gitlab: value is required",
+			invalid:   &ConfigurationFile{},
 		},
 	}
 	for _, tc := range tests {

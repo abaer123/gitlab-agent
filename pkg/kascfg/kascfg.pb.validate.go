@@ -411,9 +411,32 @@ func (m *GitLabCF) Validate() error {
 		return nil
 	}
 
-	// no validation rules for Address
+	if utf8.RuneCountInString(m.GetAddress()) < 1 {
+		return GitLabCFValidationError{
+			field:  "Address",
+			reason: "value length must be at least 1 runes",
+		}
+	}
 
-	// no validation rules for AuthenticationSecretFile
+	if uri, err := url.Parse(m.GetAddress()); err != nil {
+		return GitLabCFValidationError{
+			field:  "Address",
+			reason: "value must be a valid URI",
+			cause:  err,
+		}
+	} else if !uri.IsAbs() {
+		return GitLabCFValidationError{
+			field:  "Address",
+			reason: "value must be absolute",
+		}
+	}
+
+	if utf8.RuneCountInString(m.GetAuthenticationSecretFile()) < 1 {
+		return GitLabCFValidationError{
+			field:  "AuthenticationSecretFile",
+			reason: "value length must be at least 1 runes",
+		}
+	}
 
 	// no validation rules for CaCertificateFile
 
@@ -1481,7 +1504,25 @@ func (m *RedisCF) Validate() error {
 		return nil
 	}
 
-	// no validation rules for Url
+	if utf8.RuneCountInString(m.GetUrl()) < 1 {
+		return RedisCFValidationError{
+			field:  "Url",
+			reason: "value length must be at least 1 runes",
+		}
+	}
+
+	if uri, err := url.Parse(m.GetUrl()); err != nil {
+		return RedisCFValidationError{
+			field:  "Url",
+			reason: "value must be a valid URI",
+			cause:  err,
+		}
+	} else if !uri.IsAbs() {
+		return RedisCFValidationError{
+			field:  "Url",
+			reason: "value must be absolute",
+		}
+	}
 
 	// no validation rules for Password
 
@@ -1619,6 +1660,13 @@ var _ interface {
 func (m *ConfigurationFile) Validate() error {
 	if m == nil {
 		return nil
+	}
+
+	if m.GetGitlab() == nil {
+		return ConfigurationFileValidationError{
+			field:  "Gitlab",
+			reason: "value is required",
+		}
 	}
 
 	if v, ok := interface{}(m.GetGitlab()).(interface{ Validate() error }); ok {
