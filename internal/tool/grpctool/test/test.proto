@@ -14,6 +14,7 @@ message Response {
   }
   // Subsequent messages of the stream.
   message Data {
+    bytes data = 1;
   }
   // Last message of the stream.
   message Last {

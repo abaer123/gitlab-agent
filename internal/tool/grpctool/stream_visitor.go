@@ -36,16 +36,15 @@ type EOFCallback func() error
 // StreamVisitor allows to consume messages in a gRPC stream.
 // Message order should follow the automata, defined on fields in a oneof group.
 type StreamVisitor struct {
-	// messageType defines the type of messages the stream consists of.
-	messageType        protoreflect.MessageType
+	reflectMessage     protoreflect.Message
 	goMessageType      reflect.Type
 	allowedTransitions map[protoreflect.FieldNumber][]protoreflect.FieldNumber
-	oneofDescriptor    protoreflect.OneofDescriptor
+	oneof              protoreflect.OneofDescriptor
 }
 
 func NewStreamVisitor(streamMessage proto.Message) (*StreamVisitor, error) {
-	messageType := streamMessage.ProtoReflect().Type()
-	messageDescriptor := messageType.Descriptor()
+	reflectMessage := streamMessage.ProtoReflect()
+	messageDescriptor := reflectMessage.Type().Descriptor()
 	oneofs := messageDescriptor.Oneofs()
 	l := oneofs.Len()
 	if l != 1 {
@@ -57,30 +56,25 @@ func NewStreamVisitor(streamMessage proto.Message) (*StreamVisitor, error) {
 		return nil, err
 	}
 	return &StreamVisitor{
-		messageType:        messageType,
+		reflectMessage:     reflectMessage,
 		goMessageType:      reflect.TypeOf(streamMessage),
 		allowedTransitions: allowedTransitions,
-		oneofDescriptor:    oneof,
+		oneof:              oneof,
 	}, nil
 }
 
 func (s *StreamVisitor) Visit(stream Stream, opts ...StreamVisitorOption) error {
-	cfg := applyOptions(s.goMessageType, opts)
-	fields := s.oneofDescriptor.Fields()
-	l := fields.Len()
-	for i := 0; i < l; i++ {
-		field := fields.Get(i)
-		fieldNumber := field.Number()
-		if _, ok := cfg.callbacks[fieldNumber]; !ok {
-			return fmt.Errorf("no callback defined for field %s (%d)", field.FullName(), fieldNumber)
-		}
+	cfg, err := s.applyOptions(opts)
+	if err != nil {
+		return err
 	}
+	messageType := s.reflectMessage.Type()
 	currentState := startState
 	for {
 		allowedTransitions := s.allowedTransitions[currentState]
-		msgRefl := s.messageType.New()
+		msgRefl := messageType.New()
 		msg := msgRefl.Interface()
-		err := stream.RecvMsg(msg)
+		err = stream.RecvMsg(msg)
 		if err != nil {
 			if !errors.Is(err, io.EOF) {
 				return err
@@ -92,16 +86,25 @@ func (s *StreamVisitor) Visit(stream Stream, opts ...StreamVisitorOption) error 
 				return cfg.invalidTransitionCallback(currentState, newState, allowedTransitions, nil)
 			}
 		}
-		field := msgRefl.WhichOneof(s.oneofDescriptor)
+		field := msgRefl.WhichOneof(s.oneof)
 		if field == nil {
-			return fmt.Errorf("no fields in the oneof group %s is set", s.oneofDescriptor.FullName())
+			return fmt.Errorf("no fields in the oneof group %s is set", s.oneof.FullName())
 		}
 		newState := field.Number()
 		if !isTransitionAllowed(newState, allowedTransitions) {
 			return cfg.invalidTransitionCallback(currentState, newState, allowedTransitions, msg)
 		}
-		cb := cfg.callbacks[newState]
-		ret := cb.Call([]reflect.Value{reflect.ValueOf(msg)})
+
+		var param interface{}
+		cb, ok := cfg.msgCallbacks[newState]
+		if ok { // a message callback
+			param = msg
+		} else { // a field callback
+			cb = cfg.fieldCallbacks[newState]
+			param = msgRefl.Get(field).Message().Interface()
+		}
+		ret := cb.Call([]reflect.Value{reflect.ValueOf(param)})
+
 		// It might be:
 		// - an untyped nil
 		// - error-typed nil
@@ -112,6 +115,44 @@ func (s *StreamVisitor) Visit(stream Stream, opts ...StreamVisitorOption) error 
 			return err
 		}
 		currentState = newState
+	}
+}
+
+func (s *StreamVisitor) applyOptions(opts []StreamVisitorOption) (config, error) {
+	cfg := s.defaultOptions()
+	for _, o := range opts {
+		err := o(&cfg)
+		if err != nil {
+			return config{}, err
+		}
+	}
+	fields := s.oneof.Fields()
+	l := fields.Len()
+	for i := 0; i < l; i++ {
+		field := fields.Get(i)
+		fieldNumber := field.Number()
+		_, ok := cfg.msgCallbacks[fieldNumber]
+		if ok {
+			continue
+		}
+		_, ok = cfg.fieldCallbacks[fieldNumber]
+		if ok {
+			continue
+		}
+		return config{}, fmt.Errorf("no callback defined for field %s (%d)", field.FullName(), fieldNumber)
+	}
+	return cfg, nil
+}
+
+func (s *StreamVisitor) defaultOptions() config {
+	return config{
+		reflectMessage:            s.reflectMessage,
+		goMessageType:             s.goMessageType,
+		oneof:                     s.oneof,
+		eofCallback:               defaultEOFCallback,
+		invalidTransitionCallback: defaultInvalidTransitionCallback,
+		msgCallbacks:              make(map[protoreflect.FieldNumber]reflect.Value),
+		fieldCallbacks:            make(map[protoreflect.FieldNumber]reflect.Value),
 	}
 }
 
@@ -181,19 +222,19 @@ func (p protoFieldNumbers) Len() int           { return len(p) }
 func (p protoFieldNumbers) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p protoFieldNumbers) Less(i, j int) bool { return p[i] < p[j] }
 
-func intsToNumbers(oneofDescr protoreflect.OneofDescriptor, ints []int32) ([]protoreflect.FieldNumber, error) {
+func intsToNumbers(oneof protoreflect.OneofDescriptor, ints []int32) ([]protoreflect.FieldNumber, error) {
 	if len(ints) == 0 {
-		return nil, fmt.Errorf("empty allowed field number list in oneof %s", oneofDescr.FullName())
+		return nil, fmt.Errorf("empty allowed field number list in oneof %s", oneof.FullName())
 	}
-	oneofFields := oneofDescr.Fields()
+	fields := oneof.Fields()
 	allowed := make([]protoreflect.FieldNumber, 0, len(ints))
 	for _, nextFieldInt := range ints {
 		nextFieldNumber := protoreflect.FieldNumber(nextFieldInt)
 		if nextFieldNumber != eofState {
 			// If it's not EOF then check if it's a valid number
-			nextField := oneofFields.ByNumber(nextFieldNumber)
+			nextField := fields.ByNumber(nextFieldNumber)
 			if nextField == nil {
-				return nil, fmt.Errorf("field number %d is not part of oneof %s", nextFieldNumber, oneofDescr.FullName())
+				return nil, fmt.Errorf("field number %d is not part of oneof %s", nextFieldNumber, oneof.FullName())
 			}
 		}
 		allowed = append(allowed, nextFieldNumber)

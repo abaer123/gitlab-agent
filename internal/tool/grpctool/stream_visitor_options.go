@@ -13,66 +13,66 @@ var (
 )
 
 type config struct {
+	reflectMessage            protoreflect.Message
 	goMessageType             reflect.Type
+	oneof                     protoreflect.OneofDescriptor
 	eofCallback               EOFCallback
 	invalidTransitionCallback InvalidTransitionCallback
-	callbacks                 map[protoreflect.FieldNumber]reflect.Value
+	msgCallbacks              map[protoreflect.FieldNumber]reflect.Value // callbacks that accept the whole message
+	fieldCallbacks            map[protoreflect.FieldNumber]reflect.Value // callbacks that accept a specific field type of the oneof
 }
 
-type StreamVisitorOption func(*config)
-
-func applyOptions(goMessageType reflect.Type, opts []StreamVisitorOption) config {
-	cfg := defaultOptions(goMessageType)
-	for _, o := range opts {
-		o(&cfg)
-	}
-	return cfg
-}
-
-func defaultOptions(goMessageType reflect.Type) config {
-	return config{
-		goMessageType:             goMessageType,
-		eofCallback:               defaultEOFCallback,
-		invalidTransitionCallback: defaultInvalidTransitionCallback,
-		callbacks:                 make(map[protoreflect.FieldNumber]reflect.Value),
-	}
-}
+type StreamVisitorOption func(*config) error
 
 func WithEOFCallback(cb EOFCallback) StreamVisitorOption {
-	return func(c *config) {
+	return func(c *config) error {
 		c.eofCallback = cb
+		return nil
 	}
 }
 
 // WithCallback registers cb to be called when entering transitionTo when parsing the stream. Only one callback can be registered per target
 func WithCallback(transitionTo protoreflect.FieldNumber, cb MessageCallback) StreamVisitorOption {
-	t := reflect.TypeOf(cb)
-	if t.Kind() != reflect.Func {
+	cbType := reflect.TypeOf(cb)
+	if cbType.Kind() != reflect.Func {
 		panic(fmt.Errorf("cb must be a function, got: %T", cb))
 	}
-	if t.NumIn() != 1 {
+	if cbType.NumIn() != 1 {
 		panic(fmt.Errorf("cb must take one parameter only, got: %T", cb))
 	}
-	if t.NumOut() != 1 {
+	if cbType.NumOut() != 1 {
 		panic(fmt.Errorf("cb must return one value only, got: %T", cb))
 	}
-	if t.Out(0) != errorType {
+	if cbType.Out(0) != errorType {
 		panic(fmt.Errorf("cb must return an error, got: %T", cb))
 	}
-	return func(c *config) {
-		if t.In(0) != c.goMessageType {
-			panic(fmt.Errorf("callback must be a function with one parameter of type %s, got: %T", c.goMessageType, cb))
+	return func(c *config) error {
+		if existingCb, exists := c.msgCallbacks[transitionTo]; exists {
+			return fmt.Errorf("callback for %d has already been defined: %v", transitionTo, existingCb)
 		}
-		if _, exists := c.callbacks[transitionTo]; exists {
-			panic(fmt.Errorf("callback for %d has already been defined", transitionTo))
+		if existingCb, exists := c.fieldCallbacks[transitionTo]; exists {
+			return fmt.Errorf("callback for %d has already been defined: %v", transitionTo, existingCb)
 		}
-		c.callbacks[transitionTo] = reflect.ValueOf(cb)
+		field := c.oneof.Fields().ByNumber(transitionTo)
+		if field == nil {
+			return fmt.Errorf("oneof %s does not have a field %d", c.oneof.FullName(), transitionTo)
+		}
+		inType := cbType.In(0)
+		if c.goMessageType.AssignableTo(inType) {
+			c.msgCallbacks[transitionTo] = reflect.ValueOf(cb)
+		} else if reflect.TypeOf(c.reflectMessage.Get(field).Message().Interface()).AssignableTo(inType) {
+			c.fieldCallbacks[transitionTo] = reflect.ValueOf(cb)
+		} else {
+			return fmt.Errorf("callback must be a function with one parameter of type %s or one of the oneof field types, got: %T", c.goMessageType, cb)
+		}
+		return nil
 	}
 }
 
 func WithInvalidTransitionCallback(cb InvalidTransitionCallback) StreamVisitorOption {
-	return func(c *config) {
+	return func(c *config) error {
 		c.invalidTransitionCallback = cb
+		return nil
 	}
 }
 
