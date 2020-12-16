@@ -10,10 +10,20 @@ GO_BUILD_TAGS := tracer_static,tracer_static_jaeger
 lint:
 	golangci-lint run
 
-.PHONY: fmt-bazel
-fmt-bazel:
+.PHONY: buildozer
+buildozer:
 	bazel run //:buildozer
+
+.PHONY: buildifier
+buildifier:
 	bazel run //:buildifier
+
+.PHONY: fmt-bazel
+fmt-bazel: gazelle buildozer buildifier
+
+.PHONY: gazelle
+gazelle:
+	bazel run //:gazelle
 
 .PHONY: internal-regenerate-proto
 internal-regenerate-proto:
@@ -53,8 +63,7 @@ update-repos:
 		-to_macro=build/repositories.bzl%go_repositories
 
 .PHONY: update-bazel
-update-bazel:
-	bazel run //:gazelle
+update-bazel: gazelle
 
 .PHONY: fmt
 fmt:

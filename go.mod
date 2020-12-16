@@ -3,18 +3,18 @@ module gitlab.com/gitlab-org/cluster-integration/gitlab-agent
 go 1.15
 
 require (
-	cloud.google.com/go v0.70.0
+	cloud.google.com/go v0.74.0
 	github.com/FZambia/sentinel v1.1.0
-	github.com/argoproj/gitops-engine v0.1.3-0.20201113084616-069a5e64fb79
-	github.com/ash2k/stager v0.2.0
-	github.com/bmatcuk/doublestar/v2 v2.0.3
+	github.com/argoproj/gitops-engine v0.2.1-0.20201214220517-53cbe5f6be19
+	github.com/ash2k/stager v0.2.1
+	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1.0.20200107205605-c66185887605
 	github.com/envoyproxy/protoc-gen-validate v0.4.2-0.20200930220426-ec9cd95372b9
-	github.com/go-logr/zapr v0.2.0
+	github.com/go-logr/zapr v0.3.0
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.3
-	github.com/gomodule/redigo v1.8.2
-	github.com/google/go-cmp v0.5.2
+	github.com/gomodule/redigo v1.8.3
+	github.com/google/go-cmp v0.5.4
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.1-0.20200507082539-9abf3eb82b4a
 	// Pick up https://github.com/moby/term/commit/3e73b07ecbf5dc7b59fcecc783c4988c6b5aa767 which fixes the breakage
@@ -22,32 +22,32 @@ require (
 	// This can be removed once Kubernetes bumps the dependency.
 	github.com/moby/term v0.0.0-20200915141129-7f0af18e79f2 // indirect
 	github.com/opentracing/opentracing-go v1.2.0
-	github.com/piotrkowalczuk/promgrpc/v4 v4.0.2
+	github.com/piotrkowalczuk/promgrpc/v4 v4.0.4
 	github.com/prometheus/client_golang v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
 	gitlab.com/gitlab-org/gitaly v1.87.1-0.20201117220727-89c1ee804f27
-	gitlab.com/gitlab-org/labkit v1.0.0
+	gitlab.com/gitlab-org/labkit v1.2.0
 	go.uber.org/zap v1.16.0
-	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
+	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
-	golang.org/x/tools v0.0.0-20201017001424-6003fad69a88
-	google.golang.org/api v0.34.0
-	google.golang.org/grpc v1.33.1
+	golang.org/x/tools v0.0.0-20201208233053-a543418bbed2
+	google.golang.org/api v0.36.0
+	google.golang.org/grpc v1.34.0
 	google.golang.org/grpc/examples v0.0.0-20200828165940-d8ef479ab79a // indirect
 	google.golang.org/protobuf v1.25.0
 	k8s.io/api v0.19.2
 	k8s.io/apimachinery v0.19.2
 	k8s.io/cli-runtime v0.19.2
 	k8s.io/client-go v0.19.2
-	k8s.io/klog/v2 v2.3.0
+	k8s.io/klog/v2 v2.4.0
 	nhooyr.io/websocket v1.8.6
 	sigs.k8s.io/yaml v1.2.0
 )
 
 replace (
 	// same version as used by rules_go to maintain compatibility with patches - see the WORKSPACE file
-	golang.org/x/tools => golang.org/x/tools v0.0.0-20200823205832-c024452afbcd
+	golang.org/x/tools => golang.org/x/tools v0.0.0-20201201192219-a1b87a1c0de4
 
 	// https://github.com/kubernetes/kubernetes/issues/79384#issuecomment-505627280
 	k8s.io/api => k8s.io/api v0.19.2

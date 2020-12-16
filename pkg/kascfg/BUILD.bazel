@@ -51,7 +51,7 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg",
     visibility = ["//visibility:public"],
     deps = [
-        "@com_github_envoyproxy_protoc_gen_validate//validate:go_default_library",
+        "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
         "@com_github_golang_protobuf//proto",
         "@com_github_golang_protobuf//ptypes",
         "@com_github_golang_protobuf//ptypes/duration",
