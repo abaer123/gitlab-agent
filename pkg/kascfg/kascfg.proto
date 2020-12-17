@@ -75,8 +75,8 @@ message LoggingCF {
 }
 
 message GitLabCF {
-  string address = 1 [json_name = "address"];
-  string authentication_secret_file = 2 [json_name = "authentication_secret_file"];
+  string address = 1 [json_name = "address", (validate.rules).string.min_len = 1, (validate.rules).string.uri = true];
+  string authentication_secret_file = 2 [json_name = "authentication_secret_file", (validate.rules).string.min_len = 1];
   // Optional X.509 certificate for TLS in PEM format.
   // Should be set for self-signed certificates.
   string ca_certificate_file = 3 [json_name = "ca_certificate_file"];
@@ -199,7 +199,7 @@ message GitalyCF {
 
 message RedisCF {
   // Redis URL, e.g. unix:///redis.sock, tcp://localhost:6379, redis://my-redis
-  string url = 1 [json_name = "url"];
+  string url = 1 [json_name = "url", (validate.rules).string.min_len = 1, (validate.rules).string.uri = true];
   // The password to use for all connections
   string password = 2 [json_name = "password"];
   // The max number of idle connections
@@ -224,7 +224,7 @@ message RedisCF {
 // ConfigurationFile represents kas configuration file.
 message ConfigurationFile {
   // Configuration related to interaction with GitLab.
-  GitLabCF gitlab = 1 [json_name = "gitlab"];
+  GitLabCF gitlab = 1 [json_name = "gitlab", (validate.rules).message.required = true];
   // Configuration related to the agent. Generally all configuration for
   // user-facing features should be here.
   AgentCF agent = 2 [json_name = "agent"];

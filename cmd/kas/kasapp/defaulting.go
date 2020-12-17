@@ -14,7 +14,6 @@ import (
 )
 
 const (
-	defaultGitLabAddress                = "http://localhost:8080"
 	defaultGitLabApiRateLimitRefillRate = 10.0
 	defaultGitLabApiRateLimitBucketSize = 50
 
@@ -70,8 +69,6 @@ func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
 }
 
 func defaultGitLab(g *kascfg.GitLabCF) {
-	protodefault.String(&g.Address, defaultGitLabAddress)
-
 	protodefault.NotNil(&g.ApiRateLimit)
 	protodefault.Float64(&g.ApiRateLimit.RefillRatePerSecond, defaultGitLabApiRateLimitRefillRate)
 	protodefault.Uint32(&g.ApiRateLimit.BucketSize, defaultGitLabApiRateLimitBucketSize)

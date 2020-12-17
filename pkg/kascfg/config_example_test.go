@@ -19,7 +19,17 @@ const (
 )
 
 func TestExampleConfigHasCorrectDefaults(t *testing.T) {
-	cfgDefaulted := &kascfg.ConfigurationFile{}
+	// This is effectively the minimum required configuration i.e. only the required fields.
+	cfgDefaulted := &kascfg.ConfigurationFile{
+		Gitlab: &kascfg.GitLabCF{
+			Address:                  "http://localhost:8080",
+			AuthenticationSecretFile: "/some/file",
+		},
+		// Not actually required, but Url is required if Redis key is specified so add it here to show that and defaults too.
+		Redis: &kascfg.RedisCF{
+			Url: "unix:///tmp/redis.sock",
+		},
+	}
 	kasapp.ApplyDefaultsToKasConfigurationFile(cfgDefaulted)
 
 	cfgFromFile, err := kasapp.LoadConfigurationFile(kasConfigExampleFile)

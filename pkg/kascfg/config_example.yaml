@@ -2,8 +2,8 @@
 # for all the fields. Configuration values in this file are the defaults (if set) that are used by kas.
 
 gitlab:
-  address: http://localhost:8080
-  # authentication_secret_file: /some/file
+  address: http://localhost:8080 # required
+  authentication_secret_file: /some/file # required
   # ca_certificate_file: /server-ca.pem
   api_rate_limit:
     refill_rate_per_second: 10.0
@@ -62,14 +62,14 @@ gitaly:
   per_server_api_rate_limit:
     refill_rate_per_second: 5.0
     bucket_size: 10
-# redis:
-#   url: unix:///tmp/redis.sock
-#   # password: my-password
-#   max_idle: 1
-#   max_active: 1
-#   read_timeout: "1s"
-#   write_timeout: "1s"
-#   keepalive: "300s"
-#   # sentinel_master: my-master
-#   # sentinels: [ tcp://host-1, tcp://host-2]
-#   # key_prefix: gitlab-kas
+redis:
+  url: unix:///tmp/redis.sock # required if redis block is present
+  #  password: my-password
+  max_idle: 1
+  max_active: 1
+  read_timeout: "1s"
+  write_timeout: "1s"
+  keepalive: "300s"
+  #  sentinel_master: my-master
+  #  sentinels: [ tcp://host-1, tcp://host-2 ]
+  key_prefix: gitlab-kas
