@@ -6,6 +6,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
 var (
@@ -60,11 +61,25 @@ func WithCallback(transitionTo protoreflect.FieldNumber, cb MessageCallback) Str
 		inType := cbType.In(0)
 		if c.goMessageType.AssignableTo(inType) {
 			c.msgCallbacks[transitionTo] = reflect.ValueOf(cb)
-		} else if reflect.TypeOf(c.reflectMessage.Get(field).Message().Interface()).AssignableTo(inType) {
-			c.fieldCallbacks[transitionTo] = reflect.ValueOf(cb)
-		} else {
-			return fmt.Errorf("callback must be a function with one parameter of type %s or one of the oneof field types, got: %T", c.goMessageType, cb)
+			return nil
 		}
+		var goField interface{}
+		switch field.Kind() { //nolint:exhaustive
+		case protoreflect.MessageKind:
+			goField = c.reflectMessage.Get(field).Message().Interface()
+		case protoreflect.EnumKind:
+			et, err := protoregistry.GlobalTypes.FindEnumByName(field.Enum().FullName())
+			if err != nil {
+				return err
+			}
+			goField = et.New(0)
+		default:
+			goField = c.reflectMessage.Get(field).Interface()
+		}
+		if !reflect.TypeOf(goField).AssignableTo(inType) {
+			return fmt.Errorf("callback must be a function with one parameter of type %s or the oneof field type %T, got: %T", c.goMessageType, goField, cb)
+		}
+		c.fieldCallbacks[transitionTo] = reflect.ValueOf(cb)
 		return nil
 	}
 }
