@@ -8,10 +8,12 @@ option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/inte
 
 import "internal/tool/grpctool/automata/automata.proto";
 
+enum enum1 {
+  v1 = 0;
+  v2 = 1;
+}
+
 message Response {
-  // First message of the stream.
-  message First {
-  }
   // Subsequent messages of the stream.
   message Data {
     bytes data = 1;
@@ -23,9 +25,10 @@ message Response {
 
     option (automata.first_allowed_field) = 1;
 
-    First first = 1 [(automata.automata).next_allowed_field = 2];
-    Data data = 2 [(automata.automata).next_allowed_field = 2, (automata.automata).next_allowed_field = 3];
-    Last last = 3 [(automata.automata).next_allowed_field = -1];
+    int64 scalar = 1 [(automata.automata).next_allowed_field = 2];
+    enum1 x1 = 2 [(automata.automata).next_allowed_field = 3];
+    Data data = 3 [(automata.automata).next_allowed_field = 3, (automata.automata).next_allowed_field = 4];
+    Last last = 4 [(automata.automata).next_allowed_field = -1];
   }
 }
 

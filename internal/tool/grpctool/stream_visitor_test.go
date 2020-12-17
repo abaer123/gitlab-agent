@@ -14,9 +14,10 @@ import (
 )
 
 const (
-	firstNumber protoreflect.FieldNumber = 1
-	dataNumber  protoreflect.FieldNumber = 2
-	lastNumber  protoreflect.FieldNumber = 3
+	scalarNumber protoreflect.FieldNumber = 1
+	x1Number     protoreflect.FieldNumber = 2
+	dataNumber   protoreflect.FieldNumber = 3
+	lastNumber   protoreflect.FieldNumber = 4
 )
 
 // Test *test.Response as callback parameter type
@@ -24,10 +25,11 @@ func TestStreamVisitorMessageHappyPath(t *testing.T) {
 	stream := setupStream(t)
 
 	var (
-		eofCalled   int
-		firstCalled int
-		dataCalled  int
-		lastCalled  int
+		scalarCalled int
+		x1Called     int
+		dataCalled   int
+		lastCalled   int
+		eofCalled    int
 	)
 	v, err := grpctool.NewStreamVisitor(&test.Response{})
 	require.NoError(t, err)
@@ -36,8 +38,12 @@ func TestStreamVisitorMessageHappyPath(t *testing.T) {
 			eofCalled++
 			return nil
 		}),
-		grpctool.WithCallback(firstNumber, func(message *test.Response) error {
-			firstCalled++
+		grpctool.WithCallback(scalarNumber, func(message *test.Response) error {
+			scalarCalled++
+			return nil
+		}),
+		grpctool.WithCallback(x1Number, func(message *test.Response) error {
+			x1Called++
 			return nil
 		}),
 		grpctool.WithCallback(dataNumber, func(message *test.Response) error {
@@ -50,7 +56,8 @@ func TestStreamVisitorMessageHappyPath(t *testing.T) {
 		}),
 	)
 	require.NoError(t, err)
-	assert.Equal(t, 1, firstCalled)
+	assert.Equal(t, 1, scalarCalled)
+	assert.Equal(t, 1, x1Called)
 	assert.Equal(t, 2, dataCalled)
 	assert.Equal(t, 1, lastCalled)
 	assert.Equal(t, 1, eofCalled)
@@ -61,10 +68,11 @@ func TestStreamVisitorFieldHappyPath(t *testing.T) {
 	stream := setupStream(t)
 
 	var (
-		eofCalled   int
-		firstCalled int
-		dataCalled  int
-		lastCalled  int
+		scalarCalled int
+		x1Called     int
+		dataCalled   int
+		lastCalled   int
+		eofCalled    int
 	)
 	v, err := grpctool.NewStreamVisitor(&test.Response{})
 	require.NoError(t, err)
@@ -73,8 +81,12 @@ func TestStreamVisitorFieldHappyPath(t *testing.T) {
 			eofCalled++
 			return nil
 		}),
-		grpctool.WithCallback(firstNumber, func(first *test.Response_First) error {
-			firstCalled++
+		grpctool.WithCallback(scalarNumber, func(scalar int64) error {
+			scalarCalled++
+			return nil
+		}),
+		grpctool.WithCallback(x1Number, func(x1 test.Enum1) error {
+			x1Called++
 			return nil
 		}),
 		grpctool.WithCallback(dataNumber, func(data *test.Response_Data) error {
@@ -87,7 +99,8 @@ func TestStreamVisitorFieldHappyPath(t *testing.T) {
 		}),
 	)
 	require.NoError(t, err)
-	assert.Equal(t, 1, firstCalled)
+	assert.Equal(t, 1, scalarCalled)
+	assert.Equal(t, 1, x1Called)
 	assert.Equal(t, 2, dataCalled)
 	assert.Equal(t, 1, lastCalled)
 	assert.Equal(t, 1, eofCalled)
@@ -98,10 +111,11 @@ func TestStreamVisitorMixedHappyPath(t *testing.T) {
 	stream := setupStream(t)
 
 	var (
-		eofCalled   int
-		firstCalled int
-		dataCalled  int
-		lastCalled  int
+		scalarCalled int
+		x1Called     int
+		dataCalled   int
+		lastCalled   int
+		eofCalled    int
 	)
 	v, err := grpctool.NewStreamVisitor(&test.Response{})
 	require.NoError(t, err)
@@ -110,8 +124,12 @@ func TestStreamVisitorMixedHappyPath(t *testing.T) {
 			eofCalled++
 			return nil
 		}),
-		grpctool.WithCallback(firstNumber, func(message proto.Message) error {
-			firstCalled++
+		grpctool.WithCallback(scalarNumber, func(message proto.Message) error {
+			scalarCalled++
+			return nil
+		}),
+		grpctool.WithCallback(x1Number, func(x1 test.Enum1) error {
+			x1Called++
 			return nil
 		}),
 		grpctool.WithCallback(dataNumber, func(data interface{ GetData() []byte }) error {
@@ -124,7 +142,8 @@ func TestStreamVisitorMixedHappyPath(t *testing.T) {
 		}),
 	)
 	require.NoError(t, err)
-	assert.Equal(t, 1, firstCalled)
+	assert.Equal(t, 1, scalarCalled)
+	assert.Equal(t, 1, x1Called)
 	assert.Equal(t, 2, dataCalled)
 	assert.Equal(t, 1, lastCalled)
 	assert.Equal(t, 1, eofCalled)
@@ -134,8 +153,13 @@ func setupStream(t *testing.T) *mock_rpc.MockClientStream {
 	ctrl := gomock.NewController(t)
 	stream, calls := mock_rpc.InitMockClientStream(ctrl, true,
 		&test.Response{
-			Message: &test.Response_First_{
-				First: &test.Response_First{},
+			Message: &test.Response_Scalar{
+				Scalar: 123,
+			},
+		},
+		&test.Response{
+			Message: &test.Response_X1{
+				X1: test.Enum1_v1,
 			},
 		},
 		&test.Response{
@@ -162,8 +186,13 @@ func TestStreamVisitorHappyPathNoEof(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	stream, calls := mock_rpc.InitMockClientStream(ctrl, true,
 		&test.Response{
-			Message: &test.Response_First_{
-				First: &test.Response_First{},
+			Message: &test.Response_Scalar{
+				Scalar: 234,
+			},
+		},
+		&test.Response{
+			Message: &test.Response_X1{
+				X1: test.Enum1_v1,
 			},
 		},
 		&test.Response{
@@ -180,15 +209,20 @@ func TestStreamVisitorHappyPathNoEof(t *testing.T) {
 	gomock.InOrder(calls...)
 
 	var (
-		firstCalled int
-		dataCalled  int
-		lastCalled  int
+		scalarCalled int
+		x1Called     int
+		dataCalled   int
+		lastCalled   int
 	)
 	v, err := grpctool.NewStreamVisitor(&test.Response{})
 	require.NoError(t, err)
 	err = v.Visit(stream,
-		grpctool.WithCallback(firstNumber, func(message *test.Response) error {
-			firstCalled++
+		grpctool.WithCallback(scalarNumber, func(message *test.Response) error {
+			scalarCalled++
+			return nil
+		}),
+		grpctool.WithCallback(x1Number, func(x1 test.Enum1) error {
+			x1Called++
 			return nil
 		}),
 		grpctool.WithCallback(dataNumber, func(message *test.Response) error {
@@ -201,7 +235,8 @@ func TestStreamVisitorHappyPathNoEof(t *testing.T) {
 		}),
 	)
 	require.NoError(t, err)
-	assert.Equal(t, 1, firstCalled)
+	assert.Equal(t, 1, scalarCalled)
+	assert.Equal(t, 1, x1Called)
 	assert.Equal(t, 1, dataCalled)
 	assert.Equal(t, 1, lastCalled)
 }
@@ -210,8 +245,8 @@ func TestStreamVisitorMissingCallback(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	stream, calls := mock_rpc.InitMockClientStream(ctrl, false,
 		&test.Response{
-			Message: &test.Response_First_{
-				First: &test.Response_First{},
+			Message: &test.Response_Scalar{
+				Scalar: 234234,
 			},
 		},
 	)
@@ -220,7 +255,7 @@ func TestStreamVisitorMissingCallback(t *testing.T) {
 	v, err := grpctool.NewStreamVisitor(&test.Response{})
 	require.NoError(t, err)
 	err = v.Visit(stream)
-	require.EqualError(t, err, "no callback defined for field test.Response.first (1)")
+	require.EqualError(t, err, "no callback defined for field test.Response.scalar (1)")
 }
 
 func TestStreamVisitorNoOneofs(t *testing.T) {
@@ -257,7 +292,8 @@ func TestStreamVisitorInvalidNumber(t *testing.T) {
 		return nil
 	}
 	err = v.Visit(stream,
-		grpctool.WithCallback(firstNumber, cb),
+		grpctool.WithCallback(scalarNumber, cb),
+		grpctool.WithCallback(x1Number, cb),
 		grpctool.WithCallback(dataNumber, cb),
 		grpctool.WithCallback(lastNumber, cb),
 		grpctool.WithCallback(20, cb),

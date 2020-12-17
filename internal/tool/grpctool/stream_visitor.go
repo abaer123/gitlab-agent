@@ -95,15 +95,24 @@ func (s *StreamVisitor) Visit(stream Stream, opts ...StreamVisitorOption) error 
 			return cfg.invalidTransitionCallback(currentState, newState, allowedTransitions, msg)
 		}
 
-		var param interface{}
+		var param reflect.Value
 		cb, ok := cfg.msgCallbacks[newState]
 		if ok { // a message callback
-			param = msg
+			param = reflect.ValueOf(msg)
 		} else { // a field callback
 			cb = cfg.fieldCallbacks[newState]
-			param = msgRefl.Get(field).Message().Interface()
+			value := msgRefl.Get(field)
+			switch field.Kind() { //nolint:exhaustive
+			case protoreflect.MessageKind:
+				param = reflect.ValueOf(value.Message().Interface())
+			case protoreflect.EnumKind:
+				// We have tested that values are assignable in WithCallback() so it's safe to convert here.
+				param = reflect.ValueOf(value.Enum()).Convert(cb.Type().In(0))
+			default:
+				param = reflect.ValueOf(value.Interface())
+			}
 		}
-		ret := cb.Call([]reflect.Value{reflect.ValueOf(param)})
+		ret := cb.Call([]reflect.Value{param})
 
 		// It might be:
 		// - an untyped nil
