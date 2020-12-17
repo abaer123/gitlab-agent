@@ -105,7 +105,6 @@ go_repository(
     name = "com_github_envoyproxy_protoc_gen_validate",
     build_file_proto_mode = "disable_global",
     build_naming_convention = "go_default_library",
-    commit = "55d2c3c2500f8069bc4279a17c2eb8cc93031f0b",  # keep
     importpath = "github.com/envoyproxy/protoc-gen-validate",
     patch_args = ["-p1"],
     # patch addresses https://github.com/bazelbuild/bazel-gazelle/issues/941
@@ -113,9 +112,8 @@ go_repository(
     patches = [
         "@gitlab_k8s_agent//build:validate_dependency.patch",
     ],
-    # This uses a fork which the upstream PR has not been merged https://github.com/envoyproxy/protoc-gen-validate/pull/413
-    remote = "https://github.com/ash2k/protoc-gen-validate",  # keep
-    vcs = "git",  # keep
+    sum = "h1:NVV8ILDiHugAAoCtGP7ERYoaumUffVMPQB2CV9C7jNs=",
+    version = "v0.4.2-0.20201217164128-7df253a68e6b",
 )
 
 # Copied from rules_go to keep patches in place

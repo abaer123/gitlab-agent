@@ -9,7 +9,7 @@ require (
 	github.com/ash2k/stager v0.2.1
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1.0.20200107205605-c66185887605
-	github.com/envoyproxy/protoc-gen-validate v0.4.2-0.20200930220426-ec9cd95372b9
+	github.com/envoyproxy/protoc-gen-validate v0.4.2-0.20201217164128-7df253a68e6b
 	github.com/go-logr/zapr v0.3.0
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.3
