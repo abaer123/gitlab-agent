@@ -113,27 +113,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		return err
 	}
 
-	// gRPC listener
-	lis, err := net.Listen(cfg.Agent.Listen.Network.String(), cfg.Agent.Listen.Address)
-	if err != nil {
-		return err
-	}
-	defer errz.SafeClose(lis, &retErr)
-
-	a.Log.Info("Listening for agentk connections",
-		logz.NetNetworkFromAddr(lis.Addr()),
-		logz.NetAddressFromAddr(lis.Addr()),
-		logz.IsWebSocket(cfg.Agent.Listen.Websocket),
-	)
-
-	if cfg.Agent.Listen.Websocket {
-		wsWrapper := wstunnel.ListenerWrapper{
-			// TODO set timeouts
-			ReadLimit: defaultMaxMessageSize,
-		}
-		lis = wsWrapper.Wrap(lis)
-	}
-
 	// Gitaly client
 	gitalyClientPool := a.constructGitalyPool(csh, tracer)
 	defer errz.SafeClose(gitalyClientPool, &retErr)
@@ -209,6 +188,26 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// gRPC server stage
 	stage = st.NextStage()
 	stage.Go(func(ctx context.Context) error {
+		// gRPC listener
+		lis, err := net.Listen(cfg.Agent.Listen.Network.String(), cfg.Agent.Listen.Address)
+		if err != nil {
+			return err
+		}
+		defer errz.SafeClose(lis, &retErr)
+
+		a.Log.Info("Listening for agentk connections",
+			logz.NetNetworkFromAddr(lis.Addr()),
+			logz.NetAddressFromAddr(lis.Addr()),
+			logz.IsWebSocket(cfg.Agent.Listen.Websocket),
+		)
+
+		if cfg.Agent.Listen.Websocket {
+			wsWrapper := wstunnel.ListenerWrapper{
+				// TODO set timeouts
+				ReadLimit: defaultMaxMessageSize,
+			}
+			lis = wsWrapper.Wrap(lis)
+		}
 		return agentServer.Serve(lis)
 	})
 	stage.Go(func(ctx context.Context) error {
