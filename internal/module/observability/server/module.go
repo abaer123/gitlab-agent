@@ -6,7 +6,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"go.uber.org/zap"
@@ -25,7 +24,9 @@ func (m *module) Run(ctx context.Context) (retErr error) {
 	if err != nil {
 		return err
 	}
-	defer errz.SafeClose(lis, &retErr)
+	// Error is ignored because metricSrv.Run() closes the listener and
+	// a second close always produces an error.
+	defer lis.Close() // nolint:errcheck
 
 	m.log.Info("Observability endpoint is up",
 		logz.NetNetworkFromAddr(lis.Addr()),
