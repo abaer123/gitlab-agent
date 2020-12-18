@@ -64,7 +64,7 @@ func applyDefaultsToManifestProject(project *agentcfg.ManifestProjectCF) {
 	}
 }
 
-func (m *module) SetConfiguration(config *agentcfg.AgentConfiguration) error {
+func (m *module) SetConfiguration(ctx context.Context, config *agentcfg.AgentConfiguration) error {
 	err := m.configureWorkers(config.Gitops.ManifestProjects)
 	if err != nil {
 		return fmt.Errorf("manifest projects: %v", err)

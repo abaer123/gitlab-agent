@@ -174,15 +174,15 @@ func (mr *MockModuleMockRecorder) Run(arg0 interface{}) *gomock.Call {
 }
 
 // SetConfiguration mocks base method
-func (m *MockModule) SetConfiguration(arg0 *agentcfg.AgentConfiguration) error {
+func (m *MockModule) SetConfiguration(arg0 context.Context, arg1 *agentcfg.AgentConfiguration) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetConfiguration", arg0)
+	ret := m.ctrl.Call(m, "SetConfiguration", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetConfiguration indicates an expected call of SetConfiguration
-func (mr *MockModuleMockRecorder) SetConfiguration(arg0 interface{}) *gomock.Call {
+func (mr *MockModuleMockRecorder) SetConfiguration(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConfiguration", reflect.TypeOf((*MockModule)(nil).SetConfiguration), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConfiguration", reflect.TypeOf((*MockModule)(nil).SetConfiguration), arg0, arg1)
 }

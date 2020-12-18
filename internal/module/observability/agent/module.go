@@ -29,7 +29,7 @@ func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfigura
 	return nil
 }
 
-func (m *module) SetConfiguration(config *agentcfg.AgentConfiguration) error {
+func (m *module) SetConfiguration(ctx context.Context, config *agentcfg.AgentConfiguration) error {
 	err := m.setConfigurationLogging(config.Observability.Logging)
 	if err != nil {
 		return fmt.Errorf("logging: %v", err)

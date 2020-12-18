@@ -45,11 +45,11 @@ func TestConfigurationIsApplied(t *testing.T) {
 		m.EXPECT().
 			DefaultAndValidateConfiguration(cfg1),
 		m.EXPECT().
-			SetConfiguration(cfg1),
+			SetConfiguration(gomock.Any(), cfg1),
 		m.EXPECT().
 			DefaultAndValidateConfiguration(cfg2),
 		m.EXPECT().
-			SetConfiguration(cfg2),
+			SetConfiguration(gomock.Any(), cfg2),
 	)
 	gomock.InOrder(
 		f.EXPECT().
