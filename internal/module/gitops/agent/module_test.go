@@ -51,8 +51,8 @@ func TestStartsWorkersAccordingToConfiguration(t *testing.T) {
 				err := m.Run(ctx)
 				assert.NoError(t, err)
 			})
-			require.NoError(t, m.DefaultAndValidateConfiguration(config)) // nolint: scopelint
-			require.NoError(t, m.SetConfiguration(config))                // nolint: scopelint
+			require.NoError(t, m.DefaultAndValidateConfiguration(config))        // nolint: scopelint
+			require.NoError(t, m.SetConfiguration(context.Background(), config)) // nolint: scopelint
 			cancel()
 			wg.Wait()
 			assertWorkersMatchConfiguration(t, m, config) // nolint: scopelint
@@ -100,7 +100,7 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 			})
 			for _, config := range tc.configs { // nolint: scopelint
 				require.NoError(t, m.DefaultAndValidateConfiguration(config))
-				require.NoError(t, m.SetConfiguration(config))
+				require.NoError(t, m.SetConfiguration(context.Background(), config))
 			}
 			cancel()
 			wg.Wait()

@@ -9,6 +9,7 @@ import (
 	gitlab_access_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
@@ -73,9 +74,11 @@ func (a *Agent) startConfigurationRefresh(st stager.Stager, modules []modagent.M
 	stage := st.NextStage()
 	stage.Go(func(ctx context.Context) error {
 		a.ConfigurationWatcher.Watch(ctx, func(ctx context.Context, data agent_configuration_rpc.ConfigurationData) {
-			err := a.applyConfiguration(modules, data.CommitId, data.Config)
+			err := a.applyConfiguration(ctx, modules, data.CommitId, data.Config)
 			if err != nil {
-				a.Log.Error("Failed to apply configuration", logz.CommitId(data.CommitId), zap.Error(err))
+				if !errz.ContextDone(err) {
+					a.Log.Error("Failed to apply configuration", logz.CommitId(data.CommitId), zap.Error(err))
+				}
 				return
 			}
 		})
@@ -83,7 +86,7 @@ func (a *Agent) startConfigurationRefresh(st stager.Stager, modules []modagent.M
 	})
 }
 
-func (a *Agent) applyConfiguration(modules []modagent.Module, commitId string, config *agentcfg.AgentConfiguration) error {
+func (a *Agent) applyConfiguration(ctx context.Context, modules []modagent.Module, commitId string, config *agentcfg.AgentConfiguration) error {
 	a.Log.Debug("Applying configuration", logz.CommitId(commitId), agentConfig(config))
 	// Default and validate before setting for use.
 	for _, module := range modules {
@@ -94,9 +97,9 @@ func (a *Agent) applyConfiguration(modules []modagent.Module, commitId string, c
 	}
 	// Set for use.
 	for _, module := range modules {
-		err := module.SetConfiguration(config)
+		err := module.SetConfiguration(ctx, config)
 		if err != nil {
-			return fmt.Errorf("%s: %v", module.Name(), err)
+			return fmt.Errorf("%s: %w", module.Name(), err) // wrap
 		}
 	}
 	return nil

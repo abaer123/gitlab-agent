@@ -51,10 +51,12 @@ type Module interface {
 	// DefaultAndValidateConfiguration applies defaults and validates the passed configuration.
 	// It is called each time on configuration update before calling SetConfiguration.
 	// config is a shared instance, module can mutate only the part of it that it owns.
-	DefaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error
+	DefaultAndValidateConfiguration(*agentcfg.AgentConfiguration) error
 	// SetConfiguration sets configuration to use. It is called each time on configuration update.
 	// config is a shared instance, must not be mutated. Module should make a copy if it needs to mutate the object.
-	SetConfiguration(config *agentcfg.AgentConfiguration) error
+	// Applying configuration may take time, the provided context may signal done if module should stop doing that.
+	// This happens before the shutdown. Context for this method will be canceled before the context, provided to Run.
+	SetConfiguration(context.Context, *agentcfg.AgentConfiguration) error
 	// Name returns module's name.
 	Name() string
 }
