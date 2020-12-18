@@ -2,6 +2,7 @@ package logz
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"go.uber.org/zap"
@@ -26,7 +27,7 @@ func LoggerWithLevel(level zapcore.LevelEnabler) *zap.Logger {
 	cfg := zap.NewProductionEncoderConfig()
 	cfg.EncodeTime = zapcore.ISO8601TimeEncoder
 	cfg.TimeKey = "time"
-	lockedSyncer := zapcore.Lock(os.Stderr)
+	lockedSyncer := zapcore.Lock(NoSync(os.Stderr))
 	return zap.New(
 		zapcore.NewCore(
 			zapcore.NewJSONEncoder(cfg),
@@ -35,4 +36,21 @@ func LoggerWithLevel(level zapcore.LevelEnabler) *zap.Logger {
 		),
 		zap.ErrorOutput(lockedSyncer),
 	)
+}
+
+// NoSync can be used to wrap a io.Writer that implements zapcore.WriteSyncer but does not actually
+// support the Sync() operation. An example is os.Stderr that returns
+// "sync /dev/stderr: inappropriate ioctl for device" on sync attempt.
+func NoSync(w io.Writer) zapcore.WriteSyncer {
+	return noSync{
+		Writer: w,
+	}
+}
+
+type noSync struct {
+	io.Writer
+}
+
+func (noSync) Sync() error {
+	return nil
 }

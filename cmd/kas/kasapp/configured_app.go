@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ash2k/stager"
-	redigo "github.com/gomodule/redigo/redis"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/opentracing/opentracing-go"
@@ -114,27 +113,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		return err
 	}
 
-	// gRPC listener
-	lis, err := net.Listen(cfg.Agent.Listen.Network.String(), cfg.Agent.Listen.Address)
-	if err != nil {
-		return err
-	}
-	defer errz.SafeClose(lis, &retErr)
-
-	a.Log.Info("Listening for agentk connections",
-		logz.NetNetworkFromAddr(lis.Addr()),
-		logz.NetAddressFromAddr(lis.Addr()),
-		logz.IsWebSocket(cfg.Agent.Listen.Websocket),
-	)
-
-	if cfg.Agent.Listen.Websocket {
-		wsWrapper := wstunnel.ListenerWrapper{
-			// TODO set timeouts
-			ReadLimit: defaultMaxMessageSize,
-		}
-		lis = wsWrapper.Wrap(lis)
-	}
-
 	// Gitaly client
 	gitalyClientPool := a.constructGitalyPool(csh, tracer)
 	defer errz.SafeClose(gitalyClientPool, &retErr)
@@ -193,13 +171,14 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Modules stage
 	stage = st.NextStage()
 	for _, factory := range factories {
-		factory := factory // ensure closure captures the right variable
+		// factory.New() must be called from the main goroutine because it may mutate a gRPC server (register an API)
+		// and that can only be done before Serve() is called on the server.
+		module, err := factory.New(modconfig)
+		if err != nil {
+			return fmt.Errorf("%T: %v", factory, err)
+		}
 		stage.Go(func(ctx context.Context) error {
-			module, err := factory.New(modconfig)
-			if err != nil {
-				return fmt.Errorf("%T: %v", factory, err)
-			}
-			err = module.Run(ctx)
+			err := module.Run(ctx)
 			if err != nil {
 				return fmt.Errorf("%s: %v", module.Name(), err)
 			}
@@ -210,6 +189,28 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// gRPC server stage
 	stage = st.NextStage()
 	stage.Go(func(ctx context.Context) error {
+		// gRPC listener
+		lis, err := net.Listen(cfg.Agent.Listen.Network.String(), cfg.Agent.Listen.Address)
+		if err != nil {
+			return err
+		}
+		// Error is ignored because agentServer.Run() closes the listener and
+		// a second close always produces an error.
+		defer lis.Close() // nolint:errcheck
+
+		a.Log.Info("Listening for agentk connections",
+			logz.NetNetworkFromAddr(lis.Addr()),
+			logz.NetAddressFromAddr(lis.Addr()),
+			logz.IsWebSocket(cfg.Agent.Listen.Websocket),
+		)
+
+		if cfg.Agent.Listen.Websocket {
+			wsWrapper := wstunnel.ListenerWrapper{
+				// TODO set timeouts
+				ReadLimit: defaultMaxMessageSize,
+			}
+			lis = wsWrapper.Wrap(lis)
+		}
 		return agentServer.Serve(lis)
 	})
 	stage.Go(func(ctx context.Context) error {
@@ -291,7 +292,7 @@ func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tr
 	return grpc.NewServer(serverOpts...), nil
 }
 
-func (a *ConfiguredApp) constructAgentTracker(redisPool *redigo.Pool) agent_tracker.Tracker {
+func (a *ConfiguredApp) constructAgentTracker(redisPool redis.Pool) agent_tracker.Tracker {
 	if redisPool == nil {
 		return nopAgentTracker{}
 	}
@@ -411,7 +412,7 @@ func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tracer opentracin
 	)
 }
 
-func (a *ConfiguredApp) constructRedisPool() (*redigo.Pool, error) {
+func (a *ConfiguredApp) constructRedisPool() (redis.Pool, error) {
 	cfg := a.Configuration.Redis
 	if cfg == nil {
 		return nil, nil
