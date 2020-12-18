@@ -194,7 +194,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		if err != nil {
 			return err
 		}
-		defer errz.SafeClose(lis, &retErr)
+		// Error is ignored because agentServer.Run() closes the listener and
+		// a second close always produces an error.
+		defer lis.Close() // nolint:errcheck
 
 		a.Log.Info("Listening for agentk connections",
 			logz.NetNetworkFromAddr(lis.Addr()),
