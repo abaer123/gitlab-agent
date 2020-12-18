@@ -171,13 +171,14 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Modules stage
 	stage = st.NextStage()
 	for _, factory := range factories {
-		factory := factory // ensure closure captures the right variable
+		// factory.New() must be called from the main goroutine because it may mutate a gRPC server (register an API)
+		// and that can only be done before Serve() is called on the server.
+		module, err := factory.New(modconfig)
+		if err != nil {
+			return fmt.Errorf("%T: %v", factory, err)
+		}
 		stage.Go(func(ctx context.Context) error {
-			module, err := factory.New(modconfig)
-			if err != nil {
-				return fmt.Errorf("%T: %v", factory, err)
-			}
-			err = module.Run(ctx)
+			err := module.Run(ctx)
 			if err != nil {
 				return fmt.Errorf("%s: %v", module.Name(), err)
 			}
