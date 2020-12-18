@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ash2k/stager"
-	redigo "github.com/gomodule/redigo/redis"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/opentracing/opentracing-go"
@@ -291,7 +290,7 @@ func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tr
 	return grpc.NewServer(serverOpts...), nil
 }
 
-func (a *ConfiguredApp) constructAgentTracker(redisPool *redigo.Pool) agent_tracker.Tracker {
+func (a *ConfiguredApp) constructAgentTracker(redisPool redis.Pool) agent_tracker.Tracker {
 	if redisPool == nil {
 		return nopAgentTracker{}
 	}
@@ -411,7 +410,7 @@ func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tracer opentracin
 	)
 }
 
-func (a *ConfiguredApp) constructRedisPool() (*redigo.Pool, error) {
+func (a *ConfiguredApp) constructRedisPool() (redis.Pool, error) {
 	cfg := a.Configuration.Redis
 	if cfg == nil {
 		return nil, nil
