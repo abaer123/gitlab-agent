@@ -9,11 +9,10 @@ import (
 type Factory struct {
 }
 
-func (f *Factory) New(config *modserver.Config) modserver.Module {
+func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	sv, err := grpctool.NewStreamVisitor(&rpc.Request{})
 	if err != nil {
-		// This is a coding error, should never happen.
-		panic(err)
+		return nil, err
 	}
 	m := &module{
 		log:           config.Log,
@@ -22,5 +21,5 @@ func (f *Factory) New(config *modserver.Config) modserver.Module {
 		streamVisitor: sv,
 	}
 	rpc.RegisterGitlabAccessServer(config.AgentServer, m)
-	return m
+	return m, nil
 }

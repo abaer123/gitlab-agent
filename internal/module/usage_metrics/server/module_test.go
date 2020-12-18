@@ -166,12 +166,13 @@ func setupModule(t *testing.T) (*module, *mock_usage_metrics.MockUsageTrackerInt
 	config := &kascfg.ConfigurationFile{}
 	ApplyDefaults(config)
 	config.Observability.UsageReportingPeriod = durationpb.New(50 * time.Millisecond)
-	m := f.New(&modserver.Config{
+	m, err := f.New(&modserver.Config{
 		Log:          zaptest.NewLogger(t),
 		Api:          mockApi,
 		Config:       config,
 		GitLabClient: client,
 		UsageTracker: tracker,
 	})
+	require.NoError(t, err)
 	return m.(*module), tracker, client, mockApi
 }

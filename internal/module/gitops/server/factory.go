@@ -15,7 +15,7 @@ const (
 type Factory struct {
 }
 
-func (f *Factory) New(config *modserver.Config) modserver.Module {
+func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	gitops := config.Config.Agent.Gitops
 	projectInfoCacheTtl := gitops.ProjectInfoCacheTtl.AsDuration()
 	projectInfoCacheErrorTtl := gitops.ProjectInfoCacheErrorTtl.AsDuration()
@@ -38,7 +38,7 @@ func (f *Factory) New(config *modserver.Config) modserver.Module {
 		maxNumberOfFiles:         gitops.MaxNumberOfFiles,
 	}
 	rpc.RegisterGitopsServer(config.AgentServer, m)
-	return m
+	return m, nil
 }
 
 func minDuration(a, b time.Duration) time.Duration {

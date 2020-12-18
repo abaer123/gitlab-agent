@@ -44,10 +44,9 @@ func (a *Agent) startModules(st stager.Stager) ([]modagent.Module, error) {
 	if err != nil {
 		return nil, err
 	}
-	stage := st.NextStage()
 	modules := make([]modagent.Module, 0, len(a.ModuleFactories))
 	for _, factory := range a.ModuleFactories {
-		module := factory.New(&modagent.Config{
+		module, err := factory.New(&modagent.Config{
 			Log:       a.Log,
 			AgentMeta: a.AgentMeta,
 			Api: &api{
@@ -58,7 +57,13 @@ func (a *Agent) startModules(st stager.Stager) ([]modagent.Module, error) {
 			K8sClientGetter: a.K8sClientGetter,
 			KasConn:         a.KasConn,
 		})
+		if err != nil {
+			return nil, err
+		}
 		modules = append(modules, module)
+	}
+	stage := st.NextStage()
+	for _, module := range modules {
 		stage.Go(module.Run)
 	}
 	return modules, nil

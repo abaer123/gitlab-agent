@@ -193,9 +193,13 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Modules stage
 	stage = st.NextStage()
 	for _, factory := range factories {
-		module := factory.New(modconfig)
+		factory := factory // ensure closure captures the right variable
 		stage.Go(func(ctx context.Context) error {
-			err := module.Run(ctx)
+			module, err := factory.New(modconfig)
+			if err != nil {
+				return fmt.Errorf("%T: %v", factory, err)
+			}
+			err = module.Run(ctx)
 			if err != nil {
 				return fmt.Errorf("%s: %v", module.Name(), err)
 			}

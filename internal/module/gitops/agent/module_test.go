@@ -120,12 +120,13 @@ func setupModule(t *testing.T) (*module, *gomock.Controller, *mock_engine.MockGi
 		},
 		GetObjectsToSynchronizeRetryPeriod: 10 * time.Second,
 	}
-	m := factory.New(&modagent.Config{
+	m, err := factory.New(&modagent.Config{
 		Log:             zaptest.NewLogger(t),
 		Api:             mock_modagent.NewMockAPI(mockCtrl),
 		K8sClientGetter: configFlags,
 		KasConn:         kasConn,
 	})
+	require.NoError(t, err)
 	return m.(*module), mockCtrl, engFactory
 }
 

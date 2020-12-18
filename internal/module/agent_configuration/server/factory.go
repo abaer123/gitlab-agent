@@ -10,7 +10,7 @@ type Factory struct {
 	AgentTracker agent_tracker.Tracker
 }
 
-func (f *Factory) New(config *modserver.Config) modserver.Module {
+func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	agent := config.Config.Agent
 	m := &module{
 		log:                          config.Log,
@@ -22,5 +22,5 @@ func (f *Factory) New(config *modserver.Config) modserver.Module {
 		maxConnectionAge:             agent.Listen.MaxConnectionAge.AsDuration(),
 	}
 	rpc.RegisterAgentConfigurationServer(config.AgentServer, m)
-	return m
+	return m, nil
 }
