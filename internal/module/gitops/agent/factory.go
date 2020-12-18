@@ -13,7 +13,7 @@ type Factory struct {
 	GetObjectsToSynchronizeRetryPeriod time.Duration
 }
 
-func (f *Factory) New(config *modagent.Config) modagent.Module {
+func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	return &module{
 		log:                                config.Log,
 		engineFactory:                      f.EngineFactory,
@@ -21,7 +21,7 @@ func (f *Factory) New(config *modagent.Config) modagent.Module {
 		getObjectsToSynchronizeRetryPeriod: f.GetObjectsToSynchronizeRetryPeriod,
 		gitopsClient:                       rpc.NewGitopsClient(config.KasConn),
 		workers:                            make(map[string]*gitopsWorkerHolder),
-	}
+	}, nil
 }
 
 func (f *Factory) Name() string {

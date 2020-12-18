@@ -7,10 +7,10 @@ import (
 type Factory struct {
 }
 
-func (f *Factory) New(config *modserver.Config) modserver.Module {
+func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	return &module{
 		cfg:     config.Config.Observability.GoogleProfiler,
 		service: config.KasName,
 		version: config.Version,
-	}
+	}, nil
 }

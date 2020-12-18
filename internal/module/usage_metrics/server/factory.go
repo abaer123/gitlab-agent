@@ -9,12 +9,12 @@ type Factory struct {
 	UsageTracker usage_metrics.UsageTrackerCollector
 }
 
-func (f *Factory) New(config *modserver.Config) modserver.Module {
+func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	return &module{
 		log:                  config.Log,
 		api:                  config.Api,
 		usageTracker:         f.UsageTracker,
 		gitLabClient:         config.GitLabClient,
 		usageReportingPeriod: config.Config.Observability.UsageReportingPeriod.AsDuration(),
-	}
+	}, nil
 }

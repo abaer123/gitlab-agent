@@ -94,11 +94,12 @@ func (mr *MockFactoryMockRecorder) Name() *gomock.Call {
 }
 
 // New mocks base method
-func (m *MockFactory) New(arg0 *modagent.Config) modagent.Module {
+func (m *MockFactory) New(arg0 *modagent.Config) (modagent.Module, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "New", arg0)
 	ret0, _ := ret[0].(modagent.Module)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // New indicates an expected call of New

@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	token = "abfaasdfasdfasdf"
+	token api.AgentToken = "abfaasdfasdfasdf"
 )
 
 var (
@@ -107,13 +107,13 @@ func TestMakeRequest(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				defer pw.Close() // close the write side of the pipe
-				all, err := ioutil.ReadAll(body)
-				if !assert.NoError(t, err) {
+				all, errIO := ioutil.ReadAll(body)
+				if !assert.NoError(t, errIO) {
 					return
 				}
 				assert.Equal(t, []byte{1, 2, 3, 4, 5, 6}, all)
-				_, err = pw.Write(respBody) // only respond once the request is consumed
-				assert.NoError(t, err)
+				_, errIO = pw.Write(respBody) // only respond once the request is consumed
+				assert.NoError(t, errIO)
 			}()
 			return &http.Response{
 				Status:     "status1",
@@ -145,13 +145,14 @@ func TestMakeRequest(t *testing.T) {
 	)
 	gomock.InOrder(append([]*gomock.Call{doStream}, responses...)...)
 	f := Factory{}
-	m := f.New(&modserver.Config{
+	m, err := f.New(&modserver.Config{
 		Log:          zaptest.NewLogger(t),
 		Api:          mockApi,
 		GitLabClient: gitLabClient,
 		AgentServer:  grpc.NewServer(),
-	}).(*module)
-	require.NoError(t, m.MakeRequest(server))
+	})
+	require.NoError(t, err)
+	require.NoError(t, m.(*module).MakeRequest(server))
 }
 
 func mockRecvStream(server *mock_rpc.MockGitlabAccess_MakeRequestServer, eof bool, msgs ...proto.Message) []*gomock.Call {

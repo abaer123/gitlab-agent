@@ -57,7 +57,7 @@ func TestConfigurationIsApplied(t *testing.T) {
 			Return("name"),
 		f.EXPECT().
 			New(gomock.Any()).
-			Return(m),
+			Return(m, nil),
 		watcher.EXPECT().
 			Watch(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, callback rpc.ConfigurationCallback) {

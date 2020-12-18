@@ -629,7 +629,7 @@ func setupModuleBare(t *testing.T, pollTimes int) (*module, *gomock.Controller, 
 	ApplyDefaults(config)
 	config.Agent.Gitops.ProjectInfoCacheTtl = durationpb.New(0)
 	config.Agent.Gitops.ProjectInfoCacheErrorTtl = durationpb.New(0)
-	m := f.New(&modserver.Config{
+	m, err := f.New(&modserver.Config{
 		Log:          zaptest.NewLogger(t),
 		Api:          mockApi,
 		Config:       config,
@@ -639,6 +639,7 @@ func setupModuleBare(t *testing.T, pollTimes int) (*module, *gomock.Controller, 
 		AgentServer:  grpc.NewServer(),
 		Gitaly:       gitalyPool,
 	})
+	require.NoError(t, err)
 	return m.(*module), ctrl, mockApi, gitalyPool, gitlabClient
 }
 
