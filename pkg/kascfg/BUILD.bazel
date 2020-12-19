@@ -5,7 +5,7 @@ load("//build:build.bzl", "copy_to_workspace")
 load("//build:validate.bzl", "go_validate_compile")
 
 proto_library(
-    name = "kascfg_proto",
+    name = "proto",
     srcs = ["kascfg.proto"],
     tags = ["manual"],
     visibility = ["//visibility:public"],
@@ -16,28 +16,28 @@ proto_library(
 )
 
 go_proto_compile(
-    name = "kas_cfg",
+    name = "proto_compile",
     tags = ["manual"],
-    deps = [":kascfg_proto"],
+    deps = [":proto"],
 )
 
 go_validate_compile(
-    name = "kas_cfg_validate",
+    name = "proto_compile_validate",
     tags = ["manual"],
-    deps = [":kascfg_proto"],
+    deps = [":proto"],
 )
 
 copy_to_workspace(
     name = "extract_generated",
     file_to_copy = "kascfg.pb.go",
-    label = ":kas_cfg",
+    label = ":proto_compile",
     workspace_relative_target_directory = "pkg/kascfg",
 )
 
 copy_to_workspace(
     name = "extract_generated_validator",
     file_to_copy = "kascfg.pb.validate.go",
-    label = ":kas_cfg_validate",
+    label = ":proto_compile_validate",
     workspace_relative_target_directory = "pkg/kascfg",
 )
 

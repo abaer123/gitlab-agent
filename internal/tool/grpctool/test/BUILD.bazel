@@ -10,7 +10,7 @@ proto_library(
     tags = ["manual"],
     visibility = ["//visibility:public"],
     deps = [
-        "//internal/tool/grpctool/automata:automata_proto",
+        "//internal/tool/grpctool/automata:proto",
         "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
     ],
 )

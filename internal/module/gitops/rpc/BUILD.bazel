@@ -4,26 +4,26 @@ load("@rules_proto_grpc//go:defs.bzl", "go_grpc_compile")
 load("//build:build.bzl", "copy_to_workspace")
 
 proto_library(
-    name = "rpc_proto",
+    name = "proto",
     srcs = ["rpc.proto"],
     tags = ["manual"],
     visibility = ["//visibility:public"],
     deps = [
-        "//internal/tool/grpctool/automata:automata_proto",
-        "//pkg/agentcfg:agentcfg_proto",
+        "//internal/tool/grpctool/automata:proto",
+        "//pkg/agentcfg:proto",
     ],
 )
 
 go_grpc_compile(
-    name = "grpc",
+    name = "grpc_compile",
     tags = ["manual"],
-    deps = [":rpc_proto"],
+    deps = [":proto"],
 )
 
 copy_to_workspace(
     name = "extract_generated",
     file_to_copy = "rpc.pb.go",
-    label = ":grpc",
+    label = ":grpc_compile",
     workspace_relative_target_directory = "internal/module/gitops/rpc",
 )
 
