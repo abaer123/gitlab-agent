@@ -34,20 +34,20 @@ func WithEOFCallback(cb EOFCallback) StreamVisitorOption {
 
 // WithCallback registers cb to be called when entering transitionTo when parsing the stream. Only one callback can be registered per target
 func WithCallback(transitionTo protoreflect.FieldNumber, cb MessageCallback) StreamVisitorOption {
-	cbType := reflect.TypeOf(cb)
-	if cbType.Kind() != reflect.Func {
-		panic(fmt.Errorf("cb must be a function, got: %T", cb))
-	}
-	if cbType.NumIn() != 1 {
-		panic(fmt.Errorf("cb must take one parameter only, got: %T", cb))
-	}
-	if cbType.NumOut() != 1 {
-		panic(fmt.Errorf("cb must return one value only, got: %T", cb))
-	}
-	if cbType.Out(0) != errorType {
-		panic(fmt.Errorf("cb must return an error, got: %T", cb))
-	}
 	return func(c *config) error {
+		cbType := reflect.TypeOf(cb)
+		if cbType.Kind() != reflect.Func {
+			return fmt.Errorf("cb must be a function, got: %T", cb)
+		}
+		if cbType.NumIn() != 1 {
+			return fmt.Errorf("cb must take one parameter only, got: %T", cb)
+		}
+		if cbType.NumOut() != 1 {
+			return fmt.Errorf("cb must return one value only, got: %T", cb)
+		}
+		if cbType.Out(0) != errorType {
+			return fmt.Errorf("cb must return an error, got: %T", cb)
+		}
 		if existingCb, exists := c.msgCallbacks[transitionTo]; exists {
 			return fmt.Errorf("callback for %d has already been defined: %v", transitionTo, existingCb)
 		}
