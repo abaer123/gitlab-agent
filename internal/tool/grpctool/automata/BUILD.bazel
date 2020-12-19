@@ -4,7 +4,7 @@ load("@rules_proto_grpc//go:defs.bzl", "go_proto_compile")
 load("//build:build.bzl", "copy_to_workspace")
 
 proto_library(
-    name = "automata_proto",
+    name = "proto",
     srcs = ["automata.proto"],
     tags = ["manual"],
     visibility = ["//visibility:public"],
@@ -14,15 +14,15 @@ proto_library(
 )
 
 go_proto_compile(
-    name = "proto",
+    name = "proto_compile",
     tags = ["manual"],
-    deps = [":automata_proto"],
+    deps = [":proto"],
 )
 
 copy_to_workspace(
     name = "extract_generated",
     file_to_copy = "automata.pb.go",
-    label = ":proto",
+    label = ":proto_compile",
     workspace_relative_target_directory = "internal/tool/grpctool/automata",
 )
 

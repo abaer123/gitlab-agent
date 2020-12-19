@@ -300,3 +300,25 @@ func TestStreamVisitorInvalidNumber(t *testing.T) {
 	)
 	require.EqualError(t, err, "oneof test.Response.message does not have a field 20")
 }
+
+func TestValidation(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	stream, calls := mock_rpc.InitMockClientStream(ctrl, false,
+		&test.Response{
+			// oneof is not set
+		},
+	)
+	gomock.InOrder(calls...)
+	v, err := grpctool.NewStreamVisitor(&test.Response{})
+	require.NoError(t, err)
+	cb := func(message proto.Message) error {
+		return nil
+	}
+	err = v.Visit(stream,
+		grpctool.WithCallback(scalarNumber, cb),
+		grpctool.WithCallback(x1Number, cb),
+		grpctool.WithCallback(dataNumber, cb),
+		grpctool.WithCallback(lastNumber, cb),
+	)
+	require.EqualError(t, err, "invalid message received: invalid Response.Message: value is required")
+}
