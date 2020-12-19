@@ -7,6 +7,8 @@ package test;
 option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/automata/test";
 
 import "internal/tool/grpctool/automata/automata.proto";
+//import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
+import "validate/validate.proto";
 
 enum enum1 {
   v1 = 0;
@@ -24,6 +26,7 @@ message Response {
   oneof message {
 
     option (automata.first_allowed_field) = 1;
+    option (validate.required) = true;
 
     int64 scalar = 1 [(automata.automata).next_allowed_field = 2];
     enum1 x1 = 2 [(automata.automata).next_allowed_field = 3];

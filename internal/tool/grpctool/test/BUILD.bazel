@@ -1,39 +1,59 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("@rules_proto//proto:defs.bzl", "proto_library")
-load("@rules_proto_grpc//go:defs.bzl", "go_grpc_compile")
+load("@rules_proto_grpc//go:defs.bzl", "go_proto_compile")
 load("//build:build.bzl", "copy_to_workspace")
+load("//build:validate.bzl", "go_validate_compile")
 
 proto_library(
-    name = "test_proto",
+    name = "proto",
     srcs = ["test.proto"],
     tags = ["manual"],
     visibility = ["//visibility:public"],
     deps = [
         "//internal/tool/grpctool/automata:automata_proto",
+        "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
     ],
 )
 
-go_grpc_compile(
-    name = "grpc",
+go_proto_compile(
+    name = "proto_compile",
     tags = ["manual"],
-    deps = [":test_proto"],
+    deps = [":proto"],
+)
+
+go_validate_compile(
+    name = "proto_compile_validate",
+    tags = ["manual"],
+    deps = [":proto"],
 )
 
 copy_to_workspace(
     name = "extract_generated",
     file_to_copy = "test.pb.go",
-    label = ":grpc",
+    label = ":proto_compile",
+    workspace_relative_target_directory = "internal/tool/grpctool/test",
+)
+
+copy_to_workspace(
+    name = "extract_generated_validator",
+    file_to_copy = "test.pb.validate.go",
+    label = ":proto_compile_validate",
     workspace_relative_target_directory = "internal/tool/grpctool/test",
 )
 
 go_library(
     name = "test",
-    srcs = ["test.pb.go"],
+    srcs = [
+        "test.pb.go",
+        "test.pb.validate.go",
+    ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/test",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/tool/grpctool/automata",
+        "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
         "@com_github_golang_protobuf//proto",
+        "@com_github_golang_protobuf//ptypes",
         "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_golang_google_protobuf//runtime/protoimpl",
     ],
