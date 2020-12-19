@@ -36,7 +36,6 @@ go_library(
         "//pkg/kascfg",
         "@com_github_ash2k_stager//:stager",
         "@com_github_go_logr_zapr//:zapr",
-        "@com_github_gomodule_redigo//redis",
         "@com_github_grpc_ecosystem_go_grpc_middleware//tracing/opentracing",
         "@com_github_grpc_ecosystem_go_grpc_prometheus//:go-grpc-prometheus",
         "@com_github_opentracing_opentracing_go//:opentracing-go",
