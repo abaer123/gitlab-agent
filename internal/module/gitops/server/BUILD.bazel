@@ -6,6 +6,7 @@ go_library(
         "defaulting.go",
         "factory.go",
         "module.go",
+        "poll_job.go",
         "project_info_client.go",
         "visitor.go",
     ],
