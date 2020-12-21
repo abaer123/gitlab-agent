@@ -6,6 +6,7 @@ go_library(
         "agent_md.go",
         "client_ctx.go",
         "client_limiting.go",
+        "client_validator.go",
         "server_ctx.go",
         "server_limiting.go",
         "stream_visitor.go",
@@ -36,6 +37,7 @@ go_test(
     name = "grpctool_test",
     size = "small",
     srcs = [
+        "client_validator_test.go",
         "server_limiting_test.go",
         "stream_visitor_test.go",
         "tools_test.go",
@@ -51,6 +53,7 @@ go_test(
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
+        "@org_golang_google_grpc//test/bufconn",
         "@org_golang_google_protobuf//proto",
         "@org_golang_google_protobuf//reflect/protoreflect",
     ],

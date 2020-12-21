@@ -11,6 +11,7 @@ import (
 
 	"github.com/ash2k/stager"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
+	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
@@ -230,6 +231,7 @@ func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tr
 		grpctool.StreamServerAgentMDInterceptor(), // This one should be the second one to ensure agent presents a token
 		grpccorrelation.StreamServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()),
 		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		grpc_validator.StreamServerInterceptor(),
 		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)),
 	}
 	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
@@ -237,6 +239,7 @@ func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tr
 		grpctool.UnaryServerAgentMDInterceptor(), // This one should be the second one to ensure agent presents a token
 		grpccorrelation.UnaryServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()),
 		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		grpc_validator.UnaryServerInterceptor(),
 		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)),
 	}
 
