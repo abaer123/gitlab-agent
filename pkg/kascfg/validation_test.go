@@ -58,10 +58,13 @@ func TestValidation_Valid(t *testing.T) {
 		{
 			name: "RedisCF",
 			valid: &RedisCF{
-				Url:       "unix:///tmp/redis.sock", // some value - it's a required field
-				MaxIdle:   0,                        // zero means "use default value"
-				MaxActive: 0,                        // zero means "use default value"
-				Keepalive: durationpb.New(0),        // zero means "disabled"
+				RedisConfig: &RedisCF_Server{
+					Server: &RedisServerCF{
+						Url: "unix:///tmp/redis.sock",
+					},
+				},
+				PoolSize:  0,  // zero means "use default value"
+				KeyPrefix: "", // empty means "use default value"
 			},
 		},
 		{
@@ -175,10 +178,23 @@ func TestValidation_Invalid(t *testing.T) {
 			},
 		},
 		{
+			name:      "zero RedisCF.DialTimeout",
+			errString: "invalid RedisCF.DialTimeout: value must be greater than 0s",
+			invalid: &RedisCF{
+				DialTimeout: durationpb.New(0),
+			},
+		},
+		{
+			name:      "negative RedisCF.DialTimeout",
+			errString: "invalid RedisCF.DialTimeout: value must be greater than 0s",
+			invalid: &RedisCF{
+				DialTimeout: durationpb.New(-1),
+			},
+		},
+		{
 			name:      "zero RedisCF.ReadTimeout",
 			errString: "invalid RedisCF.ReadTimeout: value must be greater than 0s",
 			invalid: &RedisCF{
-				Url:         "unix:///tmp/redis.sock",
 				ReadTimeout: durationpb.New(0),
 			},
 		},
@@ -186,7 +202,6 @@ func TestValidation_Invalid(t *testing.T) {
 			name:      "negative RedisCF.ReadTimeout",
 			errString: "invalid RedisCF.ReadTimeout: value must be greater than 0s",
 			invalid: &RedisCF{
-				Url:         "unix:///tmp/redis.sock",
 				ReadTimeout: durationpb.New(-1),
 			},
 		},
@@ -194,7 +209,6 @@ func TestValidation_Invalid(t *testing.T) {
 			name:      "zero RedisCF.WriteTimeout",
 			errString: "invalid RedisCF.WriteTimeout: value must be greater than 0s",
 			invalid: &RedisCF{
-				Url:          "unix:///tmp/redis.sock",
 				WriteTimeout: durationpb.New(0),
 			},
 		},
@@ -202,29 +216,58 @@ func TestValidation_Invalid(t *testing.T) {
 			name:      "negative RedisCF.WriteTimeout",
 			errString: "invalid RedisCF.WriteTimeout: value must be greater than 0s",
 			invalid: &RedisCF{
-				Url:          "unix:///tmp/redis.sock",
 				WriteTimeout: durationpb.New(-1),
 			},
 		},
 		{
-			name:      "negative RedisCF.Keepalive",
-			errString: "invalid RedisCF.Keepalive: value must be greater than or equal to 0s",
+			name:      "zero RedisCF.IdleTimeout",
+			errString: "invalid RedisCF.IdleTimeout: value must be greater than 0s",
 			invalid: &RedisCF{
-				Url:       "unix:///tmp/redis.sock",
-				Keepalive: durationpb.New(-1),
+				IdleTimeout: durationpb.New(0),
 			},
 		},
 		{
-			name:      "empty RedisCF.Url",
-			errString: "invalid RedisCF.Url: value length must be at least 1 runes",
+			name:      "negative RedisCF.IdleTimeout",
+			errString: "invalid RedisCF.IdleTimeout: value must be greater than 0s",
+			invalid: &RedisCF{
+				IdleTimeout: durationpb.New(-1),
+			},
+		},
+		{
+			name:      "missing RedisCF.RedisConfig",
+			errString: "invalid RedisCF.RedisConfig: value is required",
 			invalid:   &RedisCF{},
 		},
 		{
-			name:      "relative RedisCF.Url",
-			errString: "invalid RedisCF.Url: value must be absolute",
-			invalid: &RedisCF{
+			name:      "empty RedisServerCF.Url",
+			errString: "invalid RedisServerCF.Url: value length must be at least 1 runes",
+			invalid:   &RedisServerCF{},
+		},
+		{
+			name:      "relative RedisServerCF.Url",
+			errString: "invalid RedisServerCF.Url: value must be absolute",
+			invalid: &RedisServerCF{
 				Url: "/redis.sock",
 			},
+		},
+		{
+			name:      "empty RedisSentinelCF.MasterName",
+			errString: "invalid RedisSentinelCF.MasterName: value length must be at least 1 runes",
+			invalid: &RedisSentinelCF{
+				Addresses: []string{"1:2"},
+			},
+		},
+		{
+			name:      "empty RedisSentinelCF.Addresses",
+			errString: "invalid RedisSentinelCF.Addresses: value must contain at least 1 item(s)",
+			invalid: &RedisSentinelCF{
+				MasterName: "bla",
+			},
+		},
+		{
+			name:      "empty RedisClusterCF.Addresses",
+			errString: "invalid RedisClusterCF.Addresses: value must contain at least 1 item(s)",
+			invalid:   &RedisClusterCF{},
 		},
 		{
 			name:      "zero ListenAgentCF.MaxConnectionAge",

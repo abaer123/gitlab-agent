@@ -4,16 +4,16 @@ go 1.15
 
 require (
 	cloud.google.com/go v0.74.0
-	github.com/FZambia/sentinel v1.1.0
 	github.com/argoproj/gitops-engine v0.2.1-0.20201214220517-53cbe5f6be19
 	github.com/ash2k/stager v0.2.1
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1.0.20200107205605-c66185887605
 	github.com/envoyproxy/protoc-gen-validate v0.4.2-0.20201217164128-7df253a68e6b
 	github.com/go-logr/zapr v0.3.0
+	github.com/go-redis/redis/v8 v8.4.4
+	github.com/go-redis/redismock/v8 v8.0.1
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.3
-	github.com/gomodule/redigo v1.8.3
 	github.com/google/go-cmp v0.5.4
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.1-0.20200507082539-9abf3eb82b4a

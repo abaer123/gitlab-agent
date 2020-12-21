@@ -27,7 +27,11 @@ func TestExampleConfigHasCorrectDefaults(t *testing.T) {
 		},
 		// Not actually required, but Url is required if Redis key is specified so add it here to show that and defaults too.
 		Redis: &kascfg.RedisCF{
-			Url: "unix:///tmp/redis.sock",
+			RedisConfig: &kascfg.RedisCF_Server{
+				Server: &kascfg.RedisServerCF{
+					Url: "unix:///tmp/redis.sock",
+				},
+			},
 		},
 	}
 	kasapp.ApplyDefaultsToKasConfigurationFile(cfgDefaulted)

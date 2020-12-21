@@ -1,13 +1,14 @@
-package redis
+package redistool
 
 import (
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+	"strings"
 	"time"
 
-	redigo "github.com/gomodule/redigo/redis"
+	"github.com/go-redis/redis/v8"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"go.uber.org/zap"
 )
@@ -15,17 +16,17 @@ import (
 // TokenLimiter is a redis-based rate limiter implementing the algorithm in https://redislabs.com/redis-best-practices/basic-rate-limiting/
 type TokenLimiter struct {
 	log            *zap.Logger
-	redisPool      Pool
+	redisClient    redis.UniversalClient
 	keyPrefix      string
 	limitPerMinute uint64
 	getToken       func(ctx context.Context) string
 }
 
 // NewTokenLimiter returns a new TokenLimiter
-func NewTokenLimiter(log *zap.Logger, redisPool Pool, keyPrefix string, limitPerMinute uint64, getToken func(ctx context.Context) string) *TokenLimiter {
+func NewTokenLimiter(log *zap.Logger, redisClient redis.UniversalClient, keyPrefix string, limitPerMinute uint64, getToken func(ctx context.Context) string) *TokenLimiter {
 	return &TokenLimiter{
 		log:            log,
-		redisPool:      redisPool,
+		redisClient:    redisClient,
 		keyPrefix:      keyPrefix,
 		limitPerMinute: limitPerMinute,
 		getToken:       getToken,
@@ -34,48 +35,31 @@ func NewTokenLimiter(log *zap.Logger, redisPool Pool, keyPrefix string, limitPer
 
 // Allow consumes one limitable event from the token in the context
 func (l *TokenLimiter) Allow(ctx context.Context) bool {
-	token := l.getToken(ctx)
-	conn, err := l.redisPool.GetContext(ctx)
-	if err != nil {
-		// FIXME: Handle error.
-		l.log.Error("redis.TokenLimiter: Error connecting to redis", zap.Error(err))
-		return false
-	}
-	defer conn.Close() // nolint: errcheck
+	key := l.buildKey(l.getToken(ctx))
 
-	key := l.buildKey(token)
-
-	count, err := redigo.Uint64(conn.Do("GET", key))
+	count, err := l.redisClient.Get(ctx, key).Uint64()
 	if err != nil {
-		if !errors.Is(err, redigo.ErrNil) {
+		if !errors.Is(err, redis.Nil) {
 			// FIXME: Handle error
-			l.log.Error("redis.TokenLimiter: Error retrieving minute bucket count", zap.Error(err))
+			l.log.Error("redistool.TokenLimiter: Error retrieving minute bucket count", zap.Error(err))
 			return false
 		}
 		count = 0
 	}
 	if count >= l.limitPerMinute {
-		l.log.Debug("redis.TokenLimiter: Rate limit exceeded",
-			logz.RedisKey(key), logz.U64Count(count), logz.TokenLimit(l.limitPerMinute))
+		l.log.Debug("redistool.TokenLimiter: Rate limit exceeded",
+			logz.RedisKey([]byte(key)), logz.U64Count(count), logz.TokenLimit(l.limitPerMinute))
 		return false
 	}
 
 	// FIXME: Handle errors
-	err = conn.Send("MULTI")
+	_, err = l.redisClient.TxPipelined(ctx, func(p redis.Pipeliner) error {
+		p.Incr(ctx, key)
+		p.Expire(ctx, key, 59*time.Second)
+		return nil
+	})
 	if err != nil {
-		return false
-	}
-	err = conn.Send("INCR", key)
-	if err != nil {
-		return false
-	}
-	err = conn.Send("EXPIRE", key, 59)
-	if err != nil {
-		return false
-	}
-	_, err = conn.Do("EXEC")
-	if err != nil {
-		l.log.Error("redis.TokenLimiter: Error wile incrementing token key count", zap.Error(err))
+		l.log.Error("redistool.TokenLimiter: Error wile incrementing token key count", zap.Error(err))
 		// FIXME: Handle error
 		return false
 	}
@@ -83,7 +67,7 @@ func (l *TokenLimiter) Allow(ctx context.Context) bool {
 	return true
 }
 
-func (l *TokenLimiter) buildKey(token string) []byte {
+func (l *TokenLimiter) buildKey(token string) string {
 	// We use only the first half of the token as a key. Under the assumption of
 	// a randomly generated token of length at least 50, with an alphabet of at least
 	//
@@ -101,12 +85,15 @@ func (l *TokenLimiter) buildKey(token string) []byte {
 	tokenHash := sha256.Sum256([]byte(token[:n]))
 
 	currentMinute := time.Now().UTC().Minute()
-	result := append([]byte(l.keyPrefix), ':')
-	result = append(result, tokenHash[:]...)
-	result = append(result, ':')
+
+	var result strings.Builder
+	result.WriteString(l.keyPrefix)
+	result.WriteByte(':')
+	result.Write(tokenHash[:])
+	result.WriteByte(':')
 	minuteBytes := make([]byte, 2)
 	binary.LittleEndian.PutUint16(minuteBytes, uint16(currentMinute))
-	result = append(result, minuteBytes...)
+	result.Write(minuteBytes)
 
-	return result
+	return result.String()
 }

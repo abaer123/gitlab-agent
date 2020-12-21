@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ash2k/stager"
+	"github.com/go-redis/redis/v8"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/opentracing/opentracing-go"
@@ -28,11 +29,11 @@ import (
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
 	usage_metrics_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics/server"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/redis"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/metric"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/redistool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/tlstool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/tracing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/wstunnel"
@@ -98,7 +99,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// Redis
-	redisPool, err := a.constructRedisPool()
+	redisClient, err := a.constructRedisClient()
 	if err != nil {
 		return err
 	}
@@ -108,7 +109,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	defer interceptorsCancel()
 
 	// Agent API server
-	agentServer, err := a.constructAgentServer(interceptorsCtx, tracer, redisPool, ssh)
+	agentServer, err := a.constructAgentServer(interceptorsCtx, tracer, redisClient, ssh)
 	if err != nil {
 		return err
 	}
@@ -121,7 +122,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	usageTracker := usage_metrics.NewUsageTracker()
 
 	// Agent tracker
-	agentTracker := a.constructAgentTracker(redisPool)
+	agentTracker := a.constructAgentTracker(redisClient)
 
 	// Module factories
 	factories := []modserver.Factory{
@@ -222,7 +223,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	return st.Run(ctx)
 }
 
-func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tracer opentracing.Tracer, redisPool redis.Pool, ssh stats.Handler) (*grpc.Server, error) {
+func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tracer opentracing.Tracer, redisClient redis.UniversalClient, ssh stats.Handler) (*grpc.Server, error) {
 	cfg := a.Configuration
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
@@ -240,10 +241,10 @@ func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tr
 		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)),
 	}
 
-	if redisPool != nil {
-		agentConnectionLimiter := redis.NewTokenLimiter(
+	if redisClient != nil {
+		agentConnectionLimiter := redistool.NewTokenLimiter(
 			a.Log,
-			redisPool,
+			redisClient,
 			cfg.Redis.KeyPrefix+":agent_limit",
 			uint64(cfg.Agent.Listen.ConnectionsPerTokenPerMinute),
 			func(ctx context.Context) string { return string(api.AgentTokenFromContext(ctx)) },
@@ -292,14 +293,14 @@ func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tr
 	return grpc.NewServer(serverOpts...), nil
 }
 
-func (a *ConfiguredApp) constructAgentTracker(redisPool redis.Pool) agent_tracker.Tracker {
-	if redisPool == nil {
+func (a *ConfiguredApp) constructAgentTracker(redisClient redis.UniversalClient) agent_tracker.Tracker {
+	if redisClient == nil {
 		return nopAgentTracker{}
 	}
 	cfg := a.Configuration
 	return agent_tracker.NewRedisTracker(
 		a.Log,
-		redisPool,
+		redisClient,
 		cfg.Redis.KeyPrefix+":agent_tracker",
 		cfg.Agent.RedisConnInfoTtl.AsDuration(),
 		cfg.Agent.RedisConnInfoRefresh.AsDuration(),
@@ -412,37 +413,56 @@ func (a *ConfiguredApp) constructGitalyPool(csh stats.Handler, tracer opentracin
 	)
 }
 
-func (a *ConfiguredApp) constructRedisPool() (redis.Pool, error) {
+func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 	cfg := a.Configuration.Redis
 	if cfg == nil {
 		return nil, nil
 	}
-	redisCfg := &redis.Config{
-		// Url is parsed below
-		Password:       cfg.Password,
-		MaxIdle:        int32(cfg.MaxIdle),
-		MaxActive:      int32(cfg.MaxActive),
-		ReadTimeout:    cfg.ReadTimeout.AsDuration(),
-		WriteTimeout:   cfg.WriteTimeout.AsDuration(),
-		KeepAlive:      cfg.Keepalive.AsDuration(),
-		SentinelMaster: cfg.SentinelMaster,
-		// Sentinels is parsed below
-	}
-	if cfg.Url != "" {
-		var err error
-		redisCfg.URL, err = url.Parse(cfg.Url)
+	poolSize := int(cfg.PoolSize)
+	dialTimeout := cfg.DialTimeout.AsDuration()
+	readTimeout := cfg.ReadTimeout.AsDuration()
+	writeTimeout := cfg.WriteTimeout.AsDuration()
+	idleTimeout := cfg.IdleTimeout.AsDuration()
+	switch v := cfg.RedisConfig.(type) {
+	case *kascfg.RedisCF_Server:
+		opts, err := redis.ParseURL(v.Server.Url)
 		if err != nil {
-			return nil, fmt.Errorf("kas.redis.NewPool: redis.url is not a valid URL: %v", err)
+			return nil, err
 		}
-	}
-	for i, addr := range cfg.Sentinels {
-		u, err := url.Parse(addr)
-		if err != nil {
-			return nil, fmt.Errorf("kas.redis.NewPool: redis.sentinels[%d] is not a valid URL: %v", i, err)
+		if opts.TLSConfig != nil {
+			tlsCfg := tlstool.DefaultClientTLSConfig()
+			tlsCfg.ServerName = opts.TLSConfig.ServerName
+			opts.TLSConfig = tlsCfg
 		}
-		redisCfg.Sentinels = append(redisCfg.Sentinels, u)
+		opts.PoolSize = poolSize
+		opts.DialTimeout = dialTimeout
+		opts.ReadTimeout = readTimeout
+		opts.WriteTimeout = writeTimeout
+		opts.IdleTimeout = idleTimeout
+		return redis.NewClient(opts), nil
+	case *kascfg.RedisCF_Sentinel:
+		return redis.NewFailoverClient(&redis.FailoverOptions{
+			MasterName:    v.Sentinel.MasterName,
+			SentinelAddrs: v.Sentinel.Addresses,
+			DialTimeout:   dialTimeout,
+			ReadTimeout:   readTimeout,
+			WriteTimeout:  writeTimeout,
+			PoolSize:      poolSize,
+			IdleTimeout:   idleTimeout,
+		}), nil
+	case *kascfg.RedisCF_Cluster:
+		return redis.NewClusterClient(&redis.ClusterOptions{
+			Addrs:        v.Cluster.Addresses,
+			DialTimeout:  dialTimeout,
+			ReadTimeout:  readTimeout,
+			WriteTimeout: writeTimeout,
+			PoolSize:     poolSize,
+			IdleTimeout:  idleTimeout,
+		}), nil
+	default:
+		// This should never happen
+		return nil, fmt.Errorf("unexpected Redis config type: %T", cfg.RedisConfig)
 	}
-	return redis.NewPool(redisCfg), nil
 }
 
 func kasUserAgent() string {

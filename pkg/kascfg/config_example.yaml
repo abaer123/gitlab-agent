@@ -63,13 +63,11 @@ gitaly:
     refill_rate_per_second: 5.0
     bucket_size: 10
 redis:
-  url: unix:///tmp/redis.sock # required if redis block is present
-  #  password: my-password
-  max_idle: 1
-  max_active: 1
+  server:
+    url: unix:///tmp/redis.sock # required
+  pool_size: 5
+  dial_timeout: "5s"
   read_timeout: "1s"
   write_timeout: "1s"
-  keepalive: "300s"
-  #  sentinel_master: my-master
-  #  sentinels: [ tcp://host-1, tcp://host-2 ]
+  idle_timeout: "300s"
   key_prefix: gitlab-kas
