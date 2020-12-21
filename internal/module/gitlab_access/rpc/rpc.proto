@@ -7,6 +7,8 @@ package rpc;
 option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/rpc";
 
 import "internal/tool/grpctool/automata/automata.proto";
+//import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
+import "validate/validate.proto";
 
 message Values {
   repeated string value = 1;
@@ -16,14 +18,14 @@ message Request {
   // First message of the stream.
   message Headers {
     // Name of the module that' is making the request.
-    string module_name = 1;
+    string module_name = 1 [(validate.rules).string.min_len = 1];
     // HTTP method.
-    string method = 2;
+    string method = 2 [(validate.rules).string.min_len = 1];
     // HTTP headers.
     map<string, Values> headers = 3;
     // URL path component that goes after /api/v4/internal/kubernetes/modules/{module_name}
     // Should start with a slash.
-    string url_path = 4;
+    string url_path = 4 [(validate.rules).string.min_len = 1];
     // query is the URL query part without the leading question mark.
     map<string, Values> query = 5;
   }
@@ -38,6 +40,7 @@ message Request {
   oneof message {
 
     option (automata.first_allowed_field) = 1;
+    option (validate.required) = true;
 
     Headers headers = 1 [(automata.automata).next_allowed_field = 2, (automata.automata).next_allowed_field = 3];
     Data data = 2 [(automata.automata).next_allowed_field = 2, (automata.automata).next_allowed_field = 3];
@@ -66,6 +69,7 @@ message Response {
   oneof message {
 
     option (automata.first_allowed_field) = 1;
+    option (validate.required) = true;
 
     Headers headers = 1 [(automata.automata).next_allowed_field = 2, (automata.automata).next_allowed_field = 3];
     Data data = 2 [(automata.automata).next_allowed_field = 2, (automata.automata).next_allowed_field = 3];

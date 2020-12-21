@@ -1,30 +1,14 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
-load("@rules_proto//proto:defs.bzl", "proto_library")
-load("@rules_proto_grpc//go:defs.bzl", "go_grpc_compile")
-load("//build:build.bzl", "copy_to_workspace")
+load("//build:proto.bzl", "go_grpc_generate")
 
-proto_library(
-    name = "proto",
-    srcs = ["rpc.proto"],
-    tags = ["manual"],
-    visibility = ["//visibility:public"],
+go_grpc_generate(
+    src = "rpc.proto",
+    workspace_relative_target_directory = "internal/module/agent_configuration/rpc",
     deps = [
         "//internal/module/modshared:proto",
         "//pkg/agentcfg:proto",
+        "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
     ],
-)
-
-go_grpc_compile(
-    name = "grpc_compile",
-    tags = ["manual"],
-    deps = [":proto"],
-)
-
-copy_to_workspace(
-    name = "extract_generated",
-    file_to_copy = "rpc.pb.go",
-    label = ":grpc_compile",
-    workspace_relative_target_directory = "internal/module/agent_configuration/rpc",
 )
 
 go_library(
@@ -32,6 +16,7 @@ go_library(
     srcs = [
         "configuration_watcher.go",
         "rpc.pb.go",
+        "rpc.pb.validate.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc",
     visibility = ["//:__subpackages__"],
@@ -40,7 +25,9 @@ go_library(
         "//internal/tool/grpctool",
         "//internal/tool/retry",
         "//pkg/agentcfg",
+        "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
         "@com_github_golang_protobuf//proto",
+        "@com_github_golang_protobuf//ptypes",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",

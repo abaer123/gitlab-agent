@@ -131,9 +131,11 @@ func (a *App) kasConnection(ctx context.Context, token api.AgentToken, tlsConfig
 		}),
 		grpc.WithChainStreamInterceptor(
 			grpccorrelation.StreamClientCorrelationInterceptor(grpccorrelation.WithClientName(correlationClientName)),
+			grpctool.StreamClientValidatingInterceptor,
 		),
 		grpc.WithChainUnaryInterceptor(
 			grpccorrelation.UnaryClientCorrelationInterceptor(grpccorrelation.WithClientName(correlationClientName)),
+			grpctool.UnaryClientValidatingInterceptor,
 		),
 	}
 	var addressToDial string

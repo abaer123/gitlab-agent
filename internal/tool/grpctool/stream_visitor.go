@@ -33,10 +33,6 @@ type InvalidTransitionCallback func(from, to protoreflect.FieldNumber, allowed [
 
 type EOFCallback func() error
 
-type validatable interface {
-	Validate() error
-}
-
 // StreamVisitor allows to consume messages in a gRPC stream.
 // Message order should follow the automata, defined on fields in a oneof group.
 type StreamVisitor struct {
@@ -88,11 +84,6 @@ func (s *StreamVisitor) Visit(stream Stream, opts ...StreamVisitorOption) error 
 				return cfg.eofCallback()
 			} else {
 				return cfg.invalidTransitionCallback(currentState, newState, allowedTransitions, nil)
-			}
-		}
-		if msgValidatable, ok := msg.(validatable); ok {
-			if err = msgValidatable.Validate(); err != nil {
-				return fmt.Errorf("invalid message received: %w", err)
 			}
 		}
 		field := msgRefl.WhichOneof(s.oneof)

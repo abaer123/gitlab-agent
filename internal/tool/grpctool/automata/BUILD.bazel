@@ -1,29 +1,12 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
-load("@rules_proto//proto:defs.bzl", "proto_library")
-load("@rules_proto_grpc//go:defs.bzl", "go_proto_compile")
-load("//build:build.bzl", "copy_to_workspace")
+load("//build:proto.bzl", "go_grpc_generate")
 
-proto_library(
-    name = "proto",
-    srcs = ["automata.proto"],
-    tags = ["manual"],
-    visibility = ["//visibility:public"],
+go_grpc_generate(
+    src = "automata.proto",
+    workspace_relative_target_directory = "internal/tool/grpctool/automata",
     deps = [
         "@com_google_protobuf//:descriptor_proto",
     ],
-)
-
-go_proto_compile(
-    name = "proto_compile",
-    tags = ["manual"],
-    deps = [":proto"],
-)
-
-copy_to_workspace(
-    name = "extract_generated",
-    file_to_copy = "automata.pb.go",
-    label = ":proto_compile",
-    workspace_relative_target_directory = "internal/tool/grpctool/automata",
 )
 
 go_library(

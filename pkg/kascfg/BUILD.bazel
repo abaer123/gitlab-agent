@@ -1,44 +1,13 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
-load("@rules_proto//proto:defs.bzl", "proto_library")
-load("@rules_proto_grpc//go:defs.bzl", "go_proto_compile")
-load("//build:build.bzl", "copy_to_workspace")
-load("//build:validate.bzl", "go_validate_compile")
+load("//build:proto.bzl", "go_grpc_generate")
 
-proto_library(
-    name = "proto",
-    srcs = ["kascfg.proto"],
-    tags = ["manual"],
-    visibility = ["//visibility:public"],
+go_grpc_generate(
+    src = "kascfg.proto",
+    workspace_relative_target_directory = "pkg/kascfg",
     deps = [
         "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
         "@com_google_protobuf//:duration_proto",
     ],
-)
-
-go_proto_compile(
-    name = "proto_compile",
-    tags = ["manual"],
-    deps = [":proto"],
-)
-
-go_validate_compile(
-    name = "proto_compile_validate",
-    tags = ["manual"],
-    deps = [":proto"],
-)
-
-copy_to_workspace(
-    name = "extract_generated",
-    file_to_copy = "kascfg.pb.go",
-    label = ":proto_compile",
-    workspace_relative_target_directory = "pkg/kascfg",
-)
-
-copy_to_workspace(
-    name = "extract_generated_validator",
-    file_to_copy = "kascfg.pb.validate.go",
-    label = ":proto_compile_validate",
-    workspace_relative_target_directory = "pkg/kascfg",
 )
 
 go_library(

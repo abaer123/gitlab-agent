@@ -8,11 +8,13 @@ option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/inte
 
 import "pkg/agentcfg/agentcfg.proto";
 import "internal/tool/grpctool/automata/automata.proto";
+//import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
+import "validate/validate.proto";
 
 message ObjectsToSynchronizeRequest {
   // Project to fetch Kubernetes object manifests from.
   // e.g. gitlab-org/cluster-integration/gitlab-agent
-  string project_id = 1;
+  string project_id = 1 [(validate.rules).string.min_len = 1];
   // Last processed commit id. Optional.
   // Server will only send objects if the last commit on the branch is
   // a different one. If a connection breaks, this allows to resume
@@ -20,7 +22,7 @@ message ObjectsToSynchronizeRequest {
   string commit_id = 2;
   // A list of paths inside of the project to scan
   // for .yaml/.yml/.json manifest files.
-  repeated agentcfg.PathCF paths = 3;
+  repeated agentcfg.PathCF paths = 3 [(validate.rules).repeated.min_items = 1];
 }
 
 message ObjectsToSynchronizeResponse {
@@ -28,14 +30,14 @@ message ObjectsToSynchronizeResponse {
   message Headers {
     // Commit id of the manifest repository.
     // Can be used to resume connection from where it dropped.
-    string commit_id = 1;
+    string commit_id = 1 [(validate.rules).string.min_len = 1];
   }
   // Subsequent messages of the stream.
   message Object {
     // Source of the YAML e.g. file name.
     // Several subsequent messages may contain the same source string.
     // That means data should be accumulated to form the whole blob of data.
-    string source = 1;
+    string source = 1 [(validate.rules).string.min_len = 1];
 
     // YAML object manifest.
     // Might be partial data, see comment for source.
@@ -47,6 +49,7 @@ message ObjectsToSynchronizeResponse {
   oneof message {
 
     option (automata.first_allowed_field) = 1;
+    option (validate.required) = true;
 
     Headers headers = 1 [(automata.automata).next_allowed_field = 2, (automata.automata).next_allowed_field = 3];
     Object object = 2 [(automata.automata).next_allowed_field = 2, (automata.automata).next_allowed_field = 3];

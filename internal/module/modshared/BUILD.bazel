@@ -1,25 +1,8 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
-load("@rules_proto//proto:defs.bzl", "proto_library")
-load("@rules_proto_grpc//go:defs.bzl", "go_proto_compile")
-load("//build:build.bzl", "copy_to_workspace")
+load("//build:proto.bzl", "go_grpc_generate")
 
-proto_library(
-    name = "proto",
-    srcs = ["modshared.proto"],
-    tags = ["manual"],
-    visibility = ["//visibility:public"],
-)
-
-go_proto_compile(
-    name = "proto_compile",
-    tags = ["manual"],
-    deps = [":proto"],
-)
-
-copy_to_workspace(
-    name = "extract_generated",
-    file_to_copy = "modshared.pb.go",
-    label = ":proto_compile",
+go_grpc_generate(
+    src = "modshared.proto",
     workspace_relative_target_directory = "internal/module/modshared",
 )
 
