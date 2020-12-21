@@ -198,27 +198,49 @@ message GitalyCF {
 }
 
 message RedisCF {
-  // Redis URL, e.g. unix:///redis.sock, tcp://localhost:6379, redis://my-redis
-  string url = 1 [json_name = "url", (validate.rules).string.min_len = 1, (validate.rules).string.uri = true];
-  // The password to use for all connections
-  string password = 2 [json_name = "password"];
-  // The max number of idle connections
-  uint32 max_idle = 3 [json_name = "max_idle"];
-  // The max number of active connections
-  uint32 max_active = 4 [json_name = "max_active"];
-  // Read timeout
-  google.protobuf.Duration read_timeout = 5 [json_name = "read_timeout", (validate.rules).duration = {gt: {}}];
-  // Write timeout
-  google.protobuf.Duration write_timeout = 6 [json_name = "write_timeout", (validate.rules).duration = {gt: {}}];
-  // How long to keep TCP connections alive before being killed
-  // Set to zero to disable.
-  google.protobuf.Duration keepalive = 7 [json_name = "keepalive", (validate.rules).duration = {gte: {}}];
-  // The name of the sentinel master to use
-  string sentinel_master = 8 [json_name = "sentinel_master"];
-  // The URLs for the sentinels
-  repeated string sentinels = 9 [json_name = "sentinels"];
+  oneof redis_config {
+    option (validate.required) = true;
+
+    // Single-server Redis.
+    RedisServerCF server = 1 [json_name = "server"];
+    // Redis with Sentinel setup. See http://redis.io/topics/sentinel.
+    RedisSentinelCF sentinel = 2 [json_name = "sentinel"];
+    // Redis with cluster setup. See https://redis.io/topics/cluster-spec.
+    RedisClusterCF cluster = 3 [json_name = "cluster"];
+  }
+  // The max number of connections.
+  uint32 pool_size = 4 [json_name = "pool_size"];
+  // Dial timeout.
+  google.protobuf.Duration dial_timeout = 5 [json_name = "dial_timeout", (validate.rules).duration = {gt: {}}];
+  // Read timeout.
+  google.protobuf.Duration read_timeout = 6 [json_name = "read_timeout", (validate.rules).duration = {gt: {}}];
+  // Write timeout.
+  google.protobuf.Duration write_timeout = 7 [json_name = "write_timeout", (validate.rules).duration = {gt: {}}];
+  // How long to keep TCP connections alive before closing.
+  google.protobuf.Duration idle_timeout = 8 [json_name = "idle_timeout", (validate.rules).duration = {gt: {}}];
   // Key prefix for everything gitlab-kas stores in Redis.
-  string key_prefix = 10 [json_name = "key_prefix"];
+  string key_prefix = 9 [json_name = "key_prefix"];
+}
+
+message RedisServerCF {
+  // Redis URL.
+  // Tcp connection:
+  // 		redis://<user>:<password>@<host>:<port>/<db_number>
+  // Unix connection:
+  //		unix://<user>:<password>@</path/to/redis.sock>?db=<db_number>
+  string url = 1 [json_name = "url", (validate.rules).string.min_len = 1, (validate.rules).string.uri = true];
+}
+
+message RedisSentinelCF {
+  // The name of the sentinel master.
+  string master_name = 1 [json_name = "master_name", (validate.rules).string.min_len = 1];
+  // The ip:port addresses of the sentinels.
+  repeated string addresses = 2 [json_name = "addresses", (validate.rules).repeated.min_items = 1];
+}
+
+message RedisClusterCF {
+  // The ip:port addresses of the nodes.
+  repeated string addresses = 1 [json_name = "addresses", (validate.rules).repeated.min_items = 1];
 }
 
 // ConfigurationFile represents kas configuration file.

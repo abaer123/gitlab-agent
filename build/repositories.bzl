@@ -695,6 +695,13 @@ def go_repositories():
         version = "v0.0.0-20190423205320-6a90982ecee2",
     )
     go_repository(
+        name = "com_github_dgryski_go_rendezvous",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/dgryski/go-rendezvous",
+        sum = "h1:lO4WD4F/rVNCu3HqELle0jiPLLBs70cWOduZpkS1E78=",
+        version = "v0.0.0-20200823014737-9f7001d12a5f",
+    )
+    go_repository(
         name = "com_github_dgryski_go_sip13",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/dgryski/go-sip13",
@@ -917,13 +924,6 @@ def go_repositories():
         importpath = "github.com/fsnotify/fsnotify",
         sum = "h1:hsms1Qyu0jgnwNXIxa+/V/PDsU6CfLf6CNO8H7IWoS4=",
         version = "v1.4.9",
-    )
-    go_repository(
-        name = "com_github_fzambia_sentinel",
-        build_file_proto_mode = "disable_global",
-        importpath = "github.com/FZambia/sentinel",
-        sum = "h1:qrCBfxc8SvJihYNjBWgwUI93ZCvFe/PJIPTHKmlp8a8=",
-        version = "v1.1.0",
     )
     go_repository(
         name = "com_github_gavv_httpexpect",
@@ -1199,6 +1199,20 @@ def go_repositories():
         version = "v10.2.0",
     )
     go_repository(
+        name = "com_github_go_redis_redis_v8",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/go-redis/redis/v8",
+        sum = "h1:fGqgxCTR1sydaKI00oQf3OmkU/DIe/I/fYXvGklCIuc=",
+        version = "v8.4.4",
+    )
+    go_repository(
+        name = "com_github_go_redis_redismock_v8",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/go-redis/redismock/v8",
+        sum = "h1:jyDcVEzm8gTd3SBbHBueT4k+Nh32xWbXsAspEXQhUBY=",
+        version = "v8.0.1",
+    )
+    go_repository(
         name = "com_github_go_sql_driver_mysql",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/go-sql-driver/mysql",
@@ -1363,8 +1377,8 @@ def go_repositories():
         name = "com_github_gomodule_redigo",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/gomodule/redigo",
-        sum = "h1:HR0kYDX2RJZvAup8CsiJwxB4dTCSC0AaUq6S4SiLwUc=",
-        version = "v1.8.3",
+        sum = "h1:y0Wmhvml7cGnzPa9nocn/fMraMH/lMDdeG+rkx4VgYY=",
+        version = "v1.7.1-0.20190724094224-574c33c3df38",
     )
     go_repository(
         name = "com_github_google_btree",
@@ -2459,6 +2473,13 @@ def go_repositories():
         version = "v1.0.1",
     )
     go_repository(
+        name = "com_github_nxadm_tail",
+        build_file_proto_mode = "disable_global",
+        importpath = "github.com/nxadm/tail",
+        sum = "h1:DQuhQpB1tVlglWS2hLQ5OV6B5r8aGxSrPc5Qo6uTN78=",
+        version = "v1.4.4",
+    )
+    go_repository(
         name = "com_github_nytimes_gziphandler",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/NYTimes/gziphandler",
@@ -2518,15 +2539,15 @@ def go_repositories():
         name = "com_github_onsi_ginkgo",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/onsi/ginkgo",
-        sum = "h1:JAKSXpt1YjtLA7YpPiqO9ss6sNXEsPfSGdwN0UHqzrw=",
-        version = "v1.11.0",
+        sum = "h1:8mVmC9kjFFmA8H4pKMUhcblgifdkOIXPvbhN1T36q1M=",
+        version = "v1.14.2",
     )
     go_repository(
         name = "com_github_onsi_gomega",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/onsi/gomega",
-        sum = "h1:K0jcRCwNQM3vFGh1ppMtDh/+7ApJrjldlX8fA0jDTLQ=",
-        version = "v1.7.1",
+        sum = "h1:NiTx7EEvBzu9sFOD1zORteLSt3o8gnlvZZwSE9TnY9U=",
+        version = "v1.10.4",
     )
     go_repository(
         name = "com_github_op_go_logging",
@@ -3808,6 +3829,13 @@ def go_repositories():
         importpath = "go.opencensus.io",
         sum = "h1:dntmOdLpSpHlVqbW5Eay97DelsZHe+55D+xC6i0dDS0=",
         version = "v0.22.5",
+    )
+    go_repository(
+        name = "io_opentelemetry_go_otel",
+        build_file_proto_mode = "disable_global",
+        importpath = "go.opentelemetry.io/otel",
+        sum = "h1:CZFy2lPhxd4HlhZnYK8gRyDotksO3Ip9rBweY1vVYJw=",
+        version = "v0.15.0",
     )
     go_repository(
         name = "io_rsc_binaryregexp",

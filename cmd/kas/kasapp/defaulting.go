@@ -32,11 +32,11 @@ const (
 	defaultGitalyPerServerApiRate       = 5.0
 	defaultGitalyPerServerApiBucketSize = 10
 
-	defaultRedisMaxIdle      = 1
-	defaultRedisMaxActive    = 1
+	defaultRedisPoolSize     = 5
+	defaultRedisDialTimeout  = 5 * time.Second
 	defaultRedisReadTimeout  = 1 * time.Second
 	defaultRedisWriteTimeout = 1 * time.Second
-	defaultRedisKeepAlive    = 5 * time.Minute
+	defaultRedisIdleTimeout  = 5 * time.Minute
 	defaultRedisKeyPrefix    = "gitlab-kas"
 )
 
@@ -98,10 +98,10 @@ func defaultGitaly(g *kascfg.GitalyCF) {
 }
 
 func defaultRedis(r *kascfg.RedisCF) {
-	protodefault.Uint32(&r.MaxIdle, defaultRedisMaxIdle)
-	protodefault.Uint32(&r.MaxActive, defaultRedisMaxActive)
+	protodefault.Uint32(&r.PoolSize, defaultRedisPoolSize)
+	protodefault.Duration(&r.DialTimeout, defaultRedisDialTimeout)
 	protodefault.Duration(&r.ReadTimeout, defaultRedisReadTimeout)
 	protodefault.Duration(&r.WriteTimeout, defaultRedisWriteTimeout)
-	protodefault.Duration(&r.Keepalive, defaultRedisKeepAlive)
+	protodefault.Duration(&r.IdleTimeout, defaultRedisIdleTimeout)
 	protodefault.String(&r.KeyPrefix, defaultRedisKeyPrefix)
 }

@@ -1,14 +1,14 @@
 package agent_tracker
 
 import (
-	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
+	"strconv"
+	"strings"
 	"time"
 
-	redigo "github.com/gomodule/redigo/redis"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/redis"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
+	"github.com/go-redis/redis/v8"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
@@ -34,10 +34,9 @@ type infoHolder struct {
 
 type RedisTracker struct {
 	log                    *zap.Logger
-	redis                  redis.Pool
+	redisClient            redis.UniversalClient
 	agentKeyPrefix         string
 	ttl                    time.Duration
-	ttlInMilliseconds      int64
 	refreshPeriod          time.Duration
 	gcPeriod               time.Duration
 	connectionsByAgentId   map[int64]map[int64]infoHolder // agentId -> connectionId -> info
@@ -46,13 +45,12 @@ type RedisTracker struct {
 	toUnregister           chan *ConnectedAgentInfo
 }
 
-func NewRedisTracker(log *zap.Logger, redis redis.Pool, agentKeyPrefix string, ttl, refreshPeriod, gcPeriod time.Duration) *RedisTracker {
+func NewRedisTracker(log *zap.Logger, redisClient redis.UniversalClient, agentKeyPrefix string, ttl, refreshPeriod, gcPeriod time.Duration) *RedisTracker {
 	return &RedisTracker{
 		log:                    log,
-		redis:                  redis,
+		redisClient:            redisClient,
 		agentKeyPrefix:         agentKeyPrefix,
 		ttl:                    ttl,
-		ttlInMilliseconds:      int64(ttl / time.Millisecond),
 		refreshPeriod:          refreshPeriod,
 		gcPeriod:               gcPeriod,
 		connectionsByAgentId:   make(map[int64]map[int64]infoHolder),
@@ -130,64 +128,55 @@ func (t *RedisTracker) registerConnection(ctx context.Context, info *ConnectedAg
 	data := map[int64]infoHolder{
 		info.ConnectionId: holder,
 	}
-	return t.withConn(ctx, func(conn redigo.Conn) error {
-		err = t.refreshConnectionsByProjectId(conn, info.ProjectId, data)
-		if err != nil {
-			return err
-		}
-		err = t.refreshConnectionsByAgentId(conn, info.Id, data)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
+	err = t.refreshConnectionsByProjectId(ctx, info.ProjectId, data)
+	if err != nil {
+		return err
+	}
+	err = t.refreshConnectionsByAgentId(ctx, info.Id, data)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (t *RedisTracker) unregisterConnection(ctx context.Context, unreg *ConnectedAgentInfo) error {
 	removeFromMap(t.connectionsByAgentId, unreg.Id, unreg.ConnectionId)
 	removeFromMap(t.connectionsByProjectId, unreg.ProjectId, unreg.ConnectionId)
-	return t.withConn(ctx, func(conn redigo.Conn) error {
-		err := conn.Send("HDEL", t.connectionsByAgentIdHashKey(unreg.Id), unreg.ConnectionId)
-		if err != nil {
-			return err
-		}
-		err = conn.Send("HDEL", t.connectionsByProjectIdHashKey(unreg.ProjectId), unreg.ConnectionId)
-		if err != nil {
-			return err
-		}
+	hKey := strconv.FormatInt(unreg.ConnectionId, 10)
+	_, err := t.redisClient.Pipelined(ctx, func(p redis.Pipeliner) error {
+		p.HDel(ctx, t.connectionsByAgentIdHashKey(unreg.Id), hKey)
+		p.HDel(ctx, t.connectionsByProjectIdHashKey(unreg.ProjectId), hKey)
 		return nil
 	})
+	return err
 }
 
 func (t *RedisTracker) refreshRegistrations(ctx context.Context) error {
-	return t.withConn(ctx, func(conn redigo.Conn) error {
-		for agentId, data := range t.connectionsByAgentId {
-			err := t.refreshConnectionsByAgentId(conn, agentId, data)
-			if err != nil {
-				return err
-			}
+	for agentId, data := range t.connectionsByAgentId {
+		err := t.refreshConnectionsByAgentId(ctx, agentId, data)
+		if err != nil {
+			return err
 		}
-		for projectId, data := range t.connectionsByProjectId {
-			err := t.refreshConnectionsByProjectId(conn, projectId, data)
-			if err != nil {
-				return err
-			}
+	}
+	for projectId, data := range t.connectionsByProjectId {
+		err := t.refreshConnectionsByProjectId(ctx, projectId, data)
+		if err != nil {
+			return err
 		}
-		return nil
-	})
+	}
+	return nil
 }
 
-func (t *RedisTracker) refreshConnectionsByAgentId(conn redigo.Conn, agentId int64, data map[int64]infoHolder) error {
-	return t.refreshHash(conn, t.connectionsByAgentIdHashKey(agentId), data)
+func (t *RedisTracker) refreshConnectionsByAgentId(ctx context.Context, agentId int64, data map[int64]infoHolder) error {
+	return t.refreshHash(ctx, t.connectionsByAgentIdHashKey(agentId), data)
 }
 
-func (t *RedisTracker) refreshConnectionsByProjectId(conn redigo.Conn, projectId int64, data map[int64]infoHolder) error {
-	return t.refreshHash(conn, t.connectionsByProjectIdHashKey(projectId), data)
+func (t *RedisTracker) refreshConnectionsByProjectId(ctx context.Context, projectId int64, data map[int64]infoHolder) error {
+	return t.refreshHash(ctx, t.connectionsByProjectIdHashKey(projectId), data)
 }
 
-func (t *RedisTracker) refreshHash(conn redigo.Conn, key []byte, data map[int64]infoHolder) error {
-	args := make([]interface{}, 0, len(data)*2+1)
-	args = append(args, key)
+func (t *RedisTracker) refreshHash(ctx context.Context, key string, data map[int64]infoHolder) error {
+	args := make([]interface{}, 0, len(data)*2)
 	expiresAt := timestamppb.New(time.Now().Add(t.ttl))
 	for connectionId, holder := range data {
 		connInfo, err := proto.Marshal(&ExpiringValue{
@@ -201,137 +190,91 @@ func (t *RedisTracker) refreshHash(conn redigo.Conn, key []byte, data map[int64]
 		}
 		args = append(args, connectionId, connInfo)
 	}
-	err := conn.Send("MULTI")
-	if err != nil {
-		return err
-	}
-	err = conn.Send("HSET", args...)
-	if err != nil {
-		return err
-	}
-	err = conn.Send("PEXPIRE", key, t.ttlInMilliseconds)
-	if err != nil {
-		return err
-	}
-	err = conn.Send("EXEC")
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err := t.redisClient.TxPipelined(ctx, func(p redis.Pipeliner) error {
+		p.HSet(ctx, key, args)
+		p.PExpire(ctx, key, t.ttl)
+		return nil
+	})
+	return err
 }
 
 // connectionsByAgentIdHashKey returns a key for agentId -> (connectionId -> marshaled ConnectedAgentInfo).
-func (t *RedisTracker) connectionsByAgentIdHashKey(agentId int64) []byte {
-	var b bytes.Buffer
+func (t *RedisTracker) connectionsByAgentIdHashKey(agentId int64) string {
+	var b strings.Builder
 	b.WriteString(t.agentKeyPrefix)
 	b.WriteString(":conn_by_agent_id:")
 	id := make([]byte, 8)
 	binary.LittleEndian.PutUint64(id, uint64(agentId))
 	b.Write(id)
-	return b.Bytes()
+	return b.String()
 }
 
 // connectionsByProjectIdHashKey returns a key for projectId -> (agentId ->marshaled ConnectedAgentInfo).
-func (t *RedisTracker) connectionsByProjectIdHashKey(projectId int64) []byte {
-	var b bytes.Buffer
+func (t *RedisTracker) connectionsByProjectIdHashKey(projectId int64) string {
+	var b strings.Builder
 	b.WriteString(t.agentKeyPrefix)
 	b.WriteString(":conn_by_project_id:")
 	id := make([]byte, 8)
 	binary.LittleEndian.PutUint64(id, uint64(projectId))
 	b.Write(id)
-	return b.Bytes()
+	return b.String()
 }
 
 // runGc iterates all relevant stored data and deletes expired entries.
 // It returns number of deleted Redis (hash) keys, including when an error occurs.
 func (t *RedisTracker) runGc(ctx context.Context) (int, error) {
 	var deletedKeys int
-	err := t.withConn(ctx, func(conn redigo.Conn) error {
-		for agentId := range t.connectionsByAgentId {
-			deleted, err := t.gcHash(conn, t.connectionsByAgentIdHashKey(agentId))
-			if err != nil {
-				return err
-			}
-			deletedKeys += deleted
+	for agentId := range t.connectionsByAgentId {
+		deleted, err := t.gcHash(ctx, t.connectionsByAgentIdHashKey(agentId))
+		if err != nil {
+			return deletedKeys, err
 		}
-		for projectId := range t.connectionsByProjectId {
-			deleted, err := t.gcHash(conn, t.connectionsByProjectIdHashKey(projectId))
-			if err != nil {
-				return err
-			}
-			deletedKeys += deleted
+		deletedKeys += deleted
+	}
+	for projectId := range t.connectionsByProjectId {
+		deleted, err := t.gcHash(ctx, t.connectionsByProjectIdHashKey(projectId))
+		if err != nil {
+			return deletedKeys, err
 		}
-		return nil
-	})
-	return deletedKeys, err
+		deletedKeys += deleted
+	}
+	return deletedKeys, nil
 }
 
 // gcHash iterates a hash and removes all expired values.
 // It assumes that values are marshaled ExpiringValue.
-func (t *RedisTracker) gcHash(conn redigo.Conn, key []byte) (int, error) {
-	keysToDelete := []interface{}{key}
+func (t *RedisTracker) gcHash(ctx context.Context, key string) (int, error) {
+	var keysToDelete []string
 	// Scan keys of a hash. See https://redis.io/commands/scan
-	cursor := []byte{'0'}
-	for {
-		reply, err := conn.Do("HSCAN", key, cursor)
+	iter := t.redisClient.HScan(ctx, key, 0, "", 0).Iterator()
+	for iter.Next(ctx) {
+		k := iter.Val()
+		if !iter.Next(ctx) {
+			// This shouldn't happen
+			return 0, errors.New("invalid Redis reply")
+		}
+		v := iter.Val()
+		var msg ExpiringValue
+		err := proto.Unmarshal([]byte(v), &msg)
 		if err != nil {
-			return 0, err
+			t.log.Error("Failed to unmarshal hash value", zap.Error(err))
+			continue // try to skip and continue
 		}
-		// See https://redis.io/commands/scan#return-value
-		var pairs []interface{}
-		_, err = redigo.Scan(reply.([]interface{}), &cursor, &pairs)
-		if err != nil {
-			return 0, err
-		}
-		for len(pairs) > 0 {
-			var k, v []byte
-			pairs, err = redigo.Scan(pairs, &k, &v)
-			if err != nil {
-				return 0, err
-			}
-			var msg ExpiringValue
-			err = proto.Unmarshal(v, &msg)
-			if err != nil {
-				t.log.Error("Failed to unmarshal hash value", zap.Error(err))
-				continue // try to skip and continue
-			}
-			if msg.ExpiresAt != nil && msg.ExpiresAt.AsTime().Before(time.Now()) {
-				keysToDelete = append(keysToDelete, k)
-			}
-		}
-		if bytes.Equal(cursor, []byte{'0'}) {
-			break // HSCAN finished
+		if msg.ExpiresAt != nil && msg.ExpiresAt.AsTime().Before(time.Now()) {
+			keysToDelete = append(keysToDelete, k)
 		}
 	}
-	if len(keysToDelete) == 1 { // 1 element is the key of the hash which we added above
+	if err := iter.Err(); err != nil {
+		return 0, err
+	}
+	if len(keysToDelete) == 0 {
 		return 0, nil
 	}
-	_, err := conn.Do("HDEL", keysToDelete...)
+	_, err := t.redisClient.HDel(ctx, key, keysToDelete...).Result()
 	if err != nil {
 		return 0, err
 	}
-	return len(keysToDelete) - 1, nil
-}
-
-func (t *RedisTracker) withConn(ctx context.Context, f func(redigo.Conn) error) (retErr error) {
-	return withConn(ctx, t.redis, f)
-}
-
-func withConn(ctx context.Context, pool redis.Pool, f func(redigo.Conn) error) (retErr error) {
-	conn, err := pool.GetContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer errz.SafeClose(conn, &retErr)
-	err = f(conn)
-	if err != nil {
-		return err
-	}
-	_, err = conn.Do("") // Flush all sent commands and discard replies
-	if err != nil {
-		return err
-	}
-	return nil
+	return len(keysToDelete), nil
 }
 
 func addToMap(m map[int64]map[int64]infoHolder, key1, key2 int64, val infoHolder) {

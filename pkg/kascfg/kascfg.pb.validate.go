@@ -1504,31 +1504,28 @@ func (m *RedisCF) Validate() error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(m.GetUrl()) < 1 {
-		return RedisCFValidationError{
-			field:  "Url",
-			reason: "value length must be at least 1 runes",
+	// no validation rules for PoolSize
+
+	if d := m.GetDialTimeout(); d != nil {
+		dur, err := ptypes.Duration(d)
+		if err != nil {
+			return RedisCFValidationError{
+				field:  "DialTimeout",
+				reason: "value is not a valid duration",
+				cause:  err,
+			}
 		}
+
+		gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+		if dur <= gt {
+			return RedisCFValidationError{
+				field:  "DialTimeout",
+				reason: "value must be greater than 0s",
+			}
+		}
+
 	}
-
-	if uri, err := url.Parse(m.GetUrl()); err != nil {
-		return RedisCFValidationError{
-			field:  "Url",
-			reason: "value must be a valid URI",
-			cause:  err,
-		}
-	} else if !uri.IsAbs() {
-		return RedisCFValidationError{
-			field:  "Url",
-			reason: "value must be absolute",
-		}
-	}
-
-	// no validation rules for Password
-
-	// no validation rules for MaxIdle
-
-	// no validation rules for MaxActive
 
 	if d := m.GetReadTimeout(); d != nil {
 		dur, err := ptypes.Duration(d)
@@ -1572,30 +1569,74 @@ func (m *RedisCF) Validate() error {
 
 	}
 
-	if d := m.GetKeepalive(); d != nil {
+	if d := m.GetIdleTimeout(); d != nil {
 		dur, err := ptypes.Duration(d)
 		if err != nil {
 			return RedisCFValidationError{
-				field:  "Keepalive",
+				field:  "IdleTimeout",
 				reason: "value is not a valid duration",
 				cause:  err,
 			}
 		}
 
-		gte := time.Duration(0*time.Second + 0*time.Nanosecond)
+		gt := time.Duration(0*time.Second + 0*time.Nanosecond)
 
-		if dur < gte {
+		if dur <= gt {
 			return RedisCFValidationError{
-				field:  "Keepalive",
-				reason: "value must be greater than or equal to 0s",
+				field:  "IdleTimeout",
+				reason: "value must be greater than 0s",
 			}
 		}
 
 	}
 
-	// no validation rules for SentinelMaster
-
 	// no validation rules for KeyPrefix
+
+	switch m.RedisConfig.(type) {
+
+	case *RedisCF_Server:
+
+		if v, ok := interface{}(m.GetServer()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return RedisCFValidationError{
+					field:  "Server",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	case *RedisCF_Sentinel:
+
+		if v, ok := interface{}(m.GetSentinel()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return RedisCFValidationError{
+					field:  "Sentinel",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	case *RedisCF_Cluster:
+
+		if v, ok := interface{}(m.GetCluster()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return RedisCFValidationError{
+					field:  "Cluster",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	default:
+		return RedisCFValidationError{
+			field:  "RedisConfig",
+			reason: "value is required",
+		}
+
+	}
 
 	return nil
 }
@@ -1653,6 +1694,242 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = RedisCFValidationError{}
+
+// Validate checks the field values on RedisServerCF with the rules defined in
+// the proto definition for this message. If any rules are violated, an error
+// is returned.
+func (m *RedisServerCF) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if utf8.RuneCountInString(m.GetUrl()) < 1 {
+		return RedisServerCFValidationError{
+			field:  "Url",
+			reason: "value length must be at least 1 runes",
+		}
+	}
+
+	if uri, err := url.Parse(m.GetUrl()); err != nil {
+		return RedisServerCFValidationError{
+			field:  "Url",
+			reason: "value must be a valid URI",
+			cause:  err,
+		}
+	} else if !uri.IsAbs() {
+		return RedisServerCFValidationError{
+			field:  "Url",
+			reason: "value must be absolute",
+		}
+	}
+
+	return nil
+}
+
+// RedisServerCFValidationError is the validation error returned by
+// RedisServerCF.Validate if the designated constraints aren't met.
+type RedisServerCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e RedisServerCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e RedisServerCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e RedisServerCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e RedisServerCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e RedisServerCFValidationError) ErrorName() string { return "RedisServerCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e RedisServerCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sRedisServerCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = RedisServerCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = RedisServerCFValidationError{}
+
+// Validate checks the field values on RedisSentinelCF with the rules defined
+// in the proto definition for this message. If any rules are violated, an
+// error is returned.
+func (m *RedisSentinelCF) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if utf8.RuneCountInString(m.GetMasterName()) < 1 {
+		return RedisSentinelCFValidationError{
+			field:  "MasterName",
+			reason: "value length must be at least 1 runes",
+		}
+	}
+
+	if len(m.GetAddresses()) < 1 {
+		return RedisSentinelCFValidationError{
+			field:  "Addresses",
+			reason: "value must contain at least 1 item(s)",
+		}
+	}
+
+	return nil
+}
+
+// RedisSentinelCFValidationError is the validation error returned by
+// RedisSentinelCF.Validate if the designated constraints aren't met.
+type RedisSentinelCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e RedisSentinelCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e RedisSentinelCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e RedisSentinelCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e RedisSentinelCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e RedisSentinelCFValidationError) ErrorName() string { return "RedisSentinelCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e RedisSentinelCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sRedisSentinelCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = RedisSentinelCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = RedisSentinelCFValidationError{}
+
+// Validate checks the field values on RedisClusterCF with the rules defined in
+// the proto definition for this message. If any rules are violated, an error
+// is returned.
+func (m *RedisClusterCF) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if len(m.GetAddresses()) < 1 {
+		return RedisClusterCFValidationError{
+			field:  "Addresses",
+			reason: "value must contain at least 1 item(s)",
+		}
+	}
+
+	return nil
+}
+
+// RedisClusterCFValidationError is the validation error returned by
+// RedisClusterCF.Validate if the designated constraints aren't met.
+type RedisClusterCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e RedisClusterCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e RedisClusterCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e RedisClusterCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e RedisClusterCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e RedisClusterCFValidationError) ErrorName() string { return "RedisClusterCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e RedisClusterCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sRedisClusterCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = RedisClusterCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = RedisClusterCFValidationError{}
 
 // Validate checks the field values on ConfigurationFile with the rules defined
 // in the proto definition for this message. If any rules are violated, an

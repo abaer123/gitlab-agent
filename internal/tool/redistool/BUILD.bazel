@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "redistool",
+    srcs = ["token_limiter.go"],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/redistool",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/tool/logz",
+        "@com_github_go_redis_redis_v8//:redis",
+        "@org_uber_go_zap//:zap",
+    ],
+)
+
+go_test(
+    name = "redistool_test",
+    size = "small",
+    srcs = ["token_limiter_test.go"],
+    embed = [":redistool"],
+    race = "on",
+    deps = [
+        "//internal/api",
+        "@com_github_go_redis_redismock_v8//:redismock",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+        "@org_uber_go_zap//zaptest",
+    ],
+)
