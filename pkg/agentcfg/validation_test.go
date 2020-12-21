@@ -71,6 +71,13 @@ func TestValidation_Invalid(t *testing.T) {
 				Kinds:     []string{""}, // empty string is not ok
 			},
 		},
+		{
+			name:      "empty PathCF.Glob",
+			errString: "invalid PathCF.Glob: value length must be at least 1 runes",
+			invalid: &PathCF{
+				Glob: "",
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) { // nolint: scopelint

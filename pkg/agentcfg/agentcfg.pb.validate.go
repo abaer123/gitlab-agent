@@ -134,7 +134,12 @@ func (m *PathCF) Validate() error {
 		return nil
 	}
 
-	// no validation rules for Glob
+	if utf8.RuneCountInString(m.GetGlob()) < 1 {
+		return PathCFValidationError{
+			field:  "Glob",
+			reason: "value length must be at least 1 runes",
+		}
+	}
 
 	return nil
 }

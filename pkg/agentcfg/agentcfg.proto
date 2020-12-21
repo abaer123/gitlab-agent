@@ -25,7 +25,7 @@ message PathCF {
   // See https://github.com/bmatcuk/doublestar#about and
   // https://pkg.go.dev/github.com/bmatcuk/doublestar/v2#Match for
   // globbing rules.
-  string glob = 1 [json_name = "glob"];
+  string glob = 1 [json_name = "glob", (validate.rules).string.min_len = 1];
 }
 
 // Project with Kubernetes object manifests.

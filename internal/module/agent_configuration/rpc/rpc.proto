@@ -8,6 +8,8 @@ option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/inte
 
 import "pkg/agentcfg/agentcfg.proto";
 import "internal/module/modshared/modshared.proto";
+//import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
+import "validate/validate.proto";
 
 message ConfigurationRequest {
   // Last processed commit id. Optional.
@@ -23,7 +25,7 @@ message ConfigurationResponse {
   agentcfg.AgentConfiguration configuration = 1;
   // Commit id of the configuration repository.
   // Can be used to resume connection from where it dropped.
-  string commit_id = 2;
+  string commit_id = 2 [(validate.rules).string.min_len = 1];
 }
 
 service AgentConfiguration {
