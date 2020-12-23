@@ -59,7 +59,10 @@ stages:
 test:
   stage: test
   extends: .bazel_build
+  services:
+    - redis
   script:
+    - echo 'test --test_env=REDIS_URL=redis://redis:6379' >> .bazelrc
     - make test-ci
     - *registry_creds
     - if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then make release-latest-all-ci; fi
