@@ -1931,6 +1931,181 @@ var _ interface {
 	ErrorName() string
 } = RedisClusterCFValidationError{}
 
+// Validate checks the field values on ListenApiCF with the rules defined in
+// the proto definition for this message. If any rules are violated, an error
+// is returned.
+func (m *ListenApiCF) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	// no validation rules for Network
+
+	// no validation rules for Address
+
+	if utf8.RuneCountInString(m.GetAuthenticationSecretFile()) < 1 {
+		return ListenApiCFValidationError{
+			field:  "AuthenticationSecretFile",
+			reason: "value length must be at least 1 runes",
+		}
+	}
+
+	// no validation rules for CertificateFile
+
+	// no validation rules for KeyFile
+
+	if d := m.GetMaxConnectionAge(); d != nil {
+		dur, err := ptypes.Duration(d)
+		if err != nil {
+			return ListenApiCFValidationError{
+				field:  "MaxConnectionAge",
+				reason: "value is not a valid duration",
+				cause:  err,
+			}
+		}
+
+		gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+		if dur <= gt {
+			return ListenApiCFValidationError{
+				field:  "MaxConnectionAge",
+				reason: "value must be greater than 0s",
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// ListenApiCFValidationError is the validation error returned by
+// ListenApiCF.Validate if the designated constraints aren't met.
+type ListenApiCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ListenApiCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ListenApiCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ListenApiCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ListenApiCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ListenApiCFValidationError) ErrorName() string { return "ListenApiCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ListenApiCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sListenApiCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ListenApiCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ListenApiCFValidationError{}
+
+// Validate checks the field values on ApiCF with the rules defined in the
+// proto definition for this message. If any rules are violated, an error is returned.
+func (m *ApiCF) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if v, ok := interface{}(m.GetListen()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ApiCFValidationError{
+				field:  "Listen",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	return nil
+}
+
+// ApiCFValidationError is the validation error returned by ApiCF.Validate if
+// the designated constraints aren't met.
+type ApiCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ApiCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ApiCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ApiCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ApiCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ApiCFValidationError) ErrorName() string { return "ApiCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ApiCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sApiCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ApiCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ApiCFValidationError{}
+
 // Validate checks the field values on ConfigurationFile with the rules defined
 // in the proto definition for this message. If any rules are violated, an
 // error is returned.
@@ -1990,6 +2165,16 @@ func (m *ConfigurationFile) Validate() error {
 		if err := v.Validate(); err != nil {
 			return ConfigurationFileValidationError{
 				field:  "Redis",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetApi()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ConfigurationFileValidationError{
+				field:  "Api",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}

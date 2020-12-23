@@ -637,6 +637,7 @@ func setupModuleBare(t *testing.T, pollTimes int) (*module, *gomock.Controller, 
 		Registerer:   prometheus.NewPedanticRegistry(),
 		UsageTracker: usageTracker,
 		AgentServer:  grpc.NewServer(),
+		ApiServer:    grpc.NewServer(),
 		Gitaly:       gitalyPool,
 	})
 	require.NoError(t, err)

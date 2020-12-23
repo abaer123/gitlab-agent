@@ -71,3 +71,11 @@ redis:
   write_timeout: "1s"
   idle_timeout: "300s"
   key_prefix: gitlab-kas
+api:
+  listen:
+    network: tcp
+    address: 127.0.0.1:8153
+    authentication_secret_file: /some/file # required
+    # certificate_file: /server-cert.pem
+    # key_file: /server-key.pem
+    max_connection_age: "1800s"

@@ -25,12 +25,18 @@ func TestExampleConfigHasCorrectDefaults(t *testing.T) {
 			Address:                  "http://localhost:8080",
 			AuthenticationSecretFile: "/some/file",
 		},
-		// Not actually required, but Url is required if Redis key is specified so add it here to show that and defaults too.
+		// Not actually required, but Redis.RedisConfig.Server.Url is required if Redis key is specified so add it here to show that and defaults too.
 		Redis: &kascfg.RedisCF{
 			RedisConfig: &kascfg.RedisCF_Server{
 				Server: &kascfg.RedisServerCF{
 					Url: "unix:///tmp/redis.sock",
 				},
+			},
+		},
+		// Not actually required, but Listen.AuthenticationSecretFile is required if Redis key is specified so add it here to show that and defaults too.
+		Api: &kascfg.ApiCF{
+			Listen: &kascfg.ListenApiCF{
+				AuthenticationSecretFile: "/some/file",
 			},
 		},
 	}
