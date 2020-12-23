@@ -38,6 +38,9 @@ const (
 	defaultRedisWriteTimeout = 1 * time.Second
 	defaultRedisIdleTimeout  = 5 * time.Minute
 	defaultRedisKeyPrefix    = "gitlab-kas"
+
+	defaultApiListenAddress          = "127.0.0.1:8153"
+	defaultApiListenMaxConnectionAge = 30 * time.Minute
 )
 
 var (
@@ -60,12 +63,25 @@ func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
 	protodefault.NotNil(&cfg.Gitaly)
 	defaultGitaly(cfg.Gitaly)
 
+	// TODO this should become required
 	if cfg.Redis != nil {
 		defaultRedis(cfg.Redis)
 	}
+
+	// TODO this should become required
+	if cfg.Api != nil {
+		defaultApi(cfg.Api)
+	}
+
 	for _, defaulter := range defaulters {
 		defaulter(cfg)
 	}
+}
+
+func defaultApi(api *kascfg.ApiCF) {
+	protodefault.NotNil(&api.Listen)
+	protodefault.String(&api.Listen.Address, defaultApiListenAddress)
+	protodefault.Duration(&api.Listen.MaxConnectionAge, defaultApiListenMaxConnectionAge)
 }
 
 func defaultGitLab(g *kascfg.GitLabCF) {

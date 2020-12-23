@@ -76,6 +76,7 @@ message LoggingCF {
 
 message GitLabCF {
   string address = 1 [json_name = "address", (validate.rules).string.min_len = 1, (validate.rules).string.uri = true];
+  // Secret to generate JWT tokens to authenticate with GitLab.
   string authentication_secret_file = 2 [json_name = "authentication_secret_file", (validate.rules).string.min_len = 1];
   // Optional X.509 certificate for TLS in PEM format.
   // Should be set for self-signed certificates.
@@ -243,6 +244,29 @@ message RedisClusterCF {
   repeated string addresses = 1 [json_name = "addresses", (validate.rules).repeated.min_items = 1];
 }
 
+message ListenApiCF {
+  // Network type to listen on. Supported values: tcp, tcp4, tcp6, unix.
+  listen_network_enum network = 1 [json_name = "network"];
+  // Address to listen on.
+  string address = 2 [json_name = "address"];
+  // Secret to verify JWT tokens.
+  string authentication_secret_file = 3 [json_name = "authentication_secret_file", (validate.rules).string.min_len = 1];
+  // X.509 certificate for TLS in PEM format.
+  // TLS is enabled iff both certificate_file and key_file are provided.
+  string certificate_file = 4 [json_name = "certificate_file"];
+  // X.509 key file for TLS in PEM format.
+  // TLS is enabled iff both certificate_file and key_file are provided.
+  string key_file = 5 [json_name = "key_file"];
+  // Max age of a connection. Connection is closed gracefully once it's
+  // too old and there is no streaming happening.
+  google.protobuf.Duration max_connection_age = 6 [json_name = "max_connection_age", (validate.rules).duration = {gt: {}}];
+}
+
+message ApiCF {
+  // RPC listener configuration for API connections.
+  ListenApiCF listen = 1 [json_name = "listen"];
+}
+
 // ConfigurationFile represents kas configuration file.
 message ConfigurationFile {
   // Configuration related to interaction with GitLab.
@@ -257,4 +281,5 @@ message ConfigurationFile {
   GitalyCF gitaly = 4 [json_name = "gitaly"];
   // Redis configurations available to kas
   RedisCF redis = 5 [json_name = "redis"];
+  ApiCF api = 6 [json_name = "api"];
 }

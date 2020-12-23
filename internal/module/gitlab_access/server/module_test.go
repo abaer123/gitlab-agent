@@ -150,6 +150,7 @@ func TestMakeRequest(t *testing.T) {
 		Api:          mockApi,
 		GitLabClient: gitLabClient,
 		AgentServer:  grpc.NewServer(),
+		ApiServer:    grpc.NewServer(),
 	})
 	require.NoError(t, err)
 	require.NoError(t, m.(*module).MakeRequest(server))

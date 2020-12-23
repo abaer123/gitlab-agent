@@ -115,6 +115,12 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		return err
 	}
 
+	// API server
+	apiServer, err := a.constructApiServer(interceptorsCtx, tracer, ssh)
+	if err != nil {
+		return err
+	}
+
 	// Gitaly client
 	gitalyClientPool := a.constructGitalyPool(csh, tracer)
 	defer errz.SafeClose(gitalyClientPool, &retErr)
@@ -155,6 +161,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		Registerer:   registerer,
 		UsageTracker: usageTracker,
 		AgentServer:  agentServer,
+		ApiServer:    apiServer,
 		Gitaly: &gitaly.Pool{
 			ClientPool: gitalyClientPool,
 		},
@@ -189,10 +196,17 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// gRPC server stage
-	stage = st.NextStage()
+	a.startAgentServer(st, agentServer, interceptorsCancel)
+	a.startApiServer(st, apiServer, interceptorsCancel)
+	return st.Run(ctx)
+}
+
+func (a *ConfiguredApp) startAgentServer(st stager.Stager, agentServer *grpc.Server, interceptorsCancel context.CancelFunc) {
+	stage := st.NextStage()
 	stage.Go(func(ctx context.Context) error {
+		listenCfg := a.Configuration.Agent.Listen
 		// gRPC listener
-		lis, err := net.Listen(cfg.Agent.Listen.Network.String(), cfg.Agent.Listen.Address)
+		lis, err := net.Listen(listenCfg.Network.String(), listenCfg.Address)
 		if err != nil {
 			return err
 		}
@@ -203,10 +217,10 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		a.Log.Info("Listening for agentk connections",
 			logz.NetNetworkFromAddr(lis.Addr()),
 			logz.NetAddressFromAddr(lis.Addr()),
-			logz.IsWebSocket(cfg.Agent.Listen.Websocket),
+			logz.IsWebSocket(listenCfg.Websocket),
 		)
 
-		if cfg.Agent.Listen.Websocket {
+		if listenCfg.Websocket {
 			wsWrapper := wstunnel.ListenerWrapper{
 				// TODO set timeouts
 				ReadLimit: defaultMaxMessageSize,
@@ -221,11 +235,41 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		agentServer.GracefulStop()
 		return nil
 	})
-	return st.Run(ctx)
+}
+
+func (a *ConfiguredApp) startApiServer(st stager.Stager, apiServer *grpc.Server, interceptorsCancel context.CancelFunc) {
+	// TODO this should become required
+	if a.Configuration.Api == nil {
+		return
+	}
+	stage := st.NextStage()
+	stage.Go(func(ctx context.Context) error {
+		listenCfg := a.Configuration.Api.Listen
+		// gRPC listener
+		lis, err := net.Listen(listenCfg.Network.String(), listenCfg.Address)
+		if err != nil {
+			return err
+		}
+		// Error is ignored because apiServer.Run() closes the listener and
+		// a second close always produces an error.
+		defer lis.Close() // nolint:errcheck
+
+		a.Log.Info("Listening for API connections",
+			logz.NetNetworkFromAddr(lis.Addr()),
+			logz.NetAddressFromAddr(lis.Addr()),
+		)
+		return apiServer.Serve(lis)
+	})
+	stage.Go(func(ctx context.Context) error {
+		<-ctx.Done() // can be cancelled because Serve() failed or main ctx was canceled or some stage failed
+		interceptorsCancel()
+		apiServer.GracefulStop()
+		return nil
+	})
 }
 
 func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tracer opentracing.Tracer, redisClient redis.UniversalClient, ssh stats.Handler) (*grpc.Server, error) {
-	cfg := a.Configuration
+	listenCfg := a.Configuration.Agent.Listen
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
 		grpc_prometheus.StreamServerInterceptor,   // This one should be the first one to measure all invocations
@@ -248,15 +292,14 @@ func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tr
 		agentConnectionLimiter := redistool.NewTokenLimiter(
 			a.Log,
 			redisClient,
-			cfg.Redis.KeyPrefix+":agent_limit",
-			uint64(cfg.Agent.Listen.ConnectionsPerTokenPerMinute),
+			a.Configuration.Redis.KeyPrefix+":agent_limit",
+			uint64(listenCfg.ConnectionsPerTokenPerMinute),
 			func(ctx context.Context) string { return string(api.AgentTokenFromContext(ctx)) },
 		)
 		grpcStreamServerInterceptors = append(grpcStreamServerInterceptors, grpctool.StreamServerLimitingInterceptor(agentConnectionLimiter))
 		grpcUnaryServerInterceptors = append(grpcUnaryServerInterceptors, grpctool.UnaryServerLimitingInterceptor(agentConnectionLimiter))
 	}
 
-	maxConnectionAge := cfg.Agent.Listen.MaxConnectionAge.AsDuration()
 	serverOpts := []grpc.ServerOption{
 		grpc.StatsHandler(ssh),
 		grpc.ChainStreamInterceptor(grpcStreamServerInterceptors...),
@@ -265,22 +308,73 @@ func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tr
 			MinTime:             20 * time.Second,
 			PermitWithoutStream: true,
 		}),
-		grpc.KeepaliveParams(keepalive.ServerParameters{
-			// MaxConnectionAge should be below maxConnectionAge so that when kas closes a long running response
-			// stream, gRPC will close the underlying connection. -20% to account for jitter (see doc for the field)
-			// and ensure it's somewhat below maxConnectionAge.
-			// See https://github.com/grpc/grpc-go/blob/v1.33.1/internal/transport/http2_server.go#L949-L1047 to better understand how this all works.
-			MaxConnectionAge: time.Duration(0.8 * float64(maxConnectionAge)),
-			// Give pending RPCs plenty of time to complete.
-			// In practice it will happen in 10-30% of maxConnectionAge time (see above).
-			MaxConnectionAgeGrace: maxConnectionAge,
-			// trying to stay below 60 seconds (typical load-balancer timeout)
-			Time: 50 * time.Second,
-		}),
+		grpc.KeepaliveParams(keepaliveParams(listenCfg.MaxConnectionAge.AsDuration())),
 	}
 
-	certFile := cfg.Agent.Listen.CertificateFile
-	keyFile := cfg.Agent.Listen.KeyFile
+	certFile := listenCfg.CertificateFile
+	keyFile := listenCfg.KeyFile
+	switch {
+	case certFile != "" && keyFile != "":
+		config, err := tlstool.DefaultServerTLSConfig(certFile, keyFile)
+		if err != nil {
+			return nil, err
+		}
+		serverOpts = append(serverOpts, grpc.Creds(credentials.NewTLS(config)))
+	case certFile == "" && keyFile == "":
+	default:
+		return nil, fmt.Errorf("both certificate_file (%s) and key_file (%s) must be either set or not set", certFile, keyFile)
+	}
+
+	return grpc.NewServer(serverOpts...), nil
+}
+
+func (a *ConfiguredApp) constructApiServer(interceptorsCtx context.Context, tracer opentracing.Tracer, ssh stats.Handler) (*grpc.Server, error) {
+	// TODO this should become required
+	if a.Configuration.Api == nil {
+		return grpc.NewServer(), nil
+	}
+	listenCfg := a.Configuration.Api.Listen
+	jwtSecret, err := ioutil.ReadFile(listenCfg.AuthenticationSecretFile)
+	if err != nil {
+		return nil, fmt.Errorf("auth secret file: %v", err)
+	}
+
+	jwtAuther := grpctool.JWTAuther{
+		Log:      a.Log,
+		Secret:   jwtSecret,
+		Audience: kasName,
+	}
+
+	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
+	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
+		grpc_prometheus.StreamServerInterceptor,                                                  // This one should be the first one to measure all invocations
+		grpccorrelation.StreamServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()), // Second to add correlation id
+		jwtAuther.StreamServerInterceptor,                                                        // Third to auth and maybe log with correlation id
+		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		grpc_validator.StreamServerInterceptor(),
+		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)),
+	}
+	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
+		grpc_prometheus.UnaryServerInterceptor,                                                  // This one should be the first one to measure all invocations
+		grpccorrelation.UnaryServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()), // Second to add correlation id
+		jwtAuther.UnaryServerInterceptor,                                                        // Third to auth and maybe log with correlation id
+		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		grpc_validator.UnaryServerInterceptor(),
+		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)),
+	}
+	serverOpts := []grpc.ServerOption{
+		grpc.StatsHandler(ssh),
+		grpc.ChainStreamInterceptor(grpcStreamServerInterceptors...),
+		grpc.ChainUnaryInterceptor(grpcUnaryServerInterceptors...),
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+			MinTime:             20 * time.Second,
+			PermitWithoutStream: true,
+		}),
+		grpc.KeepaliveParams(keepaliveParams(listenCfg.MaxConnectionAge.AsDuration())),
+	}
+
+	certFile := listenCfg.CertificateFile
+	keyFile := listenCfg.KeyFile
 	switch {
 	case certFile != "" && keyFile != "":
 		config, err := tlstool.DefaultServerTLSConfig(certFile, keyFile)
@@ -465,6 +559,21 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 	default:
 		// This should never happen
 		return nil, fmt.Errorf("unexpected Redis config type: %T", cfg.RedisConfig)
+	}
+}
+
+func keepaliveParams(maxConnectionAge time.Duration) keepalive.ServerParameters {
+	return keepalive.ServerParameters{
+		// MaxConnectionAge should be below maxConnectionAge so that when kas closes a long running response
+		// stream, gRPC will close the underlying connection. -20% to account for jitter (see doc for the field)
+		// and ensure it's somewhat below maxConnectionAge.
+		// See https://github.com/grpc/grpc-go/blob/v1.33.1/internal/transport/http2_server.go#L949-L1047 to better understand how this all works.
+		MaxConnectionAge: time.Duration(0.8 * float64(maxConnectionAge)),
+		// Give pending RPCs plenty of time to complete.
+		// In practice it will happen in 10-30% of maxConnectionAge time (see above).
+		MaxConnectionAgeGrace: maxConnectionAge,
+		// trying to stay below 60 seconds (typical load-balancer timeout)
+		Time: 50 * time.Second,
 	}
 }
 

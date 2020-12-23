@@ -32,7 +32,10 @@ type Config struct {
 	// AgentServer is the gRPC server agentk is talking to.
 	// This can be used to add endpoints in Factory.New.
 	AgentServer *grpc.Server
-	Gitaly      gitaly.PoolInterface
+	// ApiServer is the gRPC server GitLab is talking to.
+	// This can be used to add endpoints in Factory.New.
+	ApiServer *grpc.Server
+	Gitaly    gitaly.PoolInterface
 	// KasName is a string "gitlab-kas". Can be used as a user agent, server name, service name, etc.
 	KasName string
 	// Version is gitlab-kas version.
