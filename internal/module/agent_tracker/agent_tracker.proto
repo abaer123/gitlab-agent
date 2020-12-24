@@ -20,7 +20,7 @@ message ConnectedAgentInfo {
   // Randomly generated when an agent connects.
   int64 connection_id = 3;
   // GitLab-wide unique id of the agent.
-  int64 id = 4;
+  int64 agent_id = 4;
   // Id of the configuration project.
   int64 project_id = 5;
 }

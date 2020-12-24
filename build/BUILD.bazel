@@ -50,6 +50,8 @@ multirun(
         "//internal/module/gitlab_access/rpc:extract_generated",
         "//internal/module/gitlab_access/rpc:extract_generated_validator",
         "//internal/module/agent_tracker:extract_generated",
+        "//internal/module/agent_tracker/rpc:extract_generated",
+        "//internal/module/agent_tracker/rpc:extract_generated_validator",
         "//internal/tool/grpctool/automata:extract_generated",
         "//internal/tool/grpctool/test:extract_generated",
         "//internal/tool/grpctool/test:extract_generated_validator",

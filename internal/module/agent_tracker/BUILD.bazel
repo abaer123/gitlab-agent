@@ -15,6 +15,7 @@ go_library(
     name = "agent_tracker",
     srcs = [
         "agent_tracker.pb.go",
+        "api.go",
         "tracker.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_tracker",

@@ -1,0 +1,21 @@
+package server
+
+import (
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_tracker"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_tracker/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
+)
+
+type Factory struct {
+	AgentQuerier agent_tracker.Querier
+}
+
+func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
+	m := &module{
+		log:          config.Log,
+		api:          config.Api,
+		agentQuerier: f.AgentQuerier,
+	}
+	rpc.RegisterAgentTrackerServer(config.ApiServer, m)
+	return m, nil
+}
