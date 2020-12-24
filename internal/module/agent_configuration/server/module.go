@@ -10,14 +10,12 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/mathz"
-	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type module struct {
-	log                          *zap.Logger
 	api                          modserver.API
 	gitaly                       gitaly.PoolInterface
 	agentRegisterer              agent_tracker.Registerer
@@ -38,7 +36,7 @@ func (m *module) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 	ctx := server.Context()
 	p := pollJob{
 		ctx:                      ctx,
-		log:                      m.log.With(logz.CorrelationIdFromContext(ctx)),
+		log:                      grpctool.LoggerFromContext(ctx),
 		api:                      m.api,
 		gitaly:                   m.gitaly,
 		agentRegisterer:          m.agentRegisterer,

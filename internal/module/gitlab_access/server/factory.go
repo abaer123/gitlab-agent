@@ -15,7 +15,6 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 		return nil, err
 	}
 	m := &module{
-		log:           config.Log,
 		api:           config.Api,
 		gitLabClient:  config.GitLabClient,
 		streamVisitor: sv,

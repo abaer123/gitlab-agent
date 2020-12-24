@@ -14,8 +14,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
-	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -32,7 +30,6 @@ const (
 )
 
 type module struct {
-	log           *zap.Logger
 	api           modserver.API
 	gitLabClient  gitlab.ClientInterface
 	streamVisitor *grpctool.StreamVisitor
@@ -40,8 +37,8 @@ type module struct {
 
 func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 	ctx := server.Context()
-	agentToken := api.AgentMDFromContext(ctx).Token
-	l := m.log.With(logz.CorrelationIdFromContext(ctx))
+	agentToken := api.AgentTokenFromContext(ctx)
+	log := grpctool.LoggerFromContext(ctx)
 
 	g, ctx := errgroup.WithContext(ctx) // if one of the goroutines returns a non-nil error, ctx is canceled.
 
@@ -102,7 +99,7 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 				}},
 		})
 		if err != nil {
-			return m.api.HandleSendError(l, "MakeRequest failed to send headers", err)
+			return m.api.HandleSendError(log, "MakeRequest failed to send headers", err)
 		}
 
 		buffer := make([]byte, maxDataChunkSize)
@@ -120,7 +117,7 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 						}},
 				})
 				if sendErr != nil {
-					return m.api.HandleSendError(l, "MakeRequest failed to send data", sendErr)
+					return m.api.HandleSendError(log, "MakeRequest failed to send data", sendErr)
 				}
 			}
 			if errors.Is(err, io.EOF) {
@@ -133,7 +130,7 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 			},
 		})
 		if err != nil {
-			return m.api.HandleSendError(l, "MakeRequest failed to send trailers", err)
+			return m.api.HandleSendError(log, "MakeRequest failed to send trailers", err)
 		}
 		return nil
 	})
@@ -145,7 +142,7 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 		case status.Code(err) != codes.Unknown:
 			// A gRPC status already
 		default:
-			m.api.LogAndCapture(ctx, l, "MakeRequest()", err)
+			m.api.LogAndCapture(ctx, log, "MakeRequest()", err)
 			err = status.Error(codes.Unavailable, "unavailable")
 		}
 	}

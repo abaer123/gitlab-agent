@@ -21,6 +21,8 @@ type ApplyDefaults func(*kascfg.ConfigurationFile)
 
 // Config holds configuration for a Module.
 type Config struct {
+	// Log can be used for logging from the module.
+	// It should not be used for logging from gRPC API methods. Use grpctool.LoggerFromContext(ctx) instead.
 	Log          *zap.Logger
 	Api          API
 	Config       *kascfg.ConfigurationFile
@@ -54,7 +56,10 @@ type API interface {
 	// PollImmediateUntil should be used by the top-level polling, so that it can be gracefully interrupted
 	// by the server when necessary.
 	PollImmediateUntil(ctx context.Context, interval, maxConnectionAge time.Duration, condition ConditionFunc) error
+	// HandleProcessingError can be used to handle errors occurring while handling a gRPC API call.
 	HandleProcessingError(ctx context.Context, log *zap.Logger, msg string, err error)
+	// HandleSendError can be used to handle error produced by gRPC SendMsg() method.
+	// It returns an error, compatible with gRPC status package.
 	HandleSendError(log *zap.Logger, msg string, err error) error
 	LogAndCapture(ctx context.Context, log *zap.Logger, msg string, err error)
 }

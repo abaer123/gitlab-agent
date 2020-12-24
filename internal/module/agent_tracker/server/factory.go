@@ -12,7 +12,6 @@ type Factory struct {
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	m := &module{
-		log:          config.Log,
 		api:          config.Api,
 		agentQuerier: f.AgentQuerier,
 	}
