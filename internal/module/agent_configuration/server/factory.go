@@ -7,7 +7,7 @@ import (
 )
 
 type Factory struct {
-	AgentTracker agent_tracker.Tracker
+	AgentRegisterer agent_tracker.Registerer
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
@@ -16,7 +16,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 		log:                          config.Log,
 		api:                          config.Api,
 		gitaly:                       config.Gitaly,
-		agentTracker:                 f.AgentTracker,
+		agentRegisterer:              f.AgentRegisterer,
 		maxConfigurationFileSize:     int64(agent.Configuration.MaxConfigurationFileSize),
 		agentConfigurationPollPeriod: agent.Configuration.PollPeriod.AsDuration(),
 		maxConnectionAge:             agent.Listen.MaxConnectionAge.AsDuration(),

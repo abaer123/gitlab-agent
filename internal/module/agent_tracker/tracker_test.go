@@ -39,7 +39,7 @@ func TestRegisterConnection(t *testing.T) {
 
 	// Then
 	equalHash(t, client, tr.connectionsByProjectIdHashKey(info.ProjectId), info)
-	equalHash(t, client, tr.connectionsByAgentIdHashKey(info.Id), info)
+	equalHash(t, client, tr.connectionsByAgentIdHashKey(info.AgentId), info)
 }
 
 func TestUnregisterConnection(t *testing.T) {
@@ -54,7 +54,7 @@ func TestUnregisterConnection(t *testing.T) {
 
 	// Then
 	require.Empty(t, getHash(t, client, tr.connectionsByProjectIdHashKey(info.ProjectId)))
-	require.Empty(t, getHash(t, client, tr.connectionsByAgentIdHashKey(info.Id)))
+	require.Empty(t, getHash(t, client, tr.connectionsByAgentIdHashKey(info.AgentId)))
 }
 
 func TestHashExpires(t *testing.T) {
@@ -70,7 +70,7 @@ func TestHashExpires(t *testing.T) {
 
 	// Then
 	require.Empty(t, getHash(t, client, tr.connectionsByProjectIdHashKey(info.ProjectId)))
-	require.Empty(t, getHash(t, client, tr.connectionsByAgentIdHashKey(info.Id)))
+	require.Empty(t, getHash(t, client, tr.connectionsByAgentIdHashKey(info.AgentId)))
 }
 
 func TestGC(t *testing.T) {
@@ -85,7 +85,7 @@ func TestGC(t *testing.T) {
 	_, err := client.Pipelined(context.Background(), func(p redis.Pipeliner) error {
 		newExpireIn := 3 * tr.ttl
 		p.PExpire(context.Background(), tr.connectionsByProjectIdHashKey(info.ProjectId), newExpireIn)
-		p.PExpire(context.Background(), tr.connectionsByAgentIdHashKey(info.Id), newExpireIn)
+		p.PExpire(context.Background(), tr.connectionsByAgentIdHashKey(info.AgentId), newExpireIn)
 		return nil
 	})
 	require.NoError(t, err)
@@ -96,7 +96,7 @@ func TestGC(t *testing.T) {
 
 	// Then
 	require.Empty(t, getHash(t, client, tr.connectionsByProjectIdHashKey(info.ProjectId)))
-	require.Empty(t, getHash(t, client, tr.connectionsByAgentIdHashKey(info.Id)))
+	require.Empty(t, getHash(t, client, tr.connectionsByAgentIdHashKey(info.AgentId)))
 }
 
 func TestRefresh(t *testing.T) {
@@ -116,7 +116,43 @@ func TestRefresh(t *testing.T) {
 	// Then
 	expireAfter := registrationTime.Add(oldExpireIn)
 	valuesExpireAfter(t, client, tr.connectionsByProjectIdHashKey(info.ProjectId), expireAfter)
-	valuesExpireAfter(t, client, tr.connectionsByAgentIdHashKey(info.Id), expireAfter)
+	valuesExpireAfter(t, client, tr.connectionsByAgentIdHashKey(info.AgentId), expireAfter)
+}
+
+func TestGetConnectionsEmpty(t *testing.T) {
+	_, tr := setupTracker(t)
+
+	// Given
+	info := connInfo()
+
+	// When
+	// no registered connections
+
+	// Then
+	infos, err := tr.GetConnectionsByProjectId(context.Background(), info.ProjectId)
+	require.NoError(t, err)
+	assert.Empty(t, infos)
+	infos, err = tr.GetConnectionsByAgentId(context.Background(), info.AgentId)
+	require.NoError(t, err)
+	assert.Empty(t, infos)
+}
+
+func TestGetConnections(t *testing.T) {
+	_, tr := setupTracker(t)
+
+	// Given
+	info := connInfo()
+
+	// When
+	require.NoError(t, tr.registerConnection(context.Background(), info))
+
+	// Then
+	infos, err := tr.GetConnectionsByProjectId(context.Background(), info.ProjectId)
+	require.NoError(t, err)
+	assert.Empty(t, cmp.Diff([]*ConnectedAgentInfo{info}, infos, protocmp.Transform()))
+	infos, err = tr.GetConnectionsByAgentId(context.Background(), info.AgentId)
+	require.NoError(t, err)
+	assert.Empty(t, cmp.Diff([]*ConnectedAgentInfo{info}, infos, protocmp.Transform()))
 }
 
 func setupTracker(t *testing.T) (redis.UniversalClient, *RedisTracker) {
@@ -142,7 +178,7 @@ func connInfo() *ConnectedAgentInfo {
 		},
 		ConnectedAt:  timestamppb.Now(),
 		ConnectionId: 123,
-		Id:           345,
+		AgentId:      345,
 		ProjectId:    456,
 	}
 }

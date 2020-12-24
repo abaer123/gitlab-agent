@@ -20,7 +20,7 @@ type module struct {
 	log                          *zap.Logger
 	api                          modserver.API
 	gitaly                       gitaly.PoolInterface
-	agentTracker                 agent_tracker.Tracker
+	agentRegisterer              agent_tracker.Registerer
 	maxConfigurationFileSize     int64
 	agentConfigurationPollPeriod time.Duration
 	maxConnectionAge             time.Duration
@@ -41,7 +41,7 @@ func (m *module) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 		log:                      m.log.With(logz.CorrelationIdFromContext(ctx)),
 		api:                      m.api,
 		gitaly:                   m.gitaly,
-		agentTracker:             m.agentTracker,
+		agentRegisterer:          m.agentRegisterer,
 		server:                   server,
 		agentToken:               api.AgentTokenFromContext(ctx),
 		maxConfigurationFileSize: m.maxConfigurationFileSize,

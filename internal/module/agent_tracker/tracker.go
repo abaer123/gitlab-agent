@@ -16,14 +16,24 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type Tracker interface {
-	Run(ctx context.Context) error
+type Registerer interface {
 	// RegisterConnection schedules the connection to be registered with the tracker.
 	// Returns true on success and false if ctx signaled done.
 	RegisterConnection(ctx context.Context, info *ConnectedAgentInfo) bool
 	// UnregisterConnection schedules the connection to be unregistered with the tracker.
 	// Returns true on success and false if ctx signaled done.
 	UnregisterConnection(ctx context.Context, info *ConnectedAgentInfo) bool
+}
+
+type Querier interface {
+	GetConnectionsByAgentId(ctx context.Context, agentId int64) ([]*ConnectedAgentInfo, error)
+	GetConnectionsByProjectId(ctx context.Context, projectId int64) ([]*ConnectedAgentInfo, error)
+}
+
+type Tracker interface {
+	Registerer
+	Querier
+	Run(ctx context.Context) error
 }
 
 type infoHolder struct {
@@ -114,6 +124,31 @@ func (t *RedisTracker) UnregisterConnection(ctx context.Context, info *Connected
 	}
 }
 
+func (t *RedisTracker) GetConnectionsByAgentId(ctx context.Context, agentId int64) ([]*ConnectedAgentInfo, error) {
+	return t.getConnectionsByKey(ctx, t.connectionsByAgentIdHashKey(agentId))
+}
+
+func (t *RedisTracker) GetConnectionsByProjectId(ctx context.Context, projectId int64) ([]*ConnectedAgentInfo, error) {
+	return t.getConnectionsByKey(ctx, t.connectionsByProjectIdHashKey(projectId))
+}
+
+func (t *RedisTracker) getConnectionsByKey(ctx context.Context, key string) ([]*ConnectedAgentInfo, error) {
+	var result []*ConnectedAgentInfo
+	_, err := t.scanExpiringHash(ctx, key, func(value *anypb.Any) error {
+		var info ConnectedAgentInfo
+		err := value.UnmarshalTo(&info)
+		if err != nil {
+			return err
+		}
+		result = append(result, &info)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (t *RedisTracker) registerConnection(ctx context.Context, info *ConnectedAgentInfo) error {
 	infoAny, err := anypb.New(info)
 	if err != nil {
@@ -124,7 +159,7 @@ func (t *RedisTracker) registerConnection(ctx context.Context, info *ConnectedAg
 		infoAny: infoAny,
 	}
 	addToMap(t.connectionsByProjectId, info.ProjectId, info.ConnectionId, holder)
-	addToMap(t.connectionsByAgentId, info.Id, info.ConnectionId, holder)
+	addToMap(t.connectionsByAgentId, info.AgentId, info.ConnectionId, holder)
 	data := map[int64]infoHolder{
 		info.ConnectionId: holder,
 	}
@@ -132,7 +167,7 @@ func (t *RedisTracker) registerConnection(ctx context.Context, info *ConnectedAg
 	if err != nil {
 		return err
 	}
-	err = t.refreshConnectionsByAgentId(ctx, info.Id, data)
+	err = t.refreshConnectionsByAgentId(ctx, info.AgentId, data)
 	if err != nil {
 		return err
 	}
@@ -140,11 +175,11 @@ func (t *RedisTracker) registerConnection(ctx context.Context, info *ConnectedAg
 }
 
 func (t *RedisTracker) unregisterConnection(ctx context.Context, unreg *ConnectedAgentInfo) error {
-	removeFromMap(t.connectionsByAgentId, unreg.Id, unreg.ConnectionId)
+	removeFromMap(t.connectionsByAgentId, unreg.AgentId, unreg.ConnectionId)
 	removeFromMap(t.connectionsByProjectId, unreg.ProjectId, unreg.ConnectionId)
 	hKey := strconv.FormatInt(unreg.ConnectionId, 10)
 	_, err := t.redisClient.Pipelined(ctx, func(p redis.Pipeliner) error {
-		p.HDel(ctx, t.connectionsByAgentIdHashKey(unreg.Id), hKey)
+		p.HDel(ctx, t.connectionsByAgentIdHashKey(unreg.AgentId), hKey)
 		p.HDel(ctx, t.connectionsByProjectIdHashKey(unreg.ProjectId), hKey)
 		return nil
 	})
@@ -222,6 +257,8 @@ func (t *RedisTracker) connectionsByProjectIdHashKey(projectId int64) string {
 
 // runGc iterates all relevant stored data and deletes expired entries.
 // It returns number of deleted Redis (hash) keys, including when an error occurs.
+// Here we only inspect/GC hashes where we have entries. Other kas instances GC same and/or other corresponding hashes.
+// Hashes that don't have a corresponding kas (e.g. because it crashed) will expire because of TTL on the hash key.
 func (t *RedisTracker) runGc(ctx context.Context) (int, error) {
 	var deletedKeys int
 	for agentId := range t.connectionsByAgentId {
@@ -244,7 +281,27 @@ func (t *RedisTracker) runGc(ctx context.Context) (int, error) {
 // gcHash iterates a hash and removes all expired values.
 // It assumes that values are marshaled ExpiringValue.
 func (t *RedisTracker) gcHash(ctx context.Context, key string) (int, error) {
+	return t.scanExpiringHash(ctx, key, func(value *anypb.Any) error {
+		// nothing to do
+		return nil
+	})
+}
+
+func (t *RedisTracker) scanExpiringHash(ctx context.Context, key string, cb func(value *anypb.Any) error) (keysDeleted int, retErr error) {
 	var keysToDelete []string
+	defer func() {
+		if len(keysToDelete) == 0 {
+			return
+		}
+		_, err := t.redisClient.HDel(ctx, key, keysToDelete...).Result()
+		if err != nil {
+			if retErr == nil {
+				retErr = err
+			}
+			return
+		}
+		keysDeleted = len(keysToDelete)
+	}()
 	// Scan keys of a hash. See https://redis.io/commands/scan
 	iter := t.redisClient.HScan(ctx, key, 0, "", 0).Iterator()
 	for iter.Next(ctx) {
@@ -257,24 +314,19 @@ func (t *RedisTracker) gcHash(ctx context.Context, key string) (int, error) {
 		var msg ExpiringValue
 		err := proto.Unmarshal([]byte(v), &msg)
 		if err != nil {
-			t.log.Error("Failed to unmarshal hash value", zap.Error(err))
+			t.log.Error("Failed to unmarshal hash value", zap.Error(err), logz.RedisKey([]byte(k)))
 			continue // try to skip and continue
 		}
 		if msg.ExpiresAt != nil && msg.ExpiresAt.AsTime().Before(time.Now()) {
 			keysToDelete = append(keysToDelete, k)
+			continue
+		}
+		err = cb(msg.Value)
+		if err != nil {
+			return 0, err
 		}
 	}
-	if err := iter.Err(); err != nil {
-		return 0, err
-	}
-	if len(keysToDelete) == 0 {
-		return 0, nil
-	}
-	_, err := t.redisClient.HDel(ctx, key, keysToDelete...).Result()
-	if err != nil {
-		return 0, err
-	}
-	return len(keysToDelete), nil
+	return 0, iter.Err()
 }
 
 func addToMap(m map[int64]map[int64]infoHolder, key1, key2 int64, val infoHolder) {

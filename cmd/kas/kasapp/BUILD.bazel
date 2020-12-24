@@ -17,6 +17,7 @@ go_library(
         "//internal/kas",
         "//internal/module/agent_configuration/server",
         "//internal/module/agent_tracker",
+        "//internal/module/agent_tracker/server",
         "//internal/module/gitlab_access/server",
         "//internal/module/gitops/server",
         "//internal/module/google_profiler/server",

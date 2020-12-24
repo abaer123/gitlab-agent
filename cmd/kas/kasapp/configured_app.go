@@ -23,6 +23,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/kas"
 	agent_configuration_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_tracker"
+	agent_tracker_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_tracker/server"
 	gitlab_access_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/server"
 	gitops_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/server"
 	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/google_profiler/server"
@@ -138,13 +139,16 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		},
 		&google_profiler_server.Factory{},
 		&agent_configuration_server.Factory{
-			AgentTracker: agentTracker,
+			AgentRegisterer: agentTracker,
 		},
 		&gitops_server.Factory{},
 		&usage_metrics_server.Factory{
 			UsageTracker: usageTracker,
 		},
 		&gitlab_access_server.Factory{},
+		&agent_tracker_server.Factory{
+			AgentQuerier: agentTracker,
+		},
 	}
 
 	// Configuration for modules
@@ -606,4 +610,12 @@ func (n nopAgentTracker) RegisterConnection(ctx context.Context, info *agent_tra
 
 func (n nopAgentTracker) UnregisterConnection(ctx context.Context, info *agent_tracker.ConnectedAgentInfo) bool {
 	return true
+}
+
+func (n nopAgentTracker) GetConnectionsByAgentId(ctx context.Context, agentId int64) ([]*agent_tracker.ConnectedAgentInfo, error) {
+	return nil, nil
+}
+
+func (n nopAgentTracker) GetConnectionsByProjectId(ctx context.Context, projectId int64) ([]*agent_tracker.ConnectedAgentInfo, error) {
+	return nil, nil
 }

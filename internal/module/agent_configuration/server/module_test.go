@@ -178,7 +178,7 @@ func setupModule(t *testing.T) (*module, *api.AgentInfo, *gomock.Controller, *mo
 	m := &module{
 		log:                          zaptest.NewLogger(t),
 		api:                          mockApi,
-		agentTracker:                 agentTracker,
+		agentRegisterer:              agentTracker,
 		gitaly:                       gitalyPool,
 		maxConfigurationFileSize:     maxConfigurationFileSize,
 		agentConfigurationPollPeriod: 10 * time.Minute,
@@ -186,7 +186,7 @@ func setupModule(t *testing.T) (*module, *api.AgentInfo, *gomock.Controller, *mo
 	agentInfo := agentInfoObj()
 	connMatcher := matcher.ProtoEq(t, &agent_tracker.ConnectedAgentInfo{
 		AgentMeta: agentMeta(),
-		Id:        agentInfo.Id,
+		AgentId:   agentInfo.Id,
 		ProjectId: agentInfo.ProjectId,
 	}, protocmp.IgnoreFields(&agent_tracker.ConnectedAgentInfo{}, "connected_at", "connection_id"))
 	gomock.InOrder(

@@ -28,7 +28,7 @@ type pollJob struct {
 	log                      *zap.Logger
 	api                      modserver.API
 	gitaly                   gitaly.PoolInterface
-	agentTracker             agent_tracker.Tracker
+	agentRegisterer          agent_tracker.Registerer
 	server                   rpc.AgentConfiguration_GetConfigurationServer
 	agentToken               api.AgentToken
 	maxConfigurationFileSize int64
@@ -46,9 +46,9 @@ func (j *pollJob) Attempt() (bool /*done*/, error) {
 		return false, err
 	}
 	if !j.connectionRegistered { // only register once
-		j.connectedAgentInfo.Id = agentInfo.Id
+		j.connectedAgentInfo.AgentId = agentInfo.Id
 		j.connectedAgentInfo.ProjectId = agentInfo.ProjectId
-		j.agentTracker.RegisterConnection(j.ctx, j.connectedAgentInfo)
+		j.agentRegisterer.RegisterConnection(j.ctx, j.connectedAgentInfo)
 		j.connectionRegistered = true
 	}
 	log := j.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath)) // nolint:govet
@@ -87,7 +87,7 @@ func (j *pollJob) Cleanup() {
 	if !j.connectionRegistered {
 		return
 	}
-	j.agentTracker.UnregisterConnection(context.Background(), j.connectedAgentInfo)
+	j.agentRegisterer.UnregisterConnection(context.Background(), j.connectedAgentInfo)
 }
 
 // fetchConfiguration fetches agent's configuration from a corresponding repository.
