@@ -10,14 +10,13 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
-	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type module struct {
-	log                      *zap.Logger
 	api                      modserver.API
 	gitalyPool               gitaly.PoolInterface
 	projectInfoClient        *projectInfoClient
@@ -37,7 +36,7 @@ func (m *module) Run(ctx context.Context) error {
 func (m *module) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, server rpc.Gitops_GetObjectsToSynchronizeServer) error {
 	ctx := server.Context()
 	agentToken := api.AgentTokenFromContext(ctx)
-	log := m.log.With(logz.CorrelationIdFromContext(ctx))
+	log := grpctool.LoggerFromContext(ctx)
 	agentInfo, err, retErr := m.api.GetAgentInfo(ctx, log, agentToken, false)
 	if retErr {
 		return err // no wrap

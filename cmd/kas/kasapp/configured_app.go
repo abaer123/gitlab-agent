@@ -279,16 +279,18 @@ func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tr
 		grpc_prometheus.StreamServerInterceptor,   // This one should be the first one to measure all invocations
 		grpctool.StreamServerAgentMDInterceptor(), // This one should be the second one to ensure agent presents a token
 		grpccorrelation.StreamServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()),
-		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 		grpc_validator.StreamServerInterceptor(),
+		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)),
 		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)),
 	}
 	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
 		grpc_prometheus.UnaryServerInterceptor,   // This one should be the first one to measure all invocations
 		grpctool.UnaryServerAgentMDInterceptor(), // This one should be the second one to ensure agent presents a token
 		grpccorrelation.UnaryServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()),
-		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 		grpc_validator.UnaryServerInterceptor(),
+		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)),
 		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)),
 	}
 
@@ -354,16 +356,18 @@ func (a *ConfiguredApp) constructApiServer(interceptorsCtx context.Context, trac
 		grpc_prometheus.StreamServerInterceptor,                                                  // This one should be the first one to measure all invocations
 		grpccorrelation.StreamServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()), // Second to add correlation id
 		jwtAuther.StreamServerInterceptor,                                                        // Third to auth and maybe log with correlation id
-		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 		grpc_validator.StreamServerInterceptor(),
+		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)),
 		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)),
 	}
 	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
 		grpc_prometheus.UnaryServerInterceptor,                                                  // This one should be the first one to measure all invocations
 		grpccorrelation.UnaryServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()), // Second to add correlation id
 		jwtAuther.UnaryServerInterceptor,                                                        // Third to auth and maybe log with correlation id
-		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 		grpc_validator.UnaryServerInterceptor(),
+		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)),
 		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)),
 	}
 	serverOpts := []grpc.ServerOption{

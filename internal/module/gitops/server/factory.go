@@ -20,7 +20,6 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	projectInfoCacheTtl := gitops.ProjectInfoCacheTtl.AsDuration()
 	projectInfoCacheErrorTtl := gitops.ProjectInfoCacheErrorTtl.AsDuration()
 	m := &module{
-		log:        config.Log,
 		api:        config.Api,
 		gitalyPool: config.Gitaly,
 		projectInfoClient: &projectInfoClient{

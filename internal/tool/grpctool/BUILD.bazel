@@ -8,6 +8,7 @@ go_library(
         "client_limiting.go",
         "client_validator.go",
         "jwt_server_auth.go",
+        "logger.go",
         "server_ctx.go",
         "server_limiting.go",
         "stream_visitor.go",
