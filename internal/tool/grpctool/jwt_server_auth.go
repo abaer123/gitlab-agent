@@ -6,7 +6,6 @@ import (
 
 	"github.com/dgrijalva/jwt-go/v4"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -14,7 +13,6 @@ import (
 )
 
 type JWTAuther struct {
-	Log      *zap.Logger
 	Secret   []byte
 	Audience string
 }
@@ -47,7 +45,7 @@ func (a *JWTAuther) doAuth(ctx context.Context) error {
 		return a.Secret, nil
 	}, jwt.WithAudience(a.Audience))
 	if err != nil {
-		a.Log.Debug("JWT auth failed", zap.Error(err), logz.CorrelationIdFromContext(ctx))
+		LoggerFromContext(ctx).Debug("JWT auth failed", zap.Error(err))
 		return status.Error(codes.Unauthenticated, "JWT validation failed")
 	}
 	return nil
