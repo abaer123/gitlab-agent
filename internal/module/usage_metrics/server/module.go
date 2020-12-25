@@ -37,7 +37,7 @@ func (m *module) Run(ctx context.Context) error {
 		case <-ticker.C:
 			if err := m.sendUsageInternal(ctx); err != nil {
 				if !errz.ContextDone(err) {
-					m.api.LogAndCapture(ctx, m.log, "Failed to send usage data", err)
+					m.api.HandleProcessingError(ctx, m.log, "Failed to send usage data", err)
 				}
 			}
 		}

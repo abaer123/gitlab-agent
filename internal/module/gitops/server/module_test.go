@@ -85,7 +85,7 @@ func TestGetObjectsToSynchronizeGetProjectInfoFailures(t *testing.T) {
 			DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, mock_gitlab.AgentkToken, nil, gomock.Any()).
 			Return(expectedErr),
 		mockApi.EXPECT().
-			LogAndCapture(gomock.Any(), gomock.Any(), "GetProjectInfo()", expectedErr).
+			HandleProcessingError(gomock.Any(), gomock.Any(), "GetProjectInfo()", expectedErr).
 			DoAndReturn(func(ctx context.Context, log *zap.Logger, msg string, err error) {
 				cancel() // exception captured, cancel the context to stop the test
 			}),

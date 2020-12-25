@@ -142,7 +142,7 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 		case status.Code(err) != codes.Unknown:
 			// A gRPC status already
 		default:
-			m.api.LogAndCapture(ctx, log, "MakeRequest()", err)
+			m.api.HandleProcessingError(ctx, log, "MakeRequest()", err)
 			err = status.Error(codes.Unavailable, "unavailable")
 		}
 	}

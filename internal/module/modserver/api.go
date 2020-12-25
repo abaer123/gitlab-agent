@@ -61,7 +61,6 @@ type API interface {
 	// HandleSendError can be used to handle error produced by gRPC SendMsg() method.
 	// It returns an error, compatible with gRPC status package.
 	HandleSendError(log *zap.Logger, msg string, err error) error
-	LogAndCapture(ctx context.Context, log *zap.Logger, msg string, err error)
 }
 
 type Factory interface {

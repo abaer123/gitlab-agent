@@ -98,18 +98,6 @@ func (mr *MockAPIMockRecorder) HandleSendError(arg0, arg1, arg2 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleSendError", reflect.TypeOf((*MockAPI)(nil).HandleSendError), arg0, arg1, arg2)
 }
 
-// LogAndCapture mocks base method
-func (m *MockAPI) LogAndCapture(arg0 context.Context, arg1 *zap.Logger, arg2 string, arg3 error) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "LogAndCapture", arg0, arg1, arg2, arg3)
-}
-
-// LogAndCapture indicates an expected call of LogAndCapture
-func (mr *MockAPIMockRecorder) LogAndCapture(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LogAndCapture", reflect.TypeOf((*MockAPI)(nil).LogAndCapture), arg0, arg1, arg2, arg3)
-}
-
 // PollImmediateUntil mocks base method
 func (m *MockAPI) PollImmediateUntil(arg0 context.Context, arg1, arg2 time.Duration, arg3 modserver.ConditionFunc) error {
 	m.ctrl.T.Helper()
