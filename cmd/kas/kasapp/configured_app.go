@@ -353,18 +353,18 @@ func (a *ConfiguredApp) constructApiServer(interceptorsCtx context.Context, trac
 
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
-		grpc_prometheus.StreamServerInterceptor,                                                  // This one should be the first one to measure all invocations
-		grpccorrelation.StreamServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()), // Second to add correlation id
-		jwtAuther.StreamServerInterceptor,                                                        // Third to auth and maybe log with correlation id
+		grpc_prometheus.StreamServerInterceptor,              // This one should be the first one to measure all invocations
+		grpccorrelation.StreamServerCorrelationInterceptor(), // Second to add correlation id
+		jwtAuther.StreamServerInterceptor,                    // Third to auth and maybe log with correlation id
 		grpc_validator.StreamServerInterceptor(),
 		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)),
 		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)),
 	}
 	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
-		grpc_prometheus.UnaryServerInterceptor,                                                  // This one should be the first one to measure all invocations
-		grpccorrelation.UnaryServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()), // Second to add correlation id
-		jwtAuther.UnaryServerInterceptor,                                                        // Third to auth and maybe log with correlation id
+		grpc_prometheus.UnaryServerInterceptor,              // This one should be the first one to measure all invocations
+		grpccorrelation.UnaryServerCorrelationInterceptor(), // Second to add correlation id
+		jwtAuther.UnaryServerInterceptor,                    // Third to auth and maybe log with correlation id
 		grpc_validator.UnaryServerInterceptor(),
 		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)),
