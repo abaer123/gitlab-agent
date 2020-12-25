@@ -158,7 +158,7 @@ func (j *pollJob) getProjectInfo(ctx context.Context, log *zap.Logger, agentToke
 	case gitlab.IsUnauthorized(err):
 		err = status.Error(codes.Unauthenticated, "unauthenticated")
 	default:
-		j.api.LogAndCapture(ctx, log, "GetProjectInfo()", err)
+		j.api.HandleProcessingError(ctx, log, "GetProjectInfo()", err)
 		err = nil // don't want to close the response stream, so report no error
 	}
 	return nil, err, true

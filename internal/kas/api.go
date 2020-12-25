@@ -63,7 +63,7 @@ func (a *API) GetAgentInfo(ctx context.Context, log *zap.Logger, agentToken api.
 	case gitlab.IsUnauthorized(err):
 		err = status.Error(codes.Unauthenticated, "unauthenticated")
 	default:
-		a.LogAndCapture(ctx, log, "GetAgentInfo()", err)
+		a.logAndCapture(ctx, log, "GetAgentInfo()", err)
 		if noErrorOnUnknownError {
 			err = nil
 		} else {
@@ -96,7 +96,7 @@ func (a *API) HandleProcessingError(ctx context.Context, log *zap.Logger, msg st
 		// Log at Info for now.
 		log.Info(msg, zap.Error(err))
 	} else {
-		a.LogAndCapture(ctx, log, msg, err)
+		a.logAndCapture(ctx, log, msg, err)
 	}
 }
 
@@ -109,7 +109,7 @@ func (a *API) HandleSendError(log *zap.Logger, msg string, err error) error {
 	return status.Error(codes.Unavailable, "gRPC send failed")
 }
 
-func (a *API) LogAndCapture(ctx context.Context, log *zap.Logger, msg string, err error) {
+func (a *API) logAndCapture(ctx context.Context, log *zap.Logger, msg string, err error) {
 	// don't add logz.CorrelationIdFromContext(ctx) here as it's been added to the logger already
 	log.Error(msg, zap.Error(err))
 	a.Capture(fmt.Errorf("%s: %v", msg, err), errortracking.WithContext(ctx))

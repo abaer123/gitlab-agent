@@ -81,7 +81,7 @@ func TestSendUsageFailureAndRetry(t *testing.T) {
 			DoJSON(ctx, http.MethodPost, usagePingApiPath, nil, api.AgentToken(""), counters1, nil).
 			Return(expectedErr),
 		mockApi.EXPECT().
-			LogAndCapture(gomock.Any(), gomock.Any(), "Failed to send usage data", expectedErr).
+			HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to send usage data", expectedErr).
 			DoAndReturn(func(ctx context.Context, log *zap.Logger, msg string, err error) {
 				cancel()
 			}),
