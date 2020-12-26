@@ -41,14 +41,14 @@ func TestJWTServerAuth(t *testing.T) {
 		FullMethod: "bla",
 	}
 	t.Run("happy path", func(t *testing.T) {
-		jwtAuther := setupAuther(t)
+		jwtAuther := setupAuther()
 
 		now := time.Now()
 		claims := validClams(now)
 		signedClaims, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(secret)
 		require.NoError(t, err)
 
-		ctx := incomingCtx(context.Background(), signedClaims)
+		ctx := incomingCtx(context.Background(), t, signedClaims)
 		result, err := jwtAuther.UnaryServerInterceptor(ctx, expectedReq, unaryInfo, unaryHandler(ctx, t))
 		require.NoError(t, err)
 		assert.Equal(t, expectedResult, result)
@@ -60,9 +60,9 @@ func TestJWTServerAuth(t *testing.T) {
 		require.NoError(t, err)
 	})
 	t.Run("missing header", func(t *testing.T) {
-		jwtAuther := setupAuther(t)
+		jwtAuther := setupAuther()
 
-		ctx := context.Background()
+		ctx := grpctool.InjectLogger(context.Background(), zaptest.NewLogger(t))
 		_, err := jwtAuther.UnaryServerInterceptor(ctx, expectedReq, unaryInfo, unaryMustNotBeCalled(t))
 		require.EqualError(t, err, "rpc error: code = Unauthenticated desc = Request unauthenticated with bearer")
 
@@ -73,7 +73,7 @@ func TestJWTServerAuth(t *testing.T) {
 		require.EqualError(t, err, "rpc error: code = Unauthenticated desc = Request unauthenticated with bearer")
 	})
 	t.Run("invalid token type", func(t *testing.T) {
-		jwtAuther := setupAuther(t)
+		jwtAuther := setupAuther()
 
 		now := time.Now()
 		claims := validClams(now)
@@ -81,6 +81,7 @@ func TestJWTServerAuth(t *testing.T) {
 		require.NoError(t, err)
 
 		ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("authorization", "weird_type "+signedClaims))
+		ctx = grpctool.InjectLogger(ctx, zaptest.NewLogger(t))
 		_, err = jwtAuther.UnaryServerInterceptor(ctx, expectedReq, unaryInfo, unaryMustNotBeCalled(t))
 		require.EqualError(t, err, "rpc error: code = Unauthenticated desc = Request unauthenticated with bearer")
 
@@ -91,7 +92,7 @@ func TestJWTServerAuth(t *testing.T) {
 		require.EqualError(t, err, "rpc error: code = Unauthenticated desc = Request unauthenticated with bearer")
 	})
 	t.Run("unexpected signing algorithm", func(t *testing.T) {
-		jwtAuther := setupAuther(t)
+		jwtAuther := setupAuther()
 
 		now := time.Now()
 		claims := validClams(now)
@@ -106,7 +107,7 @@ func TestJWTServerAuth(t *testing.T) {
 		assertValidationFailed(t, signedClaims, jwtAuther)
 	})
 	t.Run("none signing algorithm", func(t *testing.T) {
-		jwtAuther := setupAuther(t)
+		jwtAuther := setupAuther()
 
 		now := time.Now()
 		claims := validClams(now)
@@ -116,7 +117,7 @@ func TestJWTServerAuth(t *testing.T) {
 		assertValidationFailed(t, signedClaims, jwtAuther)
 	})
 	t.Run("unexpected audience", func(t *testing.T) {
-		jwtAuther := setupAuther(t)
+		jwtAuther := setupAuther()
 
 		now := time.Now()
 		claims := validClams(now)
@@ -128,9 +129,8 @@ func TestJWTServerAuth(t *testing.T) {
 	})
 }
 
-func setupAuther(t *testing.T) grpctool.JWTAuther {
+func setupAuther() grpctool.JWTAuther {
 	return grpctool.JWTAuther{
-		Log:      zaptest.NewLogger(t),
 		Secret:   secret,
 		Audience: jwtAudience,
 	}
@@ -143,7 +143,7 @@ func assertValidationFailed(t *testing.T, signedClaims string, jwtAuther grpctoo
 	streamInfo := &grpc.StreamServerInfo{
 		FullMethod: "bla",
 	}
-	ctx := incomingCtx(context.Background(), signedClaims)
+	ctx := incomingCtx(context.Background(), t, signedClaims)
 	_, err := jwtAuther.UnaryServerInterceptor(ctx, expectedReq, unaryInfo, unaryMustNotBeCalled(t))
 	require.EqualError(t, err, "rpc error: code = Unauthenticated desc = JWT validation failed")
 
@@ -165,8 +165,10 @@ func validClams(now time.Time) jwt.StandardClaims {
 	return claims
 }
 
-func incomingCtx(ctx context.Context, token string) context.Context {
-	return metadata.NewIncomingContext(ctx, metadata.Pairs("authorization", "bearer "+token))
+func incomingCtx(ctx context.Context, t *testing.T, token string) context.Context {
+	ctx = metadata.NewIncomingContext(ctx, metadata.Pairs("authorization", "bearer "+token))
+	ctx = grpctool.InjectLogger(ctx, zaptest.NewLogger(t))
+	return ctx
 }
 
 func unaryHandler(expectedCtx context.Context, t *testing.T) grpc.UnaryHandler {
