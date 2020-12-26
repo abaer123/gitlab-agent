@@ -32,10 +32,10 @@ message Response {
     option (automata.first_allowed_field) = 1;
     option (validate.required) = true;
 
-    int64 scalar = 1 [(automata.automata).next_allowed_field = 2];
-    enum1 x1 = 2 [(automata.automata).next_allowed_field = 3];
-    Data data = 3 [(automata.automata).next_allowed_field = 3, (automata.automata).next_allowed_field = 4];
-    Last last = 4 [(automata.automata).next_allowed_field = -1];
+    int64 scalar = 1 [(automata.next_allowed_field) = 2];
+    enum1 x1 = 2 [(automata.next_allowed_field) = 3];
+    Data data = 3 [(automata.next_allowed_field) = 3, (automata.next_allowed_field) = 4];
+    Last last = 4 [(automata.next_allowed_field) = -1];
   }
 }
 
@@ -64,15 +64,15 @@ message TwoValidOneofs {
 
     option (automata.first_allowed_field) = 1;
 
-    int32 m11 = 1 [(automata.automata).next_allowed_field = 2];
-    int32 m12 = 2 [(automata.automata).next_allowed_field = -1];
+    int32 m11 = 1 [(automata.next_allowed_field) = 2];
+    int32 m12 = 2 [(automata.next_allowed_field) = -1];
   }
   oneof message2 {
 
     option (automata.first_allowed_field) = 3;
 
-    int32 m21 = 3 [(automata.automata).next_allowed_field = 4];
-    int32 m22 = 4 [(automata.automata).next_allowed_field = -1];
+    int32 m21 = 3 [(automata.next_allowed_field) = 4];
+    int32 m22 = 4 [(automata.next_allowed_field) = -1];
   }
 }
 
@@ -82,8 +82,8 @@ message OutOfOneof {
 
     option (automata.first_allowed_field) = 2;
 
-    int32 m1 = 2 [(automata.automata).next_allowed_field = 1];
-    int32 m2 = 3 [(automata.automata).next_allowed_field = -1];
+    int32 m1 = 2 [(automata.next_allowed_field) = 1];
+    int32 m2 = 3 [(automata.next_allowed_field) = -1];
   }
 }
 
@@ -92,9 +92,9 @@ message NotAllReachable {
 
     option (automata.first_allowed_field) = 3;
 
-    int32 m1 = 1 [(automata.automata).next_allowed_field = 2];
-    int32 m2 = 2 [(automata.automata).next_allowed_field = 1];
-    int32 m3 = 3 [(automata.automata).next_allowed_field = -1];
+    int32 m1 = 1 [(automata.next_allowed_field) = 2];
+    int32 m2 = 2 [(automata.next_allowed_field) = 1];
+    int32 m3 = 3 [(automata.next_allowed_field) = -1];
   }
 }
 

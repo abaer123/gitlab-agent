@@ -42,9 +42,9 @@ message Request {
     option (automata.first_allowed_field) = 1;
     option (validate.required) = true;
 
-    Headers headers = 1 [(automata.automata).next_allowed_field = 2, (automata.automata).next_allowed_field = 3];
-    Data data = 2 [(automata.automata).next_allowed_field = 2, (automata.automata).next_allowed_field = 3];
-    Trailers trailers = 3 [(automata.automata).next_allowed_field = -1];
+    Headers headers = 1 [(automata.next_allowed_field) = 2, (automata.next_allowed_field) = 3];
+    Data data = 2 [(automata.next_allowed_field) = 2, (automata.next_allowed_field) = 3];
+    Trailers trailers = 3 [(automata.next_allowed_field) = -1];
   }
 }
 
@@ -71,9 +71,9 @@ message Response {
     option (automata.first_allowed_field) = 1;
     option (validate.required) = true;
 
-    Headers headers = 1 [(automata.automata).next_allowed_field = 2, (automata.automata).next_allowed_field = 3];
-    Data data = 2 [(automata.automata).next_allowed_field = 2, (automata.automata).next_allowed_field = 3];
-    Trailers trailers = 3 [(automata.automata).next_allowed_field = -1];
+    Headers headers = 1 [(automata.next_allowed_field) = 2, (automata.next_allowed_field) = 3];
+    Data data = 2 [(automata.next_allowed_field) = 2, (automata.next_allowed_field) = 3];
+    Trailers trailers = 3 [(automata.next_allowed_field) = -1];
   }
 }
 
