@@ -172,15 +172,15 @@ func allowedTransitionsForOneof(oneof protoreflect.OneofDescriptor) (map[protore
 	for i := 0; i < l; i++ { // iterate fields of oneof
 		field := fields.Get(i)
 		options := field.Options().(*descriptorpb.FieldOptions)
-		if !proto.HasExtension(options, automata.E_Automata) {
+		if !proto.HasExtension(options, automata.E_NextAllowedField) {
 			return nil, fmt.Errorf("field %s does not have any transitions defined", field.FullName())
 		}
-		automataOption := proto.GetExtension(options, automata.E_Automata).(*automata.Automata)
-		allowed, err := intsToNumbers(oneof, automataOption.NextAllowedField)
+		nextAllowedFieldsInts := proto.GetExtension(options, automata.E_NextAllowedField).([]int32)
+		nextAllowedFieldsNumbers, err := intsToNumbers(oneof, nextAllowedFieldsInts)
 		if err != nil {
 			return nil, err
 		}
-		res[field.Number()] = allowed
+		res[field.Number()] = nextAllowedFieldsNumbers
 	}
 	oneofOptions := oneof.Options().(*descriptorpb.OneofOptions)
 	firstAllowedFieldsInts := proto.GetExtension(oneofOptions, automata.E_FirstAllowedField).([]int32)

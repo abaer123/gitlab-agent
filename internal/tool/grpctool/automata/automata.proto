@@ -9,16 +9,12 @@ option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/inte
 
 import "google/protobuf/descriptor.proto";
 
-message Automata {
-  // Specifies field numbers within a oneof. The next message in a stream must have one of these fields set.
-  // -1 can be used for EOF
-  repeated int32 next_allowed_field = 1;
-}
-
 // See https://developers.google.com/protocol-buffers/docs/proto#customoptions for info about custom options.
 
 extend google.protobuf.FieldOptions {
-  Automata automata = 92000; // Random high number between 50000 and 99999.
+  // Specifies field numbers within a oneof. The next message in a stream must have one of these fields set.
+  // -1 can be used for EOF
+  repeated int32 next_allowed_field = 92000; // Random high number between 50000 and 99999.
 }
 
 extend google.protobuf.OneofOptions {
