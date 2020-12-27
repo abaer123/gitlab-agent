@@ -46,6 +46,7 @@ require (
 )
 
 replace (
+	github.com/golang/mock => github.com/golang/mock v1.4.4-0.20201210203420-1fe605df5e5f
 	// same version as used by rules_go to maintain compatibility with patches - see the WORKSPACE file
 	golang.org/x/tools => golang.org/x/tools v0.0.0-20201201192219-a1b87a1c0de4
 

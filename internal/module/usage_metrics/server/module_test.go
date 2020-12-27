@@ -23,7 +23,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
-	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
@@ -81,10 +80,7 @@ func TestSendUsageFailureAndRetry(t *testing.T) {
 			DoJSON(ctx, http.MethodPost, usagePingApiPath, nil, api.AgentToken(""), counters1, nil).
 			Return(expectedErr),
 		mockApi.EXPECT().
-			HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to send usage data", expectedErr).
-			DoAndReturn(func(ctx context.Context, log *zap.Logger, msg string, err error) {
-				cancel()
-			}),
+			HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to send usage data", expectedErr),
 		tracker.EXPECT().
 			CloneUsageData().
 			Return(ud2, false),

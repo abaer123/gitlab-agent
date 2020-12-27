@@ -243,14 +243,7 @@ func TestStreamVisitorHappyPathNoEof(t *testing.T) {
 
 func TestStreamVisitorMissingCallback(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	stream, calls := mock_rpc.InitMockClientStream(ctrl, false,
-		&test.Response{
-			Message: &test.Response_Scalar{
-				Scalar: 234234,
-			},
-		},
-	)
-	gomock.InOrder(calls...)
+	stream := mock_rpc.NewMockClientStream(ctrl)
 
 	v, err := grpctool.NewStreamVisitor(&test.Response{})
 	require.NoError(t, err)
