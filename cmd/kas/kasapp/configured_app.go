@@ -20,7 +20,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/kas"
 	agent_configuration_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_tracker"
 	agent_tracker_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_tracker/server"
@@ -154,7 +153,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Configuration for modules
 	modconfig := &modserver.Config{
 		Log: a.Log,
-		Api: kas.NewAPI(kas.APIConfig{
+		Api: newAPI(apiConfig{
 			GitLabClient:           gitLabClient,
 			ErrorTracker:           errTracker,
 			AgentInfoCacheTtl:      cfg.Agent.InfoCacheTtl.AsDuration(),

@@ -1,4 +1,4 @@
-package agentk
+package agentkapp
 
 import (
 	"context"
@@ -21,15 +21,14 @@ const (
 	trailersFieldNumber protoreflect.FieldNumber = 3
 )
 
-// api is an implementation of modagent.API.
-// It's currently empty, it'll have functionality later.
-type api struct {
+// agentAPI is an implementation of modagent.API.
+type agentAPI struct {
 	ModuleName      string
 	Client          gitlab_access_rpc.GitlabAccessClient
 	ResponseVisitor *grpctool.StreamVisitor
 }
 
-func (a *api) MakeGitLabRequest(ctx context.Context, path string, opts ...modagent.GitLabRequestOption) (*modagent.GitLabResponse, error) {
+func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...modagent.GitLabRequestOption) (*modagent.GitLabResponse, error) {
 	config := modagent.ApplyRequestOptions(opts)
 	ctx, cancel := context.WithCancel(ctx)
 	client, errReq := a.Client.MakeRequest(ctx)
@@ -110,7 +109,7 @@ func (a *api) MakeGitLabRequest(ctx context.Context, path string, opts ...modage
 	}
 }
 
-func (a *api) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequestClient, path string, config *modagent.GitLabRequestConfig) (retErr error) {
+func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequestClient, path string, config *modagent.GitLabRequestConfig) (retErr error) {
 	defer errz.SafeClose(config.Body, &retErr)
 	err := client.Send(&gitlab_access_rpc.Request{
 		Message: &gitlab_access_rpc.Request_Headers_{
