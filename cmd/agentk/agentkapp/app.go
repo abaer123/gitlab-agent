@@ -69,15 +69,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	if err != nil {
 		return fmt.Errorf("ToRESTConfig: %v", err)
 	}
-	tokenData, err := ioutil.ReadFile(a.TokenFile)
-	if err != nil {
-		return fmt.Errorf("token file: %v", err)
-	}
-	tlsConfig, err := tlstool.DefaultClientTLSConfigWithCACert(a.CACertFile)
-	if err != nil {
-		return err
-	}
-	kasConn, err := a.kasConnection(ctx, api.AgentToken(tokenData), tlsConfig)
+	kasConn, err := a.kasConnection(ctx)
 	if err != nil {
 		return err
 	}
@@ -109,7 +101,15 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	return agent.Run(ctx)
 }
 
-func (a *App) kasConnection(ctx context.Context, token api.AgentToken, tlsConfig *tls.Config) (*grpc.ClientConn, error) {
+func (a *App) kasConnection(ctx context.Context) (*grpc.ClientConn, error) {
+	tokenData, err := ioutil.ReadFile(a.TokenFile)
+	if err != nil {
+		return nil, fmt.Errorf("token file: %v", err)
+	}
+	tlsConfig, err := tlstool.DefaultClientTLSConfigWithCACert(a.CACertFile)
+	if err != nil {
+		return nil, err
+	}
 	u, err := url.Parse(a.KasAddress)
 	if err != nil {
 		return nil, fmt.Errorf("invalid gitlab-kas address: %v", err)
@@ -178,7 +178,7 @@ func (a *App) kasConnection(ctx context.Context, token api.AgentToken, tlsConfig
 	if !secure {
 		opts = append(opts, grpc.WithInsecure())
 	}
-	opts = append(opts, grpc.WithPerRPCCredentials(grpctool.NewTokenCredentials(token, !secure)))
+	opts = append(opts, grpc.WithPerRPCCredentials(grpctool.NewTokenCredentials(api.AgentToken(tokenData), !secure)))
 	conn, err := grpc.DialContext(ctx, addressToDial, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("gRPC.dial: %v", err)
