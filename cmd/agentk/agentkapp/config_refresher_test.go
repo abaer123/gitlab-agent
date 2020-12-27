@@ -34,7 +34,6 @@ func TestConfigurationIsApplied(t *testing.T) {
 	defer cancel()
 	mockCtrl := gomock.NewController(t)
 	watcher := mock_rpc.NewMockConfigurationWatcherInterface(mockCtrl)
-	f := mock_modagent.NewMockFactory(mockCtrl)
 	m := mock_modagent.NewMockModule(mockCtrl)
 	m.EXPECT().
 		Run(gomock.Any()).DoAndReturn(func(ctx context.Context) error {
@@ -52,12 +51,6 @@ func TestConfigurationIsApplied(t *testing.T) {
 			SetConfiguration(gomock.Any(), cfg2),
 	)
 	gomock.InOrder(
-		f.EXPECT().
-			Name().
-			Return("name"),
-		f.EXPECT().
-			New(gomock.Any()).
-			Return(m, nil),
 		watcher.EXPECT().
 			Watch(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, callback rpc.ConfigurationCallback) {
@@ -66,11 +59,10 @@ func TestConfigurationIsApplied(t *testing.T) {
 				cancel()
 			}),
 	)
-	a := &Agent{
+	a := &configRefresher{
 		Log:                  zaptest.NewLogger(t),
-		KasConn:              mock_rpc.NewMockClientConnInterface(mockCtrl),
+		Modules:              []modagent.Module{m},
 		ConfigurationWatcher: watcher,
-		ModuleFactories:      []modagent.Factory{f},
 	}
 	err := a.Run(ctx)
 	require.NoError(t, err)

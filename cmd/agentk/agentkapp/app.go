@@ -10,11 +10,13 @@ import (
 	"os"
 	"time"
 
+	"github.com/ash2k/stager"
 	"github.com/go-logr/zapr"
 	"github.com/spf13/pflag"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc"
+	gitlab_access_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/rpc"
 	gitops_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared"
@@ -65,43 +67,85 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	defer errz.SafeCall(a.Log.Sync, &retErr)
 	// Kubernetes uses klog so here we pipe all logs from it to our logger via an adapter.
 	klog.SetLogger(zapr.NewLogger(a.Log))
-	restConfig, err := a.K8sClientGetter.ToRESTConfig()
-	if err != nil {
-		return fmt.Errorf("ToRESTConfig: %v", err)
-	}
-	kasConn, err := a.kasConnection(ctx)
+	kasConn, err := a.constructKasConnection(ctx)
 	if err != nil {
 		return err
 	}
 	defer errz.SafeClose(kasConn, &retErr)
-	agent := Agent{
-		Log:             a.Log,
-		AgentMeta:       a.AgentMeta,
-		KasConn:         kasConn,
-		K8sClientGetter: a.K8sClientGetter,
+	modules, err := a.constructModules(kasConn)
+	if err != nil {
+		return err
+	}
+	refresher := configRefresher{
+		Log:     a.Log,
+		Modules: modules,
 		ConfigurationWatcher: &rpc.ConfigurationWatcher{
 			Log:         a.Log,
 			AgentMeta:   a.AgentMeta,
 			Client:      rpc.NewAgentConfigurationClient(kasConn),
 			RetryPeriod: defaultRefreshConfigurationRetryPeriod,
 		},
-		ModuleFactories: []modagent.Factory{
-			//  Should be the first to configure logging ASAP
-			&observability_agent.Factory{
-				LogLevel: a.LogLevel,
-			},
-			&gitops_agent.Factory{
-				EngineFactory: &gitops_agent.DefaultGitOpsEngineFactory{
-					KubeClientConfig: restConfig,
-				},
-				GetObjectsToSynchronizeRetryPeriod: defaultGetObjectsToSynchronizeRetryPeriod,
-			},
-		},
 	}
-	return agent.Run(ctx)
+
+	// Start things up.
+	st := stager.New()
+
+	// Start all modules.
+	stage := st.NextStage()
+	for _, module := range modules {
+		stage.Go(module.Run)
+	}
+
+	// Configuration refresh stage. Starts after all modules and stops before all modules are stopped.
+	stage = st.NextStage()
+	stage.Go(refresher.Run)
+
+	return st.Run(ctx)
 }
 
-func (a *App) kasConnection(ctx context.Context) (*grpc.ClientConn, error) {
+func (a *App) constructModules(kasConn grpc.ClientConnInterface) ([]modagent.Module, error) {
+	sv, err := grpctool.NewStreamVisitor(&gitlab_access_rpc.Response{})
+	if err != nil {
+		return nil, err
+	}
+	restConfig, err := a.K8sClientGetter.ToRESTConfig()
+	if err != nil {
+		return nil, fmt.Errorf("ToRESTConfig: %v", err)
+	}
+	factories := []modagent.Factory{
+		//  Should be the first to configure logging ASAP
+		&observability_agent.Factory{
+			LogLevel: a.LogLevel,
+		},
+		&gitops_agent.Factory{
+			EngineFactory: &gitops_agent.DefaultGitOpsEngineFactory{
+				KubeClientConfig: restConfig,
+			},
+			GetObjectsToSynchronizeRetryPeriod: defaultGetObjectsToSynchronizeRetryPeriod,
+		},
+	}
+	modules := make([]modagent.Module, 0, len(factories))
+	for _, factory := range factories {
+		module, err := factory.New(&modagent.Config{
+			Log:       a.Log,
+			AgentMeta: a.AgentMeta,
+			Api: &agentAPI{
+				ModuleName:      factory.Name(),
+				Client:          gitlab_access_rpc.NewGitlabAccessClient(kasConn),
+				ResponseVisitor: sv,
+			},
+			K8sClientGetter: a.K8sClientGetter,
+			KasConn:         kasConn,
+		})
+		if err != nil {
+			return nil, err
+		}
+		modules = append(modules, module)
+	}
+	return modules, nil
+}
+
+func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, error) {
 	tokenData, err := ioutil.ReadFile(a.TokenFile)
 	if err != nil {
 		return nil, fmt.Errorf("token file: %v", err)

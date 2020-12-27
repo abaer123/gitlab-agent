@@ -3,9 +3,9 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "agentkapp",
     srcs = [
-        "agentk.go",
         "api.go",
         "app.go",
+        "config_refresher.go",
         "logz.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/agentk/agentkapp",
@@ -46,8 +46,8 @@ go_test(
     name = "agentkapp_test",
     size = "small",
     srcs = [
-        "agentk_test.go",
         "api_test.go",
+        "config_refresher_test.go",
     ],
     embed = [":agentkapp"],
     race = "on",
