@@ -1,4 +1,4 @@
-package kas
+package kasapp
 
 import (
 	"context"
@@ -28,30 +28,30 @@ const (
 	agentInfoApiPath = "/api/v4/internal/kubernetes/agent_info"
 )
 
-type APIConfig struct {
+type apiConfig struct {
 	GitLabClient           gitlab.ClientInterface
 	ErrorTracker           errortracking.Tracker
 	AgentInfoCacheTtl      time.Duration
 	AgentInfoCacheErrorTtl time.Duration
 }
 
-type API struct {
-	cfg            APIConfig
+type serverAPI struct {
+	cfg            apiConfig
 	agentInfoCache *cache.Cache
 }
 
-func NewAPI(config APIConfig) *API {
-	return &API{
+func newAPI(config apiConfig) *serverAPI {
+	return &serverAPI{
 		cfg:            config,
 		agentInfoCache: cache.New(minDuration(config.AgentInfoCacheTtl, config.AgentInfoCacheErrorTtl)),
 	}
 }
 
-func (a *API) Capture(err error, opts ...errortracking.CaptureOption) {
+func (a *serverAPI) Capture(err error, opts ...errortracking.CaptureOption) {
 	a.cfg.ErrorTracker.Capture(err, opts...)
 }
 
-func (a *API) GetAgentInfo(ctx context.Context, log *zap.Logger, agentToken api.AgentToken, noErrorOnUnknownError bool) (*api.AgentInfo, error, bool) {
+func (a *serverAPI) GetAgentInfo(ctx context.Context, log *zap.Logger, agentToken api.AgentToken, noErrorOnUnknownError bool) (*api.AgentInfo, error, bool) {
 	agentInfo, err := a.getAgentInfoCached(ctx, agentToken)
 	switch {
 	case err == nil:
@@ -73,7 +73,7 @@ func (a *API) GetAgentInfo(ctx context.Context, log *zap.Logger, agentToken api.
 	return nil, err, true
 }
 
-func (a *API) PollImmediateUntil(ctx context.Context, interval, maxConnectionAge time.Duration, condition modserver.ConditionFunc) error {
+func (a *serverAPI) PollImmediateUntil(ctx context.Context, interval, maxConnectionAge time.Duration, condition modserver.ConditionFunc) error {
 	// this context must only be used here, not inside of condition() - connection should be closed only when idle.
 	ageCtx, cancel := context.WithTimeout(ctx, mathz.DurationWithJitter(maxConnectionAge, maxConnectionAgeJitterPercent))
 	defer cancel()
@@ -84,7 +84,7 @@ func (a *API) PollImmediateUntil(ctx context.Context, interval, maxConnectionAge
 	return err
 }
 
-func (a *API) HandleProcessingError(ctx context.Context, log *zap.Logger, msg string, err error) {
+func (a *serverAPI) HandleProcessingError(ctx context.Context, log *zap.Logger, msg string, err error) {
 	if grpctool.RequestCanceled(err) {
 		// An error caused by context signalling done
 		return
@@ -100,7 +100,7 @@ func (a *API) HandleProcessingError(ctx context.Context, log *zap.Logger, msg st
 	}
 }
 
-func (a *API) HandleSendError(log *zap.Logger, msg string, err error) error {
+func (a *serverAPI) HandleSendError(log *zap.Logger, msg string, err error) error {
 	// The problem is almost certainly with the client's connection.
 	// Still log it on Debug.
 	if !grpctool.RequestCanceled(err) {
@@ -109,13 +109,13 @@ func (a *API) HandleSendError(log *zap.Logger, msg string, err error) error {
 	return status.Error(codes.Unavailable, "gRPC send failed")
 }
 
-func (a *API) logAndCapture(ctx context.Context, log *zap.Logger, msg string, err error) {
+func (a *serverAPI) logAndCapture(ctx context.Context, log *zap.Logger, msg string, err error) {
 	// don't add logz.CorrelationIdFromContext(ctx) here as it's been added to the logger already
 	log.Error(msg, zap.Error(err))
 	a.Capture(fmt.Errorf("%s: %v", msg, err), errortracking.WithContext(ctx))
 }
 
-func (a *API) getAgentInfoCached(ctx context.Context, agentToken api.AgentToken) (*api.AgentInfo, error) {
+func (a *serverAPI) getAgentInfoCached(ctx context.Context, agentToken api.AgentToken) (*api.AgentInfo, error) {
 	if a.cfg.AgentInfoCacheTtl == 0 {
 		return a.getAgentInfoDirect(ctx, agentToken)
 	}
@@ -142,7 +142,7 @@ func (a *API) getAgentInfoCached(ctx context.Context, agentToken api.AgentToken)
 	return item.agentInfo, item.err
 }
 
-func (a *API) getAgentInfoDirect(ctx context.Context, agentToken api.AgentToken) (*api.AgentInfo, error) {
+func (a *serverAPI) getAgentInfoDirect(ctx context.Context, agentToken api.AgentToken) (*api.AgentInfo, error) {
 	response := getAgentInfoResponse{}
 	err := a.cfg.GitLabClient.DoJSON(ctx, http.MethodGet, agentInfoApiPath, nil, agentToken, nil, &response)
 	if err != nil {

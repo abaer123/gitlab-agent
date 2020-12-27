@@ -1,4 +1,4 @@
-package kas
+package kasapp
 
 import (
 	"context"
@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	_ modserver.API = &API{}
+	_ modserver.API = &serverAPI{}
 )
 
 func TestGetAgentInfoFailures(t *testing.T) {
@@ -32,7 +32,7 @@ func TestGetAgentInfoFailures(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	gitlabClient := mock_gitlab.NewMockClientInterface(ctrl)
 	errTracker := mock_errtracker.NewMockTracker(ctrl)
-	apiObj := NewAPI(APIConfig{
+	apiObj := newAPI(apiConfig{
 		GitLabClient:           gitlabClient,
 		ErrorTracker:           errTracker,
 		AgentInfoCacheTtl:      0, // no cache!
@@ -106,7 +106,7 @@ func TestGetAgentInfo(t *testing.T) {
 	require.NoError(t, err)
 	l := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
-	apiObj := NewAPI(APIConfig{
+	apiObj := newAPI(apiConfig{
 		GitLabClient:           gitlab.NewClient(u, []byte(mock_gitlab.AuthSecretKey), mock_gitlab.ClientOptionsForTest()...),
 		ErrorTracker:           mock_errtracker.NewMockTracker(ctrl),
 		AgentInfoCacheTtl:      0, // no cache!
