@@ -2,7 +2,6 @@ package agentkapp
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -14,7 +13,6 @@ import (
 	"github.com/go-logr/zapr"
 	"github.com/spf13/pflag"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/agentk"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc"
 	gitops_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/agent"
@@ -84,7 +82,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 		return err
 	}
 	defer errz.SafeClose(kasConn, &retErr)
-	agent := agentk.Agent{
+	agent := Agent{
 		Log:             a.Log,
 		AgentMeta:       a.AgentMeta,
 		KasConn:         kasConn,

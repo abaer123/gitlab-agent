@@ -1,4 +1,4 @@
-package agentk
+package agentkapp
 
 import (
 	"context"
@@ -50,7 +50,7 @@ func (a *Agent) startModules(st stager.Stager) ([]modagent.Module, error) {
 		module, err := factory.New(&modagent.Config{
 			Log:       a.Log,
 			AgentMeta: a.AgentMeta,
-			Api: &api{
+			Api: &agentAPI{
 				ModuleName:      factory.Name(),
 				Client:          a.GitlabAccessClient,
 				ResponseVisitor: sv,

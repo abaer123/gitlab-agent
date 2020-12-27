@@ -1,4 +1,4 @@
-package agentk
+package agentkapp
 
 import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"

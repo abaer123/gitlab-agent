@@ -1,15 +1,20 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "agentkapp",
-    srcs = ["app.go"],
+    srcs = [
+        "agentk.go",
+        "api.go",
+        "app.go",
+        "logz.go",
+    ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/agentk/agentkapp",
     visibility = ["//visibility:public"],
     deps = [
         "//cmd",
-        "//internal/agentk",
         "//internal/api",
         "//internal/module/agent_configuration/rpc",
+        "//internal/module/gitlab_access/rpc",
         "//internal/module/gitops/agent",
         "//internal/module/modagent",
         "//internal/module/modshared",
@@ -20,6 +25,7 @@ go_library(
         "//internal/tool/tlstool",
         "//internal/tool/wstunnel",
         "//pkg/agentcfg",
+        "@com_github_ash2k_stager//:stager",
         "@com_github_go_logr_zapr//:zapr",
         "@com_github_spf13_pflag//:pflag",
         "@com_gitlab_gitlab_org_labkit//correlation/grpc",
@@ -31,6 +37,28 @@ go_library(
         "@org_golang_google_grpc//credentials",
         "@org_golang_google_grpc//encoding/gzip",
         "@org_golang_google_grpc//keepalive",
+        "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_uber_go_zap//:zap",
+    ],
+)
+
+go_test(
+    name = "agentkapp_test",
+    size = "small",
+    srcs = [
+        "agentk_test.go",
+        "api_test.go",
+    ],
+    embed = [":agentkapp"],
+    race = "on",
+    deps = [
+        "//internal/module/agent_configuration/rpc",
+        "//internal/module/modagent",
+        "//internal/tool/testing/mock_modagent",
+        "//internal/tool/testing/mock_rpc",
+        "//pkg/agentcfg",
+        "@com_github_golang_mock//gomock",
+        "@com_github_stretchr_testify//require",
+        "@org_uber_go_zap//zaptest",
     ],
 )

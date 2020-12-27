@@ -1,4 +1,4 @@
-package agentk
+package agentkapp
 
 import (
 	"context"
