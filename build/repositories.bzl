@@ -1328,8 +1328,9 @@ def go_repositories():
         name = "com_github_golang_mock",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/golang/mock",
-        sum = "h1:l75CXGRSwbaYNpl/Z2X1XIIAMSCquvXgpVZDhwEIJsc=",
-        version = "v1.4.4",
+        replace = "github.com/golang/mock",
+        sum = "h1:MLvv5971uvT7rpNezhMbyMSFRm/cEY4K6VgGYP2TuBs=",
+        version = "v1.4.4-0.20201210203420-1fe605df5e5f",
     )
     go_repository(
         name = "com_github_golang_protobuf",
@@ -3850,20 +3851,6 @@ def go_repositories():
         importpath = "rsc.io/pdf",
         sum = "h1:k1MczvYDUvJBe93bYd7wrZLLUEcLZAuF824/I4e5Xr4=",
         version = "v0.1.1",
-    )
-    go_repository(
-        name = "io_rsc_quote_v3",
-        build_file_proto_mode = "disable_global",
-        importpath = "rsc.io/quote/v3",
-        sum = "h1:9JKUTTIUgS6kzR9mK1YuGKv6Nl+DijDNIc0ghT58FaY=",
-        version = "v3.1.0",
-    )
-    go_repository(
-        name = "io_rsc_sampler",
-        build_file_proto_mode = "disable_global",
-        importpath = "rsc.io/sampler",
-        sum = "h1:7uVkIFmeBqHfdjD+gZwtXXI+RODJ2Wc4O7MPEh/QiW4=",
-        version = "v1.3.0",
     )
     go_repository(
         name = "ke_bou_monkey",
