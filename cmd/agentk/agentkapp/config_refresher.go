@@ -44,7 +44,7 @@ func (r *configRefresher) applyConfiguration(ctx context.Context, modules []moda
 	for _, module := range modules {
 		err := module.SetConfiguration(ctx, config)
 		if err != nil {
-			return fmt.Errorf("%s: %w", module.Name(), err) // wrap
+			r.Log.Error(fmt.Sprintf("%s.SetConfiguration()", module.Name()), zap.Error(err))
 		}
 	}
 	return nil

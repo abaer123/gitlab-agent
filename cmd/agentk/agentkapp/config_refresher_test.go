@@ -2,6 +2,7 @@ package agentkapp
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -35,11 +36,6 @@ func TestConfigurationIsApplied(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	watcher := mock_rpc.NewMockConfigurationWatcherInterface(mockCtrl)
 	m := mock_modagent.NewMockModule(mockCtrl)
-	m.EXPECT().
-		Run(gomock.Any()).DoAndReturn(func(ctx context.Context) error {
-		<-ctx.Done()
-		return nil
-	})
 	gomock.InOrder(
 		m.EXPECT().
 			DefaultAndValidateConfiguration(cfg1),
@@ -62,6 +58,45 @@ func TestConfigurationIsApplied(t *testing.T) {
 	a := &configRefresher{
 		Log:                  zaptest.NewLogger(t),
 		Modules:              []modagent.Module{m},
+		ConfigurationWatcher: watcher,
+	}
+	err := a.Run(ctx)
+	require.NoError(t, err)
+}
+
+func TestConfigurationIsAppliedOnError(t *testing.T) {
+	cfg1 := &agentcfg.AgentConfiguration{}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	mockCtrl := gomock.NewController(t)
+	watcher := mock_rpc.NewMockConfigurationWatcherInterface(mockCtrl)
+	m1 := mock_modagent.NewMockModule(mockCtrl)
+	m2 := mock_modagent.NewMockModule(mockCtrl)
+	gomock.InOrder(
+		m1.EXPECT().
+			DefaultAndValidateConfiguration(cfg1),
+		m2.EXPECT().
+			DefaultAndValidateConfiguration(cfg1),
+		m1.EXPECT().
+			SetConfiguration(gomock.Any(), cfg1).
+			Return(errors.New("boom!")),
+		m1.EXPECT().
+			Name().
+			Return("m1"),
+		m2.EXPECT().
+			SetConfiguration(gomock.Any(), cfg1),
+	)
+	gomock.InOrder(
+		watcher.EXPECT().
+			Watch(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, callback rpc.ConfigurationCallback) {
+				callback(ctx, rpc.ConfigurationData{CommitId: revision1, Config: cfg1})
+				cancel()
+			}),
+	)
+	a := &configRefresher{
+		Log:                  zaptest.NewLogger(t),
+		Modules:              []modagent.Module{m1, m2},
 		ConfigurationWatcher: watcher,
 	}
 	err := a.Run(ctx)
