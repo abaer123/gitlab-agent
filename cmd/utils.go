@@ -11,9 +11,23 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ash2k/stager"
 	"github.com/spf13/pflag"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 )
+
+// StageFunc is a function that uses the provided Stage to start goroutines.
+type StageFunc func(stager.Stage)
+
+// RunStages is a helper that ensures Run() is always executed and there is no chance of early exit so that
+// goroutines from stages don't leak.
+func RunStages(ctx context.Context, stages ...StageFunc) error {
+	stgr := stager.New()
+	for _, s := range stages {
+		s(stgr.NextStage())
+	}
+	return stgr.Run(ctx)
+}
 
 // CancelOnInterrupt calls f when os.Interrupt or SIGTERM is received.
 // It ignores subsequent interrupts on purpose - program should exit correctly after the first signal.

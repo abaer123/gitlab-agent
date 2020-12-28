@@ -10,6 +10,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//internal/tool/errz",
+        "@com_github_ash2k_stager//:stager",
         "@com_github_spf13_pflag//:pflag",
     ],
 )

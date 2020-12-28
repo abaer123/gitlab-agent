@@ -67,11 +67,15 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	defer errz.SafeCall(a.Log.Sync, &retErr)
 	// Kubernetes uses klog so here we pipe all logs from it to our logger via an adapter.
 	klog.SetLogger(zapr.NewLogger(a.Log))
+
+	// Construct gRPC connection to gitlab-kas
 	kasConn, err := a.constructKasConnection(ctx)
 	if err != nil {
 		return err
 	}
 	defer errz.SafeClose(kasConn, &retErr)
+
+	// Construct agent modules
 	modules, err := a.constructModules(kasConn)
 	if err != nil {
 		return err
@@ -87,20 +91,19 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 		},
 	}
 
-	// Start things up.
-	st := stager.New()
-
-	// Start all modules.
-	stage := st.NextStage()
-	for _, module := range modules {
-		stage.Go(module.Run)
-	}
-
-	// Configuration refresh stage. Starts after all modules and stops before all modules are stopped.
-	stage = st.NextStage()
-	stage.Go(refresher.Run)
-
-	return st.Run(ctx)
+	// Start things up. Stages are shut down in reverse order.
+	return cmd.RunStages(ctx,
+		// Start modules.
+		func(stage stager.Stage) {
+			for _, module := range modules {
+				stage.Go(module.Run)
+			}
+		},
+		// Start configuration refresh.
+		func(stage stager.Stage) {
+			stage.Go(refresher.Run)
+		},
+	)
 }
 
 func (a *App) constructModules(kasConn grpc.ClientConnInterface) ([]modagent.Module, error) {

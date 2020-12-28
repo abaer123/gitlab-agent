@@ -185,35 +185,34 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		modules = append(modules, module)
 	}
 
-	// Start things up. Must not exit earlier after this point, must reach st.Run(), otherwise goroutines will not be
-	// stopped.
-	st := stager.New()
-
-	// Agent tracker stage
-	stage := st.NextStage()
-	stage.Go(agentTracker.Run)
-
-	// Modules stage
-	stage = st.NextStage()
-	for _, module := range modules {
-		module := module // closure captures the right variable
-		stage.Go(func(ctx context.Context) error {
-			err := module.Run(ctx)
-			if err != nil {
-				return fmt.Errorf("%s: %v", module.Name(), err)
+	// Start things up. Stages are shut down in reverse order.
+	return cmd.RunStages(ctx,
+		// Start agent tracker.
+		func(stage stager.Stage) {
+			stage.Go(agentTracker.Run)
+		},
+		// Start modules.
+		func(stage stager.Stage) {
+			for _, module := range modules {
+				module := module // closure captures the right variable
+				stage.Go(func(ctx context.Context) error {
+					err := module.Run(ctx)
+					if err != nil {
+						return fmt.Errorf("%s: %v", module.Name(), err)
+					}
+					return nil
+				})
 			}
-			return nil
-		})
-	}
-
-	// gRPC server stage
-	a.startAgentServer(st, agentServer, interceptorsCancel)
-	a.startApiServer(st, apiServer, interceptorsCancel)
-	return st.Run(ctx)
+		},
+		// Start gRPC servers.
+		func(stage stager.Stage) {
+			a.startAgentServer(stage, agentServer, interceptorsCancel)
+			a.startApiServer(stage, apiServer, interceptorsCancel)
+		},
+	)
 }
 
-func (a *ConfiguredApp) startAgentServer(st stager.Stager, agentServer *grpc.Server, interceptorsCancel context.CancelFunc) {
-	stage := st.NextStage()
+func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.Server, interceptorsCancel context.CancelFunc) {
 	stage.Go(func(ctx context.Context) error {
 		listenCfg := a.Configuration.Agent.Listen
 		// gRPC listener
@@ -248,12 +247,11 @@ func (a *ConfiguredApp) startAgentServer(st stager.Stager, agentServer *grpc.Ser
 	})
 }
 
-func (a *ConfiguredApp) startApiServer(st stager.Stager, apiServer *grpc.Server, interceptorsCancel context.CancelFunc) {
+func (a *ConfiguredApp) startApiServer(stage stager.Stage, apiServer *grpc.Server, interceptorsCancel context.CancelFunc) {
 	// TODO this should become required
 	if a.Configuration.Api == nil {
 		return
 	}
-	stage := st.NextStage()
 	stage.Go(func(ctx context.Context) error {
 		listenCfg := a.Configuration.Api.Listen
 		// gRPC listener
