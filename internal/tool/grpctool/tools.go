@@ -3,8 +3,11 @@ package grpctool
 import (
 	"context"
 	"errors"
+	"net"
 
+	"github.com/ash2k/stager"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -41,4 +44,21 @@ func RequestCanceled(err error) bool {
 		err = errors.Unwrap(err)
 	}
 	return false
+}
+
+func StartServer(stage stager.Stage, server *grpc.Server, interceptorsCancel context.CancelFunc, listener func() (net.Listener, error)) {
+	stage.Go(func(ctx context.Context) error {
+		// gRPC listener
+		lis, err := listener()
+		if err != nil {
+			return err
+		}
+		return server.Serve(lis)
+	})
+	stage.Go(func(ctx context.Context) error {
+		<-ctx.Done() // can be cancelled because Serve() failed or main ctx was canceled or some stage failed
+		interceptorsCancel()
+		server.GracefulStop()
+		return nil
+	})
 }

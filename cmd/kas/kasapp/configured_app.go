@@ -213,12 +213,11 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 }
 
 func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.Server, interceptorsCancel context.CancelFunc) {
-	stage.Go(func(ctx context.Context) error {
+	grpctool.StartServer(stage, agentServer, interceptorsCancel, func() (net.Listener, error) {
 		listenCfg := a.Configuration.Agent.Listen
-		// gRPC listener
 		lis, err := net.Listen(listenCfg.Network.String(), listenCfg.Address)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		a.Log.Info("Listening for agentk connections",
@@ -234,13 +233,7 @@ func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.S
 			}
 			lis = wsWrapper.Wrap(lis)
 		}
-		return agentServer.Serve(lis)
-	})
-	stage.Go(func(ctx context.Context) error {
-		<-ctx.Done() // can be cancelled because Serve() failed or main ctx was canceled or some stage failed
-		interceptorsCancel()
-		agentServer.GracefulStop()
-		return nil
+		return lis, nil
 	})
 }
 
@@ -249,24 +242,17 @@ func (a *ConfiguredApp) startApiServer(stage stager.Stage, apiServer *grpc.Serve
 	if a.Configuration.Api == nil {
 		return
 	}
-	stage.Go(func(ctx context.Context) error {
+	grpctool.StartServer(stage, apiServer, interceptorsCancel, func() (net.Listener, error) {
 		listenCfg := a.Configuration.Api.Listen
-		// gRPC listener
 		lis, err := net.Listen(listenCfg.Network.String(), listenCfg.Address)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		a.Log.Info("Listening for API connections",
 			logz.NetNetworkFromAddr(lis.Addr()),
 			logz.NetAddressFromAddr(lis.Addr()),
 		)
-		return apiServer.Serve(lis)
-	})
-	stage.Go(func(ctx context.Context) error {
-		<-ctx.Done() // can be cancelled because Serve() failed or main ctx was canceled or some stage failed
-		interceptorsCancel()
-		apiServer.GracefulStop()
-		return nil
+		return lis, nil
 	})
 }
 
