@@ -220,9 +220,6 @@ func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.S
 		if err != nil {
 			return err
 		}
-		// Error is ignored because agentServer.Run() closes the listener and
-		// a second close always produces an error.
-		defer lis.Close() // nolint:errcheck
 
 		a.Log.Info("Listening for agentk connections",
 			logz.NetNetworkFromAddr(lis.Addr()),
