@@ -261,10 +261,6 @@ func (a *ConfiguredApp) startApiServer(st stager.Stager, apiServer *grpc.Server,
 		if err != nil {
 			return err
 		}
-		// Error is ignored because apiServer.Run() closes the listener and
-		// a second close always produces an error.
-		defer lis.Close() // nolint:errcheck
-
 		a.Log.Info("Listening for API connections",
 			logz.NetNetworkFromAddr(lis.Addr()),
 			logz.NetAddressFromAddr(lis.Addr()),
