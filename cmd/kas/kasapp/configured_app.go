@@ -173,7 +173,20 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		CommitId: cmd.Commit,
 	}
 
-	// Start things up
+	// Construct modules
+	modules := make([]modserver.Module, 0, len(factories))
+	for _, factory := range factories {
+		// factory.New() must be called from the main goroutine because it may mutate a gRPC server (register an API)
+		// and that can only be done before Serve() is called on the server.
+		module, err := factory.New(modconfig)
+		if err != nil {
+			return fmt.Errorf("%T: %v", factory, err)
+		}
+		modules = append(modules, module)
+	}
+
+	// Start things up. Must not exit earlier after this point, must reach st.Run(), otherwise goroutines will not be
+	// stopped.
 	st := stager.New()
 
 	// Agent tracker stage
@@ -182,13 +195,8 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 
 	// Modules stage
 	stage = st.NextStage()
-	for _, factory := range factories {
-		// factory.New() must be called from the main goroutine because it may mutate a gRPC server (register an API)
-		// and that can only be done before Serve() is called on the server.
-		module, err := factory.New(modconfig)
-		if err != nil {
-			return fmt.Errorf("%T: %v", factory, err)
-		}
+	for _, module := range modules {
+		module := module // closure captures the right variable
 		stage.Go(func(ctx context.Context) error {
 			err := module.Run(ctx)
 			if err != nil {
