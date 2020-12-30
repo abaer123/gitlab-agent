@@ -13,30 +13,30 @@ import (
 	agentcfg "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 )
 
-// MockAPI is a mock of API interface
+// MockAPI is a mock of API interface.
 type MockAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockAPIMockRecorder
 }
 
-// MockAPIMockRecorder is the mock recorder for MockAPI
+// MockAPIMockRecorder is the mock recorder for MockAPI.
 type MockAPIMockRecorder struct {
 	mock *MockAPI
 }
 
-// NewMockAPI creates a new mock instance
+// NewMockAPI creates a new mock instance.
 func NewMockAPI(ctrl *gomock.Controller) *MockAPI {
 	mock := &MockAPI{ctrl: ctrl}
 	mock.recorder = &MockAPIMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 	return m.recorder
 }
 
-// MakeGitLabRequest mocks base method
+// MakeGitLabRequest mocks base method.
 func (m *MockAPI) MakeGitLabRequest(arg0 context.Context, arg1 string, arg2 ...modagent.GitLabRequestOption) (*modagent.GitLabResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -49,37 +49,37 @@ func (m *MockAPI) MakeGitLabRequest(arg0 context.Context, arg1 string, arg2 ...m
 	return ret0, ret1
 }
 
-// MakeGitLabRequest indicates an expected call of MakeGitLabRequest
+// MakeGitLabRequest indicates an expected call of MakeGitLabRequest.
 func (mr *MockAPIMockRecorder) MakeGitLabRequest(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MakeGitLabRequest", reflect.TypeOf((*MockAPI)(nil).MakeGitLabRequest), varargs...)
 }
 
-// MockFactory is a mock of Factory interface
+// MockFactory is a mock of Factory interface.
 type MockFactory struct {
 	ctrl     *gomock.Controller
 	recorder *MockFactoryMockRecorder
 }
 
-// MockFactoryMockRecorder is the mock recorder for MockFactory
+// MockFactoryMockRecorder is the mock recorder for MockFactory.
 type MockFactoryMockRecorder struct {
 	mock *MockFactory
 }
 
-// NewMockFactory creates a new mock instance
+// NewMockFactory creates a new mock instance.
 func NewMockFactory(ctrl *gomock.Controller) *MockFactory {
 	mock := &MockFactory{ctrl: ctrl}
 	mock.recorder = &MockFactoryMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockFactory) EXPECT() *MockFactoryMockRecorder {
 	return m.recorder
 }
 
-// Name mocks base method
+// Name mocks base method.
 func (m *MockFactory) Name() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Name")
@@ -87,13 +87,13 @@ func (m *MockFactory) Name() string {
 	return ret0
 }
 
-// Name indicates an expected call of Name
+// Name indicates an expected call of Name.
 func (mr *MockFactoryMockRecorder) Name() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockFactory)(nil).Name))
 }
 
-// New mocks base method
+// New mocks base method.
 func (m *MockFactory) New(arg0 *modagent.Config) (modagent.Module, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "New", arg0)
@@ -102,36 +102,36 @@ func (m *MockFactory) New(arg0 *modagent.Config) (modagent.Module, error) {
 	return ret0, ret1
 }
 
-// New indicates an expected call of New
+// New indicates an expected call of New.
 func (mr *MockFactoryMockRecorder) New(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "New", reflect.TypeOf((*MockFactory)(nil).New), arg0)
 }
 
-// MockModule is a mock of Module interface
+// MockModule is a mock of Module interface.
 type MockModule struct {
 	ctrl     *gomock.Controller
 	recorder *MockModuleMockRecorder
 }
 
-// MockModuleMockRecorder is the mock recorder for MockModule
+// MockModuleMockRecorder is the mock recorder for MockModule.
 type MockModuleMockRecorder struct {
 	mock *MockModule
 }
 
-// NewMockModule creates a new mock instance
+// NewMockModule creates a new mock instance.
 func NewMockModule(ctrl *gomock.Controller) *MockModule {
 	mock := &MockModule{ctrl: ctrl}
 	mock.recorder = &MockModuleMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockModule) EXPECT() *MockModuleMockRecorder {
 	return m.recorder
 }
 
-// DefaultAndValidateConfiguration mocks base method
+// DefaultAndValidateConfiguration mocks base method.
 func (m *MockModule) DefaultAndValidateConfiguration(arg0 *agentcfg.AgentConfiguration) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DefaultAndValidateConfiguration", arg0)
@@ -139,13 +139,13 @@ func (m *MockModule) DefaultAndValidateConfiguration(arg0 *agentcfg.AgentConfigu
 	return ret0
 }
 
-// DefaultAndValidateConfiguration indicates an expected call of DefaultAndValidateConfiguration
+// DefaultAndValidateConfiguration indicates an expected call of DefaultAndValidateConfiguration.
 func (mr *MockModuleMockRecorder) DefaultAndValidateConfiguration(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultAndValidateConfiguration", reflect.TypeOf((*MockModule)(nil).DefaultAndValidateConfiguration), arg0)
 }
 
-// Name mocks base method
+// Name mocks base method.
 func (m *MockModule) Name() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Name")
@@ -153,36 +153,22 @@ func (m *MockModule) Name() string {
 	return ret0
 }
 
-// Name indicates an expected call of Name
+// Name indicates an expected call of Name.
 func (mr *MockModuleMockRecorder) Name() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockModule)(nil).Name))
 }
 
-// Run mocks base method
-func (m *MockModule) Run(arg0 context.Context) error {
+// Run mocks base method.
+func (m *MockModule) Run(arg0 context.Context, arg1 <-chan *agentcfg.AgentConfiguration) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Run", arg0)
+	ret := m.ctrl.Call(m, "Run", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Run indicates an expected call of Run
-func (mr *MockModuleMockRecorder) Run(arg0 interface{}) *gomock.Call {
+// Run indicates an expected call of Run.
+func (mr *MockModuleMockRecorder) Run(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockModule)(nil).Run), arg0)
-}
-
-// SetConfiguration mocks base method
-func (m *MockModule) SetConfiguration(arg0 context.Context, arg1 *agentcfg.AgentConfiguration) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetConfiguration", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SetConfiguration indicates an expected call of SetConfiguration
-func (mr *MockModuleMockRecorder) SetConfiguration(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConfiguration", reflect.TypeOf((*MockModule)(nil).SetConfiguration), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockModule)(nil).Run), arg0, arg1)
 }

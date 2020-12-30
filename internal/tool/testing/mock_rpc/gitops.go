@@ -14,30 +14,30 @@ import (
 	metadata "google.golang.org/grpc/metadata"
 )
 
-// MockGitopsClient is a mock of GitopsClient interface
+// MockGitopsClient is a mock of GitopsClient interface.
 type MockGitopsClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockGitopsClientMockRecorder
 }
 
-// MockGitopsClientMockRecorder is the mock recorder for MockGitopsClient
+// MockGitopsClientMockRecorder is the mock recorder for MockGitopsClient.
 type MockGitopsClientMockRecorder struct {
 	mock *MockGitopsClient
 }
 
-// NewMockGitopsClient creates a new mock instance
+// NewMockGitopsClient creates a new mock instance.
 func NewMockGitopsClient(ctrl *gomock.Controller) *MockGitopsClient {
 	mock := &MockGitopsClient{ctrl: ctrl}
 	mock.recorder = &MockGitopsClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockGitopsClient) EXPECT() *MockGitopsClientMockRecorder {
 	return m.recorder
 }
 
-// GetObjectsToSynchronize mocks base method
+// GetObjectsToSynchronize mocks base method.
 func (m *MockGitopsClient) GetObjectsToSynchronize(arg0 context.Context, arg1 *rpc.ObjectsToSynchronizeRequest, arg2 ...grpc.CallOption) (rpc.Gitops_GetObjectsToSynchronizeClient, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
@@ -50,37 +50,37 @@ func (m *MockGitopsClient) GetObjectsToSynchronize(arg0 context.Context, arg1 *r
 	return ret0, ret1
 }
 
-// GetObjectsToSynchronize indicates an expected call of GetObjectsToSynchronize
+// GetObjectsToSynchronize indicates an expected call of GetObjectsToSynchronize.
 func (mr *MockGitopsClientMockRecorder) GetObjectsToSynchronize(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObjectsToSynchronize", reflect.TypeOf((*MockGitopsClient)(nil).GetObjectsToSynchronize), varargs...)
 }
 
-// MockGitops_GetObjectsToSynchronizeClient is a mock of Gitops_GetObjectsToSynchronizeClient interface
+// MockGitops_GetObjectsToSynchronizeClient is a mock of Gitops_GetObjectsToSynchronizeClient interface.
 type MockGitops_GetObjectsToSynchronizeClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockGitops_GetObjectsToSynchronizeClientMockRecorder
 }
 
-// MockGitops_GetObjectsToSynchronizeClientMockRecorder is the mock recorder for MockGitops_GetObjectsToSynchronizeClient
+// MockGitops_GetObjectsToSynchronizeClientMockRecorder is the mock recorder for MockGitops_GetObjectsToSynchronizeClient.
 type MockGitops_GetObjectsToSynchronizeClientMockRecorder struct {
 	mock *MockGitops_GetObjectsToSynchronizeClient
 }
 
-// NewMockGitops_GetObjectsToSynchronizeClient creates a new mock instance
+// NewMockGitops_GetObjectsToSynchronizeClient creates a new mock instance.
 func NewMockGitops_GetObjectsToSynchronizeClient(ctrl *gomock.Controller) *MockGitops_GetObjectsToSynchronizeClient {
 	mock := &MockGitops_GetObjectsToSynchronizeClient{ctrl: ctrl}
 	mock.recorder = &MockGitops_GetObjectsToSynchronizeClientMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockGitops_GetObjectsToSynchronizeClient) EXPECT() *MockGitops_GetObjectsToSynchronizeClientMockRecorder {
 	return m.recorder
 }
 
-// CloseSend mocks base method
+// CloseSend mocks base method.
 func (m *MockGitops_GetObjectsToSynchronizeClient) CloseSend() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CloseSend")
@@ -88,13 +88,13 @@ func (m *MockGitops_GetObjectsToSynchronizeClient) CloseSend() error {
 	return ret0
 }
 
-// CloseSend indicates an expected call of CloseSend
+// CloseSend indicates an expected call of CloseSend.
 func (mr *MockGitops_GetObjectsToSynchronizeClientMockRecorder) CloseSend() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseSend", reflect.TypeOf((*MockGitops_GetObjectsToSynchronizeClient)(nil).CloseSend))
 }
 
-// Context mocks base method
+// Context mocks base method.
 func (m *MockGitops_GetObjectsToSynchronizeClient) Context() context.Context {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Context")
@@ -102,13 +102,13 @@ func (m *MockGitops_GetObjectsToSynchronizeClient) Context() context.Context {
 	return ret0
 }
 
-// Context indicates an expected call of Context
+// Context indicates an expected call of Context.
 func (mr *MockGitops_GetObjectsToSynchronizeClientMockRecorder) Context() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Context", reflect.TypeOf((*MockGitops_GetObjectsToSynchronizeClient)(nil).Context))
 }
 
-// Header mocks base method
+// Header mocks base method.
 func (m *MockGitops_GetObjectsToSynchronizeClient) Header() (metadata.MD, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Header")
@@ -117,13 +117,13 @@ func (m *MockGitops_GetObjectsToSynchronizeClient) Header() (metadata.MD, error)
 	return ret0, ret1
 }
 
-// Header indicates an expected call of Header
+// Header indicates an expected call of Header.
 func (mr *MockGitops_GetObjectsToSynchronizeClientMockRecorder) Header() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Header", reflect.TypeOf((*MockGitops_GetObjectsToSynchronizeClient)(nil).Header))
 }
 
-// Recv mocks base method
+// Recv mocks base method.
 func (m *MockGitops_GetObjectsToSynchronizeClient) Recv() (*rpc.ObjectsToSynchronizeResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Recv")
@@ -132,13 +132,13 @@ func (m *MockGitops_GetObjectsToSynchronizeClient) Recv() (*rpc.ObjectsToSynchro
 	return ret0, ret1
 }
 
-// Recv indicates an expected call of Recv
+// Recv indicates an expected call of Recv.
 func (mr *MockGitops_GetObjectsToSynchronizeClientMockRecorder) Recv() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Recv", reflect.TypeOf((*MockGitops_GetObjectsToSynchronizeClient)(nil).Recv))
 }
 
-// RecvMsg mocks base method
+// RecvMsg mocks base method.
 func (m *MockGitops_GetObjectsToSynchronizeClient) RecvMsg(arg0 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RecvMsg", arg0)
@@ -146,13 +146,13 @@ func (m *MockGitops_GetObjectsToSynchronizeClient) RecvMsg(arg0 interface{}) err
 	return ret0
 }
 
-// RecvMsg indicates an expected call of RecvMsg
+// RecvMsg indicates an expected call of RecvMsg.
 func (mr *MockGitops_GetObjectsToSynchronizeClientMockRecorder) RecvMsg(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockGitops_GetObjectsToSynchronizeClient)(nil).RecvMsg), arg0)
 }
 
-// SendMsg mocks base method
+// SendMsg mocks base method.
 func (m *MockGitops_GetObjectsToSynchronizeClient) SendMsg(arg0 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMsg", arg0)
@@ -160,13 +160,13 @@ func (m *MockGitops_GetObjectsToSynchronizeClient) SendMsg(arg0 interface{}) err
 	return ret0
 }
 
-// SendMsg indicates an expected call of SendMsg
+// SendMsg indicates an expected call of SendMsg.
 func (mr *MockGitops_GetObjectsToSynchronizeClientMockRecorder) SendMsg(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockGitops_GetObjectsToSynchronizeClient)(nil).SendMsg), arg0)
 }
 
-// Trailer mocks base method
+// Trailer mocks base method.
 func (m *MockGitops_GetObjectsToSynchronizeClient) Trailer() metadata.MD {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Trailer")
@@ -174,36 +174,36 @@ func (m *MockGitops_GetObjectsToSynchronizeClient) Trailer() metadata.MD {
 	return ret0
 }
 
-// Trailer indicates an expected call of Trailer
+// Trailer indicates an expected call of Trailer.
 func (mr *MockGitops_GetObjectsToSynchronizeClientMockRecorder) Trailer() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Trailer", reflect.TypeOf((*MockGitops_GetObjectsToSynchronizeClient)(nil).Trailer))
 }
 
-// MockGitops_GetObjectsToSynchronizeServer is a mock of Gitops_GetObjectsToSynchronizeServer interface
+// MockGitops_GetObjectsToSynchronizeServer is a mock of Gitops_GetObjectsToSynchronizeServer interface.
 type MockGitops_GetObjectsToSynchronizeServer struct {
 	ctrl     *gomock.Controller
 	recorder *MockGitops_GetObjectsToSynchronizeServerMockRecorder
 }
 
-// MockGitops_GetObjectsToSynchronizeServerMockRecorder is the mock recorder for MockGitops_GetObjectsToSynchronizeServer
+// MockGitops_GetObjectsToSynchronizeServerMockRecorder is the mock recorder for MockGitops_GetObjectsToSynchronizeServer.
 type MockGitops_GetObjectsToSynchronizeServerMockRecorder struct {
 	mock *MockGitops_GetObjectsToSynchronizeServer
 }
 
-// NewMockGitops_GetObjectsToSynchronizeServer creates a new mock instance
+// NewMockGitops_GetObjectsToSynchronizeServer creates a new mock instance.
 func NewMockGitops_GetObjectsToSynchronizeServer(ctrl *gomock.Controller) *MockGitops_GetObjectsToSynchronizeServer {
 	mock := &MockGitops_GetObjectsToSynchronizeServer{ctrl: ctrl}
 	mock.recorder = &MockGitops_GetObjectsToSynchronizeServerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockGitops_GetObjectsToSynchronizeServer) EXPECT() *MockGitops_GetObjectsToSynchronizeServerMockRecorder {
 	return m.recorder
 }
 
-// Context mocks base method
+// Context mocks base method.
 func (m *MockGitops_GetObjectsToSynchronizeServer) Context() context.Context {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Context")
@@ -211,13 +211,13 @@ func (m *MockGitops_GetObjectsToSynchronizeServer) Context() context.Context {
 	return ret0
 }
 
-// Context indicates an expected call of Context
+// Context indicates an expected call of Context.
 func (mr *MockGitops_GetObjectsToSynchronizeServerMockRecorder) Context() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Context", reflect.TypeOf((*MockGitops_GetObjectsToSynchronizeServer)(nil).Context))
 }
 
-// RecvMsg mocks base method
+// RecvMsg mocks base method.
 func (m *MockGitops_GetObjectsToSynchronizeServer) RecvMsg(arg0 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RecvMsg", arg0)
@@ -225,13 +225,13 @@ func (m *MockGitops_GetObjectsToSynchronizeServer) RecvMsg(arg0 interface{}) err
 	return ret0
 }
 
-// RecvMsg indicates an expected call of RecvMsg
+// RecvMsg indicates an expected call of RecvMsg.
 func (mr *MockGitops_GetObjectsToSynchronizeServerMockRecorder) RecvMsg(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockGitops_GetObjectsToSynchronizeServer)(nil).RecvMsg), arg0)
 }
 
-// Send mocks base method
+// Send mocks base method.
 func (m *MockGitops_GetObjectsToSynchronizeServer) Send(arg0 *rpc.ObjectsToSynchronizeResponse) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Send", arg0)
@@ -239,13 +239,13 @@ func (m *MockGitops_GetObjectsToSynchronizeServer) Send(arg0 *rpc.ObjectsToSynch
 	return ret0
 }
 
-// Send indicates an expected call of Send
+// Send indicates an expected call of Send.
 func (mr *MockGitops_GetObjectsToSynchronizeServerMockRecorder) Send(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockGitops_GetObjectsToSynchronizeServer)(nil).Send), arg0)
 }
 
-// SendHeader mocks base method
+// SendHeader mocks base method.
 func (m *MockGitops_GetObjectsToSynchronizeServer) SendHeader(arg0 metadata.MD) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendHeader", arg0)
@@ -253,13 +253,13 @@ func (m *MockGitops_GetObjectsToSynchronizeServer) SendHeader(arg0 metadata.MD) 
 	return ret0
 }
 
-// SendHeader indicates an expected call of SendHeader
+// SendHeader indicates an expected call of SendHeader.
 func (mr *MockGitops_GetObjectsToSynchronizeServerMockRecorder) SendHeader(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendHeader", reflect.TypeOf((*MockGitops_GetObjectsToSynchronizeServer)(nil).SendHeader), arg0)
 }
 
-// SendMsg mocks base method
+// SendMsg mocks base method.
 func (m *MockGitops_GetObjectsToSynchronizeServer) SendMsg(arg0 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMsg", arg0)
@@ -267,13 +267,13 @@ func (m *MockGitops_GetObjectsToSynchronizeServer) SendMsg(arg0 interface{}) err
 	return ret0
 }
 
-// SendMsg indicates an expected call of SendMsg
+// SendMsg indicates an expected call of SendMsg.
 func (mr *MockGitops_GetObjectsToSynchronizeServerMockRecorder) SendMsg(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockGitops_GetObjectsToSynchronizeServer)(nil).SendMsg), arg0)
 }
 
-// SetHeader mocks base method
+// SetHeader mocks base method.
 func (m *MockGitops_GetObjectsToSynchronizeServer) SetHeader(arg0 metadata.MD) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetHeader", arg0)
@@ -281,48 +281,48 @@ func (m *MockGitops_GetObjectsToSynchronizeServer) SetHeader(arg0 metadata.MD) e
 	return ret0
 }
 
-// SetHeader indicates an expected call of SetHeader
+// SetHeader indicates an expected call of SetHeader.
 func (mr *MockGitops_GetObjectsToSynchronizeServerMockRecorder) SetHeader(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetHeader", reflect.TypeOf((*MockGitops_GetObjectsToSynchronizeServer)(nil).SetHeader), arg0)
 }
 
-// SetTrailer mocks base method
+// SetTrailer mocks base method.
 func (m *MockGitops_GetObjectsToSynchronizeServer) SetTrailer(arg0 metadata.MD) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetTrailer", arg0)
 }
 
-// SetTrailer indicates an expected call of SetTrailer
+// SetTrailer indicates an expected call of SetTrailer.
 func (mr *MockGitops_GetObjectsToSynchronizeServerMockRecorder) SetTrailer(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetTrailer", reflect.TypeOf((*MockGitops_GetObjectsToSynchronizeServer)(nil).SetTrailer), arg0)
 }
 
-// MockObjectsToSynchronizeWatcherInterface is a mock of ObjectsToSynchronizeWatcherInterface interface
+// MockObjectsToSynchronizeWatcherInterface is a mock of ObjectsToSynchronizeWatcherInterface interface.
 type MockObjectsToSynchronizeWatcherInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockObjectsToSynchronizeWatcherInterfaceMockRecorder
 }
 
-// MockObjectsToSynchronizeWatcherInterfaceMockRecorder is the mock recorder for MockObjectsToSynchronizeWatcherInterface
+// MockObjectsToSynchronizeWatcherInterfaceMockRecorder is the mock recorder for MockObjectsToSynchronizeWatcherInterface.
 type MockObjectsToSynchronizeWatcherInterfaceMockRecorder struct {
 	mock *MockObjectsToSynchronizeWatcherInterface
 }
 
-// NewMockObjectsToSynchronizeWatcherInterface creates a new mock instance
+// NewMockObjectsToSynchronizeWatcherInterface creates a new mock instance.
 func NewMockObjectsToSynchronizeWatcherInterface(ctrl *gomock.Controller) *MockObjectsToSynchronizeWatcherInterface {
 	mock := &MockObjectsToSynchronizeWatcherInterface{ctrl: ctrl}
 	mock.recorder = &MockObjectsToSynchronizeWatcherInterfaceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockObjectsToSynchronizeWatcherInterface) EXPECT() *MockObjectsToSynchronizeWatcherInterfaceMockRecorder {
 	return m.recorder
 }
 
-// Watch mocks base method
+// Watch mocks base method.
 func (m *MockObjectsToSynchronizeWatcherInterface) Watch(arg0 context.Context, arg1 *rpc.ObjectsToSynchronizeRequest, arg2 rpc.ObjectsToSynchronizeCallback) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Watch", arg0, arg1, arg2)
@@ -330,7 +330,7 @@ func (m *MockObjectsToSynchronizeWatcherInterface) Watch(arg0 context.Context, a
 	return ret0
 }
 
-// Watch indicates an expected call of Watch
+// Watch indicates an expected call of Watch.
 func (mr *MockObjectsToSynchronizeWatcherInterfaceMockRecorder) Watch(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Watch", reflect.TypeOf((*MockObjectsToSynchronizeWatcherInterface)(nil).Watch), arg0, arg1, arg2)
