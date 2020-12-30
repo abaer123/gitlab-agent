@@ -15,30 +15,30 @@ import (
 	api "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 )
 
-// MockClientInterface is a mock of ClientInterface interface
+// MockClientInterface is a mock of ClientInterface interface.
 type MockClientInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockClientInterfaceMockRecorder
 }
 
-// MockClientInterfaceMockRecorder is the mock recorder for MockClientInterface
+// MockClientInterfaceMockRecorder is the mock recorder for MockClientInterface.
 type MockClientInterfaceMockRecorder struct {
 	mock *MockClientInterface
 }
 
-// NewMockClientInterface creates a new mock instance
+// NewMockClientInterface creates a new mock instance.
 func NewMockClientInterface(ctrl *gomock.Controller) *MockClientInterface {
 	mock := &MockClientInterface{ctrl: ctrl}
 	mock.recorder = &MockClientInterfaceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClientInterface) EXPECT() *MockClientInterfaceMockRecorder {
 	return m.recorder
 }
 
-// DoJSON mocks base method
+// DoJSON mocks base method.
 func (m *MockClientInterface) DoJSON(arg0 context.Context, arg1, arg2 string, arg3 url.Values, arg4 api.AgentToken, arg5, arg6 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DoJSON", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
@@ -46,13 +46,13 @@ func (m *MockClientInterface) DoJSON(arg0 context.Context, arg1, arg2 string, ar
 	return ret0
 }
 
-// DoJSON indicates an expected call of DoJSON
+// DoJSON indicates an expected call of DoJSON.
 func (mr *MockClientInterfaceMockRecorder) DoJSON(arg0, arg1, arg2, arg3, arg4, arg5, arg6 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoJSON", reflect.TypeOf((*MockClientInterface)(nil).DoJSON), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
 }
 
-// DoStream mocks base method
+// DoStream mocks base method.
 func (m *MockClientInterface) DoStream(arg0 context.Context, arg1, arg2 string, arg3 http.Header, arg4 url.Values, arg5 api.AgentToken, arg6 io.Reader) (*http.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DoStream", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
@@ -61,7 +61,7 @@ func (m *MockClientInterface) DoStream(arg0 context.Context, arg1, arg2 string, 
 	return ret0, ret1
 }
 
-// DoStream indicates an expected call of DoStream
+// DoStream indicates an expected call of DoStream.
 func (mr *MockClientInterfaceMockRecorder) DoStream(arg0, arg1, arg2, arg3, arg4, arg5, arg6 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoStream", reflect.TypeOf((*MockClientInterface)(nil).DoStream), arg0, arg1, arg2, arg3, arg4, arg5, arg6)

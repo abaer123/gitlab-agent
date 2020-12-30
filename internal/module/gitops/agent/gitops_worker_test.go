@@ -12,7 +12,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_engine"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
@@ -29,7 +28,9 @@ const (
 )
 
 var (
-	_ GitOpsEngineFactory = &DefaultGitOpsEngineFactory{}
+	_ GitopsEngineFactory = &defaultGitopsEngineFactory{}
+	_ GitopsWorker        = &gitopsWorker{}
+	_ GitopsWorkerFactory = &defaultGitopsWorkerFactory{}
 )
 
 func TestRunHappyPathNoObjects(t *testing.T) {
@@ -38,7 +39,7 @@ func TestRunHappyPathNoObjects(t *testing.T) {
 	defer cancel()
 	req := &rpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
-		Paths:     w.synchronizerConfig.projectConfiguration.Paths,
+		Paths:     w.project.Paths,
 	}
 	gomock.InOrder(
 		watcher.EXPECT().
@@ -66,7 +67,7 @@ func TestRunHappyPath(t *testing.T) {
 	defer cancel()
 	req := &rpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
-		Paths:     w.synchronizerConfig.projectConfiguration.Paths,
+		Paths:     w.project.Paths,
 	}
 	objs := []*unstructured.Unstructured{
 		kube_testing.ToUnstructured(t, testMap1()),
@@ -113,7 +114,7 @@ func TestRunHappyPathSyncCancellation(t *testing.T) {
 	defer cancel()
 	req := &rpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
-		Paths:     w.synchronizerConfig.projectConfiguration.Paths,
+		Paths:     w.project.Paths,
 	}
 	objs := []*unstructured.Unstructured{
 		kube_testing.ToUnstructured(t, testMap1()),
@@ -162,13 +163,13 @@ func TestRunHappyPathSyncCancellation(t *testing.T) {
 	w.Run(ctx)
 }
 
-func setupWorker(t *testing.T) (*gitopsWorker, *mock_engine.MockGitOpsEngine, *mock_rpc.MockObjectsToSynchronizeWatcherInterface) {
+func setupWorker(t *testing.T) (*gitopsWorker, *MockGitOpsEngine, *mock_rpc.MockObjectsToSynchronizeWatcherInterface) {
 	mockCtrl := gomock.NewController(t)
 	mockEngineCtrl := gomock.NewController(t)
 	// engine is used concurrently with other mocks. So use a separate mock controller to avoid data races because
 	// mock controllers are not thread safe.
-	engine := mock_engine.NewMockGitOpsEngine(mockEngineCtrl)
-	engineFactory := mock_engine.NewMockGitOpsEngineFactory(mockCtrl)
+	engine := NewMockGitOpsEngine(mockEngineCtrl)
+	engineFactory := NewMockGitopsEngineFactory(mockCtrl)
 	watcher := mock_rpc.NewMockObjectsToSynchronizeWatcherInterface(mockCtrl)
 	engineWasStopped := false
 	t.Cleanup(func() {
@@ -189,7 +190,7 @@ func setupWorker(t *testing.T) (*gitopsWorker, *mock_engine.MockGitOpsEngine, *m
 		engineFactory: engineFactory,
 		synchronizerConfig: synchronizerConfig{
 			log: zaptest.NewLogger(t),
-			projectConfiguration: &agentcfg.ManifestProjectCF{
+			project: &agentcfg.ManifestProjectCF{
 				Id:               projectId,
 				DefaultNamespace: defaultNamespace, // as if user didn't specify configuration so it's the default value
 				Paths: []*agentcfg.PathCF{

@@ -20,9 +20,9 @@ const (
 
 // synchronizerConfig holds configuration for a synchronizer.
 type synchronizerConfig struct {
-	log                  *zap.Logger
-	projectConfiguration *agentcfg.ManifestProjectCF
-	k8sClientGetter      resource.RESTClientGetter
+	log             *zap.Logger
+	project         *agentcfg.ManifestProjectCF
+	k8sClientGetter resource.RESTClientGetter
 }
 
 type resourceInfo struct {

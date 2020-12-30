@@ -11,30 +11,30 @@ import (
 	errortracking "gitlab.com/gitlab-org/labkit/errortracking"
 )
 
-// MockTracker is a mock of Tracker interface
+// MockTracker is a mock of Tracker interface.
 type MockTracker struct {
 	ctrl     *gomock.Controller
 	recorder *MockTrackerMockRecorder
 }
 
-// MockTrackerMockRecorder is the mock recorder for MockTracker
+// MockTrackerMockRecorder is the mock recorder for MockTracker.
 type MockTrackerMockRecorder struct {
 	mock *MockTracker
 }
 
-// NewMockTracker creates a new mock instance
+// NewMockTracker creates a new mock instance.
 func NewMockTracker(ctrl *gomock.Controller) *MockTracker {
 	mock := &MockTracker{ctrl: ctrl}
 	mock.recorder = &MockTrackerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockTracker) EXPECT() *MockTrackerMockRecorder {
 	return m.recorder
 }
 
-// Capture mocks base method
+// Capture mocks base method.
 func (m *MockTracker) Capture(arg0 error, arg1 ...errortracking.CaptureOption) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
@@ -44,7 +44,7 @@ func (m *MockTracker) Capture(arg0 error, arg1 ...errortracking.CaptureOption) {
 	m.ctrl.Call(m, "Capture", varargs...)
 }
 
-// Capture indicates an expected call of Capture
+// Capture indicates an expected call of Capture.
 func (mr *MockTrackerMockRecorder) Capture(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)

@@ -10,7 +10,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/ash2k/stager"
 	"github.com/go-logr/zapr"
 	"github.com/spf13/pflag"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
@@ -80,30 +79,17 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	if err != nil {
 		return err
 	}
-	refresher := configRefresher{
-		Log:     a.Log,
-		Modules: modules,
-		ConfigurationWatcher: &rpc.ConfigurationWatcher{
+	runner := moduleRunner{
+		log:     a.Log,
+		modules: modules,
+		configurationWatcher: &rpc.ConfigurationWatcher{
 			Log:         a.Log,
 			AgentMeta:   a.AgentMeta,
 			Client:      rpc.NewAgentConfigurationClient(kasConn),
 			RetryPeriod: defaultRefreshConfigurationRetryPeriod,
 		},
 	}
-
-	// Start things up. Stages are shut down in reverse order.
-	return cmd.RunStages(ctx,
-		// Start modules.
-		func(stage stager.Stage) {
-			for _, module := range modules {
-				stage.Go(module.Run)
-			}
-		},
-		// Start configuration refresh.
-		func(stage stager.Stage) {
-			stage.Go(refresher.Run)
-		},
-	)
+	return runner.Run(ctx)
 }
 
 func (a *App) constructModules(kasConn grpc.ClientConnInterface) ([]modagent.Module, error) {
@@ -111,19 +97,12 @@ func (a *App) constructModules(kasConn grpc.ClientConnInterface) ([]modagent.Mod
 	if err != nil {
 		return nil, err
 	}
-	restConfig, err := a.K8sClientGetter.ToRESTConfig()
-	if err != nil {
-		return nil, fmt.Errorf("ToRESTConfig: %v", err)
-	}
 	factories := []modagent.Factory{
 		//  Should be the first to configure logging ASAP
 		&observability_agent.Factory{
 			LogLevel: a.LogLevel,
 		},
 		&gitops_agent.Factory{
-			EngineFactory: &gitops_agent.DefaultGitOpsEngineFactory{
-				KubeClientConfig: restConfig,
-			},
 			GetObjectsToSynchronizeRetryPeriod: defaultGetObjectsToSynchronizeRetryPeriod,
 		},
 	}

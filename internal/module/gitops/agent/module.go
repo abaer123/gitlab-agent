@@ -3,12 +3,8 @@ package agent
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/argoproj/gitops-engine/pkg/cache"
-	"github.com/argoproj/gitops-engine/pkg/engine"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/protodefault"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
@@ -17,8 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/cli-runtime/pkg/resource"
-	"k8s.io/client-go/rest"
 )
 
 const (
@@ -26,22 +20,21 @@ const (
 	defaultGitOpsManifestPathGlob  = "**/*.{yaml,yml,json}"
 )
 
-type GitOpsEngineFactory interface {
-	New(engineOpts []engine.Option, cacheOpts []cache.UpdateSettingsFunc) engine.GitOpsEngine
-}
-
 type module struct {
-	log                                *zap.Logger
-	engineFactory                      GitOpsEngineFactory
-	k8sClientGetter                    resource.RESTClientGetter
-	getObjectsToSynchronizeRetryPeriod time.Duration
-	gitopsClient                       rpc.GitopsClient
-	workers                            map[string]*gitopsWorkerHolder // project id -> worker holder instance
+	log           *zap.Logger
+	workerFactory GitopsWorkerFactory
 }
 
-func (m *module) Run(ctx context.Context) error {
-	defer m.stopAllWorkers()
-	<-ctx.Done()
+func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
+	workers := make(map[string]*gitopsWorkerHolder) // project id -> worker holder instance
+	defer stopAllWorkers(workers)
+	for config := range cfg {
+		err := m.configureWorkers(workers, config.Gitops.ManifestProjects)
+		if err != nil {
+			m.log.Error("Failed to apply manifest projects configuration", zap.Error(err))
+			continue
+		}
+	}
 	return nil
 }
 
@@ -64,55 +57,25 @@ func applyDefaultsToManifestProject(project *agentcfg.ManifestProjectCF) {
 	}
 }
 
-func (m *module) SetConfiguration(ctx context.Context, config *agentcfg.AgentConfiguration) error {
-	err := m.configureWorkers(config.Gitops.ManifestProjects)
-	if err != nil {
-		return fmt.Errorf("manifest projects: %v", err)
-	}
-	return nil
-}
-
 func (m *module) Name() string {
 	return gitops.ModuleName
 }
 
-func (m *module) stopAllWorkers() {
-	// Tell all workers to stop
-	for _, workerHolder := range m.workers {
-		workerHolder.stop()
-	}
-	// Wait for all workers to stop
-	for _, workerHolder := range m.workers {
-		workerHolder.wg.Wait()
-	}
-}
-
-func (m *module) startNewWorker(project *agentcfg.ManifestProjectCF) {
+func (m *module) startNewWorker(workers map[string]*gitopsWorkerHolder, project *agentcfg.ManifestProjectCF) {
 	l := m.log.With(logz.ProjectId(project.Id))
 	l.Info("Starting synchronization worker")
-	worker := &gitopsWorker{
-		objWatcher: &rpc.ObjectsToSynchronizeWatcher{
-			Log:          l,
-			GitopsClient: m.gitopsClient,
-			RetryPeriod:  m.getObjectsToSynchronizeRetryPeriod,
-		},
-		engineFactory: m.engineFactory,
-		synchronizerConfig: synchronizerConfig{
-			log:                  l,
-			projectConfiguration: project,
-			k8sClientGetter:      m.k8sClientGetter,
-		},
-	}
+	worker := m.workerFactory.New(project)
 	ctx, cancel := context.WithCancel(context.Background())
 	workerHolder := &gitopsWorkerHolder{
-		worker: worker,
-		stop:   cancel,
+		worker:  worker,
+		project: project,
+		stop:    cancel,
 	}
 	workerHolder.wg.StartWithContext(ctx, worker.Run)
-	m.workers[project.Id] = workerHolder
+	workers[project.Id] = workerHolder
 }
 
-func (m *module) configureWorkers(projects []*agentcfg.ManifestProjectCF) error {
+func (m *module) configureWorkers(workers map[string]*gitopsWorkerHolder, projects []*agentcfg.ManifestProjectCF) error {
 	newSetOfProjects := sets.NewString()
 	var (
 		projectsToStartWorkersFor []*agentcfg.ManifestProjectCF
@@ -125,11 +88,11 @@ func (m *module) configureWorkers(projects []*agentcfg.ManifestProjectCF) error 
 			return fmt.Errorf("duplicate project id: %s", project.Id)
 		}
 		newSetOfProjects.Insert(project.Id)
-		workerHolder := m.workers[project.Id]
+		workerHolder := workers[project.Id]
 		if workerHolder == nil { // New project added
 			projectsToStartWorkersFor = append(projectsToStartWorkersFor, project)
 		} else { // We have a worker for this project already
-			if proto.Equal(project, workerHolder.worker.projectConfiguration) {
+			if proto.Equal(project, workerHolder.project) {
 				// Worker's configuration hasn't changed, nothing to do here
 				continue
 			}
@@ -140,7 +103,7 @@ func (m *module) configureWorkers(projects []*agentcfg.ManifestProjectCF) error 
 	}
 
 	// Stop workers for projects which have been removed from the list.
-	for projectId, workerHolder := range m.workers {
+	for projectId, workerHolder := range workers {
 		if newSetOfProjects.Has(projectId) {
 			continue
 		}
@@ -149,40 +112,38 @@ func (m *module) configureWorkers(projects []*agentcfg.ManifestProjectCF) error 
 
 	// Tell workers that should be stopped to stop.
 	for _, workerHolder := range workersToStop {
-		projectId := workerHolder.worker.projectConfiguration.Id
-		m.log.Info("Stopping synchronization worker", logz.ProjectId(projectId))
+		m.log.Info("Stopping synchronization worker", logz.ProjectId(workerHolder.project.Id))
 		workerHolder.stop()
-		delete(m.workers, projectId)
+		delete(workers, workerHolder.project.Id)
 	}
 
 	// Wait for stopped workers to finish.
 	for _, workerHolder := range workersToStop {
-		projectId := workerHolder.worker.projectConfiguration.Id
-		m.log.Info("Waiting for synchronization worker to stop", logz.ProjectId(projectId))
+		m.log.Info("Waiting for synchronization worker to stop", logz.ProjectId(workerHolder.project.Id))
 		workerHolder.wg.Wait()
 	}
 
 	// Start new workers for new projects or because of updated configuration.
 	for _, project := range projectsToStartWorkersFor {
-		m.startNewWorker(project)
+		m.startNewWorker(workers, project)
 	}
 	return nil
 }
 
+func stopAllWorkers(workers map[string]*gitopsWorkerHolder) {
+	// Tell all workers to stop
+	for _, workerHolder := range workers {
+		workerHolder.stop()
+	}
+	// Wait for all workers to stop
+	for _, workerHolder := range workers {
+		workerHolder.wg.Wait()
+	}
+}
+
 type gitopsWorkerHolder struct {
-	worker *gitopsWorker
-	wg     wait.Group
-	stop   context.CancelFunc
-}
-
-type DefaultGitOpsEngineFactory struct {
-	KubeClientConfig *rest.Config
-}
-
-func (f *DefaultGitOpsEngineFactory) New(engineOpts []engine.Option, cacheOpts []cache.UpdateSettingsFunc) engine.GitOpsEngine {
-	return engine.NewEngine(
-		f.KubeClientConfig,
-		cache.NewClusterCache(f.KubeClientConfig, cacheOpts...),
-		engineOpts...,
-	)
+	worker  GitopsWorker
+	project *agentcfg.ManifestProjectCF
+	wg      wait.Group
+	stop    context.CancelFunc
 }

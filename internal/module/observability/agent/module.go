@@ -12,10 +12,18 @@ import (
 )
 
 type module struct {
+	log      *zap.Logger
 	logLevel zap.AtomicLevel
 }
 
-func (m *module) Run(ctx context.Context) error {
+func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
+	for config := range cfg {
+		err := m.setConfigurationLogging(config.Observability.Logging)
+		if err != nil {
+			m.log.Error("Failed to apply logging configuration", zap.Error(err))
+			continue
+		}
+	}
 	return nil
 }
 
@@ -23,14 +31,6 @@ func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfigura
 	protodefault.NotNil(&config.Observability)
 	protodefault.NotNil(&config.Observability.Logging)
 	err := m.defaultAndValidateLogging(config.Observability.Logging)
-	if err != nil {
-		return fmt.Errorf("logging: %v", err)
-	}
-	return nil
-}
-
-func (m *module) SetConfiguration(ctx context.Context, config *agentcfg.AgentConfiguration) error {
-	err := m.setConfigurationLogging(config.Observability.Logging)
 	if err != nil {
 		return fmt.Errorf("logging: %v", err)
 	}

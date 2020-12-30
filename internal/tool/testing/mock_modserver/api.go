@@ -16,30 +16,30 @@ import (
 	zap "go.uber.org/zap"
 )
 
-// MockAPI is a mock of API interface
+// MockAPI is a mock of API interface.
 type MockAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockAPIMockRecorder
 }
 
-// MockAPIMockRecorder is the mock recorder for MockAPI
+// MockAPIMockRecorder is the mock recorder for MockAPI.
 type MockAPIMockRecorder struct {
 	mock *MockAPI
 }
 
-// NewMockAPI creates a new mock instance
+// NewMockAPI creates a new mock instance.
 func NewMockAPI(ctrl *gomock.Controller) *MockAPI {
 	mock := &MockAPI{ctrl: ctrl}
 	mock.recorder = &MockAPIMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 	return m.recorder
 }
 
-// Capture mocks base method
+// Capture mocks base method.
 func (m *MockAPI) Capture(arg0 error, arg1 ...errortracking.CaptureOption) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
@@ -49,14 +49,14 @@ func (m *MockAPI) Capture(arg0 error, arg1 ...errortracking.CaptureOption) {
 	m.ctrl.Call(m, "Capture", varargs...)
 }
 
-// Capture indicates an expected call of Capture
+// Capture indicates an expected call of Capture.
 func (mr *MockAPIMockRecorder) Capture(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Capture", reflect.TypeOf((*MockAPI)(nil).Capture), varargs...)
 }
 
-// GetAgentInfo mocks base method
+// GetAgentInfo mocks base method.
 func (m *MockAPI) GetAgentInfo(arg0 context.Context, arg1 *zap.Logger, arg2 api.AgentToken, arg3 bool) (*api.AgentInfo, error, bool) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAgentInfo", arg0, arg1, arg2, arg3)
@@ -66,25 +66,25 @@ func (m *MockAPI) GetAgentInfo(arg0 context.Context, arg1 *zap.Logger, arg2 api.
 	return ret0, ret1, ret2
 }
 
-// GetAgentInfo indicates an expected call of GetAgentInfo
+// GetAgentInfo indicates an expected call of GetAgentInfo.
 func (mr *MockAPIMockRecorder) GetAgentInfo(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAgentInfo", reflect.TypeOf((*MockAPI)(nil).GetAgentInfo), arg0, arg1, arg2, arg3)
 }
 
-// HandleProcessingError mocks base method
+// HandleProcessingError mocks base method.
 func (m *MockAPI) HandleProcessingError(arg0 context.Context, arg1 *zap.Logger, arg2 string, arg3 error) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "HandleProcessingError", arg0, arg1, arg2, arg3)
 }
 
-// HandleProcessingError indicates an expected call of HandleProcessingError
+// HandleProcessingError indicates an expected call of HandleProcessingError.
 func (mr *MockAPIMockRecorder) HandleProcessingError(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleProcessingError", reflect.TypeOf((*MockAPI)(nil).HandleProcessingError), arg0, arg1, arg2, arg3)
 }
 
-// HandleSendError mocks base method
+// HandleSendError mocks base method.
 func (m *MockAPI) HandleSendError(arg0 *zap.Logger, arg1 string, arg2 error) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HandleSendError", arg0, arg1, arg2)
@@ -92,13 +92,13 @@ func (m *MockAPI) HandleSendError(arg0 *zap.Logger, arg1 string, arg2 error) err
 	return ret0
 }
 
-// HandleSendError indicates an expected call of HandleSendError
+// HandleSendError indicates an expected call of HandleSendError.
 func (mr *MockAPIMockRecorder) HandleSendError(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleSendError", reflect.TypeOf((*MockAPI)(nil).HandleSendError), arg0, arg1, arg2)
 }
 
-// PollImmediateUntil mocks base method
+// PollImmediateUntil mocks base method.
 func (m *MockAPI) PollImmediateUntil(arg0 context.Context, arg1, arg2 time.Duration, arg3 modserver.ConditionFunc) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PollImmediateUntil", arg0, arg1, arg2, arg3)
@@ -106,7 +106,7 @@ func (m *MockAPI) PollImmediateUntil(arg0 context.Context, arg1, arg2 time.Durat
 	return ret0
 }
 
-// PollImmediateUntil indicates an expected call of PollImmediateUntil
+// PollImmediateUntil indicates an expected call of PollImmediateUntil.
 func (mr *MockAPIMockRecorder) PollImmediateUntil(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PollImmediateUntil", reflect.TypeOf((*MockAPI)(nil).PollImmediateUntil), arg0, arg1, arg2, arg3)

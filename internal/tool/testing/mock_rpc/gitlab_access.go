@@ -13,30 +13,30 @@ import (
 	metadata "google.golang.org/grpc/metadata"
 )
 
-// MockGitlabAccess_MakeRequestServer is a mock of GitlabAccess_MakeRequestServer interface
+// MockGitlabAccess_MakeRequestServer is a mock of GitlabAccess_MakeRequestServer interface.
 type MockGitlabAccess_MakeRequestServer struct {
 	ctrl     *gomock.Controller
 	recorder *MockGitlabAccess_MakeRequestServerMockRecorder
 }
 
-// MockGitlabAccess_MakeRequestServerMockRecorder is the mock recorder for MockGitlabAccess_MakeRequestServer
+// MockGitlabAccess_MakeRequestServerMockRecorder is the mock recorder for MockGitlabAccess_MakeRequestServer.
 type MockGitlabAccess_MakeRequestServerMockRecorder struct {
 	mock *MockGitlabAccess_MakeRequestServer
 }
 
-// NewMockGitlabAccess_MakeRequestServer creates a new mock instance
+// NewMockGitlabAccess_MakeRequestServer creates a new mock instance.
 func NewMockGitlabAccess_MakeRequestServer(ctrl *gomock.Controller) *MockGitlabAccess_MakeRequestServer {
 	mock := &MockGitlabAccess_MakeRequestServer{ctrl: ctrl}
 	mock.recorder = &MockGitlabAccess_MakeRequestServerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockGitlabAccess_MakeRequestServer) EXPECT() *MockGitlabAccess_MakeRequestServerMockRecorder {
 	return m.recorder
 }
 
-// Context mocks base method
+// Context mocks base method.
 func (m *MockGitlabAccess_MakeRequestServer) Context() context.Context {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Context")
@@ -44,13 +44,13 @@ func (m *MockGitlabAccess_MakeRequestServer) Context() context.Context {
 	return ret0
 }
 
-// Context indicates an expected call of Context
+// Context indicates an expected call of Context.
 func (mr *MockGitlabAccess_MakeRequestServerMockRecorder) Context() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Context", reflect.TypeOf((*MockGitlabAccess_MakeRequestServer)(nil).Context))
 }
 
-// Recv mocks base method
+// Recv mocks base method.
 func (m *MockGitlabAccess_MakeRequestServer) Recv() (*rpc.Request, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Recv")
@@ -59,13 +59,13 @@ func (m *MockGitlabAccess_MakeRequestServer) Recv() (*rpc.Request, error) {
 	return ret0, ret1
 }
 
-// Recv indicates an expected call of Recv
+// Recv indicates an expected call of Recv.
 func (mr *MockGitlabAccess_MakeRequestServerMockRecorder) Recv() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Recv", reflect.TypeOf((*MockGitlabAccess_MakeRequestServer)(nil).Recv))
 }
 
-// RecvMsg mocks base method
+// RecvMsg mocks base method.
 func (m *MockGitlabAccess_MakeRequestServer) RecvMsg(arg0 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RecvMsg", arg0)
@@ -73,13 +73,13 @@ func (m *MockGitlabAccess_MakeRequestServer) RecvMsg(arg0 interface{}) error {
 	return ret0
 }
 
-// RecvMsg indicates an expected call of RecvMsg
+// RecvMsg indicates an expected call of RecvMsg.
 func (mr *MockGitlabAccess_MakeRequestServerMockRecorder) RecvMsg(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockGitlabAccess_MakeRequestServer)(nil).RecvMsg), arg0)
 }
 
-// Send mocks base method
+// Send mocks base method.
 func (m *MockGitlabAccess_MakeRequestServer) Send(arg0 *rpc.Response) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Send", arg0)
@@ -87,13 +87,13 @@ func (m *MockGitlabAccess_MakeRequestServer) Send(arg0 *rpc.Response) error {
 	return ret0
 }
 
-// Send indicates an expected call of Send
+// Send indicates an expected call of Send.
 func (mr *MockGitlabAccess_MakeRequestServerMockRecorder) Send(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockGitlabAccess_MakeRequestServer)(nil).Send), arg0)
 }
 
-// SendHeader mocks base method
+// SendHeader mocks base method.
 func (m *MockGitlabAccess_MakeRequestServer) SendHeader(arg0 metadata.MD) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendHeader", arg0)
@@ -101,13 +101,13 @@ func (m *MockGitlabAccess_MakeRequestServer) SendHeader(arg0 metadata.MD) error 
 	return ret0
 }
 
-// SendHeader indicates an expected call of SendHeader
+// SendHeader indicates an expected call of SendHeader.
 func (mr *MockGitlabAccess_MakeRequestServerMockRecorder) SendHeader(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendHeader", reflect.TypeOf((*MockGitlabAccess_MakeRequestServer)(nil).SendHeader), arg0)
 }
 
-// SendMsg mocks base method
+// SendMsg mocks base method.
 func (m *MockGitlabAccess_MakeRequestServer) SendMsg(arg0 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendMsg", arg0)
@@ -115,13 +115,13 @@ func (m *MockGitlabAccess_MakeRequestServer) SendMsg(arg0 interface{}) error {
 	return ret0
 }
 
-// SendMsg indicates an expected call of SendMsg
+// SendMsg indicates an expected call of SendMsg.
 func (mr *MockGitlabAccess_MakeRequestServerMockRecorder) SendMsg(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockGitlabAccess_MakeRequestServer)(nil).SendMsg), arg0)
 }
 
-// SetHeader mocks base method
+// SetHeader mocks base method.
 func (m *MockGitlabAccess_MakeRequestServer) SetHeader(arg0 metadata.MD) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetHeader", arg0)
@@ -129,19 +129,19 @@ func (m *MockGitlabAccess_MakeRequestServer) SetHeader(arg0 metadata.MD) error {
 	return ret0
 }
 
-// SetHeader indicates an expected call of SetHeader
+// SetHeader indicates an expected call of SetHeader.
 func (mr *MockGitlabAccess_MakeRequestServerMockRecorder) SetHeader(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetHeader", reflect.TypeOf((*MockGitlabAccess_MakeRequestServer)(nil).SetHeader), arg0)
 }
 
-// SetTrailer mocks base method
+// SetTrailer mocks base method.
 func (m *MockGitlabAccess_MakeRequestServer) SetTrailer(arg0 metadata.MD) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetTrailer", arg0)
 }
 
-// SetTrailer indicates an expected call of SetTrailer
+// SetTrailer indicates an expected call of SetTrailer.
 func (mr *MockGitlabAccess_MakeRequestServerMockRecorder) SetTrailer(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetTrailer", reflect.TypeOf((*MockGitlabAccess_MakeRequestServer)(nil).SetTrailer), arg0)

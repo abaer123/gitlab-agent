@@ -53,7 +53,8 @@ run:
   # If invoked with -mod=vendor, the go command assumes that the vendor
   # directory holds the correct copies of dependencies and ignores
   # the dependency descriptions in go.mod.
-  modules-download-mode: readonly
+  # Re-enabled when https://github.com/golangci/golangci-lint/issues/1502 is fixed
+  # modules-download-mode: readonly
 
   # Allow multiple parallel golangci-lint instances running.
   # If false (default) - golangci-lint acquires file lock on start.
