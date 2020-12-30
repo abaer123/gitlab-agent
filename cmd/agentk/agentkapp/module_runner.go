@@ -15,12 +15,36 @@ import (
 )
 
 type moduleHolder struct {
-	module modagent.Module
-	cfg    chan *agentcfg.AgentConfiguration
+	module      modagent.Module
+	cfg2pipe    chan *agentcfg.AgentConfiguration
+	pipe2module chan *agentcfg.AgentConfiguration
 }
 
-func (h *moduleHolder) Run(ctx context.Context) error {
-	return h.module.Run(ctx, h.cfg)
+func (h *moduleHolder) runModule(ctx context.Context) error {
+	return h.module.Run(ctx, h.pipe2module)
+}
+
+func (h *moduleHolder) runPipe(ctx context.Context) error {
+	defer close(h.pipe2module)
+	var (
+		nilablePipe2module chan<- *agentcfg.AgentConfiguration
+		cfgToSend          *agentcfg.AgentConfiguration
+	)
+	// The loop consumes the incoming items from the configuration channel (cfg2pipe) and only sends the last
+	// received item to the module (pipe2module). This allows to skip configuration changes that happened while the module was handling the
+	// previous configuration change.
+	for {
+		select {
+		case <-ctx.Done(): // case #1
+			return nil
+		case cfgToSend = <-h.cfg2pipe: // case #2
+			nilablePipe2module = h.pipe2module // enable case #3
+		case nilablePipe2module <- cfgToSend: // case #3, disabled when nilablePipe2module == nil i.e. when there is nothing to send
+			// config sent
+			cfgToSend = nil          // help GC
+			nilablePipe2module = nil // disable case #3
+		}
+	}
 }
 
 type moduleRunner struct {
@@ -33,26 +57,28 @@ func (r *moduleRunner) Run(ctx context.Context) error {
 	holders := make([]moduleHolder, 0, len(r.modules))
 	for _, module := range r.modules {
 		holders = append(holders, moduleHolder{
-			module: module,
-			cfg:    make(chan *agentcfg.AgentConfiguration),
+			module:      module,
+			cfg2pipe:    make(chan *agentcfg.AgentConfiguration),
+			pipe2module: make(chan *agentcfg.AgentConfiguration),
 		})
 	}
 	return cmd.RunStages(ctx,
 		func(stage stager.Stage) {
 			for _, holder := range holders {
 				holder := holder // capture the right variable
-				stage.Go(holder.Run)
+				stage.Go(holder.runModule)
+			}
+		},
+		func(stage stager.Stage) {
+			for _, holder := range holders {
+				holder := holder // capture the right variable
+				stage.Go(holder.runPipe)
 			}
 		},
 		func(stage stager.Stage) {
 			stage.Go(func(ctx context.Context) error {
-				defer func() {
-					for _, holder := range holders {
-						close(holder.cfg)
-					}
-				}()
 				r.configurationWatcher.Watch(ctx, func(ctx context.Context, data agent_configuration_rpc.ConfigurationData) {
-					err := r.applyConfiguration(ctx, holders, data.CommitId, data.Config)
+					err := r.applyConfiguration(holders, data.CommitId, data.Config)
 					if err != nil {
 						if !errz.ContextDone(err) {
 							r.log.Error("Failed to apply configuration", logz.CommitId(data.CommitId), zap.Error(err))
@@ -66,7 +92,7 @@ func (r *moduleRunner) Run(ctx context.Context) error {
 	)
 }
 
-func (r *moduleRunner) applyConfiguration(ctx context.Context, holders []moduleHolder, commitId string, config *agentcfg.AgentConfiguration) error {
+func (r *moduleRunner) applyConfiguration(holders []moduleHolder, commitId string, config *agentcfg.AgentConfiguration) error {
 	r.log.Debug("Applying configuration", logz.CommitId(commitId), agentConfig(config))
 	// Default and validate before setting for use.
 	for _, holder := range holders {
@@ -77,10 +103,7 @@ func (r *moduleRunner) applyConfiguration(ctx context.Context, holders []moduleH
 	}
 	// Set for use.
 	for _, holder := range holders {
-		select {
-		case <-ctx.Done():
-		case holder.cfg <- config:
-		}
+		holder.cfg2pipe <- config
 	}
 	return nil
 }

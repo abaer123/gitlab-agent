@@ -50,6 +50,7 @@ type Module interface {
 	// cfg is a channel that gets configuration updates sent to it. It's closed when the module should shut down.
 	// cfg is a shared instance, must not be mutated. Module should make a copy if it needs to mutate the object.
 	// Applying configuration may take time, the provided context may signal done if module should shut down.
+	// cfg only provides the latest available configuration, intermediate configuration states are discarded.
 	Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error
 	// DefaultAndValidateConfiguration applies defaults and validates the passed configuration.
 	// It is called each time on configuration update before sending it via the channel passed to Run().

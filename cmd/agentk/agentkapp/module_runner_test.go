@@ -38,12 +38,69 @@ func TestConfigurationIsApplied(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	watcher := mock_rpc.NewMockConfigurationWatcherInterface(ctrl)
 	m := mock_modagent.NewMockModule(ctrl)
+	ctx1, cancel1 := context.WithCancel(context.Background())
+	defer cancel1()
+	ctx2, cancel2 := context.WithCancel(context.Background())
+	defer cancel2()
 	m.EXPECT().
 		Run(gomock.Any(), gomock.Any()).
 		Do(func(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) {
 			c := <-cfg
+			cancel1()
 			assert.Empty(t, cmp.Diff(c, cfg1, protocmp.Transform()))
 			c = <-cfg
+			cancel2()
+			assert.Empty(t, cmp.Diff(c, cfg2, protocmp.Transform()))
+			<-ctx.Done()
+		})
+	gomock.InOrder(
+		watcher.EXPECT().
+			Watch(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, callback rpc.ConfigurationCallback) {
+				callback(ctx, rpc.ConfigurationData{CommitId: revision1, Config: cfg1})
+				<-ctx1.Done()
+				callback(ctx, rpc.ConfigurationData{CommitId: revision2, Config: cfg2})
+				<-ctx2.Done()
+				cancel()
+			}),
+		m.EXPECT().
+			DefaultAndValidateConfiguration(cfg1),
+		m.EXPECT().
+			DefaultAndValidateConfiguration(cfg2),
+	)
+	a := &moduleRunner{
+		log:                  zaptest.NewLogger(t),
+		modules:              []modagent.Module{m},
+		configurationWatcher: watcher,
+	}
+	err := a.Run(ctx)
+	require.NoError(t, err)
+}
+
+func TestConfigurationIsSquashed(t *testing.T) {
+	cfg1 := &agentcfg.AgentConfiguration{}
+	cfg2 := &agentcfg.AgentConfiguration{
+		Gitops: &agentcfg.GitopsCF{
+			ManifestProjects: []*agentcfg.ManifestProjectCF{
+				{
+					Id: "bla",
+				},
+			},
+		},
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ctrl := gomock.NewController(t)
+	watcher := mock_rpc.NewMockConfigurationWatcherInterface(ctrl)
+	m := mock_modagent.NewMockModule(ctrl)
+	ctx1, cancel1 := context.WithCancel(context.Background())
+	defer cancel1()
+	m.EXPECT().
+		Run(gomock.Any(), gomock.Any()).
+		Do(func(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) {
+			<-ctx1.Done()
+			c := <-cfg
+			cancel()
 			assert.Empty(t, cmp.Diff(c, cfg2, protocmp.Transform()))
 			<-ctx.Done()
 		})
@@ -53,7 +110,8 @@ func TestConfigurationIsApplied(t *testing.T) {
 			DoAndReturn(func(ctx context.Context, callback rpc.ConfigurationCallback) {
 				callback(ctx, rpc.ConfigurationData{CommitId: revision1, Config: cfg1})
 				callback(ctx, rpc.ConfigurationData{CommitId: revision2, Config: cfg2})
-				cancel()
+				cancel1()
+				<-ctx.Done()
 			}),
 		m.EXPECT().
 			DefaultAndValidateConfiguration(cfg1),
