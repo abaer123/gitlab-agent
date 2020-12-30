@@ -2,25 +2,19 @@ package agent
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"sort"
+	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_engine"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
-	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/proto"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 var (
@@ -29,111 +23,129 @@ var (
 )
 
 func TestStartsWorkersAccordingToConfiguration(t *testing.T) {
-	for i, config := range testConfigurations() {
-		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
+	for caseNum, config := range testConfigurations() {
+		t.Run(fmt.Sprintf("case %d", caseNum), func(t *testing.T) {
 			var wg wait.Group
 			defer wg.Wait()
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			expectedNumberOfWorkers := len(config.GetGitops().GetManifestProjects()) // nolint: scopelint
-			m, mockCtrl, factory := setupModule(t)
+			projects := config.GetGitops().GetManifestProjects() // nolint: scopelint
+			expectedNumberOfWorkers := len(projects)             // nolint: scopelint
+			m, ctrl, factory := setupModule(t)
+			worker := NewMockGitopsWorker(ctrl)
 			for i := 0; i < expectedNumberOfWorkers; i++ {
-				engine := mock_engine.NewMockGitOpsEngine(mockCtrl)
-				engine.EXPECT().
-					Run().
-					Return(nil, errors.New("i'm not ok, but that's ok")).
-					MinTimes(1)
 				factory.EXPECT().
-					New(gomock.Any(), gomock.Any()).
-					Return(engine)
+					New(matcher.ProtoEq(t, projects[i])).
+					Return(worker)
 			}
+			worker.EXPECT().
+				Run(gomock.Any()).
+				Times(expectedNumberOfWorkers)
+			cfg := make(chan *agentcfg.AgentConfiguration)
 			wg.Start(func() {
-				err := m.Run(ctx)
+				err := m.Run(ctx, cfg)
 				assert.NoError(t, err)
 			})
-			require.NoError(t, m.DefaultAndValidateConfiguration(config))        // nolint: scopelint
-			require.NoError(t, m.SetConfiguration(context.Background(), config)) // nolint: scopelint
+			require.NoError(t, m.DefaultAndValidateConfiguration(config)) // nolint: scopelint
+			cfg <- config                                                 // nolint: scopelint
+			close(cfg)
 			cancel()
 			wg.Wait()
-			assertWorkersMatchConfiguration(t, m, config) // nolint: scopelint
 		})
 	}
 }
 
 func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
-	increasingOrder := sortableConfigs(testConfigurations())
-	sort.Stable(increasingOrder)
-	decreasingOrder := sortableConfigs(testConfigurations())
-	sort.Sort(sort.Reverse(decreasingOrder))
+	normalOrder := testConfigurations()
+	reverseOrder := testConfigurations()
+	reverse(reverseOrder)
 	tests := []struct {
 		name    string
 		configs []*agentcfg.AgentConfiguration
 	}{
 		{
-			name:    "increasing order",
-			configs: increasingOrder,
+			name:    "normal order",
+			configs: normalOrder,
 		},
 		{
-			name:    "decreasing order",
-			configs: decreasingOrder,
+			name:    "reverse order",
+			configs: reverseOrder,
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			m, mockCtrl, factory := setupModule(t)
+			numEngines := numUniqueProjects(tc.configs) // nolint: scopelint
+			m, ctrl, factory := setupModule(t)
 			var wg wait.Group
 			defer wg.Wait()
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			engine := mock_engine.NewMockGitOpsEngine(mockCtrl)
-			engine.EXPECT().
-				Run().
-				Return(nil, errors.New("i'm not ok, but that's ok")).
-				AnyTimes()
+			var runCalled int64
+			worker := NewMockGitopsWorker(ctrl)
+			worker.EXPECT().
+				Run(gomock.Any()).
+				Do(func(ctx context.Context) {
+					currentValue := atomic.AddInt64(&runCalled, 1)
+					if currentValue == int64(numEngines) {
+						cancel()
+					}
+					<-ctx.Done()
+				}).
+				Times(numEngines)
 			factory.EXPECT().
-				New(gomock.Any(), gomock.Any()).
-				Return(engine).
-				AnyTimes()
+				New(gomock.Any()).
+				Return(worker).
+				Times(numEngines)
+			cfg := make(chan *agentcfg.AgentConfiguration)
 			wg.Start(func() {
-				err := m.Run(ctx)
+				err := m.Run(ctx, cfg)
 				assert.NoError(t, err)
 			})
 			for _, config := range tc.configs { // nolint: scopelint
 				require.NoError(t, m.DefaultAndValidateConfiguration(config))
-				require.NoError(t, m.SetConfiguration(context.Background(), config))
+				cfg <- config
 			}
-			cancel()
+			close(cfg)
 			wg.Wait()
-			assertWorkersMatchConfiguration(t, m, tc.configs[len(tc.configs)-1]) // nolint: scopelint
 		})
 	}
 }
 
-func setupModule(t *testing.T) (*module, *gomock.Controller, *mock_engine.MockGitOpsEngineFactory) {
-	mockCtrl := gomock.NewController(t)
-	engFactory := mock_engine.NewMockGitOpsEngineFactory(mockCtrl)
-	configFlags := genericclioptions.NewTestConfigFlags()
-	kasConn := mock_rpc.NewMockClientConnInterface(mockCtrl)
-	factory := Factory{
-		EngineFactory: &mock_engine.ThreadSafeGitOpsEngineFactory{
-			EngineFactory: engFactory,
-		},
-		GetObjectsToSynchronizeRetryPeriod: 10 * time.Second,
+func setupModule(t *testing.T) (*module, *gomock.Controller, *MockGitopsWorkerFactory) {
+	ctrl := gomock.NewController(t)
+	workerFactory := NewMockGitopsWorkerFactory(ctrl)
+	m := &module{
+		log:           zaptest.NewLogger(t),
+		workerFactory: workerFactory,
 	}
-	m, err := factory.New(&modagent.Config{
-		Log:             zaptest.NewLogger(t),
-		Api:             mock_modagent.NewMockAPI(mockCtrl),
-		K8sClientGetter: configFlags,
-		KasConn:         kasConn,
-	})
-	require.NoError(t, err)
-	return m.(*module), mockCtrl, engFactory
+	return m, ctrl, workerFactory
+}
+
+func numUniqueProjects(cfgs []*agentcfg.AgentConfiguration) int {
+	num := 0
+	projects := make(map[string]*agentcfg.ManifestProjectCF)
+	for _, config := range cfgs {
+		for _, proj := range config.GetGitops().GetManifestProjects() {
+			old, ok := projects[proj.Id]
+			if ok {
+				if !proto.Equal(old, proj) {
+					projects[proj.Id] = proj
+					num++
+				}
+			} else {
+				projects[proj.Id] = proj
+				num++
+			}
+		}
+	}
+	return num
 }
 
 func testConfigurations() []*agentcfg.AgentConfiguration {
 	const (
 		project1 = "bla1/project1"
 		project2 = "bla1/project2"
+		project3 = "bla3/project3"
 	)
 	return []*agentcfg.AgentConfiguration{
 		{},
@@ -164,7 +176,7 @@ func testConfigurations() []*agentcfg.AgentConfiguration {
 			Gitops: &agentcfg.GitopsCF{
 				ManifestProjects: []*agentcfg.ManifestProjectCF{
 					{
-						Id: "bla3/project3",
+						Id: project3,
 					},
 					{
 						Id:                 project2,
@@ -177,32 +189,8 @@ func testConfigurations() []*agentcfg.AgentConfiguration {
 	}
 }
 
-func assertWorkersMatchConfiguration(t *testing.T, m *module, config *agentcfg.AgentConfiguration) bool { // nolint: unparam
-	projects := config.GetGitops().GetManifestProjects()
-	if !assert.Len(t, m.workers, len(projects)) {
-		return false
+func reverse(cfgs []*agentcfg.AgentConfiguration) {
+	for i, j := 0, len(cfgs)-1; i < j; i, j = i+1, j-1 {
+		cfgs[i], cfgs[j] = cfgs[j], cfgs[i]
 	}
-	success := true
-	for _, project := range projects {
-		if !assert.Contains(t, m.workers, project.Id) {
-			success = false
-			continue
-		}
-		success = assert.Empty(t, cmp.Diff(m.workers[project.Id].worker.projectConfiguration, project, protocmp.Transform())) || success
-	}
-	return success
-}
-
-type sortableConfigs []*agentcfg.AgentConfiguration
-
-func (r sortableConfigs) Len() int {
-	return len(r)
-}
-
-func (r sortableConfigs) Less(i, j int) bool {
-	return i < j
-}
-
-func (r sortableConfigs) Swap(i, j int) {
-	r[i], r[j] = r[j], r[i]
 }

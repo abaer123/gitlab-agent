@@ -47,16 +47,14 @@ type Factory interface {
 type Module interface {
 	// Run starts the module.
 	// Run can block until the context is canceled or exit with nil if there is nothing to do.
-	Run(context.Context) error
+	// cfg is a channel that gets configuration updates sent to it. It's closed when the module should shut down.
+	// cfg is a shared instance, must not be mutated. Module should make a copy if it needs to mutate the object.
+	// Applying configuration may take time, the provided context may signal done if module should shut down.
+	Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error
 	// DefaultAndValidateConfiguration applies defaults and validates the passed configuration.
-	// It is called each time on configuration update before calling SetConfiguration.
-	// config is a shared instance, module can mutate only the part of it that it owns.
-	DefaultAndValidateConfiguration(*agentcfg.AgentConfiguration) error
-	// SetConfiguration sets configuration to use. It is called each time on configuration update.
-	// config is a shared instance, must not be mutated. Module should make a copy if it needs to mutate the object.
-	// Applying configuration may take time, the provided context may signal done if module should stop doing that.
-	// This happens before the shutdown. Context for this method will be canceled before the context, provided to Run.
-	SetConfiguration(context.Context, *agentcfg.AgentConfiguration) error
+	// It is called each time on configuration update before sending it via the channel passed to Run().
+	// cfg is a shared instance, module can mutate only the part of it that it owns and only inside of this method.
+	DefaultAndValidateConfiguration(cfg *agentcfg.AgentConfiguration) error
 	// Name returns module's name.
 	Name() string
 }

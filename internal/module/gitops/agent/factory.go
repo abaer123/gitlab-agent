@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops"
@@ -9,18 +10,25 @@ import (
 )
 
 type Factory struct {
-	EngineFactory                      GitOpsEngineFactory
 	GetObjectsToSynchronizeRetryPeriod time.Duration
 }
 
 func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
+	restConfig, err := config.K8sClientGetter.ToRESTConfig()
+	if err != nil {
+		return nil, fmt.Errorf("ToRESTConfig: %v", err)
+	}
 	return &module{
-		log:                                config.Log,
-		engineFactory:                      f.EngineFactory,
-		k8sClientGetter:                    config.K8sClientGetter,
-		getObjectsToSynchronizeRetryPeriod: f.GetObjectsToSynchronizeRetryPeriod,
-		gitopsClient:                       rpc.NewGitopsClient(config.KasConn),
-		workers:                            make(map[string]*gitopsWorkerHolder),
+		log: config.Log,
+		workerFactory: &defaultGitopsWorkerFactory{
+			log: config.Log,
+			engineFactory: &defaultGitopsEngineFactory{
+				kubeClientConfig: restConfig,
+			},
+			k8sClientGetter:                    config.K8sClientGetter,
+			getObjectsToSynchronizeRetryPeriod: f.GetObjectsToSynchronizeRetryPeriod,
+			gitopsClient:                       rpc.NewGitopsClient(config.KasConn),
+		},
 	}, nil
 }
 

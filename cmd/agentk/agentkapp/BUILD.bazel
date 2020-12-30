@@ -5,8 +5,8 @@ go_library(
     srcs = [
         "api.go",
         "app.go",
-        "config_refresher.go",
         "logz.go",
+        "module_runner.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/agentk/agentkapp",
     visibility = ["//visibility:public"],
@@ -47,7 +47,7 @@ go_test(
     size = "small",
     srcs = [
         "api_test.go",
-        "config_refresher_test.go",
+        "module_runner_test.go",
     ],
     embed = [":agentkapp"],
     race = "on",
@@ -58,7 +58,10 @@ go_test(
         "//internal/tool/testing/mock_rpc",
         "//pkg/agentcfg",
         "@com_github_golang_mock//gomock",
+        "@com_github_google_go_cmp//cmp",
+        "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
+        "@org_golang_google_protobuf//testing/protocmp",
         "@org_uber_go_zap//zaptest",
     ],
 )

@@ -49,7 +49,7 @@ func (s *syncWorker) synchronize(job syncJob) error {
 		job.objects,
 		s.isManaged,
 		job.commitId,
-		s.projectConfiguration.DefaultNamespace,
+		s.project.DefaultNamespace,
 		sync.WithLogr(zapr.NewLogger(s.log)),
 	)
 	if err != nil {
