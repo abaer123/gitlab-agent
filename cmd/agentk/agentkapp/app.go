@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/ash2k/stager"
 	"github.com/go-logr/zapr"
 	"github.com/spf13/pflag"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
@@ -79,17 +80,24 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	if err != nil {
 		return err
 	}
-	runner := moduleRunner{
-		log:     a.Log,
-		modules: modules,
-		configurationWatcher: &rpc.ConfigurationWatcher{
-			Log:         a.Log,
-			AgentMeta:   a.AgentMeta,
-			Client:      rpc.NewAgentConfigurationClient(kasConn),
-			RetryPeriod: defaultRefreshConfigurationRetryPeriod,
+	runner := newModuleRunner(a.Log, modules, &rpc.ConfigurationWatcher{
+		Log:         a.Log,
+		AgentMeta:   a.AgentMeta,
+		Client:      rpc.NewAgentConfigurationClient(kasConn),
+		RetryPeriod: defaultRefreshConfigurationRetryPeriod,
+	})
+
+	// Start things up. Stages are shut down in reverse order.
+	return cmd.RunStages(ctx,
+		// Start modules.
+		func(stage stager.Stage) {
+			stage.Go(runner.RunModules)
 		},
-	}
-	return runner.Run(ctx)
+		func(stage stager.Stage) {
+			// Start configuration refresh.
+			stage.Go(runner.RunConfigurationRefresh)
+		},
+	)
 }
 
 func (a *App) constructModules(kasConn grpc.ClientConnInterface) ([]modagent.Module, error) {

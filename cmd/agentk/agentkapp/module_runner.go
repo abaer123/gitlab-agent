@@ -49,47 +49,54 @@ func (h *moduleHolder) runPipe(ctx context.Context) error {
 
 type moduleRunner struct {
 	log                  *zap.Logger
-	modules              []modagent.Module
+	holders              []moduleHolder
 	configurationWatcher agent_configuration_rpc.ConfigurationWatcherInterface
 }
 
-func (r *moduleRunner) Run(ctx context.Context) error {
-	holders := make([]moduleHolder, 0, len(r.modules))
-	for _, module := range r.modules {
+func newModuleRunner(log *zap.Logger, modules []modagent.Module, configurationWatcher agent_configuration_rpc.ConfigurationWatcherInterface) *moduleRunner {
+	holders := make([]moduleHolder, 0, len(modules))
+	for _, module := range modules {
 		holders = append(holders, moduleHolder{
 			module:      module,
 			cfg2pipe:    make(chan *agentcfg.AgentConfiguration),
 			pipe2module: make(chan *agentcfg.AgentConfiguration),
 		})
 	}
+	return &moduleRunner{
+		log:                  log,
+		holders:              holders,
+		configurationWatcher: configurationWatcher,
+	}
+}
+
+func (r *moduleRunner) RunModules(ctx context.Context) error {
 	return cmd.RunStages(ctx,
 		func(stage stager.Stage) {
-			for _, holder := range holders {
+			for _, holder := range r.holders {
 				holder := holder // capture the right variable
 				stage.Go(holder.runModule)
 			}
 		},
 		func(stage stager.Stage) {
-			for _, holder := range holders {
+			for _, holder := range r.holders {
 				holder := holder // capture the right variable
 				stage.Go(holder.runPipe)
 			}
 		},
-		func(stage stager.Stage) {
-			stage.Go(func(ctx context.Context) error {
-				r.configurationWatcher.Watch(ctx, func(ctx context.Context, data agent_configuration_rpc.ConfigurationData) {
-					err := r.applyConfiguration(holders, data.CommitId, data.Config)
-					if err != nil {
-						if !errz.ContextDone(err) {
-							r.log.Error("Failed to apply configuration", logz.CommitId(data.CommitId), zap.Error(err))
-						}
-						return
-					}
-				})
-				return nil
-			})
-		},
 	)
+}
+
+func (r *moduleRunner) RunConfigurationRefresh(ctx context.Context) error {
+	r.configurationWatcher.Watch(ctx, func(ctx context.Context, data agent_configuration_rpc.ConfigurationData) {
+		err := r.applyConfiguration(r.holders, data.CommitId, data.Config)
+		if err != nil {
+			if !errz.ContextDone(err) {
+				r.log.Error("Failed to apply configuration", logz.CommitId(data.CommitId), zap.Error(err))
+			}
+			return
+		}
+	})
+	return nil
 }
 
 func (r *moduleRunner) applyConfiguration(holders []moduleHolder, commitId string, config *agentcfg.AgentConfiguration) error {
