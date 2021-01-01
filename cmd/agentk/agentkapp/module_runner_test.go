@@ -14,6 +14,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
@@ -68,12 +69,15 @@ func TestConfigurationIsApplied(t *testing.T) {
 		m.EXPECT().
 			DefaultAndValidateConfiguration(cfg2),
 	)
-	a := &moduleRunner{
-		log:                  zaptest.NewLogger(t),
-		modules:              []modagent.Module{m},
-		configurationWatcher: watcher,
-	}
-	err := a.Run(ctx)
+	a := newModuleRunner(zaptest.NewLogger(t), []modagent.Module{m}, watcher)
+	g, ctx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		return a.RunModules(ctx)
+	})
+	g.Go(func() error {
+		return a.RunConfigurationRefresh(ctx)
+	})
+	err := g.Wait()
 	require.NoError(t, err)
 }
 
@@ -118,11 +122,14 @@ func TestConfigurationIsSquashed(t *testing.T) {
 		m.EXPECT().
 			DefaultAndValidateConfiguration(cfg2),
 	)
-	a := &moduleRunner{
-		log:                  zaptest.NewLogger(t),
-		modules:              []modagent.Module{m},
-		configurationWatcher: watcher,
-	}
-	err := a.Run(ctx)
+	a := newModuleRunner(zaptest.NewLogger(t), []modagent.Module{m}, watcher)
+	g, ctx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		return a.RunModules(ctx)
+	})
+	g.Go(func() error {
+		return a.RunConfigurationRefresh(ctx)
+	})
+	err := g.Wait()
 	require.NoError(t, err)
 }
