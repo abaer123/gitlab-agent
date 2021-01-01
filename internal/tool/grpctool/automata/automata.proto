@@ -3,7 +3,7 @@ syntax = "proto3";
 // If you make any changes make sure you run: make regenerate-proto
 
 // Package allows to define the allowed order in which fields of a oneof group can appear in a client gRPC stream.
-package automata;
+package gitlab.agent.grpctool.automata;
 
 option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/automata";
 

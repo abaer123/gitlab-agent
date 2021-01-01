@@ -248,32 +248,32 @@ func TestStreamVisitorMissingCallback(t *testing.T) {
 	v, err := grpctool.NewStreamVisitor(&test.Response{})
 	require.NoError(t, err)
 	err = v.Visit(stream)
-	require.EqualError(t, err, "no callback defined for field test.Response.scalar (1)")
+	require.EqualError(t, err, "no callback defined for field gitlab.agent.grpctool.test.Response.scalar (1)")
 }
 
 func TestStreamVisitorNoOneofs(t *testing.T) {
 	_, err := grpctool.NewStreamVisitor(&test.NoOneofs{})
-	require.EqualError(t, err, "one oneof group is expected in test.NoOneofs, 0 defined")
+	require.EqualError(t, err, "one oneof group is expected in gitlab.agent.grpctool.test.NoOneofs, 0 defined")
 }
 
 func TestStreamVisitorTwoOneofs(t *testing.T) {
 	_, err := grpctool.NewStreamVisitor(&test.TwoOneofs{})
-	require.EqualError(t, err, "one oneof group is expected in test.TwoOneofs, 2 defined")
+	require.EqualError(t, err, "one oneof group is expected in gitlab.agent.grpctool.test.TwoOneofs, 2 defined")
 }
 
 func TestStreamVisitorTwoValidOneofs(t *testing.T) {
 	_, err := grpctool.NewStreamVisitor(&test.TwoValidOneofs{})
-	require.EqualError(t, err, "one oneof group is expected in test.TwoValidOneofs, 2 defined")
+	require.EqualError(t, err, "one oneof group is expected in gitlab.agent.grpctool.test.TwoValidOneofs, 2 defined")
 }
 
 func TestStreamVisitorNumberOutOfOneof(t *testing.T) {
 	_, err := grpctool.NewStreamVisitor(&test.OutOfOneof{})
-	require.EqualError(t, err, "field number 1 is not part of oneof test.OutOfOneof.message")
+	require.EqualError(t, err, "field number 1 is not part of oneof gitlab.agent.grpctool.test.OutOfOneof.message")
 }
 
 func TestStreamVisitorNotAllFieldsReachable(t *testing.T) {
 	_, err := grpctool.NewStreamVisitor(&test.NotAllReachable{})
-	require.EqualError(t, err, "unreachable fields in oneof test.NotAllReachable.message: [1 2]")
+	require.EqualError(t, err, "unreachable fields in oneof gitlab.agent.grpctool.test.NotAllReachable.message: [1 2]")
 }
 
 func TestStreamVisitorInvalidNumber(t *testing.T) {
@@ -291,5 +291,5 @@ func TestStreamVisitorInvalidNumber(t *testing.T) {
 		grpctool.WithCallback(lastNumber, cb),
 		grpctool.WithCallback(20, cb),
 	)
-	require.EqualError(t, err, "oneof test.Response.message does not have a field 20")
+	require.EqualError(t, err, "oneof gitlab.agent.grpctool.test.Response.message does not have a field 20")
 }

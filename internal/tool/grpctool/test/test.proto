@@ -2,7 +2,7 @@ syntax = "proto3";
 
 // If you make any changes make sure you run: make regenerate-proto
 
-package test;
+package gitlab.agent.grpctool.test;
 
 option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/automata/test";
 
