@@ -1,6 +1,7 @@
 package server
 
 import (
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
@@ -21,4 +22,8 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	}
 	rpc.RegisterGitlabAccessServer(config.AgentServer, m)
 	return m, nil
+}
+
+func (f *Factory) Name() string {
+	return gitlab_access.ModuleName
 }

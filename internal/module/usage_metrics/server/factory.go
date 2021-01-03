@@ -18,3 +18,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 		usageReportingPeriod: config.Config.Observability.UsageReportingPeriod.AsDuration(),
 	}, nil
 }
+
+func (f *Factory) Name() string {
+	return usage_metrics.ModuleName
+}

@@ -116,11 +116,12 @@ func (a *App) constructModules(kasConn grpc.ClientConnInterface) ([]modagent.Mod
 	}
 	modules := make([]modagent.Module, 0, len(factories))
 	for _, factory := range factories {
+		moduleName := factory.Name()
 		module, err := factory.New(&modagent.Config{
-			Log:       a.Log,
+			Log:       a.Log.With(logz.ModuleName(moduleName)),
 			AgentMeta: a.AgentMeta,
 			Api: &agentAPI{
-				ModuleName:      factory.Name(),
+				ModuleName:      moduleName,
 				Client:          gitlab_access_rpc.NewGitlabAccessClient(kasConn),
 				ResponseVisitor: sv,
 			},
