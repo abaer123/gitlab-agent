@@ -1,6 +1,7 @@
 package server
 
 import (
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
@@ -22,4 +23,8 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	}
 	rpc.RegisterAgentConfigurationServer(config.AgentServer, m)
 	return m, nil
+}
+
+func (f *Factory) Name() string {
+	return agent_configuration.ModuleName
 }

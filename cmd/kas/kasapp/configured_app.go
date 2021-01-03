@@ -150,37 +150,36 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		},
 	}
 
-	// Configuration for modules
-	modconfig := &modserver.Config{
-		Log: a.Log,
-		Api: newAPI(apiConfig{
-			GitLabClient:           gitLabClient,
-			ErrorTracker:           errTracker,
-			AgentInfoCacheTtl:      cfg.Agent.InfoCacheTtl.AsDuration(),
-			AgentInfoCacheErrorTtl: cfg.Agent.InfoCacheErrorTtl.AsDuration(),
-		}),
-		Config:       cfg,
-		GitLabClient: gitLabClient,
-		Registerer:   registerer,
-		UsageTracker: usageTracker,
-		AgentServer:  agentServer,
-		ApiServer:    apiServer,
-		Gitaly: &gitaly.Pool{
-			ClientPool: gitalyClientPool,
-		},
-		KasName:  kasName,
-		Version:  cmd.Version,
-		CommitId: cmd.Commit,
-	}
-
 	// Construct modules
+	serverApi := newAPI(apiConfig{
+		GitLabClient:           gitLabClient,
+		ErrorTracker:           errTracker,
+		AgentInfoCacheTtl:      cfg.Agent.InfoCacheTtl.AsDuration(),
+		AgentInfoCacheErrorTtl: cfg.Agent.InfoCacheErrorTtl.AsDuration(),
+	})
+	poolWrapper := &gitaly.Pool{
+		ClientPool: gitalyClientPool,
+	}
 	modules := make([]modserver.Module, 0, len(factories))
 	for _, factory := range factories {
 		// factory.New() must be called from the main goroutine because it may mutate a gRPC server (register an API)
 		// and that can only be done before Serve() is called on the server.
-		module, err := factory.New(modconfig)
+		module, err := factory.New(&modserver.Config{
+			Log:          a.Log.With(logz.ModuleName(factory.Name())),
+			Api:          serverApi,
+			Config:       cfg,
+			GitLabClient: gitLabClient,
+			Registerer:   registerer,
+			UsageTracker: usageTracker,
+			AgentServer:  agentServer,
+			ApiServer:    apiServer,
+			Gitaly:       poolWrapper,
+			KasName:      kasName,
+			Version:      cmd.Version,
+			CommitId:     cmd.Commit,
+		})
 		if err != nil {
-			return fmt.Errorf("%T: %v", factory, err)
+			return fmt.Errorf("%s: %v", factory.Name(), err)
 		}
 		modules = append(modules, module)
 	}

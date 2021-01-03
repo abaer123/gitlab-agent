@@ -66,6 +66,8 @@ type API interface {
 type Factory interface {
 	// New creates a new instance of a Module.
 	New(*Config) (Module, error)
+	// Name returns module's name.
+	Name() string
 }
 
 type Module interface {

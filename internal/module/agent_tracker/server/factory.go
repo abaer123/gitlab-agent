@@ -18,3 +18,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	rpc.RegisterAgentTrackerServer(config.ApiServer, m)
 	return m, nil
 }
+
+func (f *Factory) Name() string {
+	return agent_tracker.ModuleName
+}

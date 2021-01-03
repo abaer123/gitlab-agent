@@ -3,6 +3,7 @@ package server
 import (
 	"time"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/cache"
@@ -38,6 +39,10 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	}
 	rpc.RegisterGitopsServer(config.AgentServer, m)
 	return m, nil
+}
+
+func (f *Factory) Name() string {
+	return gitops.ModuleName
 }
 
 func minDuration(a, b time.Duration) time.Duration {

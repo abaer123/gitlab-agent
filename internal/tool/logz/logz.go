@@ -99,6 +99,11 @@ func RemovedAgentConnectionRecords(n int) zap.Field {
 	return zap.Int("removed_agent_connection_records", n)
 }
 
+// GitLab-kas or agentk module name.
+func ModuleName(name string) zap.Field {
+	return zap.String("mod_name", name)
+}
+
 // This should be in https://gitlab.com/gitlab-org/labkit/-/blob/master/mask/url.go
 func maskURL(s string) string {
 	u, err := url.Parse(s)
