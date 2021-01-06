@@ -149,6 +149,57 @@ func TestStreamVisitorMixedHappyPath(t *testing.T) {
 	assert.Equal(t, 1, eofCalled)
 }
 
+func TestStreamVisitorCustomStartState(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	stream, calls := mock_rpc.InitMockClientStream(ctrl, true,
+		&test.Response{
+			Message: &test.Response_Last_{
+				Last: &test.Response_Last{},
+			},
+		},
+	)
+	gomock.InOrder(calls...)
+
+	var (
+		scalarCalled int
+		x1Called     int
+		dataCalled   int
+		lastCalled   int
+		eofCalled    int
+	)
+	v, err := grpctool.NewStreamVisitor(&test.Response{})
+	require.NoError(t, err)
+	err = v.Visit(stream,
+		grpctool.WithEOFCallback(func() error {
+			eofCalled++
+			return nil
+		}),
+		grpctool.WithCallback(scalarNumber, func(message proto.Message) error {
+			scalarCalled++
+			return nil
+		}),
+		grpctool.WithCallback(x1Number, func(x1 test.Enum1) error {
+			x1Called++
+			return nil
+		}),
+		grpctool.WithCallback(dataNumber, func(data interface{ GetData() []byte }) error {
+			dataCalled++
+			return nil
+		}),
+		grpctool.WithCallback(lastNumber, func(last interface{}) error {
+			lastCalled++
+			return nil
+		}),
+		grpctool.WithStartState(dataNumber),
+	)
+	require.NoError(t, err)
+	assert.Zero(t, scalarCalled)
+	assert.Zero(t, x1Called)
+	assert.Zero(t, dataCalled)
+	assert.Equal(t, 1, lastCalled)
+	assert.Equal(t, 1, eofCalled)
+}
+
 func setupStream(t *testing.T) *mock_rpc.MockClientStream {
 	ctrl := gomock.NewController(t)
 	stream, calls := mock_rpc.InitMockClientStream(ctrl, true,

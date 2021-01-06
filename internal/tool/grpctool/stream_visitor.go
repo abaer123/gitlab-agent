@@ -69,7 +69,7 @@ func (s *StreamVisitor) Visit(stream Stream, opts ...StreamVisitorOption) error 
 		return err
 	}
 	messageType := s.reflectMessage.Type()
-	currentState := startState
+	currentState := cfg.startState
 	for {
 		allowedTransitions := s.allowedTransitions[currentState]
 		msgRefl := messageType.New()
@@ -160,6 +160,7 @@ func (s *StreamVisitor) defaultOptions() config {
 		oneof:                     s.oneof,
 		eofCallback:               defaultEOFCallback,
 		invalidTransitionCallback: defaultInvalidTransitionCallback,
+		startState:                startState,
 		msgCallbacks:              make(map[protoreflect.FieldNumber]reflect.Value),
 		fieldCallbacks:            make(map[protoreflect.FieldNumber]reflect.Value),
 	}
