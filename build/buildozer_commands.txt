@@ -1,2 +1,3 @@
 set race "on"|//...:%go_test
+set size "small"|//...:%go_test
 fix unusedLoads|//...:__pkg__
