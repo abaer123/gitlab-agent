@@ -19,6 +19,7 @@ type config struct {
 	oneof                     protoreflect.OneofDescriptor
 	eofCallback               EOFCallback
 	invalidTransitionCallback InvalidTransitionCallback
+	startState                protoreflect.FieldNumber
 	msgCallbacks              map[protoreflect.FieldNumber]reflect.Value // callbacks that accept the whole message
 	fieldCallbacks            map[protoreflect.FieldNumber]reflect.Value // callbacks that accept a specific field type of the oneof
 }
@@ -87,6 +88,15 @@ func WithCallback(transitionTo protoreflect.FieldNumber, cb MessageCallback) Str
 func WithInvalidTransitionCallback(cb InvalidTransitionCallback) StreamVisitorOption {
 	return func(c *config) error {
 		c.invalidTransitionCallback = cb
+		return nil
+	}
+}
+
+// WithStartState allows to specify a custom automata start state.
+// The visitor then acts as if it has just visited field with startState number.
+func WithStartState(startState protoreflect.FieldNumber) StreamVisitorOption {
+	return func(c *config) error {
+		c.startState = startState
 		return nil
 	}
 }
