@@ -117,6 +117,7 @@ func (j *pollJob) fetchConfiguration(ctx context.Context, agentInfo *api.AgentIn
 	return &agentcfg.AgentConfiguration{
 		Gitops:        configFile.Gitops,
 		Observability: configFile.Observability,
+		Cilium:        configFile.Cilium,
 	}, nil
 }
 

@@ -539,6 +539,77 @@ var _ interface {
 	ErrorName() string
 } = LoggingCFValidationError{}
 
+// Validate checks the field values on CiliumCF with the rules defined in the
+// proto definition for this message. If any rules are violated, an error is returned.
+func (m *CiliumCF) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if utf8.RuneCountInString(m.GetHubbleRelayAddress()) < 1 {
+		return CiliumCFValidationError{
+			field:  "HubbleRelayAddress",
+			reason: "value length must be at least 1 runes",
+		}
+	}
+
+	return nil
+}
+
+// CiliumCFValidationError is the validation error returned by
+// CiliumCF.Validate if the designated constraints aren't met.
+type CiliumCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e CiliumCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e CiliumCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e CiliumCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e CiliumCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e CiliumCFValidationError) ErrorName() string { return "CiliumCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e CiliumCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sCiliumCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = CiliumCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = CiliumCFValidationError{}
+
 // Validate checks the field values on ConfigurationFile with the rules defined
 // in the proto definition for this message. If any rules are violated, an
 // error is returned.
@@ -561,6 +632,16 @@ func (m *ConfigurationFile) Validate() error {
 		if err := v.Validate(); err != nil {
 			return ConfigurationFileValidationError{
 				field:  "Observability",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetCilium()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ConfigurationFileValidationError{
+				field:  "Cilium",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -648,6 +729,16 @@ func (m *AgentConfiguration) Validate() error {
 		if err := v.Validate(); err != nil {
 			return AgentConfigurationValidationError{
 				field:  "Observability",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetCilium()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return AgentConfigurationValidationError{
+				field:  "Cilium",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}

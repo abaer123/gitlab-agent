@@ -68,12 +68,17 @@ message LoggingCF {
   logging_level_enum level = 1 [json_name = "level"];
 }
 
+message CiliumCF {
+  string hubble_relay_address = 1 [json_name = "hubble_relay_address", (validate.rules).string.min_len = 1];
+}
+
 // ConfigurationFile represents user-facing configuration file.
 message ConfigurationFile {
   GitopsCF gitops = 1 [json_name = "gitops"];
   // Configuration related to all things observability. This is about the
   // agent itself, not any observability-related features.
   ObservabilityCF observability = 2 [json_name = "observability"];
+  CiliumCF cilium = 3 [json_name = "cilium"];
 }
 
 // AgentConfiguration represents configuration for agentk.
@@ -83,4 +88,5 @@ message ConfigurationFile {
 message AgentConfiguration {
   GitopsCF gitops = 1;
   ObservabilityCF observability = 2;
+  CiliumCF cilium = 3;
 }

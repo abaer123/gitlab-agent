@@ -44,7 +44,8 @@ internal-regenerate-mocks:
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modagent" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitaly" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc" \
-		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_errtracker"
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_errtracker" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/cilium_alert/agent"
 
 .PHONY: regenerate-mocks
 regenerate-mocks: internal-regenerate-mocks fmt update-bazel
