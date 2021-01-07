@@ -47,10 +47,7 @@ go_library(
 go_test(
     name = "agentkapp_test",
     size = "small",
-    srcs = [
-        "api_test.go",
-        "module_runner_test.go",
-    ],
+    srcs = ["module_runner_test.go"],
     embed = [":agentkapp"],
     race = "on",
     deps = [

@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "agent",
@@ -16,13 +16,4 @@ go_library(
         "//pkg/agentcfg",
         "@org_uber_go_zap//:zap",
     ],
-)
-
-go_test(
-    name = "agent_test",
-    size = "small",
-    srcs = ["module_test.go"],
-    embed = [":agent"],
-    race = "on",
-    deps = ["//internal/module/modagent"],
 )
