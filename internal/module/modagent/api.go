@@ -120,3 +120,10 @@ func WithRequestBody(body io.Reader) GitLabRequestOption {
 		}
 	}
 }
+
+// WithRequestMethod specifies request HTTP method.
+func WithRequestMethod(method string) GitLabRequestOption {
+	return func(c *GitLabRequestConfig) {
+		c.Method = method
+	}
+}

@@ -7,6 +7,7 @@ require (
 	github.com/argoproj/gitops-engine v0.2.1-0.20201214220517-53cbe5f6be19
 	github.com/ash2k/stager v0.2.1
 	github.com/bmatcuk/doublestar/v2 v2.0.4
+	github.com/cilium/cilium v1.8.1
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1.0.20200107205605-c66185887605
 	github.com/envoyproxy/protoc-gen-validate v0.4.2-0.20201217164128-7df253a68e6b
 	github.com/go-logr/zapr v0.3.0
@@ -47,6 +48,7 @@ require (
 
 replace (
 	github.com/golang/mock => github.com/golang/mock v1.4.4-0.20201210203420-1fe605df5e5f
+	github.com/optiopay/kafka => github.com/cilium/kafka v0.0.0-20180809090225-01ce283b732b
 	// same version as used by rules_go to maintain compatibility with patches - see the WORKSPACE file
 	golang.org/x/tools => golang.org/x/tools v0.0.0-20201201192219-a1b87a1c0de4
 

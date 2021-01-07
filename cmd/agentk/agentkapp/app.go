@@ -16,6 +16,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc"
+	cilium_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/cilium_alert/agent"
 	gitlab_access_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/rpc"
 	gitops_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
@@ -35,6 +36,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/resource"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp" // Install the GCP auth plugin
 	"k8s.io/klog/v2"
 	"nhooyr.io/websocket"
 )
@@ -113,6 +115,7 @@ func (a *App) constructModules(kasConn grpc.ClientConnInterface) ([]modagent.Mod
 		&gitops_agent.Factory{
 			GetObjectsToSynchronizeRetryPeriod: defaultGetObjectsToSynchronizeRetryPeriod,
 		},
+		&cilium_agent.Factory{},
 	}
 	modules := make([]modagent.Module, 0, len(factories))
 	for _, factory := range factories {
