@@ -79,9 +79,8 @@ go_repository(
     build_file_name = "BUILD.bazel",
     build_file_proto_mode = "disable_global",
     importpath = "k8s.io/kubernetes",
-    replace = "k8s.io/kubernetes",
-    sum = "h1:sEvBYVM1/H5hqejFR10u8ndreYARV3DiTrqi2AY31ok=",
-    version = "v1.19.2",
+    sum = "h1:SHJ+Ua3v2nzKB6JEGJilKv/JIiVJFo+dCs707Z3H0nk=",
+    version = "v1.20.1",
 )
 
 # It's here to add build tags
