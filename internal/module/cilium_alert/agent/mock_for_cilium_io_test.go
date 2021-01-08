@@ -68,6 +68,20 @@ func (mr *MockCiliumV2InterfaceMockRecorder) CiliumEndpoints(arg0 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CiliumEndpoints", reflect.TypeOf((*MockCiliumV2Interface)(nil).CiliumEndpoints), arg0)
 }
 
+// CiliumExternalWorkloads mocks base method.
+func (m *MockCiliumV2Interface) CiliumExternalWorkloads() v20.CiliumExternalWorkloadInterface {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CiliumExternalWorkloads")
+	ret0, _ := ret[0].(v20.CiliumExternalWorkloadInterface)
+	return ret0
+}
+
+// CiliumExternalWorkloads indicates an expected call of CiliumExternalWorkloads.
+func (mr *MockCiliumV2InterfaceMockRecorder) CiliumExternalWorkloads() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CiliumExternalWorkloads", reflect.TypeOf((*MockCiliumV2Interface)(nil).CiliumExternalWorkloads))
+}
+
 // CiliumIdentities mocks base method.
 func (m *MockCiliumV2Interface) CiliumIdentities() v20.CiliumIdentityInterface {
 	m.ctrl.T.Helper()
@@ -80,6 +94,20 @@ func (m *MockCiliumV2Interface) CiliumIdentities() v20.CiliumIdentityInterface {
 func (mr *MockCiliumV2InterfaceMockRecorder) CiliumIdentities() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CiliumIdentities", reflect.TypeOf((*MockCiliumV2Interface)(nil).CiliumIdentities))
+}
+
+// CiliumLocalRedirectPolicies mocks base method.
+func (m *MockCiliumV2Interface) CiliumLocalRedirectPolicies(arg0 string) v20.CiliumLocalRedirectPolicyInterface {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CiliumLocalRedirectPolicies", arg0)
+	ret0, _ := ret[0].(v20.CiliumLocalRedirectPolicyInterface)
+	return ret0
+}
+
+// CiliumLocalRedirectPolicies indicates an expected call of CiliumLocalRedirectPolicies.
+func (mr *MockCiliumV2InterfaceMockRecorder) CiliumLocalRedirectPolicies(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CiliumLocalRedirectPolicies", reflect.TypeOf((*MockCiliumV2Interface)(nil).CiliumLocalRedirectPolicies), arg0)
 }
 
 // CiliumNetworkPolicies mocks base method.

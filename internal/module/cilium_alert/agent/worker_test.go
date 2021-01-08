@@ -54,9 +54,13 @@ func TestSuccessfulMapping(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{Name: "Test"},
 					Spec: &api.Rule{
 						EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
-						Ingress: []api.IngressRule{api.IngressRule{
-							FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
-						}},
+						Ingress: []api.IngressRule{
+							{
+								IngressCommonRule: api.IngressCommonRule{
+									FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+								},
+							},
+						},
 					},
 				}},
 			}, nil),
@@ -102,9 +106,13 @@ func TestNoMatch(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{Name: "Test"},
 					Spec: &api.Rule{
 						EndpointSelector: api.NewESFromLabels(labels.NewLabel("notthiskey", "", "any")),
-						Ingress: []api.IngressRule{api.IngressRule{
-							FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
-						}},
+						Ingress: []api.IngressRule{
+							{
+								IngressCommonRule: api.IngressCommonRule{
+									FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+								},
+							},
+						},
 					},
 				}},
 			}, nil),
@@ -122,7 +130,7 @@ func TestJSON(t *testing.T) {
 	p1 := payload{
 		Alert: alert{
 			Flow: (*flowAlias)(&flow.Flow{
-				DropReason: 123,
+				DropReasonDesc: flow.DropReason_POLICY_DENIED,
 			}),
 			CiliumNetworkPolicy: &v2.CiliumNetworkPolicy{
 				TypeMeta: metav1.TypeMeta{
@@ -140,7 +148,7 @@ func TestJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Empty(t, cmp.Diff(p1.Alert.CiliumNetworkPolicy, p2.Alert.CiliumNetworkPolicy))
-	assert.Empty(t, cmp.Diff(p1.Alert.Flow, p2.Alert.Flow, protocmp.Transform()))
+	assert.Empty(t, cmp.Diff((*flow.Flow)(p1.Alert.Flow), (*flow.Flow)(p2.Alert.Flow), protocmp.Transform()))
 }
 
 func setupTest(t *testing.T) (*worker, *MockObserverClient, *MockCiliumV2Interface, *MockCiliumNetworkPolicyInterface, *MockObserver_GetFlowsClient, *mock_modagent.MockAPI) {
