@@ -18,10 +18,6 @@ require (
 	github.com/google/go-cmp v0.5.4
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.1-0.20200507082539-9abf3eb82b4a
-	// Pick up https://github.com/moby/term/commit/3e73b07ecbf5dc7b59fcecc783c4988c6b5aa767 which fixes the breakage
-	// caused by https://github.com/golang/sys/commit/6fcdbc0bbc04
-	// This can be removed once Kubernetes bumps the dependency.
-	github.com/moby/term v0.0.0-20200915141129-7f0af18e79f2 // indirect
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/piotrkowalczuk/promgrpc/v4 v4.0.4
 	github.com/prometheus/client_golang v1.9.0
