@@ -733,8 +733,8 @@ def go_repositories():
         name = "com_github_creack_pty",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/creack/pty",
-        sum = "h1:uDmaGzcdjhF4i/plgjmEsriH11Y0o7RKapEf/LDaM3w=",
-        version = "v1.1.9",
+        sum = "h1:6pwm8kMQKCmgUg0ZHTm5+/YvRK0s3THD/28+T6/kk4A=",
+        version = "v1.1.7",
     )
     go_repository(
         name = "com_github_cyphar_filepath_securejoin",
@@ -2638,8 +2638,8 @@ def go_repositories():
         name = "com_github_moby_term",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/moby/term",
-        sum = "h1:SPoLlS9qUUnXcIY4pvA4CTwYjk0Is5f4UPEkeESr53k=",
-        version = "v0.0.0-20200915141129-7f0af18e79f2",
+        sum = "h1:aY7OQNf2XqY/JQ6qREWamhI/81os/agb2BAGpcx5yWI=",
+        version = "v0.0.0-20200312100748-672ec06f55cd",
     )
     go_repository(
         name = "com_github_modern_go_concurrent",
