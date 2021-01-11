@@ -52,3 +52,29 @@ bazel run //cmd/agentk -- --kas-address=grpc://127.0.0.1:8150 --token-file="$(pw
 ```
 
 You can also inspect the [Makefile](Makefile) for more targets.
+
+## Running tests locally
+
+### To run all the tests 
+
+Simply execute from the root folder: `make test`
+
+### To run specific test scenarios
+
+Take the directory and the target name of the test you're interested in, then run it with Bazel. E.g.:
+
+To run the tests that live at `internal/module/gitops/server/module_test.go`, the `BUILD.bazel` file that defines the test's target name lives at `internal/module/gitops/server/BUILD.bazel`. In the latter, you'll see the target name defined like:
+
+```bazel
+go_test(
+    name = "server_test",
+    size = "small",
+    srcs = [
+        "module_test.go",
+```
+
+Now you know the target name is `server_test` and the directory is `internal/module/gitops/server/`. Run the test scenario with:
+
+```shell
+bazel test //internal/module/gitops/server:server_test
+```
