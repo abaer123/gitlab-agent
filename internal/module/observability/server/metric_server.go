@@ -9,7 +9,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/process"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/httpz"
 )
 
 const (
@@ -38,7 +38,7 @@ func (s *metricServer) Run(ctx context.Context) error {
 		ReadTimeout:  readTimeout,
 		IdleTimeout:  idleTimeout,
 	}
-	return process.RunServer(ctx, srv, s.Listener, shutdownTimeout)
+	return httpz.RunServer(ctx, srv, s.Listener, shutdownTimeout)
 }
 
 func (s *metricServer) constructHandler() http.Handler {
