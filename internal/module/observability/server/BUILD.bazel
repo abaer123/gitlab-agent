@@ -13,8 +13,8 @@ go_library(
     deps = [
         "//internal/module/modserver",
         "//internal/module/observability",
+        "//internal/tool/httpz",
         "//internal/tool/logz",
-        "//internal/tool/process",
         "//internal/tool/protodefault",
         "//pkg/kascfg",
         "@com_github_prometheus_client_golang//prometheus",

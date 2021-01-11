@@ -2,7 +2,10 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "httpz",
-    srcs = ["rate_limiter.go"],
+    srcs = [
+        "rate_limiter.go",
+        "run_server.go",
+    ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/httpz",
     visibility = ["//:__subpackages__"],
 )
