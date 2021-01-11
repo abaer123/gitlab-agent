@@ -66,6 +66,9 @@ test:
     - make test-ci
     - *registry_creds
     - if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then make release-latest-all-ci; fi
+  except:
+    refs:
+      - /(^docs[\/-].+|.+-docs$)/
 
 lint:
   # registry.gitlab.com/gitlab-org/gitlab-build-images:golangci-lint-alpine as of 2020-12-16
@@ -80,6 +83,9 @@ lint:
       codequality: gl-code-quality-report.json
     paths:
       - gl-code-quality-report.json
+  except:
+    refs:
+      - /(^docs[\/-].+|.+-docs$)/
 
 push_commit_image:
   stage: push_image
@@ -125,6 +131,9 @@ code_navigation:
   artifacts:
     reports:
       lsif: dump.lsif
+  except:
+    refs:
+      - /(^docs[\/-].+|.+-docs$)/
 
 # You can override the included template(s) by including variable overrides
 # See https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
@@ -136,7 +145,6 @@ sast:
     SAST_DEFAULT_ANALYZERS: kubesec
     SCAN_KUBERNETES_MANIFESTS: "true"
   stage: test
-
 
 # Copied from https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Security/Container-Scanning.gitlab-ci.yml
 # Copied because we need two jobs, not just one.
