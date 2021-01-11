@@ -19,7 +19,9 @@ func TestIngressMatch(t *testing.T) {
 			EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
 			Ingress: []api.IngressRule{
 				{
-					FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+					IngressCommonRule: api.IngressCommonRule{
+						FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+					},
 				},
 			},
 		},
@@ -47,7 +49,9 @@ func TestIngressNotMatched(t *testing.T) {
 			EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
 			Ingress: []api.IngressRule{
 				{
-					FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+					IngressCommonRule: api.IngressCommonRule{
+						FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+					},
 				},
 			},
 		},
@@ -75,7 +79,9 @@ func TestEgressMatch(t *testing.T) {
 			EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
 			Egress: []api.EgressRule{
 				{
-					ToEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+					EgressCommonRule: api.EgressCommonRule{
+						ToEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+					},
 				},
 			},
 		},
@@ -103,7 +109,9 @@ func TestEgressNotMatched(t *testing.T) {
 			EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
 			Egress: []api.EgressRule{
 				{
-					ToEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+					EgressCommonRule: api.EgressCommonRule{
+						ToEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+					},
 				},
 			},
 		},
