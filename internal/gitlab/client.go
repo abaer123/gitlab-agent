@@ -168,7 +168,7 @@ func (c *Client) DoStream(ctx context.Context, method, path string, headers http
 		return nil, fmt.Errorf("sign JWT: %v", err)
 	}
 	if headers != nil {
-		r.Header = headers
+		r.Header = headers.Clone()
 	}
 	if agentToken != "" {
 		r.Header.Set("Authorization", "Bearer "+string(agentToken))
