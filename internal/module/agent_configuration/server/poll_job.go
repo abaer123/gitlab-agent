@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"path"
@@ -127,6 +128,10 @@ func parseYAMLToConfiguration(configYAML []byte) (*agentcfg.ConfigurationFile, e
 		return nil, fmt.Errorf("YAMLToJSON: %v", err)
 	}
 	configFile := &agentcfg.ConfigurationFile{}
+	if bytes.Equal(configJSON, []byte("null")) {
+		// Empty config
+		return configFile, nil
+	}
 	err = protojson.Unmarshal(configJSON, configFile)
 	if err != nil {
 		return nil, fmt.Errorf("protojson.Unmarshal: %v", err)
