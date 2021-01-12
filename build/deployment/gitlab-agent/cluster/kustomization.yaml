@@ -5,3 +5,5 @@ resources:
 components:
 - components/gitops-read-all
 - components/gitops-write-all
+- components/cilium-alert-read
+
