@@ -50,6 +50,7 @@ go_library(
         "@com_gitlab_gitlab_org_gitaly//client",
         "@com_gitlab_gitlab_org_labkit//correlation/grpc",
         "@com_gitlab_gitlab_org_labkit//errortracking",
+        "@com_gitlab_gitlab_org_labkit//monitoring",
         "@io_k8s_apimachinery//pkg/util/wait",
         "@io_k8s_klog_v2//:klog",
         "@io_k8s_sigs_yaml//:yaml",

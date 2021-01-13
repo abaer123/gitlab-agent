@@ -220,6 +220,7 @@ gdk-install:
 # Set TARGET_DIRECTORY variable to the target directory before running this target
 GIT_COMMIT = $(shell git rev-parse --short HEAD)
 GIT_TAG = $(shell git tag --points-at HEAD 2>/dev/null || true)
+BUILD_TIME = $(shell date -u +%Y%m%d.%H%M%S)
 ifeq ($(GIT_TAG), )
 	GIT_TAG = "v0.0.0"
 endif
@@ -227,7 +228,7 @@ endif
 kas:
 	go build \
 		-tags "${GO_BUILD_TAGS}" \
-		-ldflags "-X gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.Version=$(GIT_TAG) -X gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.Commit=$(GIT_COMMIT)" \
+		-ldflags "-X gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.Version=$(GIT_TAG) -X gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.Commit=$(GIT_COMMIT) -X gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.BuildTime=$(BUILD_TIME)" \
 		-o "$(TARGET_DIRECTORY)" ./cmd/kas
 
 # https://github.com/golang/go/wiki/Modules#how-to-upgrade-and-downgrade-dependencies
