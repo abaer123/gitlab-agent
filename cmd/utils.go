@@ -74,7 +74,7 @@ func runWithContext(ctx context.Context, factory RunnableFactory) error {
 		return err
 	}
 	if *printVersion {
-		fmt.Fprintf(os.Stderr, "%s version: %s, commit: %s\n", filepath.Base(programName), Version, Commit)
+		fmt.Fprintf(os.Stderr, "%s version: %s, commit: %s, built: %s\n", filepath.Base(programName), Version, Commit, BuildTime)
 		return nil
 	}
 	return app.Run(ctx)

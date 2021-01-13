@@ -11,6 +11,7 @@ def define_command_targets(name, binary_embed):
     x_defs = {
         "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.Version": "{STABLE_BUILD_GIT_TAG}",
         "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.Commit": "{STABLE_BUILD_GIT_COMMIT}",
+        "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.BuildTime": "{BUILD_TIME}",
     }
     go_binary(
         name = name,

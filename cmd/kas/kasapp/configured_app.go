@@ -42,6 +42,7 @@ import (
 	"gitlab.com/gitlab-org/gitaly/client"
 	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
 	"gitlab.com/gitlab-org/labkit/errortracking"
+	"gitlab.com/gitlab-org/labkit/monitoring"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
@@ -72,7 +73,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	ssh := metric.ServerStatsHandler()
 	csh := metric.ClientStatsHandler()
 	//goCollector := prometheus.NewGoCollector()
-	cleanup, err := metric.Register(registerer, ssh, csh)
+	cleanup, err := metric.Register(registerer, ssh, csh, gitlabBuildInfoGauge())
 	if err != nil {
 		return err
 	}
@@ -550,6 +551,19 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 		// This should never happen
 		return nil, fmt.Errorf("unexpected Redis config type: %T", cfg.RedisConfig)
 	}
+}
+
+func gitlabBuildInfoGauge() prometheus.Gauge {
+	buildInfoGauge := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: monitoring.GitlabBuildInfoGaugeMetricName,
+		Help: "Current build info for this GitLab Service",
+		ConstLabels: prometheus.Labels{
+			"version": cmd.Version,
+			"built":   cmd.BuildTime,
+		},
+	})
+	buildInfoGauge.Set(1)
+	return buildInfoGauge
 }
 
 func keepaliveParams(maxConnectionAge time.Duration) keepalive.ServerParameters {
