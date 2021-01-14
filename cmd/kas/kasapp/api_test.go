@@ -15,6 +15,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_errtracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/codes"
@@ -40,13 +41,13 @@ func TestGetAgentInfoFailures(t *testing.T) {
 	})
 	gomock.InOrder(
 		gitlabClient.EXPECT().
-			DoJSON(gomock.Any(), http.MethodGet, agentInfoApiPath, nil, mock_gitlab.AgentkToken, nil, gomock.Any()).
+			DoJSON(gomock.Any(), http.MethodGet, agentInfoApiPath, nil, testhelpers.AgentkToken, nil, gomock.Any()).
 			Return(&gitlab.ClientError{Kind: gitlab.ErrorKindForbidden, StatusCode: http.StatusForbidden}),
 		gitlabClient.EXPECT().
-			DoJSON(gomock.Any(), http.MethodGet, agentInfoApiPath, nil, mock_gitlab.AgentkToken, nil, gomock.Any()).
+			DoJSON(gomock.Any(), http.MethodGet, agentInfoApiPath, nil, testhelpers.AgentkToken, nil, gomock.Any()).
 			Return(&gitlab.ClientError{Kind: gitlab.ErrorKindUnauthorized, StatusCode: http.StatusUnauthorized}),
 		gitlabClient.EXPECT().
-			DoJSON(gomock.Any(), http.MethodGet, agentInfoApiPath, nil, mock_gitlab.AgentkToken, nil, gomock.Any()).
+			DoJSON(gomock.Any(), http.MethodGet, agentInfoApiPath, nil, testhelpers.AgentkToken, nil, gomock.Any()).
 			Return(&gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}),
 		errTracker.EXPECT().
 			Capture(matcher.ErrorEq("GetAgentInfo(): error kind: 0; status: 500"), gomock.Any()).
@@ -54,24 +55,24 @@ func TestGetAgentInfoFailures(t *testing.T) {
 				cancel() // exception captured, cancel the context to stop the test
 			}),
 	)
-	info, err, retErr := apiObj.GetAgentInfo(ctx, l, mock_gitlab.AgentkToken, false)
+	info, err, retErr := apiObj.GetAgentInfo(ctx, l, testhelpers.AgentkToken, false)
 	require.True(t, retErr)
 	assert.Equal(t, codes.PermissionDenied, status.Code(err))
 	assert.Nil(t, info)
 
-	info, err, retErr = apiObj.GetAgentInfo(ctx, l, mock_gitlab.AgentkToken, false)
+	info, err, retErr = apiObj.GetAgentInfo(ctx, l, testhelpers.AgentkToken, false)
 	require.True(t, retErr)
 	assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	assert.Nil(t, info)
 
-	info, err, retErr = apiObj.GetAgentInfo(ctx, l, mock_gitlab.AgentkToken, false)
+	info, err, retErr = apiObj.GetAgentInfo(ctx, l, testhelpers.AgentkToken, false)
 	require.True(t, retErr)
 	assert.Equal(t, codes.Unavailable, status.Code(err))
 	assert.Nil(t, info)
 }
 
 func TestGetAgentInfo(t *testing.T) {
-	ctx, correlationId := mock_gitlab.CtxWithCorrelation(t)
+	ctx, correlationId := testhelpers.CtxWithCorrelation(t)
 	response := getAgentInfoResponse{
 		ProjectId: 234,
 		AgentId:   555,
@@ -93,11 +94,11 @@ func TestGetAgentInfo(t *testing.T) {
 	r := http.NewServeMux()
 	r.HandleFunc(agentInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
-		if !mock_gitlab.AssertGetRequestIsCorrect(t, w, r, correlationId) {
+		if !testhelpers.AssertGetRequestIsCorrect(t, w, r, correlationId) {
 			return
 		}
 
-		mock_gitlab.RespondWithJSON(t, w, response)
+		testhelpers.RespondWithJSON(t, w, response)
 	})
 	s := httptest.NewServer(r)
 	defer s.Close()
@@ -107,12 +108,12 @@ func TestGetAgentInfo(t *testing.T) {
 	l := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
 	apiObj := newAPI(apiConfig{
-		GitLabClient:           gitlab.NewClient(u, []byte(mock_gitlab.AuthSecretKey), mock_gitlab.ClientOptionsForTest()...),
+		GitLabClient:           gitlab.NewClient(u, []byte(testhelpers.AuthSecretKey), mock_gitlab.ClientOptionsForTest()...),
 		ErrorTracker:           mock_errtracker.NewMockTracker(ctrl),
 		AgentInfoCacheTtl:      0, // no cache!
 		AgentInfoCacheErrorTtl: 0,
 	})
-	agentInfo, err, retErr := apiObj.GetAgentInfo(ctx, l, mock_gitlab.AgentkToken, false)
+	agentInfo, err, retErr := apiObj.GetAgentInfo(ctx, l, testhelpers.AgentkToken, false)
 	require.False(t, retErr)
 	require.NoError(t, err)
 

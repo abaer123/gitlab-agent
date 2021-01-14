@@ -22,6 +22,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_usage_metrics"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -99,7 +100,7 @@ func TestSendUsageFailureAndRetry(t *testing.T) {
 }
 
 func TestSendUsageHttp(t *testing.T) {
-	ctx, correlationId := mock_gitlab.CtxWithCorrelation(t)
+	ctx, correlationId := testhelpers.CtxWithCorrelation(t)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	counters := map[string]int64{
@@ -109,8 +110,8 @@ func TestSendUsageHttp(t *testing.T) {
 	r := http.NewServeMux()
 	r.HandleFunc(usagePingApiPath, func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
-		mock_gitlab.AssertCommonRequestParams(t, r, correlationId)
-		if !mock_gitlab.AssertJWTSignature(t, w, r) {
+		testhelpers.AssertCommonRequestParams(t, r, correlationId)
+		if !testhelpers.AssertJWTSignature(t, w, r) {
 			return
 		}
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
@@ -137,7 +138,7 @@ func TestSendUsageHttp(t *testing.T) {
 	require.NoError(t, err)
 
 	m, tracker, _, _ := setupModule(t)
-	m.gitLabClient = gitlab.NewClient(u, []byte(mock_gitlab.AuthSecretKey), mock_gitlab.ClientOptionsForTest()...)
+	m.gitLabClient = gitlab.NewClient(u, []byte(testhelpers.AuthSecretKey), mock_gitlab.ClientOptionsForTest()...)
 
 	gomock.InOrder(
 		tracker.EXPECT().

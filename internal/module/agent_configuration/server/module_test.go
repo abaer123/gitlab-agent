@@ -15,10 +15,10 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_agent_tracker"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_internalgitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -48,7 +48,7 @@ func TestGetConfiguration(t *testing.T) {
 	resp := mock_rpc.NewMockAgentConfiguration_GetConfigurationServer(ctrl)
 	resp.EXPECT().
 		Context().
-		Return(mock_modserver.IncomingCtx(ctx, t, mock_gitlab.AgentkToken)).
+		Return(mock_modserver.IncomingCtx(ctx, t, testhelpers.AgentkToken)).
 		MinTimes(1)
 	resp.EXPECT().
 		Send(matcher.ProtoEq(t, &rpc.ConfigurationResponse{
@@ -96,7 +96,7 @@ func TestGetConfigurationResumeConnection(t *testing.T) {
 	resp := mock_rpc.NewMockAgentConfiguration_GetConfigurationServer(ctrl)
 	resp.EXPECT().
 		Context().
-		Return(mock_modserver.IncomingCtx(ctx, t, mock_gitlab.AgentkToken)).
+		Return(mock_modserver.IncomingCtx(ctx, t, testhelpers.AgentkToken)).
 		MinTimes(1)
 	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 	gomock.InOrder(
@@ -137,7 +137,7 @@ func setupModule(t *testing.T) (*module, *api.AgentInfo, *gomock.Controller, *mo
 	}, protocmp.IgnoreFields(&agent_tracker.ConnectedAgentInfo{}, "connected_at", "connection_id"))
 	gomock.InOrder(
 		mockApi.EXPECT().
-			GetAgentInfo(gomock.Any(), gomock.Any(), mock_gitlab.AgentkToken, true).
+			GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken, true).
 			Return(agentInfo, nil, false),
 		agentTracker.EXPECT().
 			RegisterConnection(gomock.Any(), connMatcher),

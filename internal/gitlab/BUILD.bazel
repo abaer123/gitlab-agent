@@ -32,6 +32,7 @@ go_test(
     race = "on",
     deps = [
         "//internal/tool/testing/mock_gitlab",
+        "//internal/tool/testing/testhelpers",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
     ],
