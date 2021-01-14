@@ -11,6 +11,7 @@ import (
 	"github.com/dgrijalva/jwt-go/v4"
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"gitlab.com/gitlab-org/labkit/correlation"
 )
 
@@ -80,4 +81,25 @@ func CtxWithCorrelation(t *testing.T) (context.Context, string) {
 
 func AssignResult(target, result interface{}) {
 	reflect.ValueOf(target).Elem().Set(reflect.ValueOf(result).Elem())
+}
+
+func AgentInfoObj() *api.AgentInfo {
+	return &api.AgentInfo{
+		Id:   123,
+		Name: "agent1",
+		GitalyInfo: api.GitalyInfo{
+			Address: "127.0.0.1:123123",
+			Token:   "abc",
+			Features: map[string]string{
+				"bla": "true",
+			},
+		},
+		Repository: gitalypb.Repository{
+			StorageName:        "StorageName",
+			RelativePath:       "RelativePath",
+			GitObjectDirectory: "GitObjectDirectory",
+			GlRepository:       "GlRepository",
+			GlProjectPath:      "GlProjectPath",
+		},
+	}
 }

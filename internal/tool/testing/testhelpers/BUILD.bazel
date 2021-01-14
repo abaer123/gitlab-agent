@@ -9,6 +9,7 @@ go_library(
         "//internal/api",
         "@com_github_dgrijalva_jwt_go_v4//:jwt-go",
         "@com_github_stretchr_testify//assert",
+        "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",
         "@com_gitlab_gitlab_org_labkit//correlation",
     ],
 )

@@ -57,7 +57,7 @@ func TestGetObjectsToSynchronizeGetProjectInfoFailures(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	m, mockCtrl, mockApi, _, gitlabClient := setupModuleBare(t, 1)
-	agentInfo := agentInfoObj()
+	agentInfo := testhelpers.AgentInfoObj()
 	mockApi.EXPECT().
 		GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken, false).
 		Return(agentInfo, nil, false).
@@ -607,7 +607,7 @@ func projectInfo() *api.ProjectInfo {
 
 func setupModule(t *testing.T, pollTimes int) (*module, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_gitlab.MockClientInterface) {
 	m, mockCtrl, mockApi, gitalyPool, gitlabClient := setupModuleBare(t, pollTimes)
-	agentInfo := agentInfoObj()
+	agentInfo := testhelpers.AgentInfoObj()
 	mockApi.EXPECT().
 		GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken, false).
 		Return(agentInfo, nil, false)
@@ -643,25 +643,4 @@ func setupModuleBare(t *testing.T, pollTimes int) (*module, *gomock.Controller, 
 	})
 	require.NoError(t, err)
 	return m.(*module), ctrl, mockApi, gitalyPool, gitlabClient
-}
-
-func agentInfoObj() *api.AgentInfo {
-	return &api.AgentInfo{
-		Id:   123,
-		Name: "agent1",
-		GitalyInfo: api.GitalyInfo{
-			Address: "127.0.0.1:123123",
-			Token:   "abc",
-			Features: map[string]string{
-				"bla": "true",
-			},
-		},
-		Repository: gitalypb.Repository{
-			StorageName:        "StorageName",
-			RelativePath:       "RelativePath",
-			GitObjectDirectory: "GitObjectDirectory",
-			GlRepository:       "GlRepository",
-			GlProjectPath:      "GlProjectPath",
-		},
-	}
 }
