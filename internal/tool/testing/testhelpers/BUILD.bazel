@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "testhelpers",
+    srcs = ["testing_helpers.go"],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/api",
+        "@com_github_dgrijalva_jwt_go_v4//:jwt-go",
+        "@com_github_stretchr_testify//assert",
+        "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",
+        "@com_gitlab_gitlab_org_labkit//correlation",
+    ],
+)

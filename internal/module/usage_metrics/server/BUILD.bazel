@@ -34,6 +34,7 @@ go_test(
         "//internal/tool/testing/mock_gitlab",
         "//internal/tool/testing/mock_modserver",
         "//internal/tool/testing/mock_usage_metrics",
+        "//internal/tool/testing/testhelpers",
         "//pkg/kascfg",
         "@com_github_golang_mock//gomock",
         "@com_github_google_go_cmp//cmp",

@@ -57,6 +57,7 @@ go_test(
         "//internal/tool/testing/mock_modserver",
         "//internal/tool/testing/mock_rpc",
         "//internal/tool/testing/mock_usage_metrics",
+        "//internal/tool/testing/testhelpers",
         "//pkg/agentcfg",
         "//pkg/kascfg",
         "@com_github_golang_mock//gomock",
