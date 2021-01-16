@@ -3,7 +3,7 @@ module gitlab.com/gitlab-org/cluster-integration/gitlab-agent
 go 1.15
 
 require (
-	cloud.google.com/go v0.74.0
+	cloud.google.com/go v0.75.0
 	github.com/argoproj/gitops-engine v0.2.1-0.20210108000020-0b4199b00135
 	github.com/ash2k/stager v0.2.1
 	github.com/bmatcuk/doublestar/v2 v2.0.4
@@ -11,7 +11,7 @@ require (
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1.0.20200107205605-c66185887605
 	github.com/envoyproxy/protoc-gen-validate v0.4.2-0.20201217164128-7df253a68e6b
 	github.com/go-logr/zapr v0.3.0
-	github.com/go-redis/redis/v8 v8.4.4
+	github.com/go-redis/redis/v8 v8.4.8
 	github.com/go-redis/redismock/v8 v8.0.3
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.3
@@ -22,15 +22,15 @@ require (
 	github.com/piotrkowalczuk/promgrpc/v4 v4.0.4
 	github.com/prometheus/client_golang v1.9.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	gitlab.com/gitlab-org/gitaly v1.87.1-0.20201117220727-89c1ee804f27
-	gitlab.com/gitlab-org/labkit v1.2.0
+	gitlab.com/gitlab-org/labkit v1.3.0
 	go.uber.org/zap v1.16.0
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
-	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
-	golang.org/x/tools v0.0.0-20201208233053-a543418bbed2
+	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324
+	golang.org/x/tools v0.0.0-20210108195828-e2f9c7f1fc8e
 	google.golang.org/api v0.36.0
-	google.golang.org/grpc v1.34.0
+	google.golang.org/grpc v1.35.0
 	google.golang.org/grpc/examples v0.0.0-20200828165940-d8ef479ab79a // indirect
 	google.golang.org/protobuf v1.25.0
 	k8s.io/api v0.20.1
