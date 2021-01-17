@@ -8,6 +8,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"gitlab.com/gitlab-org/labkit/errortracking"
@@ -33,16 +34,27 @@ type Config struct {
 	UsageTracker usage_metrics.UsageTrackerRegisterer
 	// AgentServer is the gRPC server agentk is talking to.
 	// This can be used to add endpoints in Factory.New.
+	// Request handlers can obtain the per-request logger using grpctool.LoggerFromContext(requestContext).
 	AgentServer *grpc.Server
 	// ApiServer is the gRPC server GitLab is talking to.
 	// This can be used to add endpoints in Factory.New.
+	// Request handlers can obtain the per-request logger using grpctool.LoggerFromContext(requestContext).
 	ApiServer *grpc.Server
-	Gitaly    gitaly.PoolInterface
+	// ReverseTunnelServer is the internal gRPC server for use inside of kas.
+	// This can be used to add endpoints in Factory.New.
+	// Request handlers can obtain the per-request logger using grpctool.LoggerFromContext(requestContext).
+	ReverseTunnelServer *grpc.Server
+	// ReverseTunnelClient is a connection to the ReverseTunnelServer to send requests.
+	// It can be used to send requests as if the connection is established to an agentk instance.
+	ReverseTunnelClient grpc.ClientConnInterface
+	// AgentStreamForwarder is a reverse tunnel to forward a gRPC request to an agentk.
+	AgentStreamForwarder reverse_tunnel.IncomingConnectionHandler
+	Gitaly               gitaly.PoolInterface
 	// KasName is a string "gitlab-kas". Can be used as a user agent, server name, service name, etc.
 	KasName string
 	// Version is gitlab-kas version.
 	Version string
-	// CommitId is gitlab-kas commit.
+	// CommitId is gitlab-kas commit sha.
 	CommitId string
 }
 

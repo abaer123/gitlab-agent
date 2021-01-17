@@ -16,6 +16,8 @@ import (
 
 // Config holds configuration for a Module.
 type Config struct {
+	// Log can be used for logging from the module.
+	// It should not be used for logging from gRPC API methods. Use grpctool.LoggerFromContext(ctx) instead.
 	Log       *zap.Logger
 	AgentMeta *modshared.AgentMeta
 	Api       API
@@ -23,6 +25,16 @@ type Config struct {
 	K8sClientGetter resource.RESTClientGetter
 	// KasConn is the gRPC connection to gitlab-kas.
 	KasConn grpc.ClientConnInterface
+	// Server is a gRPC server that can be used to expose API endpoints to gitlab-kas and/or GitLab.
+	// This can be used to add endpoints in Factory.New.
+	// Request handlers can obtain the per-request logger using grpctool.LoggerFromContext(requestContext).
+	Server *grpc.Server
+	// AgentName is a string "gitlab-agent". Can be used as a user agent, server name, service name, etc.
+	AgentName string
+	// Version is the agentk version.
+	Version string
+	// CommitId is the agentk commit sha.
+	CommitId string
 }
 
 type GitLabResponse struct {

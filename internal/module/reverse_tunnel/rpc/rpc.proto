@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+// If you make any changes make sure you run: make regenerate-proto
+
+package gitlab.agent.reverse_tunnel.rpc;
+
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc";
+
+import "internal/tool/grpctool/automata/automata.proto";
+//import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
+import "validate/validate.proto";
+
+message Values {
+  repeated string value = 1;
+}
+
+message AgentDescriptor {
+  // TODO info about available services and methods
+}
+
+// Header is a gRPC metadata.
+message Header {
+  map<string, Values> meta = 1;
+}
+
+// Message is a gRPC message data.
+message Message {
+  bytes data = 1;
+}
+
+// Trailer is a gRPC trailer metadata.
+message Trailer {
+  map<string, Values> meta = 1;
+}
+
+message ConnectRequest {
+  oneof msg {
+
+    option (grpctool.automata.first_allowed_field) = 1;
+    option (validate.required) = true;
+
+    AgentDescriptor descriptor = 1 [(grpctool.automata.next_allowed_field) = 2];
+    Header header = 2 [(grpctool.automata.next_allowed_field) = 3, (grpctool.automata.next_allowed_field) = 4];
+    Message message = 3 [(grpctool.automata.next_allowed_field) = 3, (grpctool.automata.next_allowed_field) = 4];
+    Trailer trailer = 4 [(grpctool.automata.next_allowed_field) = -1];
+  }
+}
+
+message RequestInfo {
+  string method_name = 1;
+  map<string, Values> meta = 2;
+}
+
+message CloseSend {
+}
+
+message ConnectResponse {
+  oneof msg {
+
+    option (grpctool.automata.first_allowed_field) = 1;
+    option (grpctool.automata.first_allowed_field) = -1; // EOF means there is nothing to do
+    option (validate.required) = true;
+
+    RequestInfo request_info = 1 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
+    Message message = 2 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
+    CloseSend close_send = 3 [(grpctool.automata.next_allowed_field) = -1];
+  }
+}
+
+service ReverseTunnel {
+  // Connect to server to establish a reverse tunnel.
+  rpc Connect (stream ConnectRequest) returns (stream ConnectResponse) {
+  }
+}

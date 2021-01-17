@@ -28,6 +28,8 @@ import (
 	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/google_profiler/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/server"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel"
+	reverse_tunnel_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
 	usage_metrics_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
@@ -110,14 +112,26 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	interceptorsCtx, interceptorsCancel := context.WithCancel(context.Background())
 	defer interceptorsCancel()
 
-	// Agent API server
+	// Server for handling agentk requests
 	agentServer, err := a.constructAgentServer(interceptorsCtx, tracer, redisClient, ssh)
 	if err != nil {
 		return err
 	}
 
-	// API server
+	// Server for handling external requests e.g. from GitLab
 	apiServer, err := a.constructApiServer(interceptorsCtx, tracer, ssh)
+	if err != nil {
+		return err
+	}
+
+	// Internal gRPC client->listener pipe
+	internalListener := grpctool.NewDialListener()
+
+	// Construct internal gRPC server
+	internalServer := a.constructInternalServer(interceptorsCtx, tracer)
+
+	// Construct connection to internal gRPC server
+	internalServerConn, err := a.constructInternalServerConn(ctx, tracer, internalListener.DialContext)
 	if err != nil {
 		return err
 	}
@@ -131,6 +145,12 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 
 	// Agent tracker
 	agentTracker := a.constructAgentTracker(redisClient)
+
+	// Connection registry
+	connRegistry, err := reverse_tunnel.NewConnectionRegistry(a.Log)
+	if err != nil {
+		return err
+	}
 
 	// Module factories
 	factories := []modserver.Factory{
@@ -149,6 +169,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		&agent_tracker_server.Factory{
 			AgentQuerier: agentTracker,
 		},
+		&reverse_tunnel_server.Factory{
+			TunnelConnectionHandler: connRegistry,
+		},
 	}
 
 	// Construct modules
@@ -166,18 +189,21 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		// factory.New() must be called from the main goroutine because it may mutate a gRPC server (register an API)
 		// and that can only be done before Serve() is called on the server.
 		module, err := factory.New(&modserver.Config{
-			Log:          a.Log.With(logz.ModuleName(factory.Name())),
-			Api:          serverApi,
-			Config:       cfg,
-			GitLabClient: gitLabClient,
-			Registerer:   registerer,
-			UsageTracker: usageTracker,
-			AgentServer:  agentServer,
-			ApiServer:    apiServer,
-			Gitaly:       poolWrapper,
-			KasName:      kasName,
-			Version:      cmd.Version,
-			CommitId:     cmd.Commit,
+			Log:                  a.Log.With(logz.ModuleName(factory.Name())),
+			Api:                  serverApi,
+			Config:               cfg,
+			GitLabClient:         gitLabClient,
+			Registerer:           registerer,
+			UsageTracker:         usageTracker,
+			AgentServer:          agentServer,
+			ApiServer:            apiServer,
+			ReverseTunnelServer:  internalServer,
+			ReverseTunnelClient:  internalServerConn,
+			AgentStreamForwarder: connRegistry,
+			Gitaly:               poolWrapper,
+			KasName:              kasName,
+			Version:              cmd.Version,
+			CommitId:             cmd.Commit,
 		})
 		if err != nil {
 			return fmt.Errorf("%s: %v", factory.Name(), err)
@@ -187,9 +213,10 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 
 	// Start things up. Stages are shut down in reverse order.
 	return cmd.RunStages(ctx,
-		// Start agent tracker.
+		// Start things that modules use.
 		func(stage stager.Stage) {
 			stage.Go(agentTracker.Run)
+			stage.Go(connRegistry.Run)
 		},
 		// Start modules.
 		func(stage stager.Stage) {
@@ -208,6 +235,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		func(stage stager.Stage) {
 			a.startAgentServer(stage, agentServer, interceptorsCancel)
 			a.startApiServer(stage, apiServer, interceptorsCancel)
+			a.startInternalServer(stage, internalServer, internalListener, interceptorsCancel)
 		},
 	)
 }
@@ -253,6 +281,12 @@ func (a *ConfiguredApp) startApiServer(stage stager.Stage, apiServer *grpc.Serve
 			logz.NetAddressFromAddr(lis.Addr()),
 		)
 		return lis, nil
+	})
+}
+
+func (a *ConfiguredApp) startInternalServer(stage stager.Stage, internalServer *grpc.Server, internalListener net.Listener, interceptorsCancel context.CancelFunc) {
+	grpctool.StartServer(stage, internalServer, interceptorsCancel, func() (net.Listener, error) {
+		return internalListener, nil
 	})
 }
 
@@ -379,6 +413,41 @@ func (a *ConfiguredApp) constructApiServer(interceptorsCtx context.Context, trac
 	}
 
 	return grpc.NewServer(serverOpts...), nil
+}
+
+func (a *ConfiguredApp) constructInternalServer(interceptorsCtx context.Context, tracer opentracing.Tracer) *grpc.Server {
+	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
+	return grpc.NewServer(
+		grpc.ChainStreamInterceptor(
+			grpccorrelation.StreamServerCorrelationInterceptor(),                          // 1. add correlation id
+			grpctool.StreamServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)), // 2. inject logger with correlation id
+			grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+			grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
+		),
+		grpc.ChainUnaryInterceptor(
+			grpccorrelation.UnaryServerCorrelationInterceptor(),                          // 1. add correlation id
+			grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)), // 2. inject logger with correlation id
+			grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+			grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
+		),
+		// TODO Stop using the deprecated API once https://github.com/grpc/grpc-go/issues/3694 is resolved
+		grpc.CustomCodec(grpctool.RawCodec{}), // nolint: staticcheck
+	)
+}
+
+func (a *ConfiguredApp) constructInternalServerConn(ctx context.Context, tracer opentracing.Tracer, dialContext func(ctx context.Context, addr string) (net.Conn, error)) (grpc.ClientConnInterface, error) {
+	return grpc.DialContext(ctx, "pipe",
+		grpc.WithContextDialer(dialContext),
+		grpc.WithInsecure(),
+		grpc.WithChainStreamInterceptor(
+			grpccorrelation.StreamClientCorrelationInterceptor(grpccorrelation.WithClientName(kasName)),
+			grpc_opentracing.StreamClientInterceptor(grpc_opentracing.WithTracer(tracer)),
+		),
+		grpc.WithChainUnaryInterceptor(
+			grpccorrelation.UnaryClientCorrelationInterceptor(grpccorrelation.WithClientName(kasName)),
+			grpc_opentracing.UnaryClientInterceptor(grpc_opentracing.WithTracer(tracer)),
+		),
+	)
 }
 
 func (a *ConfiguredApp) constructAgentTracker(redisClient redis.UniversalClient) agent_tracker.Tracker {

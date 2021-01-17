@@ -12,6 +12,8 @@ import (
 
 	"github.com/ash2k/stager"
 	"github.com/go-logr/zapr"
+	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/spf13/pflag"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
@@ -22,6 +24,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared"
 	observability_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/agent"
+	reverse_tunnel_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
@@ -48,7 +51,7 @@ const (
 	defaultLoggingLevel agentcfg.LoggingLevelEnum = 0 // whatever is 0 is the default value
 
 	defaultMaxMessageSize = 10 * 1024 * 1024
-	correlationClientName = "gitlab-agent"
+	agentName             = "gitlab-agent"
 
 	envVarPodNamespace = "POD_NAMESPACE"
 	envVarPodName      = "POD_NAME"
@@ -77,8 +80,24 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	}
 	defer errz.SafeClose(kasConn, &retErr)
 
+	// Interceptors
+	interceptorsCtx, interceptorsCancel := context.WithCancel(context.Background())
+	defer interceptorsCancel()
+
+	// Internal gRPC client->listener pipe
+	internalListener := grpctool.NewDialListener()
+
+	// Construct internal gRPC server
+	internalServer := a.constructInternalServer(interceptorsCtx)
+
+	// Construct connection to internal gRPC server
+	internalServerConn, err := a.constructInternalServerConn(ctx, internalListener.DialContext)
+	if err != nil {
+		return err
+	}
+
 	// Construct agent modules
-	modules, err := a.constructModules(kasConn)
+	modules, err := a.constructModules(internalServer, kasConn, internalServerConn)
 	if err != nil {
 		return err
 	}
@@ -96,13 +115,15 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 			stage.Go(runner.RunModules)
 		},
 		func(stage stager.Stage) {
+			// Start internal gRPC server.
+			a.startInternalServer(stage, internalServer, internalListener, interceptorsCancel)
 			// Start configuration refresh.
 			stage.Go(runner.RunConfigurationRefresh)
 		},
 	)
 }
 
-func (a *App) constructModules(kasConn grpc.ClientConnInterface) ([]modagent.Module, error) {
+func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalServerConn grpc.ClientConnInterface) ([]modagent.Module, error) {
 	sv, err := grpctool.NewStreamVisitor(&gitlab_access_rpc.Response{})
 	if err != nil {
 		return nil, err
@@ -116,6 +137,9 @@ func (a *App) constructModules(kasConn grpc.ClientConnInterface) ([]modagent.Mod
 			GetObjectsToSynchronizeRetryPeriod: defaultGetObjectsToSynchronizeRetryPeriod,
 		},
 		&cilium_agent.Factory{},
+		&reverse_tunnel_agent.Factory{
+			InternalServerConn: internalServerConn,
+		},
 	}
 	modules := make([]modagent.Module, 0, len(factories))
 	for _, factory := range factories {
@@ -130,6 +154,10 @@ func (a *App) constructModules(kasConn grpc.ClientConnInterface) ([]modagent.Mod
 			},
 			K8sClientGetter: a.K8sClientGetter,
 			KasConn:         kasConn,
+			Server:          internalServer,
+			AgentName:       agentName,
+			Version:         cmd.Version,
+			CommitId:        cmd.Commit,
 		})
 		if err != nil {
 			return nil, err
@@ -166,11 +194,11 @@ func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, err
 			PermitWithoutStream: true,
 		}),
 		grpc.WithChainStreamInterceptor(
-			grpccorrelation.StreamClientCorrelationInterceptor(grpccorrelation.WithClientName(correlationClientName)),
+			grpccorrelation.StreamClientCorrelationInterceptor(grpccorrelation.WithClientName(agentName)),
 			grpctool.StreamClientValidatingInterceptor,
 		),
 		grpc.WithChainUnaryInterceptor(
-			grpccorrelation.UnaryClientCorrelationInterceptor(grpccorrelation.WithClientName(correlationClientName)),
+			grpccorrelation.UnaryClientCorrelationInterceptor(grpccorrelation.WithClientName(agentName)),
 			grpctool.UnaryClientValidatingInterceptor,
 		),
 	}
@@ -222,6 +250,39 @@ func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, err
 		return nil, fmt.Errorf("gRPC.dial: %v", err)
 	}
 	return conn, nil
+}
+
+func (a *App) constructInternalServer(interceptorsCtx context.Context) *grpc.Server {
+	return grpc.NewServer(
+		grpc.ChainStreamInterceptor(
+			grpc_prometheus.StreamServerInterceptor,                                       // 1. measure all invocations
+			grpccorrelation.StreamServerCorrelationInterceptor(),                          // 2. add correlation id
+			grpctool.StreamServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)), // 3. inject logger with correlation id
+			grpc_validator.StreamServerInterceptor(),
+			grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
+		),
+		grpc.ChainUnaryInterceptor(
+			grpc_prometheus.UnaryServerInterceptor,                                       // 1. measure all invocations
+			grpccorrelation.UnaryServerCorrelationInterceptor(),                          // 2. add correlation id
+			grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)), // 3. inject logger with correlation id
+			grpc_validator.UnaryServerInterceptor(),
+			grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
+		),
+	)
+}
+
+func (a *App) startInternalServer(stage stager.Stage, internalServer *grpc.Server, internalListener net.Listener, interceptorsCancel context.CancelFunc) {
+	grpctool.StartServer(stage, internalServer, interceptorsCancel, func() (net.Listener, error) {
+		return internalListener, nil
+	})
+}
+
+func (a *App) constructInternalServerConn(ctx context.Context, dialContext func(ctx context.Context, addr string) (net.Conn, error)) (grpc.ClientConnInterface, error) {
+	return grpc.DialContext(ctx, "pipe",
+		grpc.WithContextDialer(dialContext),
+		grpc.WithInsecure(),
+		grpc.WithDefaultCallOptions(grpc.ForceCodec(grpctool.RawCodec{})),
+	)
 }
 
 func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, error) {
