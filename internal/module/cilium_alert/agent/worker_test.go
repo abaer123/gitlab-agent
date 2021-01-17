@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/cilium/cilium/api/v1/flow"
 	"github.com/cilium/cilium/api/v1/observer"
 	v2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
+	cilium_fake "github.com/cilium/cilium/pkg/k8s/client/clientset/versioned/fake"
+	ciliumv2 "github.com/cilium/cilium/pkg/k8s/client/clientset/versioned/typed/cilium.io/v2"
 	"github.com/cilium/cilium/pkg/labels"
 	"github.com/cilium/cilium/pkg/policy/api"
 	"github.com/golang/mock/gomock"
@@ -26,104 +29,58 @@ import (
 )
 
 func TestSuccessfulMapping(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	worker, obsClient, ciliumClient, cnpList, flwClient, mAPI := setupTest(t)
-	flow_response := observer.GetFlowsResponse{ResponseTypes: &observer.GetFlowsResponse_Flow{Flow: &flow.Flow{
-		Source: &flow.Endpoint{
-			Namespace: "ThisNamespace",
-			Labels:    []string{"otherkey="},
-		},
-		TrafficDirection: flow.TrafficDirection_INGRESS,
-		Destination:      &flow.Endpoint{Labels: []string{"thiskey="}},
-	}}}
-	gomock.InOrder(
-		obsClient.EXPECT().
-			GetFlows(gomock.Any(), gomock.Any()).
-			Return(flwClient, nil),
-		flwClient.EXPECT().
-			Recv().
-			Return(&flow_response, nil),
-		ciliumClient.EXPECT().
-			CiliumNetworkPolicies("ThisNamespace").
-			Return(cnpList),
-		cnpList.EXPECT().
-			List(gomock.Any(), gomock.Any()).
-			Return(&v2.CiliumNetworkPolicyList{
-				Items: []v2.CiliumNetworkPolicy{v2.CiliumNetworkPolicy{
-					ObjectMeta: metav1.ObjectMeta{Name: "Test"},
-					Spec: &api.Rule{
-						EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
-						Ingress: []api.IngressRule{
-							{
-								IngressCommonRule: api.IngressCommonRule{
-									FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
-								},
-							},
-						},
-					},
-				}},
-			}, nil),
-		mAPI.EXPECT().
-			MakeGitLabRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-			Return(&modagent.GitLabResponse{StatusCode: http.StatusOK}, nil),
-		flwClient.EXPECT().
-			Recv().
-			DoAndReturn(func() (*observer.GetFlowsResponse, error) {
-				cancel()
-				return nil, errors.New("some error")
-			}),
-	)
-	worker.Run(ctx)
+	for caseNum, matchingData := range matchingData() {
+		t.Run(fmt.Sprintf("case %d", caseNum), func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			cf := cilium_fake.NewSimpleClientset(matchingData.CnpList) // nolint: scopelint
+			worker, obsClient, flwClient, mAPI := setupTest(t, cf.CiliumV2())
+			gomock.InOrder(
+				obsClient.EXPECT().
+					GetFlows(gomock.Any(), gomock.Any()).
+					Return(flwClient, nil),
+				flwClient.EXPECT().
+					Recv().
+					Return(matchingData.FlwResponse, nil), // nolint: scopelint
+				mAPI.EXPECT().
+					MakeGitLabRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(&modagent.GitLabResponse{StatusCode: http.StatusOK}, nil),
+				flwClient.EXPECT().
+					Recv().
+					DoAndReturn(func() (*observer.GetFlowsResponse, error) {
+						cancel()
+						return nil, errors.New("some error")
+					}),
+			)
+			worker.Run(ctx)
+		})
+	}
 }
 
 func TestNoMatch(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	worker, obsClient, ciliumClient, cnpList, flwClient, _ := setupTest(t)
-	flow_response := observer.GetFlowsResponse{ResponseTypes: &observer.GetFlowsResponse_Flow{Flow: &flow.Flow{
-		Source: &flow.Endpoint{
-			Namespace: "ThisNamespace",
-			Labels:    []string{"otherkey="},
-		},
-		TrafficDirection: flow.TrafficDirection_INGRESS,
-		Destination:      &flow.Endpoint{Labels: []string{"thiskey="}},
-	}}}
-	gomock.InOrder(
-		obsClient.EXPECT().
-			GetFlows(gomock.Any(), gomock.Any()).
-			Return(flwClient, nil),
-		flwClient.EXPECT().
-			Recv().
-			Return(&flow_response, nil),
-		ciliumClient.EXPECT().
-			CiliumNetworkPolicies("ThisNamespace").
-			Return(cnpList),
-		cnpList.EXPECT().
-			List(gomock.Any(), gomock.Any()).
-			Return(&v2.CiliumNetworkPolicyList{
-				Items: []v2.CiliumNetworkPolicy{v2.CiliumNetworkPolicy{
-					ObjectMeta: metav1.ObjectMeta{Name: "Test"},
-					Spec: &api.Rule{
-						EndpointSelector: api.NewESFromLabels(labels.NewLabel("notthiskey", "", "any")),
-						Ingress: []api.IngressRule{
-							{
-								IngressCommonRule: api.IngressCommonRule{
-									FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
-								},
-							},
-						},
-					},
-				}},
-			}, nil),
-		flwClient.EXPECT().
-			Recv().
-			DoAndReturn(func() (*observer.GetFlowsResponse, error) {
-				cancel()
-				return nil, errors.New("some error")
-			}),
-	)
-	worker.Run(ctx)
+	for caseNum, unmatchingData := range unmatchingData() {
+		t.Run(fmt.Sprintf("case %d", caseNum), func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			cf := cilium_fake.NewSimpleClientset(unmatchingData.CnpList) // nolint: scopelint
+			worker, obsClient, flwClient, _ := setupTest(t, cf.CiliumV2())
+			gomock.InOrder(
+				obsClient.EXPECT().
+					GetFlows(gomock.Any(), gomock.Any()).
+					Return(flwClient, nil),
+				flwClient.EXPECT().
+					Recv().
+					Return(unmatchingData.FlwResponse, nil), // nolint: scopelint
+				flwClient.EXPECT().
+					Recv().
+					DoAndReturn(func() (*observer.GetFlowsResponse, error) {
+						cancel()
+						return nil, errors.New("some error")
+					}),
+			)
+			worker.Run(ctx)
+		})
+	}
 }
 
 func TestJSON(t *testing.T) {
@@ -151,19 +108,156 @@ func TestJSON(t *testing.T) {
 	assert.Empty(t, cmp.Diff((*flow.Flow)(p1.Alert.Flow), (*flow.Flow)(p2.Alert.Flow), protocmp.Transform()))
 }
 
-func setupTest(t *testing.T) (*worker, *MockObserverClient, *MockCiliumV2Interface, *MockCiliumNetworkPolicyInterface, *MockObserver_GetFlowsClient, *mock_modagent.MockAPI) {
+func setupTest(t *testing.T, cv2 ciliumv2.CiliumV2Interface) (*worker, *MockObserverClient, *MockObserver_GetFlowsClient, *mock_modagent.MockAPI) {
 	ctrl := gomock.NewController(t)
 	flwClient := NewMockObserver_GetFlowsClient(ctrl)
 	obsClient := NewMockObserverClient(ctrl)
-	ciliumClient := NewMockCiliumV2Interface(ctrl)
-	cnpList := NewMockCiliumNetworkPolicyInterface(ctrl)
 	mAPI := mock_modagent.NewMockAPI(ctrl)
 	worker := &worker{
 		log:            zaptest.NewLogger(t, zaptest.Level(zapcore.DebugLevel)),
 		api:            mAPI,
 		config:         &agentcfg.CiliumCF{},
-		ciliumClient:   ciliumClient,
+		ciliumClient:   cv2,
 		observerClient: obsClient,
 	}
-	return worker, obsClient, ciliumClient, cnpList, flwClient, mAPI
+	return worker, obsClient, flwClient, mAPI
+}
+
+type flwCnpListPair struct {
+	FlwResponse *observer.GetFlowsResponse
+	CnpList     *v2.CiliumNetworkPolicyList
+}
+
+func matchingData() []*flwCnpListPair {
+	return []*flwCnpListPair{
+		{
+			FlwResponse: &observer.GetFlowsResponse{ResponseTypes: &observer.GetFlowsResponse_Flow{Flow: &flow.Flow{
+				Source: &flow.Endpoint{
+					Labels: []string{"otherkey="},
+				},
+				TrafficDirection: flow.TrafficDirection_INGRESS,
+				Destination: &flow.Endpoint{
+					Namespace: "ThisNamespace",
+					Labels:    []string{"thiskey="},
+				},
+			}}},
+			CnpList: &v2.CiliumNetworkPolicyList{
+				Items: []v2.CiliumNetworkPolicy{v2.CiliumNetworkPolicy{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "Test",
+						Annotations: map[string]string{"app.gitlab.com/alert": "true"},
+						Namespace:   "ThisNamespace",
+					},
+					Spec: &api.Rule{
+						EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
+						Ingress: []api.IngressRule{
+							{
+								IngressCommonRule: api.IngressCommonRule{
+									FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+								},
+							},
+						},
+					},
+				}},
+			},
+		},
+		{
+			FlwResponse: &observer.GetFlowsResponse{ResponseTypes: &observer.GetFlowsResponse_Flow{Flow: &flow.Flow{
+				Source: &flow.Endpoint{
+					Namespace: "ThisNamespace",
+					Labels:    []string{"thiskey="},
+				},
+				TrafficDirection: flow.TrafficDirection_EGRESS,
+				Destination: &flow.Endpoint{
+					Labels: []string{"otherkey="},
+				},
+			}}},
+			CnpList: &v2.CiliumNetworkPolicyList{
+				Items: []v2.CiliumNetworkPolicy{v2.CiliumNetworkPolicy{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "Test",
+						Annotations: map[string]string{"app.gitlab.com/alert": "true"},
+						Namespace:   "ThisNamespace",
+					},
+					Spec: &api.Rule{
+						EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
+						Egress: []api.EgressRule{
+							{
+								EgressCommonRule: api.EgressCommonRule{
+									ToEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+								},
+							},
+						},
+					},
+				}},
+			},
+		},
+	}
+}
+
+func unmatchingData() []*flwCnpListPair {
+	return []*flwCnpListPair{
+		{
+			FlwResponse: &observer.GetFlowsResponse{ResponseTypes: &observer.GetFlowsResponse_Flow{Flow: &flow.Flow{
+				Source: &flow.Endpoint{
+					Labels: []string{"otherkey="},
+				},
+				TrafficDirection: flow.TrafficDirection_INGRESS,
+				Destination: &flow.Endpoint{
+					Namespace: "ThisNamespace",
+					Labels:    []string{"thiskey="},
+				},
+			}}},
+			CnpList: &v2.CiliumNetworkPolicyList{
+				Items: []v2.CiliumNetworkPolicy{v2.CiliumNetworkPolicy{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "Test",
+						Annotations: map[string]string{"app.gitlab.com/alert": "true"},
+						Namespace:   "ThisNamespace",
+					},
+					Spec: &api.Rule{
+						EndpointSelector: api.NewESFromLabels(labels.NewLabel("notthiskey", "", "any")),
+						Ingress: []api.IngressRule{
+							{
+								IngressCommonRule: api.IngressCommonRule{
+									FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+								},
+							},
+						},
+					},
+				}},
+			},
+		},
+		{
+			FlwResponse: &observer.GetFlowsResponse{ResponseTypes: &observer.GetFlowsResponse_Flow{Flow: &flow.Flow{
+				Source: &flow.Endpoint{
+					Labels: []string{"otherkey="},
+				},
+				TrafficDirection: flow.TrafficDirection_INGRESS,
+				Destination: &flow.Endpoint{
+					Namespace: "ThisNamespace",
+					Labels:    []string{"thiskey="},
+				},
+			}}},
+			CnpList: &v2.CiliumNetworkPolicyList{
+				Items: []v2.CiliumNetworkPolicy{v2.CiliumNetworkPolicy{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "Test",
+						Annotations: map[string]string{"app.gitlab.com/different": "true"},
+						Namespace:   "ThisNamespace",
+					},
+					Spec: &api.Rule{
+						EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
+						Ingress: []api.IngressRule{
+							{
+								IngressCommonRule: api.IngressCommonRule{
+									FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+								},
+							},
+						},
+					},
+				}},
+			},
+		},
+	}
 }

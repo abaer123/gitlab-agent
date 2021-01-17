@@ -7,6 +7,11 @@ import (
 	v2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
 )
 
+const (
+	alertAnnotationKey   = "app.gitlab.com/alert"
+	alertAnnotationValue = "true"
+)
+
 func checkEndpointL3(cnp v2.CiliumNetworkPolicy, lbs []string) (bool, error) {
 	rules, err := cnp.Parse()
 	if err != nil {
@@ -76,6 +81,9 @@ func existsLabelsInEndpointSelector(lbs []string, sel string) bool {
 
 func getPolicy(flw *flow.Flow, cnps *v2.CiliumNetworkPolicyList) (*v2.CiliumNetworkPolicy, error) {
 	for _, cnp := range cnps.Items {
+		if cnp.Annotations[alertAnnotationKey] != alertAnnotationValue {
+			continue
+		}
 		var (
 			edp    bool
 			srcdst bool
@@ -106,4 +114,14 @@ func getPolicy(flw *flow.Flow, cnps *v2.CiliumNetworkPolicyList) (*v2.CiliumNetw
 		}
 	}
 	return nil, nil
+}
+
+func getNamespace(flw *flow.Flow) string {
+	switch flw.GetTrafficDirection() { // nolint: exhaustive
+	case flow.TrafficDirection_INGRESS:
+		return flw.GetDestination().GetNamespace()
+	case flow.TrafficDirection_EGRESS:
+		return flw.GetSource().GetNamespace()
+	}
+	return ""
 }
