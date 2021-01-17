@@ -20,6 +20,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
@@ -161,7 +162,7 @@ func mockRecvStream(server *mock_rpc.MockGitlabAccess_MakeRequestServer, eof boo
 	for _, msg := range msgs {
 		call := server.EXPECT().
 			RecvMsg(gomock.Any()).
-			Do(mock_rpc.RetMsg(msg))
+			Do(testhelpers.RecvMsg(msg))
 		res = append(res, call)
 	}
 	if eof {

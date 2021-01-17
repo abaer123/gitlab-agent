@@ -79,10 +79,6 @@ func CtxWithCorrelation(t *testing.T) (context.Context, string) {
 	return ctx, correlationId
 }
 
-func AssignResult(target, result interface{}) {
-	reflect.ValueOf(target).Elem().Set(reflect.ValueOf(result).Elem())
-}
-
 func AgentInfoObj() *api.AgentInfo {
 	return &api.AgentInfo{
 		Id:   123,
@@ -102,4 +98,17 @@ func AgentInfoObj() *api.AgentInfo {
 			GlProjectPath:      "GlProjectPath",
 		},
 	}
+}
+
+func RecvMsg(value interface{}) func(interface{}) {
+	return func(msg interface{}) {
+		SetValue(msg, value)
+	}
+}
+
+// SetValue sets target to value.
+// target must be a pointer. i.e. *blaProtoMsgType
+// value must of the same type as target.
+func SetValue(target, value interface{}) {
+	reflect.ValueOf(target).Elem().Set(reflect.ValueOf(value).Elem())
 }
