@@ -38,6 +38,7 @@ go_test(
         "//internal/tool/testing/mock_gitlab",
         "//internal/tool/testing/mock_modserver",
         "//internal/tool/testing/mock_rpc",
+        "//internal/tool/testing/testhelpers",
         "@com_github_golang_mock//gomock",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",

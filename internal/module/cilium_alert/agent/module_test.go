@@ -7,12 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modagent"
-
 	fake_typed_v2 "github.com/cilium/cilium/pkg/k8s/client/clientset/versioned/typed/cilium.io/v2/fake"
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -32,7 +30,7 @@ func TestStartsWorkersAccordingToConfiguration(t *testing.T) {
 			m := setupModule(t, &errorEntryCount)
 			cfg := make(chan *agentcfg.AgentConfiguration)
 			wg.Start(func() {
-				m.Run(ctx, cfg)
+				assert.NoError(t, m.Run(ctx, cfg))
 			})
 			cfg <- scenario.Agentcfg // nolint: scopelint
 			time.Sleep(2 * time.Second)
@@ -53,7 +51,7 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 	m := setupModule(t, &errorEntryCount)
 	cfg := make(chan *agentcfg.AgentConfiguration)
 	wg.Start(func() {
-		m.Run(ctx, cfg)
+		assert.NoError(t, m.Run(ctx, cfg))
 	})
 	expectedCount := int32(0)
 	for _, scenario := range testScenarios() {

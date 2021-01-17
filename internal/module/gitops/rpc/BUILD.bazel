@@ -46,6 +46,7 @@ go_test(
     deps = [
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_rpc",
+        "//internal/tool/testing/testhelpers",
         "//pkg/agentcfg",
         "@com_github_golang_mock//gomock",
         "@com_github_stretchr_testify//require",

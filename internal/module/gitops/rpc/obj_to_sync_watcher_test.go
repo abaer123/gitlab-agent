@@ -11,6 +11,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
 )
@@ -46,7 +47,7 @@ func TestObjectsToSynchronizeWatcherResumeConnection(t *testing.T) {
 			Return(stream1, nil),
 		stream1.EXPECT().
 			RecvMsg(gomock.Any()).
-			Do(mock_rpc.RetMsg(&rpc.ObjectsToSynchronizeResponse{
+			Do(testhelpers.RecvMsg(&rpc.ObjectsToSynchronizeResponse{
 				Message: &rpc.ObjectsToSynchronizeResponse_Headers_{
 					Headers: &rpc.ObjectsToSynchronizeResponse_Headers{
 						CommitId: revision,
@@ -55,7 +56,7 @@ func TestObjectsToSynchronizeWatcherResumeConnection(t *testing.T) {
 			})),
 		stream1.EXPECT().
 			RecvMsg(gomock.Any()).
-			Do(mock_rpc.RetMsg(&rpc.ObjectsToSynchronizeResponse{
+			Do(testhelpers.RecvMsg(&rpc.ObjectsToSynchronizeResponse{
 				Message: &rpc.ObjectsToSynchronizeResponse_Trailers_{
 					Trailers: &rpc.ObjectsToSynchronizeResponse_Trailers{},
 				},
@@ -173,7 +174,10 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 			}
 			if tc.eof { // nolint:scopelint
 				for _, streamItem := range tc.stream { // nolint:scopelint
-					calls = append(calls, stream1.EXPECT().RecvMsg(gomock.Any()).Do(mock_rpc.RetMsg(streamItem)))
+					calls = append(calls, stream1.EXPECT().
+						RecvMsg(gomock.Any()).
+						Do(testhelpers.RecvMsg(streamItem)),
+					)
 				}
 				calls = append(calls, stream1.EXPECT().
 					RecvMsg(gomock.Any()).
@@ -184,10 +188,13 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 			} else {
 				for i := 0; i < len(tc.stream)-1; i++ { // nolint:scopelint
 					streamItem := tc.stream[i] // nolint:scopelint
-					calls = append(calls, stream1.EXPECT().RecvMsg(gomock.Any()).Do(mock_rpc.RetMsg(streamItem)))
+					calls = append(calls, stream1.EXPECT().
+						RecvMsg(gomock.Any()).
+						Do(testhelpers.RecvMsg(streamItem)),
+					)
 				}
 				calls = append(calls, stream1.EXPECT().RecvMsg(gomock.Any()).DoAndReturn(func(msg interface{}) error {
-					mock_rpc.SetMsg(msg, tc.stream[len(tc.stream)-1]) // nolint:scopelint
+					testhelpers.SetValue(msg, tc.stream[len(tc.stream)-1]) // nolint:scopelint
 					cancel()
 					return nil
 				}))

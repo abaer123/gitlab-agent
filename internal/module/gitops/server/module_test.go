@@ -189,7 +189,7 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	gitlabClient.EXPECT().
 		DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, testhelpers.AgentkToken, nil, gomock.Any()).
 		DoAndReturn(func(ctx context.Context, method, path string, query url.Values, agentToken api.AgentToken, body, response interface{}) error {
-			testhelpers.AssignResult(response, projectInfoRest())
+			testhelpers.SetValue(response, projectInfoRest())
 			return nil
 		})
 	p := mock_internalgitaly.NewMockPollerInterface(mockCtrl)
@@ -257,7 +257,7 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 		gitlabClient.EXPECT().
 			DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, testhelpers.AgentkToken, nil, gomock.Any()).
 			DoAndReturn(func(ctx context.Context, method, path string, query url.Values, agentToken api.AgentToken, body, response interface{}) error {
-				testhelpers.AssignResult(response, projectInfoRest())
+				testhelpers.SetValue(response, projectInfoRest())
 				return nil
 			}),
 		gitalyPool.EXPECT().
