@@ -7,12 +7,14 @@ import (
 	v2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
 	"github.com/cilium/cilium/pkg/labels"
 	"github.com/cilium/cilium/pkg/policy/api"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/kube_testing"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestIngressMatch(t *testing.T) {
+func TestIngressMatchButWithoutAnnotation(t *testing.T) {
 	policy := &v2.CiliumNetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{Name: "Test"},
 		Spec: &api.Rule{
@@ -39,10 +41,42 @@ func TestIngressMatch(t *testing.T) {
 		Destination:      &flow.Endpoint{Labels: []string{"thiskey="}},
 	}, &cnpList)
 	require.NoError(t, err)
-	assert.Equal(t, cnp, policy)
+	assert.Nil(t, cnp)
 }
 
-func TestIngressNotMatched(t *testing.T) {
+func TestIngressMatch(t *testing.T) {
+	policy := &v2.CiliumNetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "Test",
+			Annotations: map[string]string{"app.gitlab.com/alert": "true"}},
+		Spec: &api.Rule{
+			EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
+			Ingress: []api.IngressRule{
+				{
+					IngressCommonRule: api.IngressCommonRule{
+						FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+					},
+				},
+			},
+		},
+	}
+	cnpList := v2.CiliumNetworkPolicyList{
+		Items: []v2.CiliumNetworkPolicy{*policy},
+	}
+
+	cnp, err := getPolicy(&flow.Flow{
+		Source: &flow.Endpoint{
+			Namespace: "ThisNamespace",
+			Labels:    []string{"otherkey="},
+		},
+		TrafficDirection: flow.TrafficDirection_INGRESS,
+		Destination:      &flow.Endpoint{Labels: []string{"thiskey="}},
+	}, &cnpList)
+	require.NoError(t, err)
+	assert.Empty(t, cmp.Diff(cnp, policy, kube_testing.TransformToUnstructured()))
+}
+
+func TestIngressNoMatch(t *testing.T) {
 	policy := &v2.CiliumNetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{Name: "Test"},
 		Spec: &api.Rule{
@@ -69,12 +103,15 @@ func TestIngressNotMatched(t *testing.T) {
 		Destination:      &flow.Endpoint{Labels: []string{"unrelatedkey="}},
 	}, &cnpList)
 	require.NoError(t, err)
-	assert.NotEqual(t, cnp, policy)
+	assert.Nil(t, cnp)
 }
 
 func TestEgressMatch(t *testing.T) {
 	policy := &v2.CiliumNetworkPolicy{
-		ObjectMeta: metav1.ObjectMeta{Name: "Test"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "Test",
+			Annotations: map[string]string{"app.gitlab.com/alert": "true"},
+		},
 		Spec: &api.Rule{
 			EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
 			Egress: []api.EgressRule{
@@ -99,12 +136,15 @@ func TestEgressMatch(t *testing.T) {
 		Source:           &flow.Endpoint{Labels: []string{"thiskey="}},
 	}, &cnpList)
 	require.NoError(t, err)
-	assert.Equal(t, cnp, policy)
+	assert.Empty(t, cmp.Diff(cnp, policy, kube_testing.TransformToUnstructured()))
 }
 
-func TestEgressNotMatched(t *testing.T) {
+func TestEgressNoMatch(t *testing.T) {
 	policy := &v2.CiliumNetworkPolicy{
-		ObjectMeta: metav1.ObjectMeta{Name: "Test"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "Test",
+			Annotations: map[string]string{"app.gitlab.com/alert": "true"},
+		},
 		Spec: &api.Rule{
 			EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
 			Egress: []api.EgressRule{
@@ -129,7 +169,7 @@ func TestEgressNotMatched(t *testing.T) {
 		Source:           &flow.Endpoint{Labels: []string{"unrelatedkey="}},
 	}, &cnpList)
 	require.NoError(t, err)
-	assert.NotEqual(t, cnp, policy)
+	assert.Nil(t, cnp)
 }
 
 func TestOtherThanIngressAndEgress(t *testing.T) {
@@ -148,5 +188,4 @@ func TestOtherThanIngressAndEgress(t *testing.T) {
 	}, &cnpList)
 	require.NoError(t, err)
 	assert.Nil(t, cnp)
-	assert.Nil(t, err)
 }

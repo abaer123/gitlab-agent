@@ -88,7 +88,7 @@ func (w *worker) Run(ctx context.Context) {
 }
 
 func (w *worker) processFlow(ctx context.Context, flw *flow.Flow) error {
-	ns := flw.GetSource().GetNamespace()
+	ns := getNamespace(flw)
 	if ns == "" {
 		return nil
 	}
