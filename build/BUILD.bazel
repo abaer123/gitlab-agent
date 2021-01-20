@@ -48,6 +48,8 @@ multirun(
         "//internal/module/gitops/rpc:extract_generated",
         "//internal/module/gitops/rpc:extract_generated_validator",
         "//internal/module/modshared:extract_generated",
+        "//internal/module/reverse_tunnel/rpc:extract_generated",
+        "//internal/module/reverse_tunnel/rpc:extract_generated_validator",
         "//internal/tool/grpctool/automata:extract_generated",
         "//internal/tool/grpctool/test:extract_generated",
         "//internal/tool/grpctool/test:extract_generated_validator",

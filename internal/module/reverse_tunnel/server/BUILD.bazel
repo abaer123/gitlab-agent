@@ -1,0 +1,40 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "server",
+    srcs = [
+        "factory.go",
+        "module.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/server",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/api",
+        "//internal/module/modserver",
+        "//internal/module/reverse_tunnel",
+        "//internal/module/reverse_tunnel/rpc",
+        "//internal/tool/grpctool",
+    ],
+)
+
+go_test(
+    name = "server_test",
+    size = "small",
+    srcs = ["module_test.go"],
+    embed = [":server"],
+    race = "on",
+    deps = [
+        "//internal/api",
+        "//internal/module/modserver",
+        "//internal/tool/grpctool",
+        "//internal/tool/testing/mock_modserver",
+        "//internal/tool/testing/mock_reverse_tunnel",
+        "//internal/tool/testing/testhelpers",
+        "@com_github_golang_mock//gomock",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+        "@io_k8s_apimachinery//pkg/util/wait",
+        "@org_golang_google_grpc//:grpc",
+        "@org_uber_go_zap//zaptest",
+    ],
+)

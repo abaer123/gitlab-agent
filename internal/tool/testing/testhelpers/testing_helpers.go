@@ -29,6 +29,9 @@ const (
 	jwtRequestHeader  = "Gitlab-Kas-Api-Request"
 	jwtGitLabAudience = "gitlab"
 	jwtIssuer         = "gitlab-kas"
+
+	AgentId   int64 = 123
+	ProjectId int64 = 321
 )
 
 func RespondWithJSON(t *testing.T, w http.ResponseWriter, response interface{}) {
@@ -81,8 +84,9 @@ func CtxWithCorrelation(t *testing.T) (context.Context, string) {
 
 func AgentInfoObj() *api.AgentInfo {
 	return &api.AgentInfo{
-		Id:   123,
-		Name: "agent1",
+		Id:        AgentId,
+		ProjectId: ProjectId,
+		Name:      "agent1",
 		GitalyInfo: api.GitalyInfo{
 			Address: "127.0.0.1:123123",
 			Token:   "abc",
