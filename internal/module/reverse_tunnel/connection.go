@@ -18,6 +18,7 @@ const (
 	headerNumber          protoreflect.FieldNumber = 2
 	messageNumber         protoreflect.FieldNumber = 3
 	trailerNumber         protoreflect.FieldNumber = 4
+	errorNumber           protoreflect.FieldNumber = 5
 )
 
 type connection struct {
@@ -108,8 +109,8 @@ func (c *connection) ForwardStream(incomingStream grpc.ServerStream) error {
 			return nil, status.Error(codes.Unavailable, "unavailable")
 		case <-startReadingTunnel:
 		}
-		var forTunnel error
-		forIncomingStream := c.tunnelStreamVisitor.Visit(c.tunnel,
+		var forTunnel, forIncomingStream error
+		fromVisitor := c.tunnelStreamVisitor.Visit(c.tunnel,
 			grpctool.WithStartState(agentDescriptorNumber),
 			grpctool.WithCallback(agentDescriptorNumber, func(agentDescriptor *rpc.AgentDescriptor) error {
 				// It's been read already, shouldn't be received again
@@ -128,14 +129,23 @@ func (c *connection) ForwardStream(incomingStream grpc.ServerStream) error {
 				incomingStream.SetTrailer(trailer.Metadata())
 				return nil
 			}),
+			grpctool.WithCallback(errorNumber, func(rpcError *rpc.Error) error {
+				forIncomingStream = status.ErrorProto(rpcError.Status)
+				// Not returning an error since we must be reading from the tunnel stream till io.EOF
+				// to properly consume it. There is no need to abort it in this scenario.
+				// The server is expected to close the stream (i.e. we'll get io.EOF) right after we got this message.
+				return nil
+			}),
 		)
-		if forIncomingStream != nil {
+		if fromVisitor != nil {
+			if forIncomingStream == nil {
+				forIncomingStream = fromVisitor
+			}
 			if forTunnel == nil {
 				forTunnel = status.Error(codes.Unavailable, "unavailable")
 			}
-			return forTunnel, forIncomingStream
 		}
-		return nil, nil
+		return forTunnel, forIncomingStream
 	})
 	pair := <-res
 	if !pair.isNil() {

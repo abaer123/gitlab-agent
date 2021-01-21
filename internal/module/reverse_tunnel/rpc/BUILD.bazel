@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 load("//build:proto.bzl", "go_grpc_generate")
 
 go_grpc_generate(
@@ -7,6 +7,7 @@ go_grpc_generate(
     deps = [
         "//internal/tool/grpctool/automata:proto",
         "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
+        "@go_googleapis//google/rpc:status_proto",
     ],
 )
 
@@ -24,11 +25,25 @@ go_library(
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
         "@com_github_golang_protobuf//proto",
         "@com_github_golang_protobuf//ptypes",
+        "@org_golang_google_genproto//googleapis/rpc/status",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//metadata",
         "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_golang_google_protobuf//runtime/protoimpl",
+    ],
+)
+
+go_test(
+    name = "rpc_test",
+    size = "small",
+    srcs = ["validation_test.go"],
+    embed = [":rpc"],
+    race = "on",
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_genproto//googleapis/rpc/status",
     ],
 )

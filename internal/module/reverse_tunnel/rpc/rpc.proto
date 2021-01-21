@@ -9,6 +9,8 @@ option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/inte
 import "internal/tool/grpctool/automata/automata.proto";
 //import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
 import "validate/validate.proto";
+// https://github.com/googleapis/googleapis/blob/master/google/rpc/status.proto
+import "google/rpc/status.proto";
 
 message Values {
   repeated string value = 1;
@@ -33,16 +35,24 @@ message Trailer {
   map<string, Values> meta = 1;
 }
 
+// Error represents a gRPC error that should be returned.
+message Error {
+  // Error status as returned by gRPC.
+  // See https://cloud.google.com/apis/design/errors.
+  google.rpc.Status status = 1 [(validate.rules).message.required = true];
+}
+
 message ConnectRequest {
   oneof msg {
 
     option (grpctool.automata.first_allowed_field) = 1;
     option (validate.required) = true;
 
-    AgentDescriptor descriptor = 1 [(grpctool.automata.next_allowed_field) = 2];
-    Header header = 2 [(grpctool.automata.next_allowed_field) = 3, (grpctool.automata.next_allowed_field) = 4];
-    Message message = 3 [(grpctool.automata.next_allowed_field) = 3, (grpctool.automata.next_allowed_field) = 4];
+    AgentDescriptor descriptor = 1 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 5];
+    Header header = 2 [(grpctool.automata.next_allowed_field) = 3, (grpctool.automata.next_allowed_field) = 4, (grpctool.automata.next_allowed_field) = 5];
+    Message message = 3 [(grpctool.automata.next_allowed_field) = 3, (grpctool.automata.next_allowed_field) = 4, (grpctool.automata.next_allowed_field) = 5];
     Trailer trailer = 4 [(grpctool.automata.next_allowed_field) = -1];
+    Error error = 5 [(grpctool.automata.next_allowed_field) = -1];
   }
 }
 

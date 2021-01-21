@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel"
@@ -18,6 +19,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 const (
@@ -208,6 +210,48 @@ func testUnaryHappyPath(ctx context.Context, t *testing.T, client test.TestingCl
 	trailer := metadata.MD{}
 	trailer.Set(trailerKey, "1", "2")
 	assert.Equal(t, trailer, trailerResp)
+}
+
+func TestStreamError(t *testing.T) {
+	statusWithDetails, err := status.New(codes.InvalidArgument, "Some expected error").
+		WithDetails(&test.Request{S1: "some details of the error"})
+	require.NoError(t, err)
+	ats := &agentTestingServer{
+		streamingRequestResponse: func(server test.Testing_StreamingRequestResponseServer) error {
+			return statusWithDetails.Err()
+		},
+	}
+	runTest(t, ats, func(ctx context.Context, t *testing.T, client test.TestingClient) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		stream, err := client.StreamingRequestResponse(ctx)
+		require.NoError(t, err)
+		_, err = stream.Recv()
+		require.Error(t, err)
+		receivedStatus := status.Convert(err).Proto()
+		assert.Empty(t, cmp.Diff(receivedStatus, statusWithDetails.Proto(), protocmp.Transform()))
+	})
+}
+
+func TestUnaryError(t *testing.T) {
+	statusWithDetails, err := status.New(codes.InvalidArgument, "Some expected error").
+		WithDetails(&test.Request{S1: "some details of the error"})
+	require.NoError(t, err)
+	ats := &agentTestingServer{
+		requestResponse: func(ctx context.Context, request *test.Request) (*test.Response, error) {
+			return nil, statusWithDetails.Err()
+		},
+	}
+	runTest(t, ats, func(ctx context.Context, t *testing.T, client test.TestingClient) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		_, err := client.RequestResponse(ctx, &test.Request{
+			S1: "123",
+		})
+		require.Error(t, err)
+		receivedStatus := status.Convert(err).Proto()
+		assert.Empty(t, cmp.Diff(receivedStatus, statusWithDetails.Proto(), protocmp.Transform()))
+	})
 }
 
 func runTest(t *testing.T, ats test.TestingServer, f func(context.Context, *testing.T, test.TestingClient)) {
