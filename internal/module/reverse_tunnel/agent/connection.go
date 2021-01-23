@@ -89,6 +89,9 @@ func (c *connection) attempt(ctx context.Context) error {
 			if err != nil {
 				return fmt.Errorf("NewStream(): %w", err)
 			}
+			// After this point we don't want context cancellation to interrupt request handling since this would
+			// break a running request. We are calling stopPropagation() to ignore the passed context and let the
+			// request finish properly.
 			stopPropagation()
 			g.Go(func() error {
 				// pipe internal client -> tunnel
