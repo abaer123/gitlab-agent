@@ -71,8 +71,8 @@ message ConnectResponse {
     option (grpctool.automata.first_allowed_field) = -1; // EOF means there is nothing to do
     option (validate.required) = true;
 
-    RequestInfo request_info = 1 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
-    Message message = 2 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
+    RequestInfo request_info = 1 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3, (grpctool.automata.next_allowed_field) = -1];
+    Message message = 2 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3, (grpctool.automata.next_allowed_field) = -1];
     CloseSend close_send = 3 [(grpctool.automata.next_allowed_field) = -1];
   }
 }

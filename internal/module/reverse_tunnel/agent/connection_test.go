@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"errors"
+	"io"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -53,6 +54,99 @@ func TestConnectUnblocksIfNotStartedStreaming(t *testing.T) {
 
 	err := c.attempt(ctx)
 	require.EqualError(t, err, "Connect(): context canceled")
+}
+
+// Visitor can get io.EOF after getting rpc.RequestInfo if client sent an rpc.Error, which was forwarded to the tunnel
+// and then the tunnel closed the stream.
+func TestNoErrorOnEofAfterRequestInfo(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	client, conn, tunnel, c := setupConnection(t)
+	clientStream := mock_rpc.NewMockClientStream(ctrl)
+
+	gomock.InOrder(
+		clientStream.EXPECT().
+			Header().
+			Return(nil, errors.New("header err")),
+		tunnel.EXPECT().Send(gomock.Any()),
+		tunnel.EXPECT().CloseSend(),
+	)
+
+	gomock.InOrder(
+		client.EXPECT().
+			Connect(gomock.Any()).
+			Return(tunnel, nil),
+		tunnel.EXPECT().
+			Send(gomock.Any()),
+		tunnel.EXPECT().
+			RecvMsg(gomock.Any()).
+			Do(testhelpers.RecvMsg(&rpc.ConnectResponse{
+				Msg: &rpc.ConnectResponse_RequestInfo{
+					RequestInfo: &rpc.RequestInfo{},
+				},
+			})),
+		conn.EXPECT().
+			NewStream(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(clientStream, nil),
+		tunnel.EXPECT().
+			RecvMsg(gomock.Any()).
+			Return(io.EOF),
+	)
+
+	err := c.attempt(ctx)
+	require.NoError(t, err)
+}
+
+// Visitor can get io.EOF after getting rpc.Message if client sent an rpc.Error, which was forwarded to the tunnel
+// and then the tunnel closed the stream.
+func TestNoErrorOnEofAfterMessage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	client, conn, tunnel, c := setupConnection(t)
+	clientStream := mock_rpc.NewMockClientStream(ctrl)
+
+	gomock.InOrder(
+		clientStream.EXPECT().
+			Header().
+			Return(nil, errors.New("header err")),
+		tunnel.EXPECT().Send(gomock.Any()),
+		tunnel.EXPECT().CloseSend(),
+	)
+
+	gomock.InOrder(
+		client.EXPECT().
+			Connect(gomock.Any()).
+			Return(tunnel, nil),
+		tunnel.EXPECT().
+			Send(gomock.Any()),
+		tunnel.EXPECT().
+			RecvMsg(gomock.Any()).
+			Do(testhelpers.RecvMsg(&rpc.ConnectResponse{
+				Msg: &rpc.ConnectResponse_RequestInfo{
+					RequestInfo: &rpc.RequestInfo{},
+				},
+			})),
+		conn.EXPECT().
+			NewStream(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(clientStream, nil),
+		tunnel.EXPECT().
+			RecvMsg(gomock.Any()).
+			Do(testhelpers.RecvMsg(&rpc.ConnectResponse{
+				Msg: &rpc.ConnectResponse_Message{
+					Message: &rpc.Message{Data: []byte{1, 2, 3}},
+				},
+			})),
+		clientStream.EXPECT().
+			SendMsg(gomock.Any()),
+		tunnel.EXPECT().
+			RecvMsg(gomock.Any()).
+			Return(io.EOF),
+	)
+
+	err := c.attempt(ctx)
+	require.NoError(t, err)
 }
 
 func TestRecvMsgUnblocksIfNotStartedStreaming(t *testing.T) {
