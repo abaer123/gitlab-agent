@@ -27,6 +27,7 @@ go_test(
     size = "small",
     srcs = [
         "connection_registry_test.go",
+        "connection_test.go",
         "reverse_tunnel_agent_plumbing_for_test.go",
         "reverse_tunnel_server_plumbing_for_test.go",
         "reverse_tunnel_test.go",
@@ -55,6 +56,7 @@ go_test(
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@io_k8s_apimachinery//pkg/util/wait",
+        "@org_golang_google_genproto//googleapis/rpc/status",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//metadata",

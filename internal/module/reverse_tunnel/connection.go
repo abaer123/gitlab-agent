@@ -51,9 +51,9 @@ func (c *connection) ForwardStream(incomingStream grpc.ServerStream) error {
 	// We don't care about the second value if the first one has at least one non-nil error.
 	res := make(chan errPair, 1)
 	startReadingTunnel := make(chan struct{})
+	incomingCtx := incomingStream.Context()
 	// Pipe incoming stream (i.e. data a client is sending us) into the tunnel stream
 	goErrPair(res, func() (error /* forTunnel */, error /* forIncomingStream */) {
-		incomingCtx := incomingStream.Context()
 		md, _ := metadata.FromIncomingContext(incomingCtx)
 		//if md != nil {
 		// TODO sanitize?
@@ -105,7 +105,7 @@ func (c *connection) ForwardStream(incomingStream grpc.ServerStream) error {
 	// Pipe tunnel stream (i.e. data agentk is sending us) into the incoming stream
 	goErrPair(res, func() (error /* forTunnel */, error /* forIncomingStream */) {
 		select {
-		case <-incomingStream.Context().Done():
+		case <-incomingCtx.Done():
 			return nil, status.Error(codes.Unavailable, "unavailable")
 		case <-startReadingTunnel:
 		}
@@ -138,9 +138,7 @@ func (c *connection) ForwardStream(incomingStream grpc.ServerStream) error {
 			}),
 		)
 		if fromVisitor != nil {
-			if forIncomingStream == nil {
-				forIncomingStream = fromVisitor
-			}
+			forIncomingStream = fromVisitor
 			if forTunnel == nil {
 				forTunnel = status.Error(codes.Unavailable, "unavailable")
 			}
