@@ -31,6 +31,7 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	}
 	return &module{
 		log:                config.Log,
+		server:             config.Server,
 		client:             rpc.NewReverseTunnelClient(config.KasConn),
 		internalServerConn: f.InternalServerConn,
 		streamVisitor:      sv,

@@ -24,6 +24,12 @@ import (
 
 // "slow" tests in this file are marked for concurrent execution with t.Parallel()
 
+const (
+	serviceName    = "gitlab.service1"
+	methodName     = "DoSomething"
+	fullMethodName = "/gitlab.service1/DoSomething"
+)
+
 func TestRunUnregistersAllConnections(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
@@ -171,7 +177,18 @@ func setupStreams(t *testing.T) (*mock_rpc.MockServerStream, *mock_reverse_tunne
 		Recv().
 		Return(&rpc.ConnectRequest{
 			Msg: &rpc.ConnectRequest_Descriptor_{
-				Descriptor_: &rpc.AgentDescriptor{},
+				Descriptor_: &rpc.AgentDescriptor{
+					Services: []*rpc.AgentService{
+						{
+							Name: serviceName,
+							Methods: []*rpc.ServiceMethod{
+								{
+									Name: methodName,
+								},
+							},
+						},
+					},
+				},
 			},
 		}, nil)
 	frame := grpctool.RawFrame{
@@ -180,12 +197,13 @@ func setupStreams(t *testing.T) (*mock_rpc.MockServerStream, *mock_reverse_tunne
 	gomock.InOrder(
 		sts.EXPECT().
 			Method().
-			Return("method"),
+			Return(fullMethodName).
+			MinTimes(1),
 		tunnel.EXPECT().
 			Send(matcher.ProtoEq(t, &rpc.ConnectResponse{
 				Msg: &rpc.ConnectResponse_RequestInfo{
 					RequestInfo: &rpc.RequestInfo{
-						MethodName: "method",
+						MethodName: fullMethodName,
 						Meta: map[string]*rpc.Values{
 							"cba": {Value: []string{"3", "4"}},
 						},

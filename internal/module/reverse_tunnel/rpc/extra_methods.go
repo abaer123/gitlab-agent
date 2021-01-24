@@ -16,6 +16,19 @@ func (x *Trailer) Metadata() metadata.MD {
 	return ValuesMapToMeta(x.Meta)
 }
 
+func (x *AgentDescriptor) SupportedMethods() map[string]map[string]struct{} {
+	services := x.GetServices()
+	res := make(map[string]map[string]struct{}, len(services))
+	for _, svcInfo := range services {
+		methods := make(map[string]struct{}, len(svcInfo.Methods))
+		for _, mInfo := range svcInfo.Methods {
+			methods[mInfo.Name] = struct{}{}
+		}
+		res[svcInfo.Name] = methods
+	}
+	return res
+}
+
 func ValuesMapToMeta(vals map[string]*Values) metadata.MD {
 	result := make(metadata.MD, len(vals))
 	for k, v := range vals {

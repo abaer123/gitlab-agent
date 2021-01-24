@@ -16,8 +16,17 @@ message Values {
   repeated string value = 1;
 }
 
+message ServiceMethod {
+  string name = 1;
+}
+
+message AgentService {
+  string name = 1;
+  repeated ServiceMethod methods = 2;
+}
+
 message AgentDescriptor {
-  // TODO info about available services and methods
+  repeated AgentService services = 1;
 }
 
 // Header is a gRPC metadata.

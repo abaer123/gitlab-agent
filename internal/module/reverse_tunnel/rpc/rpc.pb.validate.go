@@ -100,12 +100,176 @@ var _ interface {
 	ErrorName() string
 } = ValuesValidationError{}
 
+// Validate checks the field values on ServiceMethod with the rules defined in
+// the proto definition for this message. If any rules are violated, an error
+// is returned.
+func (m *ServiceMethod) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	// no validation rules for Name
+
+	return nil
+}
+
+// ServiceMethodValidationError is the validation error returned by
+// ServiceMethod.Validate if the designated constraints aren't met.
+type ServiceMethodValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ServiceMethodValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ServiceMethodValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ServiceMethodValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ServiceMethodValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ServiceMethodValidationError) ErrorName() string { return "ServiceMethodValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ServiceMethodValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sServiceMethod.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ServiceMethodValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ServiceMethodValidationError{}
+
+// Validate checks the field values on AgentService with the rules defined in
+// the proto definition for this message. If any rules are violated, an error
+// is returned.
+func (m *AgentService) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	// no validation rules for Name
+
+	for idx, item := range m.GetMethods() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return AgentServiceValidationError{
+					field:  fmt.Sprintf("Methods[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// AgentServiceValidationError is the validation error returned by
+// AgentService.Validate if the designated constraints aren't met.
+type AgentServiceValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AgentServiceValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AgentServiceValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AgentServiceValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AgentServiceValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AgentServiceValidationError) ErrorName() string { return "AgentServiceValidationError" }
+
+// Error satisfies the builtin error interface
+func (e AgentServiceValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAgentService.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AgentServiceValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AgentServiceValidationError{}
+
 // Validate checks the field values on AgentDescriptor with the rules defined
 // in the proto definition for this message. If any rules are violated, an
 // error is returned.
 func (m *AgentDescriptor) Validate() error {
 	if m == nil {
 		return nil
+	}
+
+	for idx, item := range m.GetServices() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return AgentDescriptorValidationError{
+					field:  fmt.Sprintf("Services[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
 	}
 
 	return nil

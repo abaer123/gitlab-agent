@@ -2,6 +2,7 @@ package reverse_tunnel
 
 import (
 	"context"
+	"strings"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
@@ -27,8 +28,10 @@ type IncomingConnectionHandler interface {
 }
 
 type connForwardRequest struct {
-	agentId int64
-	retConn chan<- *connection
+	agentId         int64
+	grpcServiceName string
+	grpcMethodName  string
+	retConn         chan<- *connection
 }
 
 type ConnectionRegistry struct {
@@ -85,11 +88,24 @@ func (r *ConnectionRegistry) Run(ctx context.Context) error {
 
 func (r *ConnectionRegistry) HandleIncomingConnection(agentId int64, stream grpc.ServerStream) error {
 	retConn := make(chan *connection) // can receive nil from it if registry is shutting down
-	s := &connForwardRequest{
-		agentId: agentId,
-		retConn: retConn,
-	}
 	ctx := stream.Context()
+	method, ok := grpc.Method(ctx) // format is `/service/method`
+	if !ok {
+		return status.Error(codes.ResourceExhausted, "Could not determine gRPC method")
+	}
+	if method != "" && method[0] == '/' {
+		method = method[1:]
+	}
+	pos := strings.LastIndex(method, "/")
+	if pos == -1 {
+		return status.Error(codes.ResourceExhausted, "Could not parse gRPC method")
+	}
+	s := &connForwardRequest{
+		agentId:         agentId,
+		grpcServiceName: method[:pos],
+		grpcMethodName:  method[pos+1:],
+		retConn:         retConn,
+	}
 	select {
 	case <-ctx.Done():
 		return status.Error(codes.Canceled, "context done")
@@ -135,7 +151,7 @@ func (r *ConnectionRegistry) HandleTunnelConnection(agentInfo *api.AgentInfo, se
 		agentId:             agentInfo.Id,
 		agentProjectId:      agentInfo.ProjectId,
 		agentName:           agentInfo.Name,
-		agentDescriptor:     descriptor.Descriptor_,
+		supportedMethods:    descriptor.Descriptor_.SupportedMethods(),
 	}
 	ctx := server.Context()
 	// Register
@@ -167,6 +183,9 @@ func (r *ConnectionRegistry) handleConnRegister(toReg *connection) {
 	// 1. Before registering the connection see if there is a connection request waiting for it
 	connRequestsForAgentId := r.connRequestsByAgentId[toReg.agentId]
 	for connReq := range connRequestsForAgentId {
+		if !connectionCanServeRequest(toReg, connReq) {
+			continue
+		}
 		// Waiting request found!
 		r.deleteConnRequest(connReq) // Remove it from the queue
 		connReq.retConn <- toReg     // Satisfy the waiting request
@@ -202,7 +221,9 @@ func (r *ConnectionRegistry) unregisterConnection(toAbort *connection) {
 func (r *ConnectionRegistry) handleConnRequest(connRequest *connForwardRequest) {
 	// 1. Check if we have a suitable connection
 	for conn := range r.connsByAgentId[connRequest.agentId] {
-		// TODO ensure requested service and method are supported
+		if !connectionCanServeRequest(conn, connRequest) {
+			continue
+		}
 		// Suitable connection found!
 		r.unregisterConnection(conn)
 		connRequest.retConn <- conn
@@ -242,4 +263,9 @@ func (r *ConnectionRegistry) cleanup() {
 			connReq.retConn <- nil
 		}
 	}
+}
+
+func connectionCanServeRequest(c *connection, req *connForwardRequest) bool {
+	_, ok := c.supportedMethods[req.grpcServiceName][req.grpcMethodName]
+	return ok
 }

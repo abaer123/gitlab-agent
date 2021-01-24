@@ -28,7 +28,7 @@ type connection struct {
 	agentId             int64
 	agentProjectId      int64
 	agentName           string
-	agentDescriptor     *rpc.AgentDescriptor
+	supportedMethods    map[string]map[string]struct{}
 }
 
 // ForwardStream performs bi-directional message forwarding between incomingStream and c.tunnel.
