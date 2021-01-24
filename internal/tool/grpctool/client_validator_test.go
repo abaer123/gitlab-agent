@@ -2,14 +2,12 @@ package grpctool
 
 import (
 	"context"
-	"net"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/test"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/test/bufconn"
 )
 
 var (
@@ -17,7 +15,7 @@ var (
 )
 
 func TestValidator(t *testing.T) {
-	lis := bufconn.Listen(1024 * 1024)
+	lis := NewDialListener()
 	defer lis.Close()
 	server := grpc.NewServer()
 	defer server.Stop()
@@ -30,9 +28,7 @@ func TestValidator(t *testing.T) {
 		grpc.WithInsecure(),
 		grpc.WithChainStreamInterceptor(StreamClientValidatingInterceptor),
 		grpc.WithChainUnaryInterceptor(UnaryClientValidatingInterceptor),
-		grpc.WithContextDialer(func(ctx context.Context, s string) (net.Conn, error) {
-			return lis.Dial()
-		}),
+		grpc.WithContextDialer(lis.DialContext),
 	)
 	require.NoError(t, err)
 	defer conn.Close()
