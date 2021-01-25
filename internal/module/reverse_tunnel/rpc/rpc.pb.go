@@ -80,16 +80,120 @@ func (x *Values) GetValue() []string {
 	return nil
 }
 
+type ServiceMethod struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+}
+
+func (x *ServiceMethod) Reset() {
+	*x = ServiceMethod{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ServiceMethod) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ServiceMethod) ProtoMessage() {}
+
+func (x *ServiceMethod) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ServiceMethod.ProtoReflect.Descriptor instead.
+func (*ServiceMethod) Descriptor() ([]byte, []int) {
+	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ServiceMethod) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type AgentService struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Name    string           `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Methods []*ServiceMethod `protobuf:"bytes,2,rep,name=methods,proto3" json:"methods,omitempty"`
+}
+
+func (x *AgentService) Reset() {
+	*x = AgentService{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AgentService) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentService) ProtoMessage() {}
+
+func (x *AgentService) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentService.ProtoReflect.Descriptor instead.
+func (*AgentService) Descriptor() ([]byte, []int) {
+	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *AgentService) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *AgentService) GetMethods() []*ServiceMethod {
+	if x != nil {
+		return x.Methods
+	}
+	return nil
+}
+
 type AgentDescriptor struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
+
+	Services []*AgentService `protobuf:"bytes,1,rep,name=services,proto3" json:"services,omitempty"`
 }
 
 func (x *AgentDescriptor) Reset() {
 	*x = AgentDescriptor{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[1]
+		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -102,7 +206,7 @@ func (x *AgentDescriptor) String() string {
 func (*AgentDescriptor) ProtoMessage() {}
 
 func (x *AgentDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[1]
+	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -115,7 +219,14 @@ func (x *AgentDescriptor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentDescriptor.ProtoReflect.Descriptor instead.
 func (*AgentDescriptor) Descriptor() ([]byte, []int) {
-	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{1}
+	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *AgentDescriptor) GetServices() []*AgentService {
+	if x != nil {
+		return x.Services
+	}
+	return nil
 }
 
 type Header struct {
@@ -129,7 +240,7 @@ type Header struct {
 func (x *Header) Reset() {
 	*x = Header{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[2]
+		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -142,7 +253,7 @@ func (x *Header) String() string {
 func (*Header) ProtoMessage() {}
 
 func (x *Header) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[2]
+	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -155,7 +266,7 @@ func (x *Header) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Header.ProtoReflect.Descriptor instead.
 func (*Header) Descriptor() ([]byte, []int) {
-	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{2}
+	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Header) GetMeta() map[string]*Values {
@@ -176,7 +287,7 @@ type Message struct {
 func (x *Message) Reset() {
 	*x = Message{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[3]
+		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -189,7 +300,7 @@ func (x *Message) String() string {
 func (*Message) ProtoMessage() {}
 
 func (x *Message) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[3]
+	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -202,7 +313,7 @@ func (x *Message) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Message.ProtoReflect.Descriptor instead.
 func (*Message) Descriptor() ([]byte, []int) {
-	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{3}
+	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Message) GetData() []byte {
@@ -223,7 +334,7 @@ type Trailer struct {
 func (x *Trailer) Reset() {
 	*x = Trailer{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[4]
+		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -236,7 +347,7 @@ func (x *Trailer) String() string {
 func (*Trailer) ProtoMessage() {}
 
 func (x *Trailer) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[4]
+	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -249,7 +360,7 @@ func (x *Trailer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Trailer.ProtoReflect.Descriptor instead.
 func (*Trailer) Descriptor() ([]byte, []int) {
-	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{4}
+	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Trailer) GetMeta() map[string]*Values {
@@ -270,7 +381,7 @@ type Error struct {
 func (x *Error) Reset() {
 	*x = Error{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[5]
+		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -283,7 +394,7 @@ func (x *Error) String() string {
 func (*Error) ProtoMessage() {}
 
 func (x *Error) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[5]
+	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -296,7 +407,7 @@ func (x *Error) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Error.ProtoReflect.Descriptor instead.
 func (*Error) Descriptor() ([]byte, []int) {
-	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{5}
+	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *Error) GetStatus() *status.Status {
@@ -323,7 +434,7 @@ type ConnectRequest struct {
 func (x *ConnectRequest) Reset() {
 	*x = ConnectRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[6]
+		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -336,7 +447,7 @@ func (x *ConnectRequest) String() string {
 func (*ConnectRequest) ProtoMessage() {}
 
 func (x *ConnectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[6]
+	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -349,7 +460,7 @@ func (x *ConnectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectRequest.ProtoReflect.Descriptor instead.
 func (*ConnectRequest) Descriptor() ([]byte, []int) {
-	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{6}
+	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{8}
 }
 
 func (m *ConnectRequest) GetMsg() isConnectRequest_Msg {
@@ -440,7 +551,7 @@ type RequestInfo struct {
 func (x *RequestInfo) Reset() {
 	*x = RequestInfo{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[7]
+		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -453,7 +564,7 @@ func (x *RequestInfo) String() string {
 func (*RequestInfo) ProtoMessage() {}
 
 func (x *RequestInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[7]
+	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -466,7 +577,7 @@ func (x *RequestInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestInfo.ProtoReflect.Descriptor instead.
 func (*RequestInfo) Descriptor() ([]byte, []int) {
-	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{7}
+	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *RequestInfo) GetMethodName() string {
@@ -492,7 +603,7 @@ type CloseSend struct {
 func (x *CloseSend) Reset() {
 	*x = CloseSend{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[8]
+		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -505,7 +616,7 @@ func (x *CloseSend) String() string {
 func (*CloseSend) ProtoMessage() {}
 
 func (x *CloseSend) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[8]
+	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -518,7 +629,7 @@ func (x *CloseSend) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseSend.ProtoReflect.Descriptor instead.
 func (*CloseSend) Descriptor() ([]byte, []int) {
-	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{8}
+	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{10}
 }
 
 type ConnectResponse struct {
@@ -536,7 +647,7 @@ type ConnectResponse struct {
 func (x *ConnectResponse) Reset() {
 	*x = ConnectResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[9]
+		mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -549,7 +660,7 @@ func (x *ConnectResponse) String() string {
 func (*ConnectResponse) ProtoMessage() {}
 
 func (x *ConnectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[9]
+	mi := &file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -562,7 +673,7 @@ func (x *ConnectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConnectResponse.ProtoReflect.Descriptor instead.
 func (*ConnectResponse) Descriptor() ([]byte, []int) {
-	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{9}
+	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP(), []int{11}
 }
 
 func (m *ConnectResponse) GetMsg() isConnectResponse_Msg {
@@ -631,8 +742,23 @@ var file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDesc = []byte{
 	0x2f, 0x72, 0x70, 0x63, 0x2f, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x2e, 0x70, 0x72, 0x6f, 0x74,
 	0x6f, 0x22, 0x1e, 0x0a, 0x06, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x12, 0x14, 0x0a, 0x05, 0x76,
 	0x61, 0x6c, 0x75, 0x65, 0x18, 0x01, 0x20, 0x03, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75,
-	0x65, 0x22, 0x11, 0x0a, 0x0f, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x44, 0x65, 0x73, 0x63, 0x72, 0x69,
-	0x70, 0x74, 0x6f, 0x72, 0x22, 0xb1, 0x01, 0x0a, 0x06, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x12,
+	0x65, 0x22, 0x2c, 0x0a, 0x0d, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x4d, 0x65, 0x74, 0x68,
+	0x6f, 0x64, 0x12, 0x1b, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+	0x42, 0x07, 0xfa, 0x42, 0x04, 0x72, 0x02, 0x10, 0x01, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x22,
+	0x75, 0x0a, 0x0c, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12,
+	0x1b, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x42, 0x07, 0xfa,
+	0x42, 0x04, 0x72, 0x02, 0x10, 0x01, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x48, 0x0a, 0x07,
+	0x6d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x2e, 0x2e,
+	0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x72, 0x65, 0x76,
+	0x65, 0x72, 0x73, 0x65, 0x5f, 0x74, 0x75, 0x6e, 0x6e, 0x65, 0x6c, 0x2e, 0x72, 0x70, 0x63, 0x2e,
+	0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x4d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x52, 0x07, 0x6d,
+	0x65, 0x74, 0x68, 0x6f, 0x64, 0x73, 0x22, 0x5c, 0x0a, 0x0f, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x44,
+	0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x6f, 0x72, 0x12, 0x49, 0x0a, 0x08, 0x73, 0x65, 0x72,
+	0x76, 0x69, 0x63, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x2d, 0x2e, 0x67, 0x69,
+	0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x72, 0x65, 0x76, 0x65, 0x72,
+	0x73, 0x65, 0x5f, 0x74, 0x75, 0x6e, 0x6e, 0x65, 0x6c, 0x2e, 0x72, 0x70, 0x63, 0x2e, 0x41, 0x67,
+	0x65, 0x6e, 0x74, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x52, 0x08, 0x73, 0x65, 0x72, 0x76,
+	0x69, 0x63, 0x65, 0x73, 0x22, 0xb1, 0x01, 0x0a, 0x06, 0x48, 0x65, 0x61, 0x64, 0x65, 0x72, 0x12,
 	0x45, 0x0a, 0x04, 0x6d, 0x65, 0x74, 0x61, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x31, 0x2e,
 	0x67, 0x69, 0x74, 0x6c, 0x61, 0x62, 0x2e, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x2e, 0x72, 0x65, 0x76,
 	0x65, 0x72, 0x73, 0x65, 0x5f, 0x74, 0x75, 0x6e, 0x6e, 0x65, 0x6c, 0x2e, 0x72, 0x70, 0x63, 0x2e,
@@ -755,46 +881,50 @@ func file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescGZIP() []byte {
 	return file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDescData
 }
 
-var file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_internal_module_reverse_tunnel_rpc_rpc_proto_goTypes = []interface{}{
 	(*Values)(nil),          // 0: gitlab.agent.reverse_tunnel.rpc.Values
-	(*AgentDescriptor)(nil), // 1: gitlab.agent.reverse_tunnel.rpc.AgentDescriptor
-	(*Header)(nil),          // 2: gitlab.agent.reverse_tunnel.rpc.Header
-	(*Message)(nil),         // 3: gitlab.agent.reverse_tunnel.rpc.Message
-	(*Trailer)(nil),         // 4: gitlab.agent.reverse_tunnel.rpc.Trailer
-	(*Error)(nil),           // 5: gitlab.agent.reverse_tunnel.rpc.Error
-	(*ConnectRequest)(nil),  // 6: gitlab.agent.reverse_tunnel.rpc.ConnectRequest
-	(*RequestInfo)(nil),     // 7: gitlab.agent.reverse_tunnel.rpc.RequestInfo
-	(*CloseSend)(nil),       // 8: gitlab.agent.reverse_tunnel.rpc.CloseSend
-	(*ConnectResponse)(nil), // 9: gitlab.agent.reverse_tunnel.rpc.ConnectResponse
-	nil,                     // 10: gitlab.agent.reverse_tunnel.rpc.Header.MetaEntry
-	nil,                     // 11: gitlab.agent.reverse_tunnel.rpc.Trailer.MetaEntry
-	nil,                     // 12: gitlab.agent.reverse_tunnel.rpc.RequestInfo.MetaEntry
-	(*status.Status)(nil),   // 13: google.rpc.Status
+	(*ServiceMethod)(nil),   // 1: gitlab.agent.reverse_tunnel.rpc.ServiceMethod
+	(*AgentService)(nil),    // 2: gitlab.agent.reverse_tunnel.rpc.AgentService
+	(*AgentDescriptor)(nil), // 3: gitlab.agent.reverse_tunnel.rpc.AgentDescriptor
+	(*Header)(nil),          // 4: gitlab.agent.reverse_tunnel.rpc.Header
+	(*Message)(nil),         // 5: gitlab.agent.reverse_tunnel.rpc.Message
+	(*Trailer)(nil),         // 6: gitlab.agent.reverse_tunnel.rpc.Trailer
+	(*Error)(nil),           // 7: gitlab.agent.reverse_tunnel.rpc.Error
+	(*ConnectRequest)(nil),  // 8: gitlab.agent.reverse_tunnel.rpc.ConnectRequest
+	(*RequestInfo)(nil),     // 9: gitlab.agent.reverse_tunnel.rpc.RequestInfo
+	(*CloseSend)(nil),       // 10: gitlab.agent.reverse_tunnel.rpc.CloseSend
+	(*ConnectResponse)(nil), // 11: gitlab.agent.reverse_tunnel.rpc.ConnectResponse
+	nil,                     // 12: gitlab.agent.reverse_tunnel.rpc.Header.MetaEntry
+	nil,                     // 13: gitlab.agent.reverse_tunnel.rpc.Trailer.MetaEntry
+	nil,                     // 14: gitlab.agent.reverse_tunnel.rpc.RequestInfo.MetaEntry
+	(*status.Status)(nil),   // 15: google.rpc.Status
 }
 var file_internal_module_reverse_tunnel_rpc_rpc_proto_depIdxs = []int32{
-	10, // 0: gitlab.agent.reverse_tunnel.rpc.Header.meta:type_name -> gitlab.agent.reverse_tunnel.rpc.Header.MetaEntry
-	11, // 1: gitlab.agent.reverse_tunnel.rpc.Trailer.meta:type_name -> gitlab.agent.reverse_tunnel.rpc.Trailer.MetaEntry
-	13, // 2: gitlab.agent.reverse_tunnel.rpc.Error.status:type_name -> google.rpc.Status
-	1,  // 3: gitlab.agent.reverse_tunnel.rpc.ConnectRequest.descriptor:type_name -> gitlab.agent.reverse_tunnel.rpc.AgentDescriptor
-	2,  // 4: gitlab.agent.reverse_tunnel.rpc.ConnectRequest.header:type_name -> gitlab.agent.reverse_tunnel.rpc.Header
-	3,  // 5: gitlab.agent.reverse_tunnel.rpc.ConnectRequest.message:type_name -> gitlab.agent.reverse_tunnel.rpc.Message
-	4,  // 6: gitlab.agent.reverse_tunnel.rpc.ConnectRequest.trailer:type_name -> gitlab.agent.reverse_tunnel.rpc.Trailer
-	5,  // 7: gitlab.agent.reverse_tunnel.rpc.ConnectRequest.error:type_name -> gitlab.agent.reverse_tunnel.rpc.Error
-	12, // 8: gitlab.agent.reverse_tunnel.rpc.RequestInfo.meta:type_name -> gitlab.agent.reverse_tunnel.rpc.RequestInfo.MetaEntry
-	7,  // 9: gitlab.agent.reverse_tunnel.rpc.ConnectResponse.request_info:type_name -> gitlab.agent.reverse_tunnel.rpc.RequestInfo
-	3,  // 10: gitlab.agent.reverse_tunnel.rpc.ConnectResponse.message:type_name -> gitlab.agent.reverse_tunnel.rpc.Message
-	8,  // 11: gitlab.agent.reverse_tunnel.rpc.ConnectResponse.close_send:type_name -> gitlab.agent.reverse_tunnel.rpc.CloseSend
-	0,  // 12: gitlab.agent.reverse_tunnel.rpc.Header.MetaEntry.value:type_name -> gitlab.agent.reverse_tunnel.rpc.Values
-	0,  // 13: gitlab.agent.reverse_tunnel.rpc.Trailer.MetaEntry.value:type_name -> gitlab.agent.reverse_tunnel.rpc.Values
-	0,  // 14: gitlab.agent.reverse_tunnel.rpc.RequestInfo.MetaEntry.value:type_name -> gitlab.agent.reverse_tunnel.rpc.Values
-	6,  // 15: gitlab.agent.reverse_tunnel.rpc.ReverseTunnel.Connect:input_type -> gitlab.agent.reverse_tunnel.rpc.ConnectRequest
-	9,  // 16: gitlab.agent.reverse_tunnel.rpc.ReverseTunnel.Connect:output_type -> gitlab.agent.reverse_tunnel.rpc.ConnectResponse
-	16, // [16:17] is the sub-list for method output_type
-	15, // [15:16] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	1,  // 0: gitlab.agent.reverse_tunnel.rpc.AgentService.methods:type_name -> gitlab.agent.reverse_tunnel.rpc.ServiceMethod
+	2,  // 1: gitlab.agent.reverse_tunnel.rpc.AgentDescriptor.services:type_name -> gitlab.agent.reverse_tunnel.rpc.AgentService
+	12, // 2: gitlab.agent.reverse_tunnel.rpc.Header.meta:type_name -> gitlab.agent.reverse_tunnel.rpc.Header.MetaEntry
+	13, // 3: gitlab.agent.reverse_tunnel.rpc.Trailer.meta:type_name -> gitlab.agent.reverse_tunnel.rpc.Trailer.MetaEntry
+	15, // 4: gitlab.agent.reverse_tunnel.rpc.Error.status:type_name -> google.rpc.Status
+	3,  // 5: gitlab.agent.reverse_tunnel.rpc.ConnectRequest.descriptor:type_name -> gitlab.agent.reverse_tunnel.rpc.AgentDescriptor
+	4,  // 6: gitlab.agent.reverse_tunnel.rpc.ConnectRequest.header:type_name -> gitlab.agent.reverse_tunnel.rpc.Header
+	5,  // 7: gitlab.agent.reverse_tunnel.rpc.ConnectRequest.message:type_name -> gitlab.agent.reverse_tunnel.rpc.Message
+	6,  // 8: gitlab.agent.reverse_tunnel.rpc.ConnectRequest.trailer:type_name -> gitlab.agent.reverse_tunnel.rpc.Trailer
+	7,  // 9: gitlab.agent.reverse_tunnel.rpc.ConnectRequest.error:type_name -> gitlab.agent.reverse_tunnel.rpc.Error
+	14, // 10: gitlab.agent.reverse_tunnel.rpc.RequestInfo.meta:type_name -> gitlab.agent.reverse_tunnel.rpc.RequestInfo.MetaEntry
+	9,  // 11: gitlab.agent.reverse_tunnel.rpc.ConnectResponse.request_info:type_name -> gitlab.agent.reverse_tunnel.rpc.RequestInfo
+	5,  // 12: gitlab.agent.reverse_tunnel.rpc.ConnectResponse.message:type_name -> gitlab.agent.reverse_tunnel.rpc.Message
+	10, // 13: gitlab.agent.reverse_tunnel.rpc.ConnectResponse.close_send:type_name -> gitlab.agent.reverse_tunnel.rpc.CloseSend
+	0,  // 14: gitlab.agent.reverse_tunnel.rpc.Header.MetaEntry.value:type_name -> gitlab.agent.reverse_tunnel.rpc.Values
+	0,  // 15: gitlab.agent.reverse_tunnel.rpc.Trailer.MetaEntry.value:type_name -> gitlab.agent.reverse_tunnel.rpc.Values
+	0,  // 16: gitlab.agent.reverse_tunnel.rpc.RequestInfo.MetaEntry.value:type_name -> gitlab.agent.reverse_tunnel.rpc.Values
+	8,  // 17: gitlab.agent.reverse_tunnel.rpc.ReverseTunnel.Connect:input_type -> gitlab.agent.reverse_tunnel.rpc.ConnectRequest
+	11, // 18: gitlab.agent.reverse_tunnel.rpc.ReverseTunnel.Connect:output_type -> gitlab.agent.reverse_tunnel.rpc.ConnectResponse
+	18, // [18:19] is the sub-list for method output_type
+	17, // [17:18] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_internal_module_reverse_tunnel_rpc_rpc_proto_init() }
@@ -816,7 +946,7 @@ func file_internal_module_reverse_tunnel_rpc_rpc_proto_init() {
 			}
 		}
 		file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AgentDescriptor); i {
+			switch v := v.(*ServiceMethod); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -828,7 +958,7 @@ func file_internal_module_reverse_tunnel_rpc_rpc_proto_init() {
 			}
 		}
 		file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Header); i {
+			switch v := v.(*AgentService); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -840,7 +970,7 @@ func file_internal_module_reverse_tunnel_rpc_rpc_proto_init() {
 			}
 		}
 		file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Message); i {
+			switch v := v.(*AgentDescriptor); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -852,7 +982,7 @@ func file_internal_module_reverse_tunnel_rpc_rpc_proto_init() {
 			}
 		}
 		file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Trailer); i {
+			switch v := v.(*Header); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -864,7 +994,7 @@ func file_internal_module_reverse_tunnel_rpc_rpc_proto_init() {
 			}
 		}
 		file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Error); i {
+			switch v := v.(*Message); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -876,7 +1006,7 @@ func file_internal_module_reverse_tunnel_rpc_rpc_proto_init() {
 			}
 		}
 		file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ConnectRequest); i {
+			switch v := v.(*Trailer); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -888,7 +1018,7 @@ func file_internal_module_reverse_tunnel_rpc_rpc_proto_init() {
 			}
 		}
 		file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RequestInfo); i {
+			switch v := v.(*Error); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -900,7 +1030,7 @@ func file_internal_module_reverse_tunnel_rpc_rpc_proto_init() {
 			}
 		}
 		file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseSend); i {
+			switch v := v.(*ConnectRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -912,6 +1042,30 @@ func file_internal_module_reverse_tunnel_rpc_rpc_proto_init() {
 			}
 		}
 		file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RequestInfo); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CloseSend); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ConnectResponse); i {
 			case 0:
 				return &v.state
@@ -924,14 +1078,14 @@ func file_internal_module_reverse_tunnel_rpc_rpc_proto_init() {
 			}
 		}
 	}
-	file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[6].OneofWrappers = []interface{}{
+	file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[8].OneofWrappers = []interface{}{
 		(*ConnectRequest_Descriptor_)(nil),
 		(*ConnectRequest_Header)(nil),
 		(*ConnectRequest_Message)(nil),
 		(*ConnectRequest_Trailer)(nil),
 		(*ConnectRequest_Error)(nil),
 	}
-	file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[9].OneofWrappers = []interface{}{
+	file_internal_module_reverse_tunnel_rpc_rpc_proto_msgTypes[11].OneofWrappers = []interface{}{
 		(*ConnectResponse_RequestInfo)(nil),
 		(*ConnectResponse_Message)(nil),
 		(*ConnectResponse_CloseSend)(nil),
@@ -942,7 +1096,7 @@ func file_internal_module_reverse_tunnel_rpc_rpc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

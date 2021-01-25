@@ -33,8 +33,10 @@ go_test(
     embed = [":agent"],
     race = "on",
     deps = [
+        "//internal/module/modagent",
         "//internal/module/reverse_tunnel/rpc",
         "//internal/tool/grpctool",
+        "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_reverse_tunnel",
         "//internal/tool/testing/mock_rpc",
         "//internal/tool/testing/testhelpers",

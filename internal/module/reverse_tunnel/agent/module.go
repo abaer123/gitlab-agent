@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
@@ -14,13 +13,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-var (
-	_ modagent.Module  = &module{}
-	_ modagent.Factory = &Factory{}
-)
-
 type module struct {
 	log                *zap.Logger
+	server             *grpc.Server
 	client             rpc.ReverseTunnelClient
 	internalServerConn grpc.ClientConnInterface
 	streamVisitor      *grpctool.StreamVisitor
@@ -29,11 +24,13 @@ type module struct {
 }
 
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
+	descriptor := m.agentDescriptor()
 	var wg wait.Group
 	defer wg.Wait()
 	for i := 0; i < m.numConnections; i++ {
 		conn := connection{
 			log:                m.log,
+			descriptor:         descriptor,
 			client:             m.client,
 			internalServerConn: m.internalServerConn,
 			streamVisitor:      m.streamVisitor,
@@ -50,4 +47,24 @@ func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfigura
 
 func (m *module) Name() string {
 	return reverse_tunnel.ModuleName
+}
+
+func (m *module) agentDescriptor() *rpc.AgentDescriptor {
+	info := m.server.GetServiceInfo()
+	services := make([]*rpc.AgentService, 0, len(info))
+	for svcName, svcInfo := range info {
+		methods := make([]*rpc.ServiceMethod, 0, len(svcInfo.Methods))
+		for _, mInfo := range svcInfo.Methods {
+			methods = append(methods, &rpc.ServiceMethod{
+				Name: mInfo.Name,
+			})
+		}
+		services = append(services, &rpc.AgentService{
+			Name:    svcName,
+			Methods: methods,
+		})
+	}
+	return &rpc.AgentDescriptor{
+		Services: services,
+	}
 }

@@ -33,6 +33,7 @@ var (
 
 type connection struct {
 	log                *zap.Logger
+	descriptor         *rpc.AgentDescriptor
 	client             rpc.ReverseTunnelClient
 	internalServerConn grpc.ClientConnInterface
 	streamVisitor      *grpctool.StreamVisitor
@@ -71,7 +72,7 @@ func (c *connection) attempt(ctx context.Context) error {
 	}
 	err = tunnel.Send(&rpc.ConnectRequest{
 		Msg: &rpc.ConnectRequest_Descriptor_{
-			Descriptor_: &rpc.AgentDescriptor{},
+			Descriptor_: c.descriptor,
 		},
 	})
 	if err != nil {

@@ -8,13 +8,20 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
+)
+
+var (
+	_ modagent.Module  = &module{}
+	_ modagent.Factory = &Factory{}
 )
 
 func TestPropagateUntilStop(t *testing.T) {
@@ -230,6 +237,24 @@ func TestContextIgnoredIfStartedStreaming(t *testing.T) {
 	require.EqualError(t, err, "expected err")
 }
 
+func TestAgentDescriptorIsSent(t *testing.T) {
+	client, _, tunnel, c := setupConnection(t)
+	gomock.InOrder(
+		client.EXPECT().
+			Connect(gomock.Any()).
+			Return(tunnel, nil),
+		tunnel.EXPECT().
+			Send(matcher.ProtoEq(t, &rpc.ConnectRequest{
+				Msg: &rpc.ConnectRequest_Descriptor_{
+					Descriptor_: descriptor(),
+				},
+			})).
+			Return(errors.New("expected err")),
+	)
+	err := c.attempt(context.Background())
+	require.EqualError(t, err, "Send(descriptor): expected err")
+}
+
 func setupConnection(t *testing.T) (*mock_reverse_tunnel.MockReverseTunnelClient, *mock_rpc.MockClientConnInterface, *mock_reverse_tunnel.MockReverseTunnel_ConnectClient, *connection) {
 	ctrl := gomock.NewController(t)
 	client := mock_reverse_tunnel.NewMockReverseTunnelClient(ctrl)
@@ -239,9 +264,25 @@ func setupConnection(t *testing.T) (*mock_reverse_tunnel.MockReverseTunnelClient
 	require.NoError(t, err)
 	c := &connection{
 		log:                zaptest.NewLogger(t),
+		descriptor:         descriptor(),
 		client:             client,
 		internalServerConn: conn,
 		streamVisitor:      sv,
 	}
 	return client, conn, tunnel, c
+}
+
+func descriptor() *rpc.AgentDescriptor {
+	return &rpc.AgentDescriptor{
+		Services: []*rpc.AgentService{
+			{
+				Name: "bla",
+				Methods: []*rpc.ServiceMethod{
+					{
+						Name: "bab",
+					},
+				},
+			},
+		},
+	}
 }
