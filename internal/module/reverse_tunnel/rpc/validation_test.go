@@ -42,6 +42,16 @@ func TestValidation_Invalid(t *testing.T) {
 			errString: "invalid Error.Status: value is required",
 			invalid:   &Error{},
 		},
+		{
+			name:      "empty AgentService.Name",
+			errString: "invalid AgentService.Name: value length must be at least 1 runes",
+			invalid:   &AgentService{},
+		},
+		{
+			name:      "empty ServiceMethod.Name",
+			errString: "invalid ServiceMethod.Name: value length must be at least 1 runes",
+			invalid:   &ServiceMethod{},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) { // nolint: scopelint

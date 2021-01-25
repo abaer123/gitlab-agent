@@ -133,8 +133,6 @@ func (r *ConnectionRegistry) HandleTunnelConnection(agentInfo *api.AgentInfo, se
 		tunnelStreamVisitor: r.tunnelStreamVisitor,
 		tunnelRetErr:        retErr,
 		agentId:             agentInfo.Id,
-		agentProjectId:      agentInfo.ProjectId,
-		agentName:           agentInfo.Name,
 		agentDescriptor:     descriptor.Descriptor_,
 	}
 	ctx := server.Context()
@@ -202,7 +200,6 @@ func (r *ConnectionRegistry) unregisterConnection(toAbort *connection) {
 func (r *ConnectionRegistry) handleConnRequest(connRequest *connForwardRequest) {
 	// 1. Check if we have a suitable connection
 	for conn := range r.connsByAgentId[connRequest.agentId] {
-		// TODO ensure requested service and method are supported
 		// Suitable connection found!
 		r.unregisterConnection(conn)
 		connRequest.retConn <- conn

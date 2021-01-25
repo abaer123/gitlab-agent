@@ -26,8 +26,6 @@ type connection struct {
 	tunnelStreamVisitor *grpctool.StreamVisitor
 	tunnelRetErr        chan<- error
 	agentId             int64
-	agentProjectId      int64
-	agentName           string
 	agentDescriptor     *rpc.AgentDescriptor
 }
 
