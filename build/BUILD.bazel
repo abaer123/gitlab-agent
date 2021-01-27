@@ -53,6 +53,7 @@ multirun(
         "//internal/tool/grpctool/automata:extract_generated",
         "//internal/tool/grpctool/test:extract_generated",
         "//internal/tool/grpctool/test:extract_generated_validator",
+        "//internal/tool/redistool:extract_generated",
         "//pkg/agentcfg:extract_generated",
         "//pkg/agentcfg:extract_generated_validator",
         "//pkg/kascfg:extract_generated",

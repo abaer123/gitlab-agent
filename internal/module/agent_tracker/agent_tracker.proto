@@ -7,7 +7,6 @@ package gitlab.agent.agent_tracker;
 option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_tracker";
 
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/any.proto";
 import "internal/module/modshared/modshared.proto";
 
 // ConnectedAgentInfo contains information about a connected agentk.
@@ -23,10 +22,4 @@ message ConnectedAgentInfo {
   int64 agent_id = 4;
   // Id of the configuration project.
   int64 project_id = 5;
-}
-
-message ExpiringValue {
-  // When the value should be considered expired.
-  google.protobuf.Timestamp expires_at = 1;
-  google.protobuf.Any value = 2;
 }
