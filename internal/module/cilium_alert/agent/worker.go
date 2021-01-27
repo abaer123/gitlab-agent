@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"context"
+	"crypto/sha1"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -109,6 +110,7 @@ func (w *worker) processFlow(ctx context.Context, flw *flow.Flow) error {
 func (w *worker) sendAlert(ctx context.Context, fl *flow.Flow, cnp *v2.CiliumNetworkPolicy) error {
 	mbdy, err := json.Marshal(payload{
 		Alert: alert{
+			Fingerprint:         generateFingerprint(w.log, fl, cnp),
 			Flow:                (*flowAlias)(fl),
 			CiliumNetworkPolicy: cnp,
 		},
@@ -155,6 +157,28 @@ type payload struct {
 }
 
 type alert struct {
+	Fingerprint         string                  `json:"fingerprint"`
 	Flow                *flowAlias              `json:"flow"`
 	CiliumNetworkPolicy *v2.CiliumNetworkPolicy `json:"ciliumNetworkPolicy"`
+}
+
+func generateFingerprint(log *zap.Logger, flow2 *flow.Flow, policy *v2.CiliumNetworkPolicy) string {
+	combinedFields := fmt.Sprintf("%v-%v-%v-%v-%v-%v-%v", flow2.NodeName,
+		flow2.Source.Namespace+flow2.Source.PodName,
+		flow2.Destination.Namespace+flow2.Destination.PodName,
+		flow2.Type,
+		flow2.EventType,
+		flow2.TrafficDirection,
+		policy.UID)
+
+	h := sha1.New()
+	_, err := h.Write([]byte(combinedFields))
+
+	if err != nil {
+		log.Error(err.Error())
+		return ""
+	}
+
+	bs := h.Sum(nil)
+	return fmt.Sprintf("%x", string(bs))
 }

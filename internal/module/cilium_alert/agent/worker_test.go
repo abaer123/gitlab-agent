@@ -84,17 +84,41 @@ func TestNoMatch(t *testing.T) {
 }
 
 func TestJSON(t *testing.T) {
+	networkPolicy := &v2.CiliumNetworkPolicy{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "bla",
+			APIVersion: "bla",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			UID: "2d931510-d99f-494a-8c67-87feb05e1594",
+		},
+	}
+
+	networkFlow := &flow.Flow{
+		Verdict: 0,
+		Source: &flow.Endpoint{
+			Namespace: "test",
+			PodName:   "pod2",
+		},
+		Destination: &flow.Endpoint{
+			Namespace: "test",
+			PodName:   "pod1",
+		},
+		Type:             flow.FlowType_L7,
+		NodeName:         "TestNode",
+		EventType: &flow.CiliumEventType{
+			Type:    2,
+			SubType: 3,
+		},
+		TrafficDirection:      flow.TrafficDirection_EGRESS,
+		DropReasonDesc:        flow.DropReason_POLICY_DENIED,
+	}
+
 	p1 := payload{
 		Alert: alert{
-			Flow: (*flowAlias)(&flow.Flow{
-				DropReasonDesc: flow.DropReason_POLICY_DENIED,
-			}),
-			CiliumNetworkPolicy: &v2.CiliumNetworkPolicy{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "bla",
-					APIVersion: "bla",
-				},
-			},
+			Fingerprint:         generateFingerprint(nil, networkFlow, networkPolicy),
+			Flow:                (*flowAlias)(networkFlow),
+			CiliumNetworkPolicy: networkPolicy,
 		},
 	}
 	data, err := json.Marshal(p1)

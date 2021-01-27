@@ -391,10 +391,10 @@ issues:
 
     # Exclude known linters from partially hard-vendored code,
     # which is impossible to exclude via "nolint" comments.
-#    - path: internal/hmac/
-#      text: "weak cryptographic primitive"
-#      linters:
-#        - gosec
+    - path: internal/module/cilium_alert/agent/worker.go
+      text: "weak cryptographic primitive"
+      linters:
+        - gosec
 
     # Exclude some staticcheck messages
 #    - linters:
