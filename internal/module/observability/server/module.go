@@ -33,7 +33,7 @@ func (m *module) Run(ctx context.Context) (retErr error) {
 		logz.NetAddressFromAddr(lis.Addr()),
 	)
 
-	metricSrv := metricServer{
+	metricSrv := observability.MetricServer{
 		Name:                  m.serverName,
 		Listener:              lis,
 		PrometheusUrlPath:     m.cfg.Prometheus.UrlPath,

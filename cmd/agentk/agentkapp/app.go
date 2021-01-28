@@ -194,10 +194,12 @@ func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, err
 			PermitWithoutStream: true,
 		}),
 		grpc.WithChainStreamInterceptor(
+			grpc_prometheus.StreamClientInterceptor,
 			grpccorrelation.StreamClientCorrelationInterceptor(grpccorrelation.WithClientName(agentName)),
 			grpctool.StreamClientValidatingInterceptor,
 		),
 		grpc.WithChainUnaryInterceptor(
+			grpc_prometheus.UnaryClientInterceptor,
 			grpccorrelation.UnaryClientCorrelationInterceptor(grpccorrelation.WithClientName(agentName)),
 			grpctool.UnaryClientValidatingInterceptor,
 		),

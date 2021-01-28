@@ -9,11 +9,14 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/agent",
     visibility = ["//:__subpackages__"],
     deps = [
+        "//cmd",
         "//internal/module/modagent",
         "//internal/module/observability",
         "//internal/tool/logz",
         "//internal/tool/protodefault",
         "//pkg/agentcfg",
+        "@com_github_ash2k_stager//:stager",
+        "@com_github_prometheus_client_golang//prometheus",
         "@org_uber_go_zap//:zap",
     ],
 )

@@ -3,7 +3,11 @@ package agent
 import (
 	"context"
 	"fmt"
+	"net"
 
+	"github.com/ash2k/stager"
+	"github.com/prometheus/client_golang/prometheus"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/protodefault"
@@ -16,15 +20,56 @@ type module struct {
 	logLevel zap.AtomicLevel
 }
 
+const (
+	listenAddress         = "127.0.0.1:8080"
+	prometheusUrlPath     = "/metrics"
+	livenessProbeUrlPath  = "/liveness"
+	readinessProbeUrlPath = "/readiness"
+)
+
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
-	for config := range cfg {
-		err := m.setConfigurationLogging(config.Observability.Logging)
-		if err != nil {
-			m.log.Error("Failed to apply logging configuration", zap.Error(err))
-			continue
-		}
-	}
-	return nil
+	return cmd.RunStages(ctx,
+		func(stage stager.Stage) {
+			// Listen for config changes and apply to logger
+			stage.Go(func(ctx context.Context) error {
+				for config := range cfg {
+					err := m.setConfigurationLogging(config.Observability.Logging)
+					if err != nil {
+						m.log.Error("Failed to apply logging configuration", zap.Error(err))
+						continue
+					}
+				}
+				return nil
+			})
+			// Start metrics server
+			stage.Go(func(ctx context.Context) error {
+				lis, err := net.Listen("tcp", listenAddress)
+				if err != nil {
+					return fmt.Errorf("Observability listener failed to start: %v", err)
+				}
+				// Error is ignored because metricSrv.Run() closes the listener and
+				// a second close always produces an error.
+				defer lis.Close() //nolint:errcheck
+
+				m.log.Info("Observability endpoint is up",
+					logz.NetNetworkFromAddr(lis.Addr()),
+					logz.NetAddressFromAddr(lis.Addr()),
+				)
+
+				metricSrv := observability.MetricServer{
+					Name:                  m.Name(),
+					Listener:              lis,
+					PrometheusUrlPath:     prometheusUrlPath,
+					LivenessProbeUrlPath:  livenessProbeUrlPath,
+					ReadinessProbeUrlPath: readinessProbeUrlPath,
+					Gatherer:              prometheus.DefaultGatherer,
+					Registerer:            prometheus.DefaultRegisterer,
+				}
+
+				return metricSrv.Run(ctx)
+			})
+		},
+	)
 }
 
 func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error {
