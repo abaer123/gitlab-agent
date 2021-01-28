@@ -1,13 +1,35 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("//build:proto.bzl", "go_grpc_generate")
+
+go_grpc_generate(
+    src = "redistool.proto",
+    workspace_relative_target_directory = "internal/tool/redistool",
+    deps = [
+        "@com_google_protobuf//:any_proto",
+        "@com_google_protobuf//:timestamp_proto",
+    ],
+)
 
 go_library(
     name = "redistool",
-    srcs = ["token_limiter.go"],
+    srcs = [
+        "expiring_hash.go",
+        "redistool.pb.go",
+        "token_limiter.go",
+    ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/redistool",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/tool/logz",
         "@com_github_go_redis_redis_v8//:redis",
+        "@com_github_golang_protobuf//proto",
+        "@com_github_golang_protobuf//ptypes/any",
+        "@com_github_golang_protobuf//ptypes/timestamp",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+        "@org_golang_google_protobuf//types/known/anypb",
+        "@org_golang_google_protobuf//types/known/timestamppb",
         "@org_uber_go_zap//:zap",
     ],
 )

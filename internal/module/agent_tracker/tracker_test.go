@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/redistool"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -22,6 +23,7 @@ import (
 
 const (
 	redisURLEnvName = "REDIS_URL"
+	ttl             = time.Second
 )
 
 var (
@@ -29,7 +31,7 @@ var (
 )
 
 func TestRegisterConnection(t *testing.T) {
-	client, tr := setupTracker(t)
+	client, tr, keyPrefix := setupTracker(t)
 
 	// Given
 	info := connInfo()
@@ -38,12 +40,12 @@ func TestRegisterConnection(t *testing.T) {
 	require.NoError(t, tr.registerConnection(context.Background(), info))
 
 	// Then
-	equalHash(t, client, tr.connectionsByProjectIdHashKey(info.ProjectId), info)
-	equalHash(t, client, tr.connectionsByAgentIdHashKey(info.AgentId), info)
+	equalHash(t, client, connectionsByProjectIdHashKey(keyPrefix)(info.ProjectId), info)
+	equalHash(t, client, connectionsByAgentIdHashKey(keyPrefix)(info.AgentId), info)
 }
 
 func TestUnregisterConnection(t *testing.T) {
-	client, tr := setupTracker(t)
+	client, tr, keyPrefix := setupTracker(t)
 
 	// Given
 	info := connInfo()
@@ -53,29 +55,29 @@ func TestUnregisterConnection(t *testing.T) {
 	require.NoError(t, tr.unregisterConnection(context.Background(), info))
 
 	// Then
-	require.Empty(t, getHash(t, client, tr.connectionsByProjectIdHashKey(info.ProjectId)))
-	require.Empty(t, getHash(t, client, tr.connectionsByAgentIdHashKey(info.AgentId)))
+	require.Empty(t, getHash(t, client, connectionsByProjectIdHashKey(keyPrefix)(info.ProjectId)))
+	require.Empty(t, getHash(t, client, connectionsByAgentIdHashKey(keyPrefix)(info.AgentId)))
 }
 
 func TestHashExpires(t *testing.T) {
 	t.Parallel()
-	client, tr := setupTracker(t)
+	client, tr, keyPrefix := setupTracker(t)
 
 	// Given
 	info := connInfo()
 
 	// When
 	require.NoError(t, tr.registerConnection(context.Background(), info))
-	time.Sleep(tr.ttl + 100*time.Millisecond)
+	time.Sleep(ttl + 100*time.Millisecond)
 
 	// Then
-	require.Empty(t, getHash(t, client, tr.connectionsByProjectIdHashKey(info.ProjectId)))
-	require.Empty(t, getHash(t, client, tr.connectionsByAgentIdHashKey(info.AgentId)))
+	require.Empty(t, getHash(t, client, connectionsByProjectIdHashKey(keyPrefix)(info.ProjectId)))
+	require.Empty(t, getHash(t, client, connectionsByAgentIdHashKey(keyPrefix)(info.AgentId)))
 }
 
 func TestGC(t *testing.T) {
 	t.Parallel()
-	client, tr := setupTracker(t)
+	client, tr, keyPrefix := setupTracker(t)
 
 	// Given
 	info := connInfo()
@@ -83,24 +85,25 @@ func TestGC(t *testing.T) {
 	// When
 	require.NoError(t, tr.registerConnection(context.Background(), info))
 	_, err := client.Pipelined(context.Background(), func(p redis.Pipeliner) error {
-		newExpireIn := 3 * tr.ttl
-		p.PExpire(context.Background(), tr.connectionsByProjectIdHashKey(info.ProjectId), newExpireIn)
-		p.PExpire(context.Background(), tr.connectionsByAgentIdHashKey(info.AgentId), newExpireIn)
+		newExpireIn := 3 * ttl
+		p.PExpire(context.Background(), connectionsByProjectIdHashKey(keyPrefix)(info.ProjectId), newExpireIn)
+		p.PExpire(context.Background(), connectionsByAgentIdHashKey(keyPrefix)(info.AgentId), newExpireIn)
 		return nil
 	})
 	require.NoError(t, err)
-	time.Sleep(tr.ttl + 100*time.Millisecond)
+	time.Sleep(ttl + 100*time.Millisecond)
 	deletedKeys, err := tr.runGc(context.Background())
 	require.NoError(t, err)
 	assert.EqualValues(t, 2, deletedKeys)
 
 	// Then
-	require.Empty(t, getHash(t, client, tr.connectionsByProjectIdHashKey(info.ProjectId)))
-	require.Empty(t, getHash(t, client, tr.connectionsByAgentIdHashKey(info.AgentId)))
+	require.Empty(t, getHash(t, client, connectionsByProjectIdHashKey(keyPrefix)(info.ProjectId)))
+	require.Empty(t, getHash(t, client, connectionsByAgentIdHashKey(keyPrefix)(info.AgentId)))
 }
 
 func TestRefresh(t *testing.T) {
-	client, tr := setupTracker(t)
+	t.Parallel()
+	client, tr, keyPrefix := setupTracker(t)
 
 	// Given
 	info := connInfo()
@@ -108,19 +111,18 @@ func TestRefresh(t *testing.T) {
 	// When
 	require.NoError(t, tr.registerConnection(context.Background(), info))
 	registrationTime := time.Now()
-	oldExpireIn := tr.ttl
-	tr.ttl = 2 * tr.ttl // increase
+	time.Sleep(ttl / 2)
 	err := tr.refreshRegistrations(context.Background())
 	require.NoError(t, err)
 
 	// Then
-	expireAfter := registrationTime.Add(oldExpireIn)
-	valuesExpireAfter(t, client, tr.connectionsByProjectIdHashKey(info.ProjectId), expireAfter)
-	valuesExpireAfter(t, client, tr.connectionsByAgentIdHashKey(info.AgentId), expireAfter)
+	expireAfter := registrationTime.Add(ttl)
+	valuesExpireAfter(t, client, connectionsByProjectIdHashKey(keyPrefix)(info.ProjectId), expireAfter)
+	valuesExpireAfter(t, client, connectionsByAgentIdHashKey(keyPrefix)(info.AgentId), expireAfter)
 }
 
 func TestGetConnectionsEmpty(t *testing.T) {
-	_, tr := setupTracker(t)
+	_, tr, _ := setupTracker(t)
 
 	// Given
 	info := connInfo()
@@ -138,7 +140,7 @@ func TestGetConnectionsEmpty(t *testing.T) {
 }
 
 func TestGetConnections(t *testing.T) {
-	_, tr := setupTracker(t)
+	_, tr, _ := setupTracker(t)
 
 	// Given
 	info := connInfo()
@@ -155,7 +157,7 @@ func TestGetConnections(t *testing.T) {
 	assert.Empty(t, cmp.Diff([]*ConnectedAgentInfo{info}, infos, protocmp.Transform()))
 }
 
-func setupTracker(t *testing.T) (redis.UniversalClient, *RedisTracker) {
+func setupTracker(t *testing.T) (redis.UniversalClient, *RedisTracker, string) {
 	client := redisClient(t)
 	t.Cleanup(func() {
 		assert.NoError(t, client.Close())
@@ -164,8 +166,9 @@ func setupTracker(t *testing.T) (redis.UniversalClient, *RedisTracker) {
 	prefix := make([]byte, 32)
 	_, err := r.Read(prefix)
 	require.NoError(t, err)
-	tr := NewRedisTracker(zaptest.NewLogger(t), client, string(prefix), time.Second, time.Minute, time.Minute)
-	return client, tr
+	keyPrefix := string(prefix)
+	tr := NewRedisTracker(zaptest.NewLogger(t), client, keyPrefix, ttl, time.Minute, time.Minute)
+	return client, tr, keyPrefix
 }
 
 func connInfo() *ConnectedAgentInfo {
@@ -206,7 +209,7 @@ func equalHash(t *testing.T, client redis.UniversalClient, key string, info *Con
 	connectionIdStr := strconv.Itoa(int(info.ConnectionId))
 	require.Contains(t, hash, connectionIdStr)
 	val := hash[connectionIdStr]
-	var msg ExpiringValue
+	var msg redistool.ExpiringValue
 	err := proto.Unmarshal([]byte(val), &msg)
 	require.NoError(t, err)
 	var valProto ConnectedAgentInfo
@@ -219,7 +222,7 @@ func valuesExpireAfter(t *testing.T, client redis.UniversalClient, key string, e
 	hash := getHash(t, client, key)
 	require.NotEmpty(t, hash)
 	for _, val := range hash {
-		var msg ExpiringValue
+		var msg redistool.ExpiringValue
 		err := proto.Unmarshal([]byte(val), &msg)
 		require.NoError(t, err)
 		assert.True(t, msg.ExpiresAt.AsTime().After(expireAfter))
