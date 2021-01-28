@@ -5,7 +5,6 @@ go_library(
     srcs = [
         "defaulting.go",
         "factory.go",
-        "metric_server.go",
         "module.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/server",
@@ -13,12 +12,10 @@ go_library(
     deps = [
         "//internal/module/modserver",
         "//internal/module/observability",
-        "//internal/tool/httpz",
         "//internal/tool/logz",
         "//internal/tool/protodefault",
         "//pkg/kascfg",
         "@com_github_prometheus_client_golang//prometheus",
-        "@com_github_prometheus_client_golang//prometheus/promhttp",
         "@org_uber_go_zap//:zap",
     ],
 )

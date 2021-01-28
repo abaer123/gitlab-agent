@@ -2,7 +2,15 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "observability",
-    srcs = ["api.go"],
+    srcs = [
+        "api.go",
+        "metric_server.go",
+    ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability",
     visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/tool/httpz",
+        "@com_github_prometheus_client_golang//prometheus",
+        "@com_github_prometheus_client_golang//prometheus/promhttp",
+    ],
 )

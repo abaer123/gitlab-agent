@@ -1,4 +1,4 @@
-package server
+package observability
 
 import (
 	"context"
@@ -20,7 +20,7 @@ const (
 	idleTimeout               = 1 * time.Minute
 )
 
-type metricServer struct {
+type MetricServer struct {
 	// Name is the name of the application.
 	Name                  string
 	Listener              net.Listener
@@ -31,7 +31,7 @@ type metricServer struct {
 	Registerer            prometheus.Registerer
 }
 
-func (s *metricServer) Run(ctx context.Context) error {
+func (s *MetricServer) Run(ctx context.Context) error {
 	srv := &http.Server{
 		Handler:      s.constructHandler(),
 		WriteTimeout: writeTimeout,
@@ -41,7 +41,7 @@ func (s *metricServer) Run(ctx context.Context) error {
 	return httpz.RunServer(ctx, srv, s.Listener, shutdownTimeout)
 }
 
-func (s *metricServer) constructHandler() http.Handler {
+func (s *MetricServer) constructHandler() http.Handler {
 	mux := http.NewServeMux()
 	s.probesHandler(mux)
 	s.pprofHandler(mux)
@@ -49,14 +49,14 @@ func (s *metricServer) constructHandler() http.Handler {
 	return mux
 }
 
-func (s *metricServer) setHeaders(next http.Handler) http.Handler {
+func (s *MetricServer) setHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Server", s.Name)
 		next.ServeHTTP(w, r)
 	})
 }
 
-func (s *metricServer) probesHandler(mux *http.ServeMux) {
+func (s *MetricServer) probesHandler(mux *http.ServeMux) {
 	mux.Handle(
 		s.LivenessProbeUrlPath,
 		s.setHeaders(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
@@ -71,7 +71,7 @@ func (s *metricServer) probesHandler(mux *http.ServeMux) {
 	)
 }
 
-func (s *metricServer) prometheusHandler(mux *http.ServeMux) {
+func (s *MetricServer) prometheusHandler(mux *http.ServeMux) {
 	mux.Handle(
 		s.PrometheusUrlPath,
 		s.setHeaders(promhttp.InstrumentMetricHandler(s.Registerer, promhttp.HandlerFor(s.Gatherer, promhttp.HandlerOpts{
@@ -80,7 +80,7 @@ func (s *metricServer) prometheusHandler(mux *http.ServeMux) {
 	)
 }
 
-func (s *metricServer) pprofHandler(mux *http.ServeMux) {
+func (s *MetricServer) pprofHandler(mux *http.ServeMux) {
 	routes := map[string]func(http.ResponseWriter, *http.Request){
 		"/debug/pprof/":        pprof.Index,
 		"/debug/pprof/cmdline": pprof.Cmdline,
