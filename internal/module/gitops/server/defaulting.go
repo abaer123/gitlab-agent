@@ -11,8 +11,8 @@ const (
 	defaultGitopsPollPeriod               = 20 * time.Second
 	defaultGitopsProjectInfoCacheTTL      = 5 * time.Minute
 	defaultGitopsProjectInfoCacheErrorTTL = 1 * time.Minute
-	defaultGitopsMaxManifestFileSize      = 1024 * 1024
-	defaultGitopsMaxTotalManifestFileSize = 2 * 1024 * 1024
+	defaultGitopsMaxManifestFileSize      = 5 * 1024 * 1024
+	defaultGitopsMaxTotalManifestFileSize = 20 * 1024 * 1024
 	defaultGitopsMaxNumberOfPaths         = 100
 	defaultGitopsMaxNumberOfFiles         = 1000
 )
