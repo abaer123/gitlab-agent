@@ -24,8 +24,8 @@ agent:
     poll_period: "20s"
     project_info_cache_ttl: "300s"
     project_info_cache_error_ttl: "60s"
-    max_manifest_file_size: 1048576
-    max_total_manifest_file_size: 2097152
+    max_manifest_file_size: 5242880
+    max_total_manifest_file_size: 20971520
     max_number_of_paths: 100
     max_number_of_files: 1000
   info_cache_ttl: "300s"
