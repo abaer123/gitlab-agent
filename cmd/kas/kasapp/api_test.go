@@ -51,7 +51,7 @@ func TestGetAgentInfoFailures(t *testing.T) {
 			Return(&gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}),
 		errTracker.EXPECT().
 			Capture(matcher.ErrorEq("GetAgentInfo(): error kind: 0; status: 500"), gomock.Any()).
-			DoAndReturn(func(err error, opts ...errortracking.CaptureOption) {
+			Do(func(err error, opts ...errortracking.CaptureOption) {
 				cancel() // exception captured, cancel the context to stop the test
 			}),
 	)

@@ -20,9 +20,7 @@ func InitMockClientStream(ctrl *gomock.Controller, eof bool, msgs ...proto.Messa
 	if eof {
 		call := stream.EXPECT().
 			RecvMsg(gomock.Any()).
-			DoAndReturn(func(msg interface{}) error {
-				return io.EOF
-			})
+			Return(io.EOF)
 		res = append(res, call)
 	}
 	return stream, res

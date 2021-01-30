@@ -168,9 +168,7 @@ func mockRecvStream(server *mock_rpc.MockGitlabAccess_MakeRequestServer, eof boo
 	if eof {
 		call := server.EXPECT().
 			RecvMsg(gomock.Any()).
-			DoAndReturn(func(msg interface{}) error {
-				return io.EOF
-			})
+			Return(io.EOF)
 		res = append(res, call)
 	}
 	return res
