@@ -253,11 +253,10 @@ func mockTreeEntry(t *testing.T, mockCtrl *gomock.Controller, commitClient *mock
 	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(mockCtrl)
 	// Emulate streaming response
 	resp1 := &gitalypb.TreeEntryResponse{
-		Type: gitalypb.TreeEntryResponse_BLOB,
+		Type: gitalypb.TreeEntryResponse_BLOB, // only the first response has the type set!
 		Data: data[:1],
 	}
 	resp2 := &gitalypb.TreeEntryResponse{
-		Type: gitalypb.TreeEntryResponse_BLOB,
 		Data: data[1:],
 	}
 	gomock.InOrder(

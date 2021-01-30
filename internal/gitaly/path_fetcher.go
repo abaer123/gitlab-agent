@@ -79,6 +79,7 @@ func (f *PathFetcher) StreamFile(ctx context.Context, repo *gitalypb.Repository,
 	}
 	emptyEntry := &gitalypb.TreeEntryResponse{}
 	notFound := false
+	firstMessage := true
 	for {
 		entry, err := teResp.Recv()
 		if err != nil {
@@ -87,19 +88,21 @@ func (f *PathFetcher) StreamFile(ctx context.Context, repo *gitalypb.Repository,
 			}
 			return NewRpcError(err, "TreeEntry.Recv", string(repoPath))
 		}
-		if notFound {
+		if firstMessage {
+			firstMessage = false
+			if legacy_proto.Equal(entry, emptyEntry) {
+				// Gitaly returns an empty response message if the file was not found
+				// https://gitlab.com/gitlab-org/gitaly/-/blob/0c14ad2f3bd595da61e805e24019583dfb7cd8bf/internal/gitaly/service/commit/tree_entry.go#L25-27
+				// We continue here to drain the response stream but there should be no more messages.
+				notFound = true
+				continue
+			}
+			if entry.Type != gitalypb.TreeEntryResponse_BLOB {
+				return NewUnexpectedTreeEntryTypeError("TreeEntry.Recv", string(repoPath))
+			}
+		} else if notFound {
 			// We were supposed to receive an io.EOF after an empty message (see below).
 			return NewProtocolError(nil, "unexpected message, expecting EOF", "TreeEntry.Recv", string(repoPath))
-		}
-		if legacy_proto.Equal(entry, emptyEntry) {
-			// Gitaly returns an empty response message if the file was not found
-			// https://gitlab.com/gitlab-org/gitaly/-/blob/0c14ad2f3bd595da61e805e24019583dfb7cd8bf/internal/gitaly/service/commit/tree_entry.go#L25-27
-			// We continue here to drain the response stream but there should be no more messages.
-			notFound = true
-			continue
-		}
-		if entry.Type != gitalypb.TreeEntryResponse_BLOB {
-			return NewUnexpectedTreeEntryTypeError("TreeEntry.Recv", string(repoPath))
 		}
 		done, err := v.Chunk(entry.Data)
 		if err != nil || done {
