@@ -38,6 +38,7 @@ const (
 	defaultRedisWriteTimeout = 1 * time.Second
 	defaultRedisIdleTimeout  = 5 * time.Minute
 	defaultRedisKeyPrefix    = "gitlab-kas"
+	defaultRedisNetwork      = "tcp"
 
 	defaultApiListenAddress          = "127.0.0.1:8153"
 	defaultApiListenMaxConnectionAge = 30 * time.Minute
@@ -120,4 +121,5 @@ func defaultRedis(r *kascfg.RedisCF) {
 	protodefault.Duration(&r.WriteTimeout, defaultRedisWriteTimeout)
 	protodefault.Duration(&r.IdleTimeout, defaultRedisIdleTimeout)
 	protodefault.String(&r.KeyPrefix, defaultRedisKeyPrefix)
+	protodefault.String(&r.Network, defaultRedisNetwork)
 }

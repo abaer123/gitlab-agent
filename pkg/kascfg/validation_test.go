@@ -60,7 +60,19 @@ func TestValidation_Valid(t *testing.T) {
 			valid: &RedisCF{
 				RedisConfig: &RedisCF_Server{
 					Server: &RedisServerCF{
-						Url: "unix:///tmp/redis.sock",
+						Address: "//path/to/socket.sock",
+					},
+				},
+				PoolSize:  0,  // zero means "use default value"
+				KeyPrefix: "", // empty means "use default value"
+			},
+		},
+		{
+			name: "RedisCF",
+			valid: &RedisCF{
+				RedisConfig: &RedisCF_Server{
+					Server: &RedisServerCF{
+						Address: "address:6380",
 					},
 				},
 				PoolSize:  0,  // zero means "use default value"
@@ -239,16 +251,9 @@ func TestValidation_Invalid(t *testing.T) {
 			invalid:   &RedisCF{},
 		},
 		{
-			name:      "empty RedisServerCF.Url",
-			errString: "invalid RedisServerCF.Url: value length must be at least 1 runes",
+			name:      "empty RedisServerCF.Address",
+			errString: "invalid RedisServerCF.Address: value length must be at least 1 runes",
 			invalid:   &RedisServerCF{},
-		},
-		{
-			name:      "relative RedisServerCF.Url",
-			errString: "invalid RedisServerCF.Url: value must be absolute",
-			invalid: &RedisServerCF{
-				Url: "/redis.sock",
-			},
 		},
 		{
 			name:      "empty RedisSentinelCF.MasterName",

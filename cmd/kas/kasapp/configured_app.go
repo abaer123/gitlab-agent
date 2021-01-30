@@ -580,32 +580,47 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 	readTimeout := cfg.ReadTimeout.AsDuration()
 	writeTimeout := cfg.WriteTimeout.AsDuration()
 	idleTimeout := cfg.IdleTimeout.AsDuration()
-	switch v := cfg.RedisConfig.(type) {
-	case *kascfg.RedisCF_Server:
-		opts, err := redis.ParseURL(v.Server.Url)
+	var password string
+	if cfg.PasswordFile != "" {
+		passwordBytes, err := ioutil.ReadFile(cfg.PasswordFile)
 		if err != nil {
 			return nil, err
 		}
-		if opts.TLSConfig != nil {
-			tlsCfg := tlstool.DefaultClientTLSConfig()
-			tlsCfg.ServerName = opts.TLSConfig.ServerName
-			opts.TLSConfig = tlsCfg
-		}
-		opts.PoolSize = poolSize
-		opts.DialTimeout = dialTimeout
-		opts.ReadTimeout = readTimeout
-		opts.WriteTimeout = writeTimeout
-		opts.IdleTimeout = idleTimeout
-		return redis.NewClient(opts), nil
+		password = string(passwordBytes)
+	}
+	switch v := cfg.RedisConfig.(type) {
+	case *kascfg.RedisCF_Server:
+		return redis.NewClient(&redis.Options{
+			Addr:         v.Server.Address,
+			PoolSize:     poolSize,
+			DialTimeout:  dialTimeout,
+			ReadTimeout:  readTimeout,
+			WriteTimeout: writeTimeout,
+			IdleTimeout:  idleTimeout,
+			Username:     cfg.Username,
+			Password:     password,
+			Network:      cfg.Network,
+		}), nil
 	case *kascfg.RedisCF_Sentinel:
+		var sentinelPassword string
+		if v.Sentinel.SentinelPasswordFile != "" {
+			sentinelPasswordBytes, err := ioutil.ReadFile(v.Sentinel.SentinelPasswordFile)
+			if err != nil {
+				return nil, err
+			}
+			sentinelPassword = string(sentinelPasswordBytes)
+		}
 		return redis.NewFailoverClient(&redis.FailoverOptions{
-			MasterName:    v.Sentinel.MasterName,
-			SentinelAddrs: v.Sentinel.Addresses,
-			DialTimeout:   dialTimeout,
-			ReadTimeout:   readTimeout,
-			WriteTimeout:  writeTimeout,
-			PoolSize:      poolSize,
-			IdleTimeout:   idleTimeout,
+			MasterName:       v.Sentinel.MasterName,
+			SentinelAddrs:    v.Sentinel.Addresses,
+			DialTimeout:      dialTimeout,
+			ReadTimeout:      readTimeout,
+			WriteTimeout:     writeTimeout,
+			PoolSize:         poolSize,
+			IdleTimeout:      idleTimeout,
+			Username:         cfg.Username,
+			Password:         password,
+			SentinelPassword: sentinelPassword,
 		}), nil
 	case *kascfg.RedisCF_Cluster:
 		return redis.NewClusterClient(&redis.ClusterOptions{
@@ -615,6 +630,8 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 			WriteTimeout: writeTimeout,
 			PoolSize:     poolSize,
 			IdleTimeout:  idleTimeout,
+			Username:     cfg.Username,
+			Password:     password,
 		}), nil
 	default:
 		// This should never happen

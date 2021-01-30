@@ -1592,6 +1592,17 @@ func (m *RedisCF) Validate() error {
 
 	// no validation rules for KeyPrefix
 
+	// no validation rules for Username
+
+	// no validation rules for PasswordFile
+
+	if _, ok := _RedisCF_Network_InLookup[m.GetNetwork()]; !ok {
+		return RedisCFValidationError{
+			field:  "Network",
+			reason: "value must be in list [ tcp unix]",
+		}
+	}
+
 	switch m.RedisConfig.(type) {
 
 	case *RedisCF_Server:
@@ -1695,6 +1706,12 @@ var _ interface {
 	ErrorName() string
 } = RedisCFValidationError{}
 
+var _RedisCF_Network_InLookup = map[string]struct{}{
+	"":     {},
+	"tcp":  {},
+	"unix": {},
+}
+
 // Validate checks the field values on RedisServerCF with the rules defined in
 // the proto definition for this message. If any rules are violated, an error
 // is returned.
@@ -1703,23 +1720,18 @@ func (m *RedisServerCF) Validate() error {
 		return nil
 	}
 
-	if utf8.RuneCountInString(m.GetUrl()) < 1 {
+	if utf8.RuneCountInString(m.GetAddress()) < 1 {
 		return RedisServerCFValidationError{
-			field:  "Url",
+			field:  "Address",
 			reason: "value length must be at least 1 runes",
 		}
 	}
 
-	if uri, err := url.Parse(m.GetUrl()); err != nil {
+	if _, err := url.Parse(m.GetAddress()); err != nil {
 		return RedisServerCFValidationError{
-			field:  "Url",
+			field:  "Address",
 			reason: "value must be a valid URI",
 			cause:  err,
-		}
-	} else if !uri.IsAbs() {
-		return RedisServerCFValidationError{
-			field:  "Url",
-			reason: "value must be absolute",
 		}
 	}
 
@@ -1801,6 +1813,8 @@ func (m *RedisSentinelCF) Validate() error {
 			reason: "value must contain at least 1 item(s)",
 		}
 	}
+
+	// no validation rules for SentinelPasswordFile
 
 	return nil
 }
