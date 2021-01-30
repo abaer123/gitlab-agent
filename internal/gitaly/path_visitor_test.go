@@ -38,8 +38,7 @@ func TestPathVisitorHappyPath(t *testing.T) {
 	mockGetTreeEntries(t, mockCtrl, commitClient, treeEntriesReq, []*gitalypb.TreeEntry{expectedEntry})
 	mockVisitor := mock_internalgitaly.NewMockPathEntryVisitor(mockCtrl)
 	mockVisitor.EXPECT().
-		Entry(matcher.ProtoEq(t, expectedEntry)).
-		Return(false, nil)
+		Entry(matcher.ProtoEq(t, expectedEntry))
 	v := gitaly.PathVisitor{
 		Client: commitClient,
 	}

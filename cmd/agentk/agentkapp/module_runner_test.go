@@ -57,7 +57,7 @@ func TestConfigurationIsApplied(t *testing.T) {
 	gomock.InOrder(
 		watcher.EXPECT().
 			Watch(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, callback rpc.ConfigurationCallback) {
+			Do(func(ctx context.Context, callback rpc.ConfigurationCallback) {
 				callback(ctx, rpc.ConfigurationData{CommitId: revision1, Config: cfg1})
 				<-ctx1.Done()
 				callback(ctx, rpc.ConfigurationData{CommitId: revision2, Config: cfg2})
@@ -111,7 +111,7 @@ func TestConfigurationIsSquashed(t *testing.T) {
 	gomock.InOrder(
 		watcher.EXPECT().
 			Watch(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, callback rpc.ConfigurationCallback) {
+			Do(func(ctx context.Context, callback rpc.ConfigurationCallback) {
 				callback(ctx, rpc.ConfigurationData{CommitId: revision1, Config: cfg1})
 				callback(ctx, rpc.ConfigurationData{CommitId: revision2, Config: cfg2})
 				cancel1()

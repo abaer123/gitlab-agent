@@ -193,10 +193,9 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 						Do(testhelpers.RecvMsg(streamItem)),
 					)
 				}
-				calls = append(calls, stream1.EXPECT().RecvMsg(gomock.Any()).DoAndReturn(func(msg interface{}) error {
+				calls = append(calls, stream1.EXPECT().RecvMsg(gomock.Any()).Do(func(msg interface{}) {
 					testhelpers.SetValue(msg, tc.stream[len(tc.stream)-1]) // nolint:scopelint
 					cancel()
-					return nil
 				}))
 			}
 			gomock.InOrder(calls...)

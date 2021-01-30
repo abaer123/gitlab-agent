@@ -72,20 +72,16 @@ func TestPathFetcherHappyPath(t *testing.T) {
 			Entry(matcher.ProtoEq(t, expectedEntry1)).
 			Return(true, fileMaxSize, nil),
 		mockVisitor.EXPECT().
-			StreamChunk(expectedEntry1.Path, data1[:1]).
-			Return(false, nil),
+			StreamChunk(expectedEntry1.Path, data1[:1]),
 		mockVisitor.EXPECT().
-			StreamChunk(expectedEntry1.Path, data1[1:]).
-			Return(false, nil),
+			StreamChunk(expectedEntry1.Path, data1[1:]),
 		mockVisitor.EXPECT().
 			Entry(matcher.ProtoEq(t, expectedEntry2)).
 			Return(true, fileMaxSize, nil),
 		mockVisitor.EXPECT().
-			StreamChunk(expectedEntry2.Path, data2[:1]).
-			Return(false, nil),
+			StreamChunk(expectedEntry2.Path, data2[:1]),
 		mockVisitor.EXPECT().
-			StreamChunk(expectedEntry2.Path, data2[1:]).
-			Return(false, nil),
+			StreamChunk(expectedEntry2.Path, data2[1:]),
 	)
 	v := gitaly.PathFetcher{
 		Client: commitClient,
@@ -122,8 +118,7 @@ func TestChunkingFetchVisitor_StreamChunk(t *testing.T) {
 		mockCtrl := gomock.NewController(t)
 		fv := mock_internalgitaly.NewMockFetchVisitor(mockCtrl)
 		fv.EXPECT().
-			StreamChunk(p, data).
-			Return(false, nil)
+			StreamChunk(p, data)
 		v := gitaly.ChunkingFetchVisitor{
 			MaxChunkSize: 10,
 			Delegate:     fv,
@@ -139,11 +134,9 @@ func TestChunkingFetchVisitor_StreamChunk(t *testing.T) {
 		fv := mock_internalgitaly.NewMockFetchVisitor(mockCtrl)
 		gomock.InOrder(
 			fv.EXPECT().
-				StreamChunk(p, data[:2]).
-				Return(false, nil),
+				StreamChunk(p, data[:2]),
 			fv.EXPECT().
-				StreamChunk(p, data[2:]).
-				Return(false, nil),
+				StreamChunk(p, data[2:]),
 		)
 		v := gitaly.ChunkingFetchVisitor{
 			MaxChunkSize: 2,

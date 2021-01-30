@@ -87,7 +87,7 @@ func TestGetObjectsToSynchronizeGetProjectInfoFailures(t *testing.T) {
 			Return(expectedErr),
 		mockApi.EXPECT().
 			HandleProcessingError(gomock.Any(), gomock.Any(), "GetProjectInfo()", expectedErr).
-			DoAndReturn(func(ctx context.Context, log *zap.Logger, msg string, err error) {
+			Do(func(ctx context.Context, log *zap.Logger, msg string, err error) {
 				cancel() // exception captured, cancel the context to stop the test
 			}),
 	)
@@ -150,8 +150,7 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 						CommitId: revision,
 					},
 				},
-			})).
-			Return(nil),
+			})),
 		server.EXPECT().
 			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
 				Message: &rpc.ObjectsToSynchronizeResponse_Object_{
@@ -160,8 +159,7 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 						Data:   objectsYAML[:1],
 					},
 				},
-			})).
-			Return(nil),
+			})),
 		server.EXPECT().
 			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
 				Message: &rpc.ObjectsToSynchronizeResponse_Object_{
@@ -170,17 +168,15 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 						Data:   objectsYAML[1:],
 					},
 				},
-			})).
-			Return(nil),
+			})),
 		server.EXPECT().
 			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
 				Message: &rpc.ObjectsToSynchronizeResponse_Trailers_{
 					Trailers: &rpc.ObjectsToSynchronizeResponse_Trailers{},
 				},
 			})).
-			DoAndReturn(func(resp *rpc.ObjectsToSynchronizeResponse) error {
+			Do(func(resp *rpc.ObjectsToSynchronizeResponse) {
 				cancel() // stop streaming call after the first response has been sent
-				return nil
 			}),
 	)
 	query := url.Values{
@@ -188,9 +184,8 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	}
 	gitlabClient.EXPECT().
 		DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, testhelpers.AgentkToken, nil, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, method, path string, query url.Values, agentToken api.AgentToken, body, response interface{}) error {
+		Do(func(ctx context.Context, method, path string, query url.Values, agentToken api.AgentToken, body, response interface{}) {
 			testhelpers.SetValue(response, projectInfoRest())
-			return nil
 		})
 	p := mock_internalgitaly.NewMockPollerInterface(mockCtrl)
 	pf := mock_internalgitaly.NewMockPathFetcherInterface(mockCtrl)
@@ -209,7 +204,7 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 			Return(pf, nil),
 		pf.EXPECT().
 			Visit(gomock.Any(), &projInfo.Repository, []byte(revision), []byte("."), true, gomock.Any()).
-			DoAndReturn(func(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, recursive bool, visitor gitaly.FetchVisitor) error {
+			Do(func(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, recursive bool, visitor gitaly.FetchVisitor) {
 				download, maxSize, err := visitor.Entry(&gitalypb.TreeEntry{
 					Path:      []byte("manifest.yaml"),
 					Type:      gitalypb.TreeEntry_BLOB,
@@ -225,7 +220,6 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 				done, err = visitor.StreamChunk([]byte("manifest.yaml"), objectsYAML[1:])
 				require.NoError(t, err)
 				assert.False(t, done)
-				return nil
 			}),
 	)
 	err := a.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{
@@ -256,9 +250,8 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 	gomock.InOrder(
 		gitlabClient.EXPECT().
 			DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, testhelpers.AgentkToken, nil, gomock.Any()).
-			DoAndReturn(func(ctx context.Context, method, path string, query url.Values, agentToken api.AgentToken, body, response interface{}) error {
+			Do(func(ctx context.Context, method, path string, query url.Values, agentToken api.AgentToken, body, response interface{}) {
 				testhelpers.SetValue(response, projectInfoRest())
-				return nil
 			}),
 		gitalyPool.EXPECT().
 			Poller(gomock.Any(), &projInfo.GitalyInfo).
@@ -451,8 +444,7 @@ func TestObjectsToSynchronizeVisitor(t *testing.T) {
 						Data:   data,
 					},
 				},
-			})).
-			Return(nil)
+			}))
 		v := objectsToSynchronizeVisitor{
 			server:                 server,
 			glob:                   defaultGitOpsManifestPathGlob,
