@@ -26,7 +26,7 @@ var (
 	_ gitaly.PathFetcherInterface = &gitaly.PathFetcher{}
 )
 
-func TestPathFetcherHappyPath(t *testing.T) {
+func TestPathFetcher_HappyPath(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	r := repo()
 	treeEntriesReq := &gitalypb.GetTreeEntriesRequest{
@@ -92,6 +92,68 @@ func TestPathFetcherHappyPath(t *testing.T) {
 	}
 	err := v.Visit(context.Background(), r, []byte(revision), []byte(repoPath), false, mockVisitor)
 	require.NoError(t, err)
+}
+
+func TestPathFetcher_StreamFile_NotFound(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	commitClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
+	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(mockCtrl)
+	mockVisitor := mock_internalgitaly.NewMockFileVisitor(mockCtrl)
+	r := repo()
+	req := &gitalypb.TreeEntryRequest{
+		Repository: r,
+		Revision:   []byte(revision),
+		Path:       []byte(repoPath),
+		MaxSize:    fileMaxSize,
+	}
+	resp := &gitalypb.TreeEntryResponse{}
+	gomock.InOrder(
+		commitClient.EXPECT().
+			TreeEntry(gomock.Any(), matcher.ProtoEq(t, req)).
+			Return(treeEntryClient, nil),
+		treeEntryClient.EXPECT().
+			Recv().
+			Return(resp, nil),
+		treeEntryClient.EXPECT().
+			Recv().
+			Return(nil, io.EOF),
+	)
+	v := gitaly.PathFetcher{
+		Client: commitClient,
+	}
+	err := v.StreamFile(context.Background(), r, []byte(revision), []byte(repoPath), fileMaxSize, mockVisitor)
+	require.EqualError(t, err, "FileNotFound: TreeEntry.Recv: file/directory/ref not found: dir")
+}
+
+func TestPathFetcher_StreamFile_InvalidType(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	commitClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
+	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(mockCtrl)
+	mockVisitor := mock_internalgitaly.NewMockFileVisitor(mockCtrl)
+	r := repo()
+	req := &gitalypb.TreeEntryRequest{
+		Repository: r,
+		Revision:   []byte(revision),
+		Path:       []byte(repoPath),
+		MaxSize:    fileMaxSize,
+	}
+	resp := &gitalypb.TreeEntryResponse{
+		Type: gitalypb.TreeEntryResponse_COMMIT,
+		Oid:  manifestRevision,
+	}
+	gomock.InOrder(
+		commitClient.EXPECT().
+			TreeEntry(gomock.Any(), matcher.ProtoEq(t, req)).
+			Return(treeEntryClient, nil),
+		treeEntryClient.EXPECT().
+			Recv().
+			Return(resp, nil),
+	)
+	v := gitaly.PathFetcher{
+		Client: commitClient,
+	}
+	err := v.StreamFile(context.Background(), r, []byte(revision), []byte(repoPath), fileMaxSize, mockVisitor)
+	require.EqualError(t, err, "UnexpectedTreeEntryType: TreeEntry.Recv: file is not a usual file: dir")
 }
 
 func TestChunkingFetchVisitor_Entry(t *testing.T) {

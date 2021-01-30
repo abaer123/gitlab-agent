@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
@@ -53,7 +54,7 @@ var (
 	_ rpc.GitopsServer        = &module{}
 )
 
-func TestGetObjectsToSynchronizeGetProjectInfoFailures(t *testing.T) {
+func TestGetObjectsToSynchronize_GetProjectInfoFailures(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	m, mockCtrl, mockApi, _, gitlabClient := setupModuleBare(t, 1)
@@ -106,10 +107,10 @@ func TestGetObjectsToSynchronizeGetProjectInfoFailures(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestGetObjectsToSynchronize(t *testing.T) {
+func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	a, mockCtrl, gitalyPool, gitlabClient := setupModule(t, 1)
+	a, mockCtrl, gitalyPool, gitlabClient, _ := setupModule(t, 1)
 	a.syncCount.(*mock_usage_metrics.MockCounter).EXPECT().Inc()
 
 	objects := []runtime.Object{
@@ -239,10 +240,10 @@ func TestGetObjectsToSynchronize(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
+func TestGetObjectsToSynchronize_ResumeConnection(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	m, mockCtrl, gitalyPool, gitlabClient := setupModule(t, 1)
+	m, mockCtrl, gitalyPool, gitlabClient, _ := setupModule(t, 1)
 	projInfo := projectInfo()
 	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(mockCtrl)
 	server.EXPECT().
@@ -278,6 +279,77 @@ func TestGetObjectsToSynchronizeResumeConnection(t *testing.T) {
 		CommitId:  revision,
 	}, server)
 	require.NoError(t, err)
+}
+
+func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
+	gitalyErrs := []error{
+		gitaly.NewNotFoundError("Bla", "some/file"),
+		gitaly.NewFileTooBigError(nil, "Bla", "some/file"),
+		gitaly.NewUnexpectedTreeEntryTypeError("Bla", "some/file"),
+	}
+	for _, gitalyErr := range gitalyErrs {
+		t.Run(gitalyErr.(*gitaly.Error).Code.String(), func(t *testing.T) { // nolint: errorlint
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			a, mockCtrl, gitalyPool, gitlabClient, mockApi := setupModule(t, 1)
+
+			projInfo := projectInfo()
+			server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(mockCtrl)
+			server.EXPECT().
+				Context().
+				Return(mock_modserver.IncomingCtx(ctx, t, testhelpers.AgentkToken)).
+				MinTimes(1)
+			server.EXPECT().
+				Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
+					Message: &rpc.ObjectsToSynchronizeResponse_Headers_{
+						Headers: &rpc.ObjectsToSynchronizeResponse_Headers{
+							CommitId: revision,
+						},
+					},
+				}))
+			mockApi.EXPECT().
+				HandleProcessingError(gomock.Any(), gomock.Any(), "GitOps: failed to get objects to synchronize",
+					matcher.ErrorEq(fmt.Sprintf("manifest file: %v", gitalyErr)), // nolint: scopelint
+				)
+			query := url.Values{
+				projectIdQueryParam: []string{projectId},
+			}
+			gitlabClient.EXPECT().
+				DoJSON(gomock.Any(), http.MethodGet, projectInfoApiPath, query, testhelpers.AgentkToken, nil, gomock.Any()).
+				DoAndReturn(func(ctx context.Context, method, path string, query url.Values, agentToken api.AgentToken, body, response interface{}) error {
+					testhelpers.SetValue(response, projectInfoRest())
+					return nil
+				})
+			p := mock_internalgitaly.NewMockPollerInterface(mockCtrl)
+			pf := mock_internalgitaly.NewMockPathFetcherInterface(mockCtrl)
+			gomock.InOrder(
+				gitalyPool.EXPECT().
+					Poller(gomock.Any(), &projInfo.GitalyInfo).
+					Return(p, nil),
+				p.EXPECT().
+					Poll(gomock.Any(), &projInfo.Repository, "", gitaly.DefaultBranch).
+					Return(&gitaly.PollInfo{
+						UpdateAvailable: true,
+						CommitId:        revision,
+					}, nil),
+				gitalyPool.EXPECT().
+					PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
+					Return(pf, nil),
+				pf.EXPECT().
+					Visit(gomock.Any(), &projInfo.Repository, []byte(revision), []byte("."), true, gomock.Any()).
+					Return(gitalyErr), // nolint: scopelint
+			)
+			err := a.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{
+				ProjectId: projectId,
+				Paths: []*agentcfg.PathCF{
+					{
+						Glob: defaultGitOpsManifestPathGlob,
+					},
+				},
+			}, server)
+			assert.EqualError(t, err, fmt.Sprintf("rpc error: code = FailedPrecondition desc = GitOps: failed to get objects to synchronize: manifest file: %v", gitalyErr)) // nolint: scopelint
+		})
+	}
 }
 
 func TestObjectsToSynchronizeVisitor(t *testing.T) {
@@ -605,14 +677,14 @@ func projectInfo() *api.ProjectInfo {
 	}
 }
 
-func setupModule(t *testing.T, pollTimes int) (*module, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_gitlab.MockClientInterface) {
+func setupModule(t *testing.T, pollTimes int) (*module, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_gitlab.MockClientInterface, *mock_modserver.MockAPI) {
 	m, mockCtrl, mockApi, gitalyPool, gitlabClient := setupModuleBare(t, pollTimes)
 	agentInfo := testhelpers.AgentInfoObj()
 	mockApi.EXPECT().
 		GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken, false).
 		Return(agentInfo, nil, false)
 
-	return m, mockCtrl, gitalyPool, gitlabClient
+	return m, mockCtrl, gitalyPool, gitlabClient, mockApi
 }
 
 func setupModuleBare(t *testing.T, pollTimes int) (*module, *gomock.Controller, *mock_modserver.MockAPI, *mock_internalgitaly.MockPoolInterface, *mock_gitlab.MockClientInterface) {

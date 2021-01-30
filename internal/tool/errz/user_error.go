@@ -17,31 +17,37 @@ type UserError struct {
 	Cause error
 }
 
-func NewUserError(msg string) *UserError {
+func NewUserError(msg string) error {
 	return &UserError{
 		Message: msg,
 	}
 }
 
-func NewUserErrorf(format string, args ...interface{}) *UserError {
+func NewUserErrorf(format string, args ...interface{}) error {
 	return NewUserError(fmt.Sprintf(format, args...))
 }
 
-func NewUserErrorWithCause(cause error, msg string) *UserError {
+func NewUserErrorWithCause(cause error, msg string) error {
 	return &UserError{
 		Message: msg,
 		Cause:   cause,
 	}
 }
 
-func NewUserErrorWithCausef(cause error, format string, args ...interface{}) *UserError {
+func NewUserErrorWithCausef(cause error, format string, args ...interface{}) error {
 	return NewUserErrorWithCause(cause, fmt.Sprintf(format, args...))
 }
 
 func (u *UserError) Error() string {
 	if u.Cause == nil {
 		return u.Message
-	} else {
-		return fmt.Sprintf("%s: %v", u.Message, u.Cause)
 	}
+	if u.Message == "" {
+		return u.Cause.Error()
+	}
+	return fmt.Sprintf("%s: %v", u.Message, u.Cause)
+}
+
+func (u *UserError) Unwrap() error {
+	return u.Cause
 }

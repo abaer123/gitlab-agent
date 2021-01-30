@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"path"
 
@@ -15,6 +16,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"sigs.k8s.io/yaml"
 )
@@ -71,6 +74,11 @@ func (j *pollJob) Attempt() (bool /*done*/, error) {
 	config, err := j.fetchConfiguration(j.ctx, agentInfo, info.CommitId)
 	if err != nil {
 		j.api.HandleProcessingError(j.ctx, log, "Config: failed to fetch", err)
+		var ue *errz.UserError
+		if errors.As(err, &ue) {
+			// return the error to the client because it's a user error
+			return false, status.Errorf(codes.FailedPrecondition, "Config: %v", err)
+		}
 		return false, nil // don't want to close the response stream, so report no error
 	}
 	err = j.server.Send(&rpc.ConfigurationResponse{
@@ -102,10 +110,15 @@ func (j *pollJob) fetchConfiguration(ctx context.Context, agentInfo *api.AgentIn
 	filename := path.Join(agentConfigurationDirectory, agentInfo.Name, agentConfigurationFileName)
 	configYAML, err := pf.FetchFile(ctx, &agentInfo.Repository, []byte(revision), []byte(filename), j.maxConfigurationFileSize)
 	if err != nil {
+		var e *gitaly.Error
+		if errors.As(err, &e) {
+			switch e.Code { // nolint:exhaustive
+			case gitaly.NotFound, gitaly.FileTooBig, gitaly.UnexpectedTreeEntryType:
+				return nil, errz.NewUserErrorWithCause(err, "agent configuration file")
+			}
+			// fallthrough
+		}
 		return nil, fmt.Errorf("fetch agent configuration: %w", err) // wrap
-	}
-	if configYAML == nil {
-		return nil, errz.NewUserErrorf("configuration file not found: %s", filename)
 	}
 	configFile, err := parseYAMLToConfiguration(configYAML)
 	if err != nil {

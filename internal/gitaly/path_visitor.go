@@ -3,7 +3,6 @@ package gitaly
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
@@ -27,7 +26,7 @@ func (v *PathVisitor) Visit(ctx context.Context, repo *gitalypb.Repository, revi
 		Recursive:  recursive,
 	})
 	if err != nil {
-		return fmt.Errorf("GetTreeEntries: %w", err) // wrap
+		return NewRpcError(err, "GetTreeEntries", string(repoPath))
 	}
 entriesLoop:
 	for {
@@ -36,7 +35,7 @@ entriesLoop:
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			return fmt.Errorf("GetTreeEntries.Recv: %w", err) // wrap
+			return NewRpcError(err, "GetTreeEntries.Recv", string(repoPath))
 		}
 		for _, entry := range resp.Entries {
 			done, err := visitor.Entry(entry)

@@ -2,10 +2,12 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
@@ -39,10 +41,10 @@ var (
 	_ rpc.AgentConfigurationServer = &module{}
 )
 
-func TestGetConfiguration(t *testing.T) {
+func TestGetConfiguration_HappyPath(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	m, agentInfo, ctrl, gitalyPool := setupModule(t)
+	m, agentInfo, ctrl, gitalyPool, _ := setupModule(t)
 	configFile := sampleConfig()
 	resp := mock_rpc.NewMockAgentConfiguration_GetConfigurationServer(ctrl)
 	resp.EXPECT().
@@ -88,10 +90,10 @@ func TestGetConfiguration(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestGetConfigurationResumeConnection(t *testing.T) {
+func TestGetConfiguration_ResumeConnection(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	m, agentInfo, ctrl, gitalyPool := setupModule(t)
+	m, agentInfo, ctrl, gitalyPool, _ := setupModule(t)
 	resp := mock_rpc.NewMockAgentConfiguration_GetConfigurationServer(ctrl)
 	resp.EXPECT().
 		Context().
@@ -116,7 +118,55 @@ func TestGetConfigurationResumeConnection(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func setupModule(t *testing.T) (*module, *api.AgentInfo, *gomock.Controller, *mock_internalgitaly.MockPoolInterface) { // nolint: unparam
+func TestGetConfiguration_UserErrors(t *testing.T) {
+	gitalyErrs := []error{
+		gitaly.NewNotFoundError("Bla", "some/file"),
+		gitaly.NewFileTooBigError(nil, "Bla", "some/file"),
+		gitaly.NewUnexpectedTreeEntryTypeError("Bla", "some/file"),
+	}
+	for _, gitalyErr := range gitalyErrs {
+		t.Run(gitalyErr.(*gitaly.Error).Code.String(), func(t *testing.T) { // nolint: errorlint
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			m, agentInfo, ctrl, gitalyPool, mockApi := setupModule(t)
+			resp := mock_rpc.NewMockAgentConfiguration_GetConfigurationServer(ctrl)
+			resp.EXPECT().
+				Context().
+				Return(mock_modserver.IncomingCtx(ctx, t, testhelpers.AgentkToken)).
+				MinTimes(1)
+			p := mock_internalgitaly.NewMockPollerInterface(ctrl)
+			pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
+			configFileName := agentConfigurationDirectory + "/" + agentInfo.Name + "/" + agentConfigurationFileName
+			gomock.InOrder(
+				gitalyPool.EXPECT().
+					Poller(gomock.Any(), &agentInfo.GitalyInfo).
+					Return(p, nil),
+				p.EXPECT().
+					Poll(gomock.Any(), &agentInfo.Repository, "", gitaly.DefaultBranch).
+					Return(&gitaly.PollInfo{
+						UpdateAvailable: true,
+						CommitId:        revision,
+					}, nil),
+				gitalyPool.EXPECT().
+					PathFetcher(gomock.Any(), &agentInfo.GitalyInfo).
+					Return(pf, nil),
+				pf.EXPECT().
+					FetchFile(gomock.Any(), &agentInfo.Repository, []byte(revision), []byte(configFileName), int64(maxConfigurationFileSize)).
+					Return(nil, gitalyErr), // nolint: scopelint
+				mockApi.EXPECT().
+					HandleProcessingError(gomock.Any(), gomock.Any(), "Config: failed to fetch",
+						matcher.ErrorEq(fmt.Sprintf("agent configuration file: %v", gitalyErr)), // nolint: scopelint
+					),
+			)
+			err := m.GetConfiguration(&rpc.ConfigurationRequest{
+				AgentMeta: agentMeta(),
+			}, resp)
+			assert.EqualError(t, err, fmt.Sprintf("rpc error: code = FailedPrecondition desc = Config: agent configuration file: %v", gitalyErr)) // nolint: scopelint
+		})
+	}
+}
+
+func setupModule(t *testing.T) (*module, *api.AgentInfo, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_modserver.MockAPI) { // nolint: unparam
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver.NewMockAPIWithMockPoller(ctrl, 1)
 	gitalyPool := mock_internalgitaly.NewMockPoolInterface(ctrl)
@@ -143,7 +193,7 @@ func setupModule(t *testing.T) (*module, *api.AgentInfo, *gomock.Controller, *mo
 	)
 	agentTracker.EXPECT().
 		UnregisterConnection(gomock.Any(), connMatcher)
-	return m, agentInfo, ctrl, gitalyPool
+	return m, agentInfo, ctrl, gitalyPool, mockApi
 }
 
 func configToBytes(t *testing.T, configFile *agentcfg.ConfigurationFile) []byte {
