@@ -221,26 +221,36 @@ message RedisCF {
   google.protobuf.Duration idle_timeout = 8 [json_name = "idle_timeout", (validate.rules).duration = {gt: {}}];
   // Key prefix for everything gitlab-kas stores in Redis.
   string key_prefix = 9 [json_name = "key_prefix"];
+  // Use the specified Username to authenticate the current connection
+  // with one of the connections defined in the ACL list when connecting
+  // to a Redis 6.0 instance, or greater, that is using the Redis ACL system.
+  string username = 10 [json_name = "username"];
+  // Optional password. Must match the password specified in the
+  // requirepass server configuration option (if connecting to a Redis 5.0 instance, or lower),
+  // or the User Password when connecting to a Redis 6.0 instance, or greater,
+  // that is using the Redis ACL system.
+  string password_file = 11 [json_name = "password_file"];
+  // The network type, either tcp or unix.
+  // Default is tcp.
+  string network = 12 [json_name = "network", (validate.rules).string = {in: "", in: "tcp", in: "unix"}];
 }
 
 message RedisServerCF {
-  // Redis URL.
-  // Tcp connection:
-  // 		redis://<user>:<password>@<host>:<port>/<db_number>
-  // Unix connection:
-  //		unix://<user>:<password>@</path/to/redis.sock>?db=<db_number>
-  string url = 1 [json_name = "url", (validate.rules).string.min_len = 1, (validate.rules).string.uri = true];
+  // The host:port address of the node.
+  string address = 1 [json_name = "address", (validate.rules).string.min_len = 1, (validate.rules).string.uri_ref = true];
 }
 
 message RedisSentinelCF {
   // The name of the sentinel master.
   string master_name = 1 [json_name = "master_name", (validate.rules).string.min_len = 1];
-  // The ip:port addresses of the sentinels.
+  // The host:port addresses of the sentinels.
   repeated string addresses = 2 [json_name = "addresses", (validate.rules).repeated.min_items = 1];
+  // Sentinel password from "requirepass <password>" (if enabled) in Sentinel configuration
+  string sentinel_password_file = 3 [json_name = "sentinel_password_file"];
 }
 
 message RedisClusterCF {
-  // The ip:port addresses of the nodes.
+  // The host:port addresses of the nodes.
   repeated string addresses = 1 [json_name = "addresses", (validate.rules).repeated.min_items = 1];
 }
 

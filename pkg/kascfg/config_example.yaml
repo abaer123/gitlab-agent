@@ -64,13 +64,15 @@ gitaly:
     bucket_size: 10
 redis:
   server:
-    url: unix:///tmp/redis.sock # required
+    address: "localhost:6380" # required
   pool_size: 5
   dial_timeout: "5s"
   read_timeout: "1s"
   write_timeout: "1s"
   idle_timeout: "300s"
   key_prefix: gitlab-kas
+  password_file: /some/file
+  network: "tcp"
 api:
   listen:
     network: tcp
