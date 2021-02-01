@@ -16,7 +16,9 @@ type TunnelConnectionHandler interface {
 	// HandleTunnelConnection is called with server-side interface of the reverse tunnel.
 	// It registers the connection and blocks, waiting for a request to proxy through the connection.
 	// The method returns the error value to return to gRPC framework.
-	HandleTunnelConnection(agentInfo *api.AgentInfo, server rpc.ReverseTunnel_ConnectServer) error
+	// ctx can be used to unblock the method if the connection is not being used already.
+	// ctx should be a child of the server's context.
+	HandleTunnelConnection(ctx context.Context, agentInfo *api.AgentInfo, server rpc.ReverseTunnel_ConnectServer) error
 }
 
 type IncomingConnectionHandler interface {
@@ -115,7 +117,7 @@ func (r *ConnectionRegistry) HandleIncomingConnection(agentId int64, stream grpc
 	}
 }
 
-func (r *ConnectionRegistry) HandleTunnelConnection(agentInfo *api.AgentInfo, server rpc.ReverseTunnel_ConnectServer) error {
+func (r *ConnectionRegistry) HandleTunnelConnection(ctx context.Context, agentInfo *api.AgentInfo, server rpc.ReverseTunnel_ConnectServer) error {
 	recv, err := server.Recv()
 	if err != nil {
 		if !grpctool.RequestCanceled(err) {
@@ -135,7 +137,6 @@ func (r *ConnectionRegistry) HandleTunnelConnection(agentInfo *api.AgentInfo, se
 		agentId:             agentInfo.Id,
 		agentDescriptor:     descriptor.Descriptor_,
 	}
-	ctx := server.Context()
 	// Register
 	select {
 	case <-ctx.Done():
