@@ -100,114 +100,36 @@ var _ interface {
 	ErrorName() string
 } = ValuesValidationError{}
 
-// Validate checks the field values on ServiceMethod with the rules defined in
-// the proto definition for this message. If any rules are violated, an error
-// is returned.
-func (m *ServiceMethod) Validate() error {
+// Validate checks the field values on Descriptor with the rules defined in the
+// proto definition for this message. If any rules are violated, an error is returned.
+func (m *Descriptor) Validate() error {
 	if m == nil {
 		return nil
 	}
 
-	if utf8.RuneCountInString(m.GetName()) < 1 {
-		return ServiceMethodValidationError{
-			field:  "Name",
-			reason: "value length must be at least 1 runes",
+	if m.GetAgentDescriptor() == nil {
+		return DescriptorValidationError{
+			field:  "AgentDescriptor",
+			reason: "value is required",
 		}
 	}
 
-	return nil
-}
-
-// ServiceMethodValidationError is the validation error returned by
-// ServiceMethod.Validate if the designated constraints aren't met.
-type ServiceMethodValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e ServiceMethodValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e ServiceMethodValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e ServiceMethodValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e ServiceMethodValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e ServiceMethodValidationError) ErrorName() string { return "ServiceMethodValidationError" }
-
-// Error satisfies the builtin error interface
-func (e ServiceMethodValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sServiceMethod.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = ServiceMethodValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = ServiceMethodValidationError{}
-
-// Validate checks the field values on AgentService with the rules defined in
-// the proto definition for this message. If any rules are violated, an error
-// is returned.
-func (m *AgentService) Validate() error {
-	if m == nil {
-		return nil
-	}
-
-	if utf8.RuneCountInString(m.GetName()) < 1 {
-		return AgentServiceValidationError{
-			field:  "Name",
-			reason: "value length must be at least 1 runes",
-		}
-	}
-
-	for idx, item := range m.GetMethods() {
-		_, _ = idx, item
-
-		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return AgentServiceValidationError{
-					field:  fmt.Sprintf("Methods[%v]", idx),
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
+	if v, ok := interface{}(m.GetAgentDescriptor()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return DescriptorValidationError{
+				field:  "AgentDescriptor",
+				reason: "embedded message failed validation",
+				cause:  err,
 			}
 		}
-
 	}
 
 	return nil
 }
 
-// AgentServiceValidationError is the validation error returned by
-// AgentService.Validate if the designated constraints aren't met.
-type AgentServiceValidationError struct {
+// DescriptorValidationError is the validation error returned by
+// Descriptor.Validate if the designated constraints aren't met.
+type DescriptorValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -215,22 +137,22 @@ type AgentServiceValidationError struct {
 }
 
 // Field function returns field value.
-func (e AgentServiceValidationError) Field() string { return e.field }
+func (e DescriptorValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e AgentServiceValidationError) Reason() string { return e.reason }
+func (e DescriptorValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e AgentServiceValidationError) Cause() error { return e.cause }
+func (e DescriptorValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e AgentServiceValidationError) Key() bool { return e.key }
+func (e DescriptorValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e AgentServiceValidationError) ErrorName() string { return "AgentServiceValidationError" }
+func (e DescriptorValidationError) ErrorName() string { return "DescriptorValidationError" }
 
 // Error satisfies the builtin error interface
-func (e AgentServiceValidationError) Error() string {
+func (e DescriptorValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -242,14 +164,14 @@ func (e AgentServiceValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sAgentService.%s: %s%s",
+		"invalid %sDescriptor.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = AgentServiceValidationError{}
+var _ error = DescriptorValidationError{}
 
 var _ interface {
 	Field() string
@@ -257,87 +179,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = AgentServiceValidationError{}
-
-// Validate checks the field values on AgentDescriptor with the rules defined
-// in the proto definition for this message. If any rules are violated, an
-// error is returned.
-func (m *AgentDescriptor) Validate() error {
-	if m == nil {
-		return nil
-	}
-
-	for idx, item := range m.GetServices() {
-		_, _ = idx, item
-
-		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return AgentDescriptorValidationError{
-					field:  fmt.Sprintf("Services[%v]", idx),
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
-	}
-
-	return nil
-}
-
-// AgentDescriptorValidationError is the validation error returned by
-// AgentDescriptor.Validate if the designated constraints aren't met.
-type AgentDescriptorValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e AgentDescriptorValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e AgentDescriptorValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e AgentDescriptorValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e AgentDescriptorValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e AgentDescriptorValidationError) ErrorName() string { return "AgentDescriptorValidationError" }
-
-// Error satisfies the builtin error interface
-func (e AgentDescriptorValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sAgentDescriptor.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = AgentDescriptorValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = AgentDescriptorValidationError{}
+} = DescriptorValidationError{}
 
 // Validate checks the field values on Header with the rules defined in the
 // proto definition for this message. If any rules are violated, an error is returned.

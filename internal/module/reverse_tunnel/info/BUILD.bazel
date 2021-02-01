@@ -1,0 +1,39 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("//build:proto.bzl", "go_grpc_generate")
+
+go_grpc_generate(
+    src = "info.proto",
+    workspace_relative_target_directory = "internal/module/reverse_tunnel/info",
+    deps = [
+        "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
+    ],
+)
+
+go_library(
+    name = "info",
+    srcs = [
+        "info.pb.go",
+        "info.pb.validate.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/info",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
+        "@com_github_golang_protobuf//proto",
+        "@com_github_golang_protobuf//ptypes",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+    ],
+)
+
+go_test(
+    name = "info_test",
+    size = "small",
+    srcs = ["validation_test.go"],
+    embed = [":info"],
+    race = "on",
+    deps = [
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)

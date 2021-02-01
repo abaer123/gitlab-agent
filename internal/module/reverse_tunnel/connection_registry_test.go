@@ -10,6 +10,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
@@ -43,7 +44,7 @@ func TestRunUnregistersAllConnections(t *testing.T) {
 		Recv().
 		Return(&rpc.ConnectRequest{
 			Msg: &rpc.ConnectRequest_Descriptor_{
-				Descriptor_: &rpc.AgentDescriptor{},
+				Descriptor_: &rpc.Descriptor{},
 			},
 		}, nil)
 	r, err := NewConnectionRegistry(zaptest.NewLogger(t))
@@ -70,7 +71,7 @@ func TestHandleTunnelConnectionIsUnblockedByContext(t *testing.T) {
 		Recv().
 		Return(&rpc.ConnectRequest{
 			Msg: &rpc.ConnectRequest_Descriptor_{
-				Descriptor_: &rpc.AgentDescriptor{},
+				Descriptor_: &rpc.Descriptor{},
 			},
 		}, nil)
 	r, err := NewConnectionRegistry(zaptest.NewLogger(t))
@@ -172,13 +173,15 @@ func setupStreams(t *testing.T) (*mock_rpc.MockServerStream, *mock_reverse_tunne
 		Recv().
 		Return(&rpc.ConnectRequest{
 			Msg: &rpc.ConnectRequest_Descriptor_{
-				Descriptor_: &rpc.AgentDescriptor{
-					Services: []*rpc.AgentService{
-						{
-							Name: serviceName,
-							Methods: []*rpc.ServiceMethod{
-								{
-									Name: methodName,
+				Descriptor_: &rpc.Descriptor{
+					AgentDescriptor: &info.AgentDescriptor{
+						Services: []*info.Service{
+							{
+								Name: serviceName,
+								Methods: []*info.Method{
+									{
+										Name: methodName,
+									},
 								},
 							},
 						},

@@ -9,6 +9,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
@@ -246,7 +247,9 @@ func TestAgentDescriptorIsSent(t *testing.T) {
 		tunnel.EXPECT().
 			Send(matcher.ProtoEq(t, &rpc.ConnectRequest{
 				Msg: &rpc.ConnectRequest_Descriptor_{
-					Descriptor_: descriptor(),
+					Descriptor_: &rpc.Descriptor{
+						AgentDescriptor: descriptor(),
+					},
 				},
 			})).
 			Return(errors.New("expected err")),
@@ -272,12 +275,12 @@ func setupConnection(t *testing.T) (*mock_reverse_tunnel.MockReverseTunnelClient
 	return client, conn, tunnel, c
 }
 
-func descriptor() *rpc.AgentDescriptor {
-	return &rpc.AgentDescriptor{
-		Services: []*rpc.AgentService{
+func descriptor() *info.AgentDescriptor {
+	return &info.AgentDescriptor{
+		Services: []*info.Service{
 			{
 				Name: "bla",
-				Methods: []*rpc.ServiceMethod{
+				Methods: []*info.Method{
 					{
 						Name: "bab",
 					},

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"google.golang.org/grpc"
@@ -26,7 +27,7 @@ type connection struct {
 	tunnelStreamVisitor *grpctool.StreamVisitor
 	tunnelRetErr        chan<- error
 	agentId             int64
-	agentDescriptor     *rpc.AgentDescriptor
+	agentDescriptor     *info.AgentDescriptor
 }
 
 // ForwardStream performs bi-directional message forwarding between incomingStream and c.tunnel.
@@ -110,10 +111,10 @@ func (c *connection) ForwardStream(incomingStream grpc.ServerStream) error {
 		var forTunnel, forIncomingStream error
 		fromVisitor := c.tunnelStreamVisitor.Visit(c.tunnel,
 			grpctool.WithStartState(agentDescriptorNumber),
-			grpctool.WithCallback(agentDescriptorNumber, func(agentDescriptor *rpc.AgentDescriptor) error {
+			grpctool.WithCallback(agentDescriptorNumber, func(descriptor *rpc.Descriptor) error {
 				// It's been read already, shouldn't be received again
-				forTunnel = status.Errorf(codes.InvalidArgument, "Unexpected %T message received", agentDescriptor)
-				return status.Errorf(codes.Internal, "Unexpected %T message received", agentDescriptor)
+				forTunnel = status.Errorf(codes.InvalidArgument, "Unexpected %T message received", descriptor)
+				return status.Errorf(codes.Internal, "Unexpected %T message received", descriptor)
 			}),
 			grpctool.WithCallback(headerNumber, func(header *rpc.Header) error {
 				return incomingStream.SetHeader(header.Metadata())

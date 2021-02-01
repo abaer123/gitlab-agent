@@ -7,6 +7,7 @@ package gitlab.agent.reverse_tunnel.rpc;
 option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc";
 
 import "internal/tool/grpctool/automata/automata.proto";
+import "internal/module/reverse_tunnel/info/info.proto";
 //import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
 import "validate/validate.proto";
 // https://github.com/googleapis/googleapis/blob/master/google/rpc/status.proto
@@ -16,17 +17,8 @@ message Values {
   repeated string value = 1;
 }
 
-message ServiceMethod {
-  string name = 1 [(validate.rules).string.min_len = 1];
-}
-
-message AgentService {
-  string name = 1 [(validate.rules).string.min_len = 1];
-  repeated ServiceMethod methods = 2;
-}
-
-message AgentDescriptor {
-  repeated AgentService services = 1;
+message Descriptor {
+  info.AgentDescriptor agent_descriptor = 1 [(validate.rules).message.required = true];
 }
 
 // Header is a gRPC metadata.
@@ -57,7 +49,7 @@ message ConnectRequest {
     option (grpctool.automata.first_allowed_field) = 1;
     option (validate.required) = true;
 
-    AgentDescriptor descriptor = 1 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 5];
+    Descriptor descriptor = 1 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 5];
     Header header = 2 [(grpctool.automata.next_allowed_field) = 3, (grpctool.automata.next_allowed_field) = 4, (grpctool.automata.next_allowed_field) = 5];
     Message message = 3 [(grpctool.automata.next_allowed_field) = 3, (grpctool.automata.next_allowed_field) = 4, (grpctool.automata.next_allowed_field) = 5];
     Trailer trailer = 4 [(grpctool.automata.next_allowed_field) = -1];

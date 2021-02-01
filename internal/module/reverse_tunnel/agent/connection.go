@@ -7,6 +7,7 @@ import (
 	"io"
 	"time"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
@@ -33,7 +34,7 @@ var (
 
 type connection struct {
 	log                *zap.Logger
-	descriptor         *rpc.AgentDescriptor
+	descriptor         *info.AgentDescriptor
 	client             rpc.ReverseTunnelClient
 	internalServerConn grpc.ClientConnInterface
 	streamVisitor      *grpctool.StreamVisitor
@@ -72,7 +73,9 @@ func (c *connection) attempt(ctx context.Context) error {
 	}
 	err = tunnel.Send(&rpc.ConnectRequest{
 		Msg: &rpc.ConnectRequest_Descriptor_{
-			Descriptor_: c.descriptor,
+			Descriptor_: &rpc.Descriptor{
+				AgentDescriptor: c.descriptor,
+			},
 		},
 	})
 	if err != nil {
