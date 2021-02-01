@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/ash2k/stager"
 	"github.com/golang/mock/gomock"
@@ -17,9 +18,11 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 func serverConstructComponents(t *testing.T) (func(context.Context) error, grpc.ClientConnInterface, grpc.ClientConnInterface, *grpc.Server, *mock_modserver.MockAPI) {
@@ -41,8 +44,15 @@ func serverConstructComponents(t *testing.T) (func(context.Context) error, grpc.
 		TunnelConnectionHandler: connRegistry,
 	}
 	serverConfig := &modserver.Config{
-		Log:                  log,
-		Api:                  serverApi,
+		Log: log,
+		Api: serverApi,
+		Config: &kascfg.ConfigurationFile{
+			Agent: &kascfg.AgentCF{
+				Listen: &kascfg.ListenAgentCF{
+					MaxConnectionAge: durationpb.New(time.Minute),
+				},
+			},
+		},
 		AgentServer:          agentServer,
 		ReverseTunnelServer:  internalServer,
 		ReverseTunnelClient:  internalServerConn,

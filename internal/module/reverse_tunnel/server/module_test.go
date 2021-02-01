@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -14,8 +15,10 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -38,7 +41,7 @@ func TestConnectAllowsValidToken(t *testing.T) {
 			GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken, false).
 			Return(agentInfo, nil, false),
 		h.EXPECT().
-			HandleTunnelConnection(agentInfo, server),
+			HandleTunnelConnection(gomock.Any(), agentInfo, server),
 	)
 	err := m.Connect(server)
 	require.NoError(t, err)
@@ -69,8 +72,15 @@ func setupModule(t *testing.T) (*gomock.Controller, *mock_modserver.MockAPI, *mo
 		TunnelConnectionHandler: h,
 	}
 	m, err := f.New(&modserver.Config{
-		Log:         zaptest.NewLogger(t),
-		Api:         mockApi,
+		Log: zaptest.NewLogger(t),
+		Api: mockApi,
+		Config: &kascfg.ConfigurationFile{
+			Agent: &kascfg.AgentCF{
+				Listen: &kascfg.ListenAgentCF{
+					MaxConnectionAge: durationpb.New(time.Minute),
+				},
+			},
+		},
 		AgentServer: grpc.NewServer(),
 	})
 	require.NoError(t, err)
