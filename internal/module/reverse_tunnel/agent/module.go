@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
@@ -49,22 +50,22 @@ func (m *module) Name() string {
 	return reverse_tunnel.ModuleName
 }
 
-func (m *module) agentDescriptor() *rpc.AgentDescriptor {
-	info := m.server.GetServiceInfo()
-	services := make([]*rpc.AgentService, 0, len(info))
-	for svcName, svcInfo := range info {
-		methods := make([]*rpc.ServiceMethod, 0, len(svcInfo.Methods))
+func (m *module) agentDescriptor() *info.AgentDescriptor {
+	serverInfo := m.server.GetServiceInfo()
+	services := make([]*info.Service, 0, len(serverInfo))
+	for svcName, svcInfo := range serverInfo {
+		methods := make([]*info.Method, 0, len(svcInfo.Methods))
 		for _, mInfo := range svcInfo.Methods {
-			methods = append(methods, &rpc.ServiceMethod{
+			methods = append(methods, &info.Method{
 				Name: mInfo.Name,
 			})
 		}
-		services = append(services, &rpc.AgentService{
+		services = append(services, &info.Service{
 			Name:    svcName,
 			Methods: methods,
 		})
 	}
-	return &rpc.AgentDescriptor{
+	return &info.AgentDescriptor{
 		Services: services,
 	}
 }

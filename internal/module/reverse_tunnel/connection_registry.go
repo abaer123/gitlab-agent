@@ -135,7 +135,7 @@ func (r *ConnectionRegistry) HandleTunnelConnection(ctx context.Context, agentIn
 		tunnelStreamVisitor: r.tunnelStreamVisitor,
 		tunnelRetErr:        retErr,
 		agentId:             agentInfo.Id,
-		agentDescriptor:     descriptor.Descriptor_,
+		agentDescriptor:     descriptor.Descriptor_.AgentDescriptor,
 	}
 	// Register
 	select {

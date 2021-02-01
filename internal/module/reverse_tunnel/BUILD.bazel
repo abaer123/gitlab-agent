@@ -11,6 +11,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",
+        "//internal/module/reverse_tunnel/info",
         "//internal/module/reverse_tunnel/rpc",
         "//internal/tool/grpctool",
         "@org_golang_google_grpc//:grpc",
@@ -40,6 +41,7 @@ go_test(
         "//internal/module/modagent",
         "//internal/module/modserver",
         "//internal/module/reverse_tunnel/agent",
+        "//internal/module/reverse_tunnel/info",
         "//internal/module/reverse_tunnel/rpc",
         "//internal/module/reverse_tunnel/server",
         "//internal/tool/grpctool",

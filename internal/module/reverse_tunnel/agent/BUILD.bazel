@@ -12,6 +12,7 @@ go_library(
     deps = [
         "//internal/module/modagent",
         "//internal/module/reverse_tunnel",
+        "//internal/module/reverse_tunnel/info",
         "//internal/module/reverse_tunnel/rpc",
         "//internal/tool/grpctool",
         "//internal/tool/retry",
@@ -34,6 +35,7 @@ go_test(
     race = "on",
     deps = [
         "//internal/module/modagent",
+        "//internal/module/reverse_tunnel/info",
         "//internal/module/reverse_tunnel/rpc",
         "//internal/tool/grpctool",
         "//internal/tool/testing/matcher",

@@ -5,6 +5,7 @@ go_grpc_generate(
     src = "rpc.proto",
     workspace_relative_target_directory = "internal/module/reverse_tunnel/rpc",
     deps = [
+        "//internal/module/reverse_tunnel/info:proto",
         "//internal/tool/grpctool/automata:proto",
         "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
         "@go_googleapis//google/rpc:status_proto",
@@ -21,6 +22,7 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc",
     visibility = ["//:__subpackages__"],
     deps = [
+        "//internal/module/reverse_tunnel/info",
         "//internal/tool/grpctool/automata",
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
         "@com_github_golang_protobuf//proto",
