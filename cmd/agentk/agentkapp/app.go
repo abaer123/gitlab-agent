@@ -156,8 +156,6 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 			KasConn:         kasConn,
 			Server:          internalServer,
 			AgentName:       agentName,
-			Version:         cmd.Version,
-			CommitId:        cmd.Commit,
 		})
 		if err != nil {
 			return nil, err
