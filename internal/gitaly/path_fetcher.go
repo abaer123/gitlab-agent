@@ -3,15 +3,26 @@ package gitaly
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 
+	legacy_proto "github.com/golang/protobuf/proto" // nolint:staticcheck
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type PathFetcherInterface interface {
+	// Visit returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
+	// Visit returns *Error when a error occurs.
 	Visit(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, recursive bool, visitor FetchVisitor) error
+	// StreamFile streams the specified revision of the file.
+	// The passed visitor is never called if file was not found.
+	// StreamFile returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
+	// StreamFile returns *Error when a error occurs.
 	StreamFile(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, sizeLimit int64, v FileVisitor) error
+	// FetchFile fetches the specified revision of a file.
+	// FetchFile returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
+	// FetchFile returns *Error when a error occurs.
 	FetchFile(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, sizeLimit int64) ([]byte, error)
 }
 
@@ -49,9 +60,6 @@ func (f *PathFetcher) Visit(ctx context.Context, repo *gitalypb.Repository, revi
 	}))
 }
 
-// StreamFile streams the specified revision of the file.
-// The passed visitor is never called if file was not found.
-// StreamFile returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
 func (f *PathFetcher) StreamFile(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, sizeLimit int64, v FileVisitor) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel() // ensure streaming call is canceled
@@ -62,32 +70,51 @@ func (f *PathFetcher) StreamFile(ctx context.Context, repo *gitalypb.Repository,
 		MaxSize:    sizeLimit,
 	})
 	if err != nil {
-		// TODO "file too big" codes.FailedPrecondition should be bubbled up to the UI
-		// https://gitlab.com/gitlab-org/gitlab/-/issues/277323
-		return fmt.Errorf("TreeEntry: %w", err) // wrap
+		switch status.Code(err) { // nolint:exhaustive
+		case codes.FailedPrecondition:
+			return NewFileTooBigError(err, "TreeEntry", string(repoPath))
+		default:
+			return NewRpcError(err, "TreeEntry", string(repoPath))
+		}
 	}
+	emptyEntry := &gitalypb.TreeEntryResponse{}
+	notFound := false
+	firstMessage := true
 	for {
 		entry, err := teResp.Recv()
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			return fmt.Errorf("TreeEntry.Recv: %w", err) // wrap
+			return NewRpcError(err, "TreeEntry.Recv", string(repoPath))
 		}
-		if entry.Type != gitalypb.TreeEntryResponse_BLOB {
-			return fmt.Errorf("TreeEntry: expected BLOB got %s", entry.Type.String())
+		if firstMessage {
+			firstMessage = false
+			if legacy_proto.Equal(entry, emptyEntry) {
+				// Gitaly returns an empty response message if the file was not found
+				// https://gitlab.com/gitlab-org/gitaly/-/blob/0c14ad2f3bd595da61e805e24019583dfb7cd8bf/internal/gitaly/service/commit/tree_entry.go#L25-27
+				// We continue here to drain the response stream but there should be no more messages.
+				notFound = true
+				continue
+			}
+			if entry.Type != gitalypb.TreeEntryResponse_BLOB {
+				return NewUnexpectedTreeEntryTypeError("TreeEntry.Recv", string(repoPath))
+			}
+		} else if notFound {
+			// We were supposed to receive an io.EOF after an empty message (see below).
+			return NewProtocolError(nil, "unexpected message, expecting EOF", "TreeEntry.Recv", string(repoPath))
 		}
 		done, err := v.Chunk(entry.Data)
 		if err != nil || done {
 			return err
 		}
 	}
+	if notFound {
+		return NewNotFoundError("TreeEntry.Recv", string(repoPath))
+	}
 	return nil
 }
 
-// FetchFile fetches the specified revision of a file.
-// Returned data slice is nil if file was not found and is empty if the file is empty.
-// FetchFile returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
 func (f *PathFetcher) FetchFile(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, sizeLimit int64) ([]byte, error) {
 	v := &AccumulatingFileVisitor{}
 	err := f.StreamFile(ctx, repo, revision, repoPath, sizeLimit, v)

@@ -69,6 +69,7 @@ type API interface {
 	// by the server when necessary.
 	PollImmediateUntil(ctx context.Context, interval, maxConnectionAge time.Duration, condition ConditionFunc) error
 	// HandleProcessingError can be used to handle errors occurring while handling a gRPC API call.
+	// If err is a (or wraps a) errz.UserError, it might be handled specially.
 	HandleProcessingError(ctx context.Context, log *zap.Logger, msg string, err error)
 	// HandleSendError can be used to handle error produced by gRPC SendMsg() method.
 	// It returns an error, compatible with gRPC status package.

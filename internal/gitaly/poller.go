@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
@@ -18,15 +17,19 @@ var (
 	_ PollerInterface = &Poller{}
 )
 
-type PollerInterface interface {
-	Poll(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*PollInfo, error)
-}
-
-// Poller does the following:
+// PollerInterface does the following:
 // - polls ref advertisement for updates to the repository
 // - detects which is the main branch, if branch or tag name is not specified
 // - compares the commit id the branch or tag is referring to with the last processed one
 // - returns the information about the change
+type PollerInterface interface {
+	// Poll performs a poll on the repository.
+	// revision can be a branch name or a tag.
+	// Poll returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
+	// Poll returns *Error when a error occurs.
+	Poll(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*PollInfo, error)
+}
+
 type Poller struct {
 	Client gitalypb.SmartHTTPServiceClient
 }
@@ -36,9 +39,6 @@ type PollInfo struct {
 	CommitId        string
 }
 
-// Poll performs a poll on the repository.
-// revision can be a branch name or a tag.
-// Poll returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
 func (p *Poller) Poll(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*PollInfo, error) {
 	r, err := p.fetchRefs(ctx, repo)
 	if err != nil {
@@ -62,7 +62,7 @@ loop:
 	}
 	if wanted == nil { // not found
 		if refName != DefaultBranch { // were looking for something specific, but didn't find it
-			return nil, fmt.Errorf("ref %q not found", refName)
+			return nil, NewNotFoundError("InfoRefsUploadPack", refName)
 		}
 		// looking for default branch
 		if head != nil {
@@ -70,7 +70,7 @@ loop:
 		} else if master != nil {
 			wanted = master
 		} else {
-			return nil, errors.New("default branch not found")
+			return nil, NewNotFoundError("InfoRefsUploadPack", "default branch")
 		}
 	}
 	return &PollInfo{
@@ -80,6 +80,7 @@ loop:
 }
 
 // fetchRefs returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
+// fetchRefs returns *Error when a error occurs.
 func (p *Poller) fetchRefs(ctx context.Context, repo *gitalypb.Repository) (*ReferenceDiscovery, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel() // ensure streaming call is canceled
@@ -88,7 +89,7 @@ func (p *Poller) fetchRefs(ctx context.Context, repo *gitalypb.Repository) (*Ref
 	}
 	uploadPackResp, err := p.Client.InfoRefsUploadPack(ctx, uploadPackReq)
 	if err != nil {
-		return nil, fmt.Errorf("InfoRefsUploadPack: %w", err) // wrap
+		return nil, NewRpcError(err, "InfoRefsUploadPack", "")
 	}
 	var inforefs []byte
 	for {
@@ -97,13 +98,13 @@ func (p *Poller) fetchRefs(ctx context.Context, repo *gitalypb.Repository) (*Ref
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			return nil, fmt.Errorf("InfoRefsUploadPack.Recv: %w", err) // wrap
+			return nil, NewRpcError(err, "InfoRefsUploadPack.Recv", "")
 		}
 		inforefs = append(inforefs, entry.Data...)
 	}
 	refs, err := ParseReferenceDiscovery(bytes.NewReader(inforefs))
 	if err != nil {
-		return nil, err
+		return nil, NewProtocolError(err, "failed to parse reference discovery", "", "")
 	}
 	return &refs, nil
 }

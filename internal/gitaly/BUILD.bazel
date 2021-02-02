@@ -3,6 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "gitaly",
     srcs = [
+        "error.go",
         "path_fetcher.go",
         "path_visitor.go",
         "poller.go",
@@ -14,8 +15,11 @@ go_library(
     deps = [
         "//internal/api",
         "//internal/gitaly/pktline",
+        "@com_github_golang_protobuf//proto",
         "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",
         "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
     ],
 )
 
@@ -23,6 +27,7 @@ go_test(
     name = "gitaly_test",
     size = "small",
     srcs = [
+        "error_test.go",
         "path_fetcher_test.go",
         "path_visitor_test.go",
         "poller_test.go",
