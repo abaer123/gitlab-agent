@@ -17,6 +17,7 @@ import (
 	reverse_tunnel_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"go.uber.org/zap"
@@ -25,15 +26,16 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
-func serverConstructComponents(t *testing.T) (func(context.Context) error, grpc.ClientConnInterface, grpc.ClientConnInterface, *grpc.Server, *mock_modserver.MockAPI) {
+func serverConstructComponents(t *testing.T) (func(context.Context) error, grpc.ClientConnInterface, grpc.ClientConnInterface, *mock_modserver.MockAPI, *mock_reverse_tunnel.MockRegisterer) {
 	log := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
 	serverApi := mock_modserver.NewMockAPI(ctrl)
+	tunnelRegisterer := mock_reverse_tunnel.NewMockRegisterer(ctrl)
 	agentServer := serverConstructAgentServer(log)
 	agentServerListener := grpctool.NewDialListener()
 
 	internalListener := grpctool.NewDialListener()
-	connRegistry, err := reverse_tunnel.NewConnectionRegistry(log)
+	connRegistry, err := reverse_tunnel.NewConnectionRegistry(log, tunnelRegisterer)
 	require.NoError(t, err)
 
 	internalServer := serverConstructInternalServer(log)
@@ -84,7 +86,7 @@ func serverConstructComponents(t *testing.T) (func(context.Context) error, grpc.
 				serverStartInternalServer(stage, internalServer, internalListener)
 			},
 		)
-	}, kasConn, internalServerConn, internalServer, serverApi
+	}, kasConn, internalServerConn, serverApi, tunnelRegisterer
 }
 
 func serverConstructInternalServer(log *zap.Logger) *grpc.Server {

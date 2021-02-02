@@ -32,6 +32,7 @@ import (
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel"
 	reverse_tunnel_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/server"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
 	usage_metrics_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
@@ -129,30 +130,33 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Internal gRPC client->listener pipe
 	internalListener := grpctool.NewDialListener()
 
-	// Construct internal gRPC server
-	internalServer := a.constructInternalServer(interceptorsCtx, tracer)
-
 	// Construct connection to internal gRPC server
 	internalServerConn, err := a.constructInternalServerConn(ctx, tracer, internalListener.DialContext)
 	if err != nil {
 		return err
 	}
 
-	// Gitaly client
-	gitalyClientPool := a.constructGitalyPool(csh, tracer)
-	defer errz.SafeClose(gitalyClientPool, &retErr)
+	// Reverse gRPC tunnel tracker
+	tunnelTracker := a.constructTunnelTracker(redisClient)
 
-	// Usage tracker
-	usageTracker := usage_metrics.NewUsageTracker()
+	// Connection registry
+	connRegistry, err := reverse_tunnel.NewConnectionRegistry(a.Log, tunnelTracker)
+	if err != nil {
+		return err
+	}
 
 	// Agent tracker
 	agentTracker := a.constructAgentTracker(redisClient)
 
-	// Connection registry
-	connRegistry, err := reverse_tunnel.NewConnectionRegistry(a.Log)
-	if err != nil {
-		return err
-	}
+	// Usage tracker
+	usageTracker := usage_metrics.NewUsageTracker()
+
+	// Construct internal gRPC server
+	internalServer := a.constructInternalServer(interceptorsCtx, tracer)
+
+	// Gitaly client
+	gitalyClientPool := a.constructGitalyPool(csh, tracer)
+	defer errz.SafeClose(gitalyClientPool, &retErr)
 
 	// Module factories
 	factories := []modserver.Factory{
@@ -215,6 +219,10 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 
 	// Start things up. Stages are shut down in reverse order.
 	return cmd.RunStages(ctx,
+		// connRegistry depends on tunnelTracker so it must be stopped last
+		func(stage stager.Stage) {
+			stage.Go(tunnelTracker.Run)
+		},
 		// Start things that modules use.
 		func(stage stager.Stage) {
 			stage.Go(agentTracker.Run)
@@ -467,6 +475,21 @@ func (a *ConfiguredApp) constructAgentTracker(redisClient redis.UniversalClient)
 	)
 }
 
+func (a *ConfiguredApp) constructTunnelTracker(redisClient redis.UniversalClient) tracker.Tracker {
+	if redisClient == nil {
+		return nopTunnelTracker{}
+	}
+	cfg := a.Configuration
+	return tracker.NewRedisTracker(
+		a.Log,
+		redisClient,
+		cfg.Redis.KeyPrefix+":tunnel_tracker",
+		cfg.Agent.RedisConnInfoTtl.AsDuration(),
+		cfg.Agent.RedisConnInfoRefresh.AsDuration(),
+		cfg.Agent.RedisConnInfoGc.AsDuration(),
+	)
+}
+
 func (a *ConfiguredApp) constructErrorTracker() (errortracking.Tracker, error) {
 	s := a.Configuration.Observability.Sentry
 	if s.Dsn == "" {
@@ -678,6 +701,7 @@ func kasUserAgent() string {
 var (
 	_ errortracking.Tracker = nopErrTracker{}
 	_ agent_tracker.Tracker = nopAgentTracker{}
+	_ tracker.Tracker       = nopTunnelTracker{}
 )
 
 // nopErrTracker is the state of the art error tracking facility.
@@ -707,5 +731,24 @@ func (n nopAgentTracker) GetConnectionsByAgentId(ctx context.Context, agentId in
 }
 
 func (n nopAgentTracker) GetConnectionsByProjectId(ctx context.Context, projectId int64, cb agent_tracker.ConnectedAgentInfoCallback) error {
+	return nil
+}
+
+type nopTunnelTracker struct {
+}
+
+func (n nopTunnelTracker) RegisterTunnel(ctx context.Context, info *tracker.TunnelInfo) bool {
+	return true
+}
+
+func (n nopTunnelTracker) UnregisterTunnel(ctx context.Context, info *tracker.TunnelInfo) bool {
+	return true
+}
+
+func (n nopTunnelTracker) GetTunnelsByAgentId(ctx context.Context, agentId int64) ([]*tracker.TunnelInfo, error) {
+	return nil, nil
+}
+
+func (n nopTunnelTracker) Run(ctx context.Context) error {
 	return nil
 }

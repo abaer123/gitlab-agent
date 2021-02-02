@@ -34,11 +34,11 @@ func (m *module) Connect(server rpc.ReverseTunnel_ConnectServer) error {
 	ctx := server.Context()
 	agentToken := api.AgentTokenFromContext(ctx)
 	log := grpctool.LoggerFromContext(ctx)
-	agentInfo, err, retErr := m.api.GetAgentInfo(ctx, log, agentToken, false)
+	ageCtx, cancel := context.WithTimeout(ctx, mathz.DurationWithJitter(m.maxConnectionAge, maxConnectionAgeJitterPercent))
+	defer cancel()
+	agentInfo, err, retErr := m.api.GetAgentInfo(ageCtx, log, agentToken, false)
 	if retErr {
 		return err // no wrap
 	}
-	ageCtx, cancel := context.WithTimeout(ctx, mathz.DurationWithJitter(m.maxConnectionAge, maxConnectionAgeJitterPercent))
-	defer cancel()
 	return m.tunnelConnectionHandler.HandleTunnelConnection(ageCtx, agentInfo, server)
 }

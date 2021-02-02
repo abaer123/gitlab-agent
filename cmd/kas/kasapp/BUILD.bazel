@@ -25,6 +25,7 @@ go_library(
         "//internal/module/observability/server",
         "//internal/module/reverse_tunnel",
         "//internal/module/reverse_tunnel/server",
+        "//internal/module/reverse_tunnel/tracker",
         "//internal/module/usage_metrics",
         "//internal/module/usage_metrics/server",
         "//internal/tool/cache",

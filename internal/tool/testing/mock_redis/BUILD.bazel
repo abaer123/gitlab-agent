@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "mock_redis",
+    srcs = [
+        "doc.go",
+        "expiring_hash.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_redis",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/tool/redistool",
+        "@com_github_golang_mock//gomock",
+        "@org_golang_google_protobuf//types/known/anypb",
+    ],
+)

@@ -11,9 +11,10 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",
-        "//internal/module/reverse_tunnel/info",
         "//internal/module/reverse_tunnel/rpc",
+        "//internal/module/reverse_tunnel/tracker",
         "//internal/tool/grpctool",
+        "//internal/tool/mathz",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//metadata",

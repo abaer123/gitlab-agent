@@ -78,7 +78,7 @@ func (t *RedisTracker) Run(ctx context.Context) error {
 				// fallthrough
 			}
 			if deletedKeys > 0 {
-				t.log.Info("Deleted expired agent connections records", logz.RemovedAgentConnectionRecords(deletedKeys))
+				t.log.Info("Deleted expired agent connections records", logz.RemovedHashKeys(deletedKeys))
 			}
 		case toReg := <-t.toRegister:
 			err := t.registerConnection(ctx, toReg)

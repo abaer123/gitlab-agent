@@ -264,7 +264,7 @@ func runTest(t *testing.T, ats test.TestingServer, f func(context.Context, *test
 	defer cancel()
 
 	// Construct server and agent components
-	runServer, kasConn, serverInternalServerConn, _, serverApi := serverConstructComponents(t)
+	runServer, kasConn, serverInternalServerConn, serverApi, tunnelRegisterer := serverConstructComponents(t)
 	runAgent, agentInternalServer := agentConstructComponents(t, kasConn)
 	agentInfo := testhelpers.AgentInfoObj()
 
@@ -272,6 +272,13 @@ func runTest(t *testing.T, ats test.TestingServer, f func(context.Context, *test
 		GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken, false).
 		Return(agentInfo, nil, false).
 		MinTimes(1)
+
+	tunnelRegisterer.EXPECT().
+		RegisterTunnel(gomock.Any(), gomock.Any()).
+		AnyTimes() // may be 0 if incoming connections arrive before tunnel connections
+	tunnelRegisterer.EXPECT().
+		UnregisterTunnel(gomock.Any(), gomock.Any()).
+		AnyTimes()
 
 	test.RegisterTestingServer(agentInternalServer, ats)
 

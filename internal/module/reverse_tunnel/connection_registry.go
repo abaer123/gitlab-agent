@@ -5,7 +5,9 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/mathz"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -35,6 +37,7 @@ type connForwardRequest struct {
 
 type ConnectionRegistry struct {
 	log                   *zap.Logger
+	tunnelRegisterer      tracker.Registerer
 	tunnelStreamVisitor   *grpctool.StreamVisitor
 	conns                 map[*connection]struct{}
 	connsByAgentId        map[int64]map[*connection]struct{}
@@ -47,13 +50,14 @@ type ConnectionRegistry struct {
 	connRequestAbort chan *connForwardRequest
 }
 
-func NewConnectionRegistry(log *zap.Logger) (*ConnectionRegistry, error) {
+func NewConnectionRegistry(log *zap.Logger, tunnelRegisterer tracker.Registerer) (*ConnectionRegistry, error) {
 	tunnelStreamVisitor, err := grpctool.NewStreamVisitor(&rpc.ConnectRequest{})
 	if err != nil {
 		return nil, err
 	}
 	return &ConnectionRegistry{
 		log:                   log,
+		tunnelRegisterer:      tunnelRegisterer,
 		tunnelStreamVisitor:   tunnelStreamVisitor,
 		conns:                 make(map[*connection]struct{}),
 		connsByAgentId:        make(map[int64]map[*connection]struct{}),
@@ -134,8 +138,11 @@ func (r *ConnectionRegistry) HandleTunnelConnection(ctx context.Context, agentIn
 		tunnel:              server,
 		tunnelStreamVisitor: r.tunnelStreamVisitor,
 		tunnelRetErr:        retErr,
-		agentId:             agentInfo.Id,
-		agentDescriptor:     descriptor.Descriptor_.AgentDescriptor,
+		tunnelInfo: &tracker.TunnelInfo{
+			AgentDescriptor: descriptor.Descriptor_.AgentDescriptor,
+			ConnectionId:    mathz.Int63(),
+			AgentId:         agentInfo.Id,
+		},
 	}
 	// Register
 	select {
@@ -164,37 +171,39 @@ func (r *ConnectionRegistry) HandleTunnelConnection(ctx context.Context, agentIn
 
 func (r *ConnectionRegistry) handleConnRegister(toReg *connection) {
 	// 1. Before registering the connection see if there is a connection request waiting for it
-	connRequestsForAgentId := r.connRequestsByAgentId[toReg.agentId]
+	connRequestsForAgentId := r.connRequestsByAgentId[toReg.tunnelInfo.AgentId]
 	for connReq := range connRequestsForAgentId {
 		// Waiting request found!
+		connReq.retConn <- toReg     // Satisfy the waiting request ASAP
 		r.deleteConnRequest(connReq) // Remove it from the queue
-		connReq.retConn <- toReg     // Satisfy the waiting request
 		return
 	}
 
 	// 2. Register the connection
+	r.tunnelRegisterer.RegisterTunnel(context.Background(), toReg.tunnelInfo) // register ASAP
 	r.conns[toReg] = struct{}{}
-	connsByAgentId := r.connsByAgentId[toReg.agentId]
+	connsByAgentId := r.connsByAgentId[toReg.tunnelInfo.AgentId]
 	if connsByAgentId == nil {
 		connsByAgentId = make(map[*connection]struct{}, 1)
-		r.connsByAgentId[toReg.agentId] = connsByAgentId
+		r.connsByAgentId[toReg.tunnelInfo.AgentId] = connsByAgentId
 	}
 	connsByAgentId[toReg] = struct{}{}
 }
 
 func (r *ConnectionRegistry) handleConnUnregister(toUnreg *connection) {
-	if r.connsByAgentId[toUnreg.agentId] != nil { // Connection might not be there if it's been obtained from the map already
+	if r.connsByAgentId[toUnreg.tunnelInfo.AgentId] != nil { // Connection might not be there if it's been obtained from the map already
 		r.unregisterConnection(toUnreg)
 		toUnreg.tunnelRetErr <- status.Error(codes.Canceled, "context done")
 	}
 }
 
 func (r *ConnectionRegistry) unregisterConnection(toAbort *connection) {
+	r.tunnelRegisterer.UnregisterTunnel(context.Background(), toAbort.tunnelInfo)
 	delete(r.conns, toAbort)
-	connsForAgentId := r.connsByAgentId[toAbort.agentId]
+	connsForAgentId := r.connsByAgentId[toAbort.tunnelInfo.AgentId]
 	delete(connsForAgentId, toAbort)
 	if len(connsForAgentId) == 0 {
-		delete(r.connsByAgentId, toAbort.agentId)
+		delete(r.connsByAgentId, toAbort.tunnelInfo.AgentId)
 	}
 }
 
@@ -202,8 +211,8 @@ func (r *ConnectionRegistry) handleConnRequest(connRequest *connForwardRequest) 
 	// 1. Check if we have a suitable connection
 	for conn := range r.connsByAgentId[connRequest.agentId] {
 		// Suitable connection found!
+		connRequest.retConn <- conn // respond ASAP, then do all the bookkeeping
 		r.unregisterConnection(conn)
-		connRequest.retConn <- conn
 		return
 	}
 
@@ -236,8 +245,8 @@ func (r *ConnectionRegistry) cleanup() {
 	// Abort all waiting new stream requests
 	for _, connRequestsForAgentId := range r.connRequestsByAgentId {
 		for connReq := range connRequestsForAgentId {
+			connReq.retConn <- nil // respond ASAP, then do all the bookkeeping
 			r.deleteConnRequest(connReq)
-			connReq.retConn <- nil
 		}
 	}
 }
