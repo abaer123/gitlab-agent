@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"errors"
 	"regexp"
 	"strings"
 
@@ -127,19 +126,16 @@ func (j *pollJob) sendObjectsToSynchronizeBody(req *rpc.ObjectsToSynchronizeRequ
 			if v.sendFailed {
 				return 0, j.api.HandleSendError(log, "GitOps: failed to send objects to synchronize", err)
 			}
-			var e *gitaly.Error
-			if errors.As(err, &e) {
-				switch e.Code { // nolint:exhaustive
-				case gitaly.NotFound, gitaly.FileTooBig, gitaly.UnexpectedTreeEntryType:
-					err = errz.NewUserErrorWithCause(err, "manifest file")
-					j.api.HandleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
-					// return the error to the client because it's a user error
-					return 0, status.Errorf(codes.FailedPrecondition, "GitOps: failed to get objects to synchronize: %v", err)
-				}
-				// fallthrough
+			switch gitaly.ErrorCodeFromError(err) { // nolint:exhaustive
+			case gitaly.NotFound, gitaly.FileTooBig, gitaly.UnexpectedTreeEntryType:
+				err = errz.NewUserErrorWithCause(err, "manifest file")
+				j.api.HandleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
+				// return the error to the client because it's a user error
+				return 0, status.Errorf(codes.FailedPrecondition, "GitOps: failed to get objects to synchronize: %v", err)
+			default:
+				j.api.HandleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
+				return 0, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
 			}
-			j.api.HandleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
-			return 0, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
 		}
 	}
 	return v.numberOfFiles, nil

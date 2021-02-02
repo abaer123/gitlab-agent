@@ -1,6 +1,7 @@
 package gitaly
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -120,4 +121,12 @@ func (e *Error) Error() string {
 
 func (e *Error) Unwrap() error {
 	return e.Cause
+}
+
+func ErrorCodeFromError(err error) ErrorCode {
+	var e *Error
+	if !errors.As(err, &e) {
+		return UnknownError
+	}
+	return e.Code
 }

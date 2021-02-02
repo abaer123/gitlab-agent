@@ -3,6 +3,7 @@ package gitaly
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -80,4 +81,17 @@ func TestErrorString(t *testing.T) {
 func TestUnknownErrorCode(t *testing.T) {
 	var e ErrorCode = -1
 	assert.Equal(t, "invalid ErrorCode: -1", e.String())
+}
+
+func TestErrorCodeFromError(t *testing.T) {
+	e := &Error{
+		Code: RpcError,
+	}
+	assert.Equal(t, RpcError, ErrorCodeFromError(e))
+
+	err := fmt.Errorf("%w", e)
+	assert.Equal(t, RpcError, ErrorCodeFromError(err))
+
+	err = errors.New("bla")
+	assert.Equal(t, UnknownError, ErrorCodeFromError(err))
 }

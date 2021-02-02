@@ -110,15 +110,12 @@ func (j *pollJob) fetchConfiguration(ctx context.Context, agentInfo *api.AgentIn
 	filename := path.Join(agentConfigurationDirectory, agentInfo.Name, agentConfigurationFileName)
 	configYAML, err := pf.FetchFile(ctx, &agentInfo.Repository, []byte(revision), []byte(filename), j.maxConfigurationFileSize)
 	if err != nil {
-		var e *gitaly.Error
-		if errors.As(err, &e) {
-			switch e.Code { // nolint:exhaustive
-			case gitaly.NotFound, gitaly.FileTooBig, gitaly.UnexpectedTreeEntryType:
-				return nil, errz.NewUserErrorWithCause(err, "agent configuration file")
-			}
-			// fallthrough
+		switch gitaly.ErrorCodeFromError(err) { // nolint:exhaustive
+		case gitaly.NotFound, gitaly.FileTooBig, gitaly.UnexpectedTreeEntryType:
+			return nil, errz.NewUserErrorWithCause(err, "agent configuration file")
+		default:
+			return nil, fmt.Errorf("fetch agent configuration: %w", err) // wrap
 		}
-		return nil, fmt.Errorf("fetch agent configuration: %w", err) // wrap
 	}
 	configFile, err := parseYAMLToConfiguration(configYAML)
 	if err != nil {
