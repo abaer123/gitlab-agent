@@ -31,10 +31,6 @@ type Config struct {
 	Server *grpc.Server
 	// AgentName is a string "gitlab-agent". Can be used as a user agent, server name, service name, etc.
 	AgentName string
-	// Version is the agentk version.
-	Version string
-	// CommitId is the agentk commit sha.
-	CommitId string
 }
 
 type GitLabResponse struct {
