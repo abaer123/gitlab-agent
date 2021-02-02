@@ -206,8 +206,6 @@ message RedisCF {
     RedisServerCF server = 1 [json_name = "server"];
     // Redis with Sentinel setup. See http://redis.io/topics/sentinel.
     RedisSentinelCF sentinel = 2 [json_name = "sentinel"];
-    // Redis with cluster setup. See https://redis.io/topics/cluster-spec.
-    RedisClusterCF cluster = 3 [json_name = "cluster"];
   }
   // The max number of connections.
   uint32 pool_size = 4 [json_name = "pool_size"];
@@ -233,6 +231,21 @@ message RedisCF {
   // The network type, either tcp or unix.
   // Default is tcp.
   string network = 12 [json_name = "network", (validate.rules).string = {in: "", in: "tcp", in: "unix"}];
+
+  RedisTLSCF tls = 13 [json_name = "tls"];
+}
+
+message RedisTLSCF {
+  // If true, uses TLS for the redis connection (only available if network is "tcp")
+  bool enabled = 1 [json_name = "enabled"];
+  // For mutual TLS, specify both certificate_file and key_file; otherwise, specify neither
+  // Optional custom X.509 certificate file for TLS in PEM format
+  string certificate_file = 2 [json_name = "certificate_file"];
+  // Optional custom X.509 key file for TLS in PEM format
+  string key_file = 3 [json_name = "key_file"];
+  // Optional custom X.509 root CA file in PEM format, used to validate
+  // the Redis server's certificate (e.g. if the server has a self-signed certificate)
+  string ca_certificate_file = 4 [json_name = "ca_certificate_file"];
 }
 
 message RedisServerCF {
@@ -247,11 +260,6 @@ message RedisSentinelCF {
   repeated string addresses = 2 [json_name = "addresses", (validate.rules).repeated.min_items = 1];
   // Sentinel password from "requirepass <password>" (if enabled) in Sentinel configuration
   string sentinel_password_file = 3 [json_name = "sentinel_password_file"];
-}
-
-message RedisClusterCF {
-  // The host:port addresses of the nodes.
-  repeated string addresses = 1 [json_name = "addresses", (validate.rules).repeated.min_items = 1];
 }
 
 message ListenApiCF {

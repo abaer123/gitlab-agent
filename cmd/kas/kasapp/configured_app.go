@@ -2,11 +2,13 @@ package kasapp
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/ash2k/stager"
@@ -580,6 +582,14 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 	readTimeout := cfg.ReadTimeout.AsDuration()
 	writeTimeout := cfg.WriteTimeout.AsDuration()
 	idleTimeout := cfg.IdleTimeout.AsDuration()
+	var err error
+	var tlsConfig *tls.Config
+	if cfg.Tls != nil && cfg.Tls.Enabled {
+		tlsConfig, err = tlstool.DefaultClientTLSConfigWithCACertKeyPair(cfg.Tls.CaCertificateFile, cfg.Tls.CaCertificateFile, cfg.Tls.KeyFile)
+		if err != nil {
+			return nil, err
+		}
+	}
 	var password string
 	if cfg.PasswordFile != "" {
 		passwordBytes, err := ioutil.ReadFile(cfg.PasswordFile)
@@ -590,6 +600,9 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 	}
 	switch v := cfg.RedisConfig.(type) {
 	case *kascfg.RedisCF_Server:
+		if tlsConfig != nil {
+			tlsConfig.ServerName = strings.Split(v.Server.Address, ":")[0]
+		}
 		return redis.NewClient(&redis.Options{
 			Addr:         v.Server.Address,
 			PoolSize:     poolSize,
@@ -600,6 +613,7 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 			Username:     cfg.Username,
 			Password:     password,
 			Network:      cfg.Network,
+			TLSConfig:    tlsConfig,
 		}), nil
 	case *kascfg.RedisCF_Sentinel:
 		var sentinelPassword string
@@ -621,17 +635,7 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 			Username:         cfg.Username,
 			Password:         password,
 			SentinelPassword: sentinelPassword,
-		}), nil
-	case *kascfg.RedisCF_Cluster:
-		return redis.NewClusterClient(&redis.ClusterOptions{
-			Addrs:        v.Cluster.Addresses,
-			DialTimeout:  dialTimeout,
-			ReadTimeout:  readTimeout,
-			WriteTimeout: writeTimeout,
-			PoolSize:     poolSize,
-			IdleTimeout:  idleTimeout,
-			Username:     cfg.Username,
-			Password:     password,
+			TLSConfig:        tlsConfig,
 		}), nil
 	default:
 		// This should never happen

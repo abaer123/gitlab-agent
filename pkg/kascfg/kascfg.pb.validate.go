@@ -1603,6 +1603,16 @@ func (m *RedisCF) Validate() error {
 		}
 	}
 
+	if v, ok := interface{}(m.GetTls()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return RedisCFValidationError{
+				field:  "Tls",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	switch m.RedisConfig.(type) {
 
 	case *RedisCF_Server:
@@ -1623,18 +1633,6 @@ func (m *RedisCF) Validate() error {
 			if err := v.Validate(); err != nil {
 				return RedisCFValidationError{
 					field:  "Sentinel",
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
-	case *RedisCF_Cluster:
-
-		if v, ok := interface{}(m.GetCluster()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return RedisCFValidationError{
-					field:  "Cluster",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
@@ -1711,6 +1709,78 @@ var _RedisCF_Network_InLookup = map[string]struct{}{
 	"tcp":  {},
 	"unix": {},
 }
+
+// Validate checks the field values on RedisTLSCF with the rules defined in the
+// proto definition for this message. If any rules are violated, an error is returned.
+func (m *RedisTLSCF) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	// no validation rules for Enabled
+
+	// no validation rules for CertificateFile
+
+	// no validation rules for KeyFile
+
+	// no validation rules for CaCertificateFile
+
+	return nil
+}
+
+// RedisTLSCFValidationError is the validation error returned by
+// RedisTLSCF.Validate if the designated constraints aren't met.
+type RedisTLSCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e RedisTLSCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e RedisTLSCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e RedisTLSCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e RedisTLSCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e RedisTLSCFValidationError) ErrorName() string { return "RedisTLSCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e RedisTLSCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sRedisTLSCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = RedisTLSCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = RedisTLSCFValidationError{}
 
 // Validate checks the field values on RedisServerCF with the rules defined in
 // the proto definition for this message. If any rules are violated, an error
@@ -1872,78 +1942,6 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = RedisSentinelCFValidationError{}
-
-// Validate checks the field values on RedisClusterCF with the rules defined in
-// the proto definition for this message. If any rules are violated, an error
-// is returned.
-func (m *RedisClusterCF) Validate() error {
-	if m == nil {
-		return nil
-	}
-
-	if len(m.GetAddresses()) < 1 {
-		return RedisClusterCFValidationError{
-			field:  "Addresses",
-			reason: "value must contain at least 1 item(s)",
-		}
-	}
-
-	return nil
-}
-
-// RedisClusterCFValidationError is the validation error returned by
-// RedisClusterCF.Validate if the designated constraints aren't met.
-type RedisClusterCFValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e RedisClusterCFValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e RedisClusterCFValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e RedisClusterCFValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e RedisClusterCFValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e RedisClusterCFValidationError) ErrorName() string { return "RedisClusterCFValidationError" }
-
-// Error satisfies the builtin error interface
-func (e RedisClusterCFValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sRedisClusterCF.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = RedisClusterCFValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = RedisClusterCFValidationError{}
 
 // Validate checks the field values on ListenApiCF with the rules defined in
 // the proto definition for this message. If any rules are violated, an error

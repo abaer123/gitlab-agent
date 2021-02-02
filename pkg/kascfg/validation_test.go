@@ -270,11 +270,6 @@ func TestValidation_Invalid(t *testing.T) {
 			},
 		},
 		{
-			name:      "empty RedisClusterCF.Addresses",
-			errString: "invalid RedisClusterCF.Addresses: value must contain at least 1 item(s)",
-			invalid:   &RedisClusterCF{},
-		},
-		{
 			name:      "zero ListenAgentCF.MaxConnectionAge",
 			errString: "invalid ListenAgentCF.MaxConnectionAge: value must be greater than 0s",
 			invalid: &ListenAgentCF{
