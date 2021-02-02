@@ -41,6 +41,26 @@ func DefaultClientTLSConfigWithCACert(caCertFile string) (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
+func DefaultClientTLSConfigWithCACertKeyPair(caCertFile, certFile, keyFile string) (*tls.Config, error) {
+	tlsConfig, err := DefaultClientTLSConfigWithCACert(caCertFile)
+	if err != nil {
+		return nil, err
+	}
+	switch {
+	case certFile != "" && keyFile != "":
+		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.Certificates = []tls.Certificate{cert}
+	case certFile == "" && keyFile == "":
+	// nothing to do
+	default:
+		return nil, fmt.Errorf("both certificate (%s) and key (%s) files must be specified", certFile, keyFile)
+	}
+	return tlsConfig, nil
+}
+
 func DefaultServerTLSConfig(certFile, keyFile string) (*tls.Config, error) {
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {

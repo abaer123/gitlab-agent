@@ -585,16 +585,9 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 	var err error
 	var tlsConfig *tls.Config
 	if cfg.Tls != nil && cfg.Tls.Enabled {
-		tlsConfig, err = tlstool.DefaultClientTLSConfigWithCACert(cfg.Tls.CaCertificateFile)
+		tlsConfig, err = tlstool.DefaultClientTLSConfigWithCACertKeyPair(cfg.Tls.CaCertificateFile, cfg.Tls.CaCertificateFile, cfg.Tls.KeyFile)
 		if err != nil {
 			return nil, err
-		}
-		if cfg.Tls.CertificateFile != "" && cfg.Tls.KeyFile != "" {
-			cert, err := tls.LoadX509KeyPair(cfg.Tls.CaCertificateFile, cfg.Tls.KeyFile)
-			if err != nil {
-				return nil, err
-			}
-			tlsConfig.Certificates = []tls.Certificate{cert}
 		}
 	}
 	var password string
