@@ -70,6 +70,10 @@ func (h *ExpiringHash) Scan(ctx context.Context, key interface{}, cb ScanCallbac
 	for iter.Next(ctx) {
 		k := iter.Val()
 		if !iter.Next(ctx) {
+			err := iter.Err()
+			if err != nil {
+				return 0, err
+			}
 			// This shouldn't happen
 			return 0, errors.New("invalid Redis reply")
 		}
