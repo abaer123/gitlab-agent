@@ -27,7 +27,9 @@ const (
 )
 
 var (
-	_ Tracker = &RedisTracker{}
+	_ Registerer = &RedisTracker{}
+	_ Querier    = &RedisTracker{}
+	_ Tracker    = &RedisTracker{}
 )
 
 func TestRegisterConnection(t *testing.T) {
@@ -131,10 +133,12 @@ func TestGetConnectionsEmpty(t *testing.T) {
 	// no registered connections
 
 	// Then
-	infos, err := tr.GetConnectionsByProjectId(context.Background(), info.ProjectId)
+	var infos ConnectedAgentInfoCollector
+	err := tr.GetConnectionsByProjectId(context.Background(), info.ProjectId, infos.Collect)
 	require.NoError(t, err)
 	assert.Empty(t, infos)
-	infos, err = tr.GetConnectionsByAgentId(context.Background(), info.AgentId)
+	infos = nil
+	err = tr.GetConnectionsByAgentId(context.Background(), info.AgentId, infos.Collect)
 	require.NoError(t, err)
 	assert.Empty(t, infos)
 }
@@ -149,12 +153,14 @@ func TestGetConnections(t *testing.T) {
 	require.NoError(t, tr.registerConnection(context.Background(), info))
 
 	// Then
-	infos, err := tr.GetConnectionsByProjectId(context.Background(), info.ProjectId)
+	var infos ConnectedAgentInfoCollector
+	err := tr.GetConnectionsByProjectId(context.Background(), info.ProjectId, infos.Collect)
 	require.NoError(t, err)
-	assert.Empty(t, cmp.Diff([]*ConnectedAgentInfo{info}, infos, protocmp.Transform()))
-	infos, err = tr.GetConnectionsByAgentId(context.Background(), info.AgentId)
+	assert.Empty(t, cmp.Diff([]*ConnectedAgentInfo{info}, []*ConnectedAgentInfo(infos), protocmp.Transform()))
+	infos = nil
+	err = tr.GetConnectionsByAgentId(context.Background(), info.AgentId, infos.Collect)
 	require.NoError(t, err)
-	assert.Empty(t, cmp.Diff([]*ConnectedAgentInfo{info}, infos, protocmp.Transform()))
+	assert.Empty(t, cmp.Diff([]*ConnectedAgentInfo{info}, []*ConnectedAgentInfo(infos), protocmp.Transform()))
 }
 
 func setupTracker(t *testing.T) (redis.UniversalClient, *RedisTracker, string) {

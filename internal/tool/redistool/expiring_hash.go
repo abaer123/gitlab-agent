@@ -17,7 +17,7 @@ import (
 // KeyToRedisKey is used to convert key1 in
 // HSET key1 key2 value.
 type KeyToRedisKey func(key interface{}) string
-type ScanCallback func(value *anypb.Any, err error) error
+type ScanCallback func(value *anypb.Any, err error) (bool /* done */, error)
 
 type ExpiringHash struct {
 	log           *zap.Logger
@@ -77,8 +77,9 @@ func (h *ExpiringHash) Scan(ctx context.Context, key interface{}, cb ScanCallbac
 		var msg ExpiringValue
 		err := proto.Unmarshal([]byte(v), &msg)
 		if err != nil {
-			err = cb(nil, fmt.Errorf("failed to unmarshal hash value from key 0x%x: %w", k, err))
-			if err != nil {
+			var done bool
+			done, err = cb(nil, fmt.Errorf("failed to unmarshal hash value from key 0x%x: %w", k, err))
+			if err != nil || done {
 				return 0, err
 			}
 			continue // try to skip and continue
@@ -87,8 +88,8 @@ func (h *ExpiringHash) Scan(ctx context.Context, key interface{}, cb ScanCallbac
 			keysToDelete = append(keysToDelete, k)
 			continue
 		}
-		err = cb(msg.Value, nil)
-		if err != nil {
+		done, err := cb(msg.Value, nil)
+		if err != nil || done {
 			return 0, err
 		}
 	}
@@ -114,9 +115,9 @@ func (h *ExpiringHash) GC(ctx context.Context) (int, error) {
 // gcHash iterates a hash and removes all expired values.
 // It assumes that values are marshaled ExpiringValue.
 func (h *ExpiringHash) gcHash(ctx context.Context, key interface{}) (int, error) {
-	return h.Scan(ctx, key, func(value *anypb.Any, err error) error {
+	return h.Scan(ctx, key, func(value *anypb.Any, err error) (bool, error) {
 		// nothing to do
-		return nil
+		return false, nil
 	})
 }
 

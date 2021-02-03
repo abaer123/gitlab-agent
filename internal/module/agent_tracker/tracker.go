@@ -13,6 +13,8 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
+type ConnectedAgentInfoCallback func(*ConnectedAgentInfo) (done bool, err error)
+
 type Registerer interface {
 	// RegisterConnection schedules the connection to be registered with the tracker.
 	// Returns true on success and false if ctx signaled done.
@@ -23,8 +25,8 @@ type Registerer interface {
 }
 
 type Querier interface {
-	GetConnectionsByAgentId(ctx context.Context, agentId int64) ([]*ConnectedAgentInfo, error)
-	GetConnectionsByProjectId(ctx context.Context, projectId int64) ([]*ConnectedAgentInfo, error)
+	GetConnectionsByAgentId(ctx context.Context, agentId int64, cb ConnectedAgentInfoCallback) error
+	GetConnectionsByProjectId(ctx context.Context, projectId int64, cb ConnectedAgentInfoCallback) error
 }
 
 type Tracker interface {
@@ -110,33 +112,28 @@ func (t *RedisTracker) UnregisterConnection(ctx context.Context, info *Connected
 	}
 }
 
-func (t *RedisTracker) GetConnectionsByAgentId(ctx context.Context, agentId int64) ([]*ConnectedAgentInfo, error) {
-	return t.getConnectionsByKey(ctx, t.connectionsByAgentId, agentId)
+func (t *RedisTracker) GetConnectionsByAgentId(ctx context.Context, agentId int64, cb ConnectedAgentInfoCallback) error {
+	return t.getConnectionsByKey(ctx, t.connectionsByAgentId, agentId, cb)
 }
 
-func (t *RedisTracker) GetConnectionsByProjectId(ctx context.Context, projectId int64) ([]*ConnectedAgentInfo, error) {
-	return t.getConnectionsByKey(ctx, t.connectionsByProjectId, projectId)
+func (t *RedisTracker) GetConnectionsByProjectId(ctx context.Context, projectId int64, cb ConnectedAgentInfoCallback) error {
+	return t.getConnectionsByKey(ctx, t.connectionsByProjectId, projectId, cb)
 }
 
-func (t *RedisTracker) getConnectionsByKey(ctx context.Context, hash *redistool.ExpiringHash, key interface{}) ([]*ConnectedAgentInfo, error) {
-	var result []*ConnectedAgentInfo
-	_, err := hash.Scan(ctx, key, func(value *anypb.Any, err error) error {
+func (t *RedisTracker) getConnectionsByKey(ctx context.Context, hash *redistool.ExpiringHash, key interface{}, cb ConnectedAgentInfoCallback) error {
+	_, err := hash.Scan(ctx, key, func(value *anypb.Any, err error) (bool, error) {
 		if err != nil {
 			t.log.Error("Redis hash scan", zap.Error(err))
-			return nil
+			return false, nil
 		}
 		var info ConnectedAgentInfo
 		err = value.UnmarshalTo(&info)
 		if err != nil {
-			return err
+			return false, err
 		}
-		result = append(result, &info)
-		return nil
+		return cb(&info)
 	})
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
+	return err
 }
 
 func (t *RedisTracker) registerConnection(ctx context.Context, info *ConnectedAgentInfo) error {
@@ -208,4 +205,11 @@ func connectionsByProjectIdHashKey(agentKeyPrefix string) redistool.KeyToRedisKe
 		b.Write(id)
 		return b.String()
 	}
+}
+
+type ConnectedAgentInfoCollector []*ConnectedAgentInfo
+
+func (c *ConnectedAgentInfoCollector) Collect(info *ConnectedAgentInfo) (bool, error) {
+	*c = append(*c, info)
+	return false, nil
 }

@@ -85,10 +85,10 @@ func TestExpiringHash_Refresh(t *testing.T) {
 func TestExpiringHash_ScanEmpty(t *testing.T) {
 	_, hash, key, _ := setupHash(t)
 
-	keysDeleted, err := hash.Scan(context.Background(), key, func(value *anypb.Any, err error) error {
+	keysDeleted, err := hash.Scan(context.Background(), key, func(value *anypb.Any, err error) (bool, error) {
 		require.NoError(t, err)
 		assert.FailNow(t, "unexpected callback invocation")
-		return nil
+		return false, nil
 	})
 	require.NoError(t, err)
 	assert.Zero(t, keysDeleted)
@@ -97,10 +97,10 @@ func TestExpiringHash_ScanEmpty(t *testing.T) {
 func TestExpiringHash_Scan(t *testing.T) {
 	_, hash, key, value := setupHash(t)
 
-	keysDeleted, err := hash.Scan(context.Background(), key, func(v *anypb.Any, err error) error {
+	keysDeleted, err := hash.Scan(context.Background(), key, func(v *anypb.Any, err error) (bool, error) {
 		require.NoError(t, err)
 		assert.Empty(t, cmp.Diff(value, v, protocmp.Transform()))
-		return nil
+		return false, nil
 	})
 	require.NoError(t, err)
 	assert.Zero(t, keysDeleted)
@@ -119,10 +119,10 @@ func TestExpiringHash_ScanGC(t *testing.T) {
 	time.Sleep(ttl + 100*time.Millisecond)
 	require.NoError(t, hash.Set(context.Background(), key, 321, value))
 
-	keysDeleted, err := hash.Scan(context.Background(), key, func(v *anypb.Any, err error) error {
+	keysDeleted, err := hash.Scan(context.Background(), key, func(v *anypb.Any, err error) (bool, error) {
 		require.NoError(t, err)
 		assert.Empty(t, cmp.Diff(value, v, protocmp.Transform()))
-		return nil
+		return false, nil
 	})
 	require.NoError(t, err)
 	assert.EqualValues(t, 1, keysDeleted)

@@ -20,24 +20,25 @@ func (m *module) GetConnectedAgents(ctx context.Context, req *rpc.GetConnectedAg
 	log := grpctool.LoggerFromContext(ctx)
 	switch v := req.Request.(type) {
 	case *rpc.GetConnectedAgentsRequest_AgentId:
-		connectedAgentInfos, err := m.agentQuerier.GetConnectionsByAgentId(ctx, v.AgentId)
+		var infos agent_tracker.ConnectedAgentInfoCollector
+		err := m.agentQuerier.GetConnectionsByAgentId(ctx, v.AgentId, infos.Collect)
 		if err != nil {
 			m.api.HandleProcessingError(ctx, log, "GetConnectionsByAgentId() failed", err)
 			return nil, status.Error(codes.Unavailable, "GetConnectionsByAgentId() failed")
 		}
 		return &rpc.GetConnectedAgentsResponse{
-			Agents: connectedAgentInfos,
+			Agents: infos,
 		}, nil
 	case *rpc.GetConnectedAgentsRequest_ProjectId:
-		connectedAgentInfos, err := m.agentQuerier.GetConnectionsByProjectId(ctx, v.ProjectId)
+		var infos agent_tracker.ConnectedAgentInfoCollector
+		err := m.agentQuerier.GetConnectionsByProjectId(ctx, v.ProjectId, infos.Collect)
 		if err != nil {
 			m.api.HandleProcessingError(ctx, log, "GetConnectionsByProjectId() failed", err)
 			return nil, status.Error(codes.Unavailable, "GetConnectionsByProjectId() failed")
 		}
 		return &rpc.GetConnectedAgentsResponse{
-			Agents: connectedAgentInfos,
+			Agents: infos,
 		}, nil
-
 	default:
 		// Should never happen
 		return nil, status.Errorf(codes.InvalidArgument, "Unexpected field type: %T", req.Request)
