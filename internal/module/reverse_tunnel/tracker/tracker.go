@@ -2,8 +2,6 @@ package tracker
 
 import (
 	"context"
-	"encoding/binary"
-	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -125,13 +123,8 @@ func (t *RedisTracker) runGc(ctx context.Context) (int, error) {
 
 // tunnelsByAgentIdHashKey returns a key for agentId -> (connectionId -> marshaled TunnelInfo).
 func tunnelsByAgentIdHashKey(agentKeyPrefix string) redistool.KeyToRedisKey {
+	prefix := agentKeyPrefix + ":conn_by_agent_id:"
 	return func(agentId interface{}) string {
-		var b strings.Builder
-		b.WriteString(agentKeyPrefix)
-		b.WriteString(":conn_by_agent_id:")
-		id := make([]byte, 8)
-		binary.LittleEndian.PutUint64(id, uint64(agentId.(int64)))
-		b.Write(id)
-		return b.String()
+		return redistool.PrefixedInt64Key(prefix, agentId.(int64))
 	}
 }

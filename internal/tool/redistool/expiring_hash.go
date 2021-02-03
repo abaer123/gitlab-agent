@@ -2,9 +2,11 @@ package redistool
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -182,4 +184,13 @@ func (h *ExpiringHash) unsetData(key interface{}, hashKey int64) {
 	if len(nm) == 0 {
 		delete(h.data, key)
 	}
+}
+
+func PrefixedInt64Key(prefix string, key int64) string {
+	var b strings.Builder
+	b.WriteString(prefix)
+	id := make([]byte, 8)
+	binary.LittleEndian.PutUint64(id, uint64(key))
+	b.Write(id)
+	return b.String()
 }
