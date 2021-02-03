@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+// If you make any changes make sure you run: make regenerate-proto
+
+package gitlab.agent.reverse_tunnel.tracker;
+
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/tracker";
+
+import "internal/module/reverse_tunnel/info/info.proto";
+//import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
+import "validate/validate.proto";
+
+message TunnelInfo {
+  info.AgentDescriptor agent_descriptor = 1 [(validate.rules).message.required = true];
+  // Uniquely identifies a particular agentk->kas connection.
+  // Randomly generated when an agent connects.
+  int64 connection_id = 2;
+  // GitLab-wide unique id of the agent.
+  int64 agent_id = 3;
+}

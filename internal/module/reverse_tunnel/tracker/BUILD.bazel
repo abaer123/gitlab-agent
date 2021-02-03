@@ -1,0 +1,55 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("//build:proto.bzl", "go_grpc_generate")
+
+go_grpc_generate(
+    src = "tracker.proto",
+    workspace_relative_target_directory = "internal/module/reverse_tunnel/tracker",
+    deps = [
+        "//internal/module/reverse_tunnel/info:proto",
+        "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
+    ],
+)
+
+go_library(
+    name = "tracker",
+    srcs = [
+        "tracker.go",
+        "tracker.pb.go",
+        "tracker.pb.validate.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/tracker",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/module/reverse_tunnel/info",
+        "//internal/tool/logz",
+        "//internal/tool/redistool",
+        "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
+        "@com_github_go_redis_redis_v8//:redis",
+        "@com_github_golang_protobuf//proto",
+        "@com_github_golang_protobuf//ptypes",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+        "@org_golang_google_protobuf//types/known/anypb",
+        "@org_uber_go_zap//:zap",
+    ],
+)
+
+go_test(
+    name = "tracker_test",
+    size = "small",
+    srcs = [
+        "tracker_test.go",
+        "validation_test.go",
+    ],
+    embed = [":tracker"],
+    race = "on",
+    deps = [
+        "//internal/module/reverse_tunnel/info",
+        "//internal/tool/testing/mock_redis",
+        "@com_github_golang_mock//gomock",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+        "@org_golang_google_protobuf//types/known/anypb",
+        "@org_uber_go_zap//zaptest",
+    ],
+)

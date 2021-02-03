@@ -2,8 +2,6 @@ package agent_tracker
 
 import (
 	"context"
-	"encoding/binary"
-	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -78,7 +76,7 @@ func (t *RedisTracker) Run(ctx context.Context) error {
 				// fallthrough
 			}
 			if deletedKeys > 0 {
-				t.log.Info("Deleted expired agent connections records", logz.RemovedAgentConnectionRecords(deletedKeys))
+				t.log.Info("Deleted expired agent connections records", logz.RemovedHashKeys(deletedKeys))
 			}
 		case toReg := <-t.toRegister:
 			err := t.registerConnection(ctx, toReg)
@@ -183,27 +181,17 @@ func (t *RedisTracker) runGc(ctx context.Context) (int, error) {
 
 // connectionsByAgentIdHashKey returns a key for agentId -> (connectionId -> marshaled ConnectedAgentInfo).
 func connectionsByAgentIdHashKey(agentKeyPrefix string) redistool.KeyToRedisKey {
+	prefix := agentKeyPrefix + ":conn_by_agent_id:"
 	return func(agentId interface{}) string {
-		var b strings.Builder
-		b.WriteString(agentKeyPrefix)
-		b.WriteString(":conn_by_agent_id:")
-		id := make([]byte, 8)
-		binary.LittleEndian.PutUint64(id, uint64(agentId.(int64)))
-		b.Write(id)
-		return b.String()
+		return redistool.PrefixedInt64Key(prefix, agentId.(int64))
 	}
 }
 
 // connectionsByProjectIdHashKey returns a key for projectId -> (agentId ->marshaled ConnectedAgentInfo).
 func connectionsByProjectIdHashKey(agentKeyPrefix string) redistool.KeyToRedisKey {
+	prefix := agentKeyPrefix + ":conn_by_project_id:"
 	return func(projectId interface{}) string {
-		var b strings.Builder
-		b.WriteString(agentKeyPrefix)
-		b.WriteString(":conn_by_project_id:")
-		id := make([]byte, 8)
-		binary.LittleEndian.PutUint64(id, uint64(projectId.(int64)))
-		b.Write(id)
-		return b.String()
+		return redistool.PrefixedInt64Key(prefix, projectId.(int64))
 	}
 }
 

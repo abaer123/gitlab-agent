@@ -4,8 +4,8 @@ import (
 	"errors"
 	"io"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -26,8 +26,7 @@ type connection struct {
 	tunnel              rpc.ReverseTunnel_ConnectServer
 	tunnelStreamVisitor *grpctool.StreamVisitor
 	tunnelRetErr        chan<- error
-	agentId             int64
-	agentDescriptor     *info.AgentDescriptor
+	tunnelInfo          *tracker.TunnelInfo
 }
 
 // ForwardStream performs bi-directional message forwarding between incomingStream and c.tunnel.

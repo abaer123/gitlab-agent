@@ -40,14 +40,21 @@ func TestRunUnregistersAllConnections(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 	tunnel := mock_reverse_tunnel.NewMockReverseTunnel_ConnectServer(ctrl)
-	tunnel.EXPECT().
-		Recv().
-		Return(&rpc.ConnectRequest{
-			Msg: &rpc.ConnectRequest_Descriptor_{
-				Descriptor_: &rpc.Descriptor{},
-			},
-		}, nil)
-	r, err := NewConnectionRegistry(zaptest.NewLogger(t))
+	tunnelRegisterer := mock_reverse_tunnel.NewMockRegisterer(ctrl)
+	gomock.InOrder(
+		tunnel.EXPECT().
+			Recv().
+			Return(&rpc.ConnectRequest{
+				Msg: &rpc.ConnectRequest_Descriptor_{
+					Descriptor_: &rpc.Descriptor{},
+				},
+			}, nil),
+		tunnelRegisterer.EXPECT().
+			RegisterTunnel(gomock.Any(), gomock.Any()),
+		tunnelRegisterer.EXPECT().
+			UnregisterTunnel(gomock.Any(), gomock.Any()),
+	)
+	r, err := NewConnectionRegistry(zaptest.NewLogger(t), tunnelRegisterer)
 	require.NoError(t, err)
 	var wg wait.Group
 	defer wg.Wait()
@@ -67,14 +74,21 @@ func TestHandleTunnelConnectionIsUnblockedByContext(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	tunnel := mock_reverse_tunnel.NewMockReverseTunnel_ConnectServer(ctrl)
-	tunnel.EXPECT().
-		Recv().
-		Return(&rpc.ConnectRequest{
-			Msg: &rpc.ConnectRequest_Descriptor_{
-				Descriptor_: &rpc.Descriptor{},
-			},
-		}, nil)
-	r, err := NewConnectionRegistry(zaptest.NewLogger(t))
+	tunnelRegisterer := mock_reverse_tunnel.NewMockRegisterer(ctrl)
+	gomock.InOrder(
+		tunnel.EXPECT().
+			Recv().
+			Return(&rpc.ConnectRequest{
+				Msg: &rpc.ConnectRequest_Descriptor_{
+					Descriptor_: &rpc.Descriptor{},
+				},
+			}, nil),
+		tunnelRegisterer.EXPECT().
+			RegisterTunnel(gomock.Any(), gomock.Any()),
+		tunnelRegisterer.EXPECT().
+			UnregisterTunnel(gomock.Any(), gomock.Any()),
+	)
+	r, err := NewConnectionRegistry(zaptest.NewLogger(t), tunnelRegisterer)
 	require.NoError(t, err)
 	var wg wait.Group
 	defer wg.Wait()
@@ -93,7 +107,8 @@ func TestHandleTunnelConnectionReturnErrOnRecvErr(t *testing.T) {
 	tunnel.EXPECT().
 		Recv().
 		Return(nil, errors.New("expected err"))
-	r, err := NewConnectionRegistry(zaptest.NewLogger(t))
+	tunnelRegisterer := mock_reverse_tunnel.NewMockRegisterer(ctrl)
+	r, err := NewConnectionRegistry(zaptest.NewLogger(t), tunnelRegisterer)
 	require.NoError(t, err)
 	err = r.HandleTunnelConnection(context.Background(), testhelpers.AgentInfoObj(), tunnel)
 	assert.EqualError(t, err, "rpc error: code = Unavailable desc = unavailable")
@@ -109,7 +124,8 @@ func TestHandleTunnelConnectionReturnErrOnInvalidMsg(t *testing.T) {
 				Header: &rpc.Header{},
 			},
 		}, nil)
-	r, err := NewConnectionRegistry(zaptest.NewLogger(t))
+	tunnelRegisterer := mock_reverse_tunnel.NewMockRegisterer(ctrl)
+	r, err := NewConnectionRegistry(zaptest.NewLogger(t), tunnelRegisterer)
 	require.NoError(t, err)
 	err = r.HandleTunnelConnection(context.Background(), testhelpers.AgentInfoObj(), tunnel)
 	assert.EqualError(t, err, "rpc error: code = InvalidArgument desc = Invalid oneof value type: *rpc.ConnectRequest_Header")
@@ -117,7 +133,7 @@ func TestHandleTunnelConnectionReturnErrOnInvalidMsg(t *testing.T) {
 
 func TestHandleTunnelConnectionIsMatchedToIncomingConnection(t *testing.T) {
 	t.Parallel()
-	incomingStream, tunnel, r := setupStreams(t)
+	incomingStream, tunnel, r := setupStreams(t, true)
 	agentInfo := testhelpers.AgentInfoObj()
 	var wg wait.Group
 	defer wg.Wait()
@@ -136,7 +152,7 @@ func TestHandleTunnelConnectionIsMatchedToIncomingConnection(t *testing.T) {
 
 func TestIncomingConnectionIsMatchedToHandleTunnelConnection(t *testing.T) {
 	t.Parallel()
-	incomingStream, tunnel, r := setupStreams(t)
+	incomingStream, tunnel, r := setupStreams(t, false)
 	agentInfo := testhelpers.AgentInfoObj()
 	var wg wait.Group
 	defer wg.Wait()
@@ -153,7 +169,7 @@ func TestIncomingConnectionIsMatchedToHandleTunnelConnection(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func setupStreams(t *testing.T) (*mock_rpc.MockServerStream, *mock_reverse_tunnel.MockReverseTunnel_ConnectServer, *ConnectionRegistry) {
+func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServerStream, *mock_reverse_tunnel.MockReverseTunnel_ConnectServer, *ConnectionRegistry) {
 	const metaKey = "Cba"
 	meta := metadata.MD{}
 	meta.Set(metaKey, "3", "4")
@@ -168,6 +184,7 @@ func setupStreams(t *testing.T) (*mock_rpc.MockServerStream, *mock_reverse_tunne
 		Return(incomingCtx).
 		MinTimes(1)
 
+	tunnelRegisterer := mock_reverse_tunnel.NewMockRegisterer(ctrl)
 	tunnel := mock_reverse_tunnel.NewMockReverseTunnel_ConnectServer(ctrl)
 	tunnel.EXPECT().
 		Recv().
@@ -189,6 +206,14 @@ func setupStreams(t *testing.T) (*mock_rpc.MockServerStream, *mock_reverse_tunne
 				},
 			},
 		}, nil)
+	if expectRegisterTunnel {
+		gomock.InOrder(
+			tunnelRegisterer.EXPECT().
+				RegisterTunnel(gomock.Any(), gomock.Any()),
+			tunnelRegisterer.EXPECT().
+				UnregisterTunnel(gomock.Any(), gomock.Any()),
+		)
+	}
 	frame := grpctool.RawFrame{
 		Data: []byte{1, 2, 3},
 	}
@@ -274,7 +299,7 @@ func setupStreams(t *testing.T) (*mock_rpc.MockServerStream, *mock_reverse_tunne
 			Return(io.EOF),
 	)
 
-	r, err := NewConnectionRegistry(zaptest.NewLogger(t))
+	r, err := NewConnectionRegistry(zaptest.NewLogger(t), tunnelRegisterer)
 	require.NoError(t, err)
 	return incomingStream, tunnel, r
 }

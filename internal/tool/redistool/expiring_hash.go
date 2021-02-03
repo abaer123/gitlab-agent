@@ -2,9 +2,11 @@ package redistool
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -18,6 +20,18 @@ import (
 // HSET key1 key2 value.
 type KeyToRedisKey func(key interface{}) string
 type ScanCallback func(value *anypb.Any, err error) (bool /* done */, error)
+
+type ExpiringHashInterface interface {
+	Set(ctx context.Context, key interface{}, hashKey int64, value *anypb.Any) error
+	Unset(ctx context.Context, key interface{}, hashKey int64) error
+	Scan(ctx context.Context, key interface{}, cb ScanCallback) (int /* keysDeleted */, error)
+	// GC iterates all relevant stored data and deletes expired entries.
+	// It returns number of deleted Redis (hash) keys, including when an error occurs.
+	// It only inspects/GCs hashes where it has entries. Other concurrent clients GC same and/or other corresponding hashes.
+	// Hashes that don't have a corresponding client (e.g. because it crashed) will expire because of TTL on the hash key.
+	GC(ctx context.Context) (int /* keysDeleted */, error)
+	Refresh(ctx context.Context) error
+}
 
 type ExpiringHash struct {
 	log           *zap.Logger
@@ -100,10 +114,6 @@ func (h *ExpiringHash) Scan(ctx context.Context, key interface{}, cb ScanCallbac
 	return 0, iter.Err()
 }
 
-// GC iterates all relevant stored data and deletes expired entries.
-// It returns number of deleted Redis (hash) keys, including when an error occurs.
-// It only inspects/GCs hashes where it has entries. Other concurrent clients GC same and/or other corresponding hashes.
-// Hashes that don't have a corresponding client (e.g. because it crashed) will expire because of TTL on the hash key.
 func (h *ExpiringHash) GC(ctx context.Context) (int, error) {
 	var deletedKeys int
 	for key := range h.data {
@@ -174,4 +184,13 @@ func (h *ExpiringHash) unsetData(key interface{}, hashKey int64) {
 	if len(nm) == 0 {
 		delete(h.data, key)
 	}
+}
+
+func PrefixedInt64Key(prefix string, key int64) string {
+	var b strings.Builder
+	b.WriteString(prefix)
+	id := make([]byte, 8)
+	binary.LittleEndian.PutUint64(id, uint64(key))
+	b.Write(id)
+	return b.String()
 }

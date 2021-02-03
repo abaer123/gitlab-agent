@@ -95,8 +95,8 @@ func TokenLimit(limit uint64) zap.Field {
 	return zap.Uint64("token_limit", limit)
 }
 
-func RemovedAgentConnectionRecords(n int) zap.Field {
-	return zap.Int("removed_agent_connection_records", n)
+func RemovedHashKeys(n int) zap.Field {
+	return zap.Int("removed_hash_keys", n)
 }
 
 // GitLab-kas or agentk module name.
