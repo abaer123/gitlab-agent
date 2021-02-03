@@ -250,7 +250,7 @@ message RedisTLSCF {
 
 message RedisServerCF {
   // The host:port address of the node.
-  string address = 1 [json_name = "address", (validate.rules).string.min_len = 1, (validate.rules).string.uri_ref = true];
+  string address = 1 [json_name = "address", (validate.rules).string.min_len = 1];
 }
 
 message RedisSentinelCF {
