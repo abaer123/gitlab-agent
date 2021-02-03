@@ -80,6 +80,18 @@ func TestValidation_Valid(t *testing.T) {
 			},
 		},
 		{
+			name: "RedisCF",
+			valid: &RedisCF{
+				RedisConfig: &RedisCF_Server{
+					Server: &RedisServerCF{
+						Address: "127.0.0.1:6380",
+					},
+				},
+				PoolSize:  0,  // zero means "use default value"
+				KeyPrefix: "", // empty means "use default value"
+			},
+		},
+		{
 			name: "AgentConfigurationCF",
 			valid: &AgentConfigurationCF{
 				MaxConfigurationFileSize: 0, // zero means "use default value"

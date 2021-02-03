@@ -1797,14 +1797,6 @@ func (m *RedisServerCF) Validate() error {
 		}
 	}
 
-	if _, err := url.Parse(m.GetAddress()); err != nil {
-		return RedisServerCFValidationError{
-			field:  "Address",
-			reason: "value must be a valid URI",
-			cause:  err,
-		}
-	}
-
 	return nil
 }
 
