@@ -702,10 +702,10 @@ func (n nopAgentTracker) UnregisterConnection(ctx context.Context, info *agent_t
 	return true
 }
 
-func (n nopAgentTracker) GetConnectionsByAgentId(ctx context.Context, agentId int64) ([]*agent_tracker.ConnectedAgentInfo, error) {
-	return nil, nil
+func (n nopAgentTracker) GetConnectionsByAgentId(ctx context.Context, agentId int64, cb agent_tracker.ConnectedAgentInfoCallback) error {
+	return nil
 }
 
-func (n nopAgentTracker) GetConnectionsByProjectId(ctx context.Context, projectId int64) ([]*agent_tracker.ConnectedAgentInfo, error) {
-	return nil, nil
+func (n nopAgentTracker) GetConnectionsByProjectId(ctx context.Context, projectId int64, cb agent_tracker.ConnectedAgentInfoCallback) error {
+	return nil
 }

@@ -36,33 +36,31 @@ func (m *MockTracker) EXPECT() *MockTrackerMockRecorder {
 }
 
 // GetConnectionsByAgentId mocks base method.
-func (m *MockTracker) GetConnectionsByAgentId(arg0 context.Context, arg1 int64) ([]*agent_tracker.ConnectedAgentInfo, error) {
+func (m *MockTracker) GetConnectionsByAgentId(arg0 context.Context, arg1 int64, arg2 agent_tracker.ConnectedAgentInfoCallback) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetConnectionsByAgentId", arg0, arg1)
-	ret0, _ := ret[0].([]*agent_tracker.ConnectedAgentInfo)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "GetConnectionsByAgentId", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // GetConnectionsByAgentId indicates an expected call of GetConnectionsByAgentId.
-func (mr *MockTrackerMockRecorder) GetConnectionsByAgentId(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockTrackerMockRecorder) GetConnectionsByAgentId(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConnectionsByAgentId", reflect.TypeOf((*MockTracker)(nil).GetConnectionsByAgentId), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConnectionsByAgentId", reflect.TypeOf((*MockTracker)(nil).GetConnectionsByAgentId), arg0, arg1, arg2)
 }
 
 // GetConnectionsByProjectId mocks base method.
-func (m *MockTracker) GetConnectionsByProjectId(arg0 context.Context, arg1 int64) ([]*agent_tracker.ConnectedAgentInfo, error) {
+func (m *MockTracker) GetConnectionsByProjectId(arg0 context.Context, arg1 int64, arg2 agent_tracker.ConnectedAgentInfoCallback) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetConnectionsByProjectId", arg0, arg1)
-	ret0, _ := ret[0].([]*agent_tracker.ConnectedAgentInfo)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "GetConnectionsByProjectId", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // GetConnectionsByProjectId indicates an expected call of GetConnectionsByProjectId.
-func (mr *MockTrackerMockRecorder) GetConnectionsByProjectId(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockTrackerMockRecorder) GetConnectionsByProjectId(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConnectionsByProjectId", reflect.TypeOf((*MockTracker)(nil).GetConnectionsByProjectId), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConnectionsByProjectId", reflect.TypeOf((*MockTracker)(nil).GetConnectionsByProjectId), arg0, arg1, arg2)
 }
 
 // RegisterConnection mocks base method.
