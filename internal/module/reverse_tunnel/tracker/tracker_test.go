@@ -2,21 +2,26 @@ package tracker
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/info"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/redistool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_redis"
 	"go.uber.org/zap/zaptest"
+	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
 var (
 	_ Registerer = &RedisTracker{}
 	_ Tracker    = &RedisTracker{}
+	_ Querier    = &RedisTracker{}
 )
 
 func TestRegisterConnection(t *testing.T) {
@@ -78,6 +83,67 @@ func TestRefreshRegistrations(t *testing.T) {
 	hash.EXPECT().
 		Refresh(gomock.Any())
 	assert.NoError(t, r.refreshRegistrations(context.Background()))
+}
+
+func TestGetTunnelsByAgentId_HappyPath(t *testing.T) {
+	r, hash, ti := setupTracker(t)
+	any, err := anypb.New(ti)
+	require.NoError(t, err)
+	hash.EXPECT().
+		Scan(gomock.Any(), ti.AgentId, gomock.Any()).
+		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
+			var done bool
+			done, err = cb(any, nil)
+			if err != nil || done {
+				return 0, err
+			}
+			return 0, nil
+		})
+	var cbCalled int
+	err = r.GetTunnelsByAgentId(context.Background(), ti.AgentId, func(tunnelInfo *TunnelInfo) (bool, error) {
+		cbCalled++
+		assert.Empty(t, cmp.Diff(tunnelInfo, ti, protocmp.Transform()))
+		return false, nil
+	})
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, cbCalled)
+}
+
+func TestGetTunnelsByAgentId_ScanError(t *testing.T) {
+	r, hash, ti := setupTracker(t)
+	hash.EXPECT().
+		Scan(gomock.Any(), ti.AgentId, gomock.Any()).
+		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
+			done, err := cb(nil, errors.New("intended error"))
+			require.NoError(t, err)
+			assert.False(t, done)
+			return 0, nil
+		})
+	err := r.GetTunnelsByAgentId(context.Background(), ti.AgentId, func(tunnelInfo *TunnelInfo) (bool, error) {
+		require.FailNow(t, "unexpected call")
+		return false, nil
+	})
+	require.NoError(t, err)
+}
+
+func TestGetTunnelsByAgentId_UnmarshalError(t *testing.T) {
+	r, hash, ti := setupTracker(t)
+	hash.EXPECT().
+		Scan(gomock.Any(), ti.AgentId, gomock.Any()).
+		Do(func(ctx context.Context, key interface{}, cb redistool.ScanCallback) (int, error) {
+			done, err := cb(&anypb.Any{
+				TypeUrl: "gitlab.agent.reverse_tunnel.tracker.TunnelInfo", // valid
+				Value:   []byte{1, 2, 3},                                  // invalid
+			}, nil)
+			require.NoError(t, err) // ignores error to keep going
+			assert.False(t, done)
+			return 0, nil
+		})
+	err := r.GetTunnelsByAgentId(context.Background(), ti.AgentId, func(tunnelInfo *TunnelInfo) (bool, error) {
+		require.FailNow(t, "unexpected call")
+		return false, nil
+	})
+	require.NoError(t, err)
 }
 
 func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInterface, *TunnelInfo) {
