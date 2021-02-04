@@ -37,8 +37,8 @@ type RedisTracker struct {
 	log                    *zap.Logger
 	refreshPeriod          time.Duration
 	gcPeriod               time.Duration
-	connectionsByAgentId   *redistool.ExpiringHash // agentId -> connectionId -> info
-	connectionsByProjectId *redistool.ExpiringHash // projectId -> connectionId -> info
+	connectionsByAgentId   redistool.ExpiringHashInterface // agentId -> connectionId -> info
+	connectionsByProjectId redistool.ExpiringHashInterface // projectId -> connectionId -> info
 	toRegister             chan *ConnectedAgentInfo
 	toUnregister           chan *ConnectedAgentInfo
 }
@@ -118,7 +118,7 @@ func (t *RedisTracker) GetConnectionsByProjectId(ctx context.Context, projectId 
 	return t.getConnectionsByKey(ctx, t.connectionsByProjectId, projectId, cb)
 }
 
-func (t *RedisTracker) getConnectionsByKey(ctx context.Context, hash *redistool.ExpiringHash, key interface{}, cb ConnectedAgentInfoCallback) error {
+func (t *RedisTracker) getConnectionsByKey(ctx context.Context, hash redistool.ExpiringHashInterface, key interface{}, cb ConnectedAgentInfoCallback) error {
 	_, err := hash.Scan(ctx, key, func(value *anypb.Any, err error) (bool, error) {
 		if err != nil {
 			t.log.Error("Redis hash scan", zap.Error(err))
@@ -127,7 +127,8 @@ func (t *RedisTracker) getConnectionsByKey(ctx context.Context, hash *redistool.
 		var info ConnectedAgentInfo
 		err = value.UnmarshalTo(&info)
 		if err != nil {
-			return false, err
+			t.log.Error("Redis proto.UnmarshalTo(ConnectedAgentInfo)", zap.Error(err))
+			return false, nil
 		}
 		return cb(&info)
 	})
@@ -159,15 +160,12 @@ func (t *RedisTracker) unregisterConnection(ctx context.Context, unreg *Connecte
 }
 
 func (t *RedisTracker) refreshRegistrations(ctx context.Context) error {
-	err := t.connectionsByAgentId.Refresh(ctx)
-	if err != nil {
-		return err
+	err1 := t.connectionsByProjectId.Refresh(ctx)
+	err2 := t.connectionsByAgentId.Refresh(ctx)
+	if err1 == nil {
+		err1 = err2
 	}
-	err = t.connectionsByProjectId.Refresh(ctx)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err1
 }
 
 func (t *RedisTracker) runGc(ctx context.Context) (int, error) {
