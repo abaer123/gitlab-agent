@@ -745,8 +745,8 @@ func (n nopTunnelTracker) UnregisterTunnel(ctx context.Context, info *tracker.Tu
 	return true
 }
 
-func (n nopTunnelTracker) GetTunnelsByAgentId(ctx context.Context, agentId int64) ([]*tracker.TunnelInfo, error) {
-	return nil, nil
+func (n nopTunnelTracker) GetTunnelsByAgentId(ctx context.Context, agentId int64, cb tracker.GetTunnelsByAgentIdCallback) error {
+	return nil
 }
 
 func (n nopTunnelTracker) Run(ctx context.Context) error {
