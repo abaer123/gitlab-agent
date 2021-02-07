@@ -20,9 +20,10 @@ import (
 )
 
 var (
-	_ Registerer = &RedisTracker{}
-	_ Querier    = &RedisTracker{}
-	_ Tracker    = &RedisTracker{}
+	_ Registerer                 = &RedisTracker{}
+	_ Querier                    = &RedisTracker{}
+	_ Tracker                    = &RedisTracker{}
+	_ ConnectedAgentInfoCallback = (&ConnectedAgentInfoCollector{}).Collect
 )
 
 func TestRegisterConnection_HappyPath(t *testing.T) {

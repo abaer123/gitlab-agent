@@ -19,9 +19,10 @@ import (
 )
 
 var (
-	_ Registerer = &RedisTracker{}
-	_ Tracker    = &RedisTracker{}
-	_ Querier    = &RedisTracker{}
+	_ Registerer                  = &RedisTracker{}
+	_ Tracker                     = &RedisTracker{}
+	_ Querier                     = &RedisTracker{}
+	_ GetTunnelsByAgentIdCallback = (&TunnelInfoCollector{}).Collect
 )
 
 func TestRegisterConnection(t *testing.T) {
