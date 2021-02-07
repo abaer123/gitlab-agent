@@ -15,6 +15,7 @@ import (
 type JWTAuther struct {
 	Secret   []byte
 	Audience string
+	Issuer   string
 }
 
 // UnaryServerInterceptor returns a new unary server interceptors that performs per-request JWT auth.
@@ -38,12 +39,16 @@ func (a *JWTAuther) doAuth(ctx context.Context) error {
 	if err != nil {
 		return err // returns gRPC status error
 	}
+	opts := []jwt.ParserOption{jwt.WithAudience(a.Audience)}
+	if a.Issuer != "" {
+		opts = append(opts, jwt.WithIssuer(a.Issuer))
+	}
 	_, err = jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return a.Secret, nil
-	}, jwt.WithAudience(a.Audience))
+	}, opts...)
 	if err != nil {
 		LoggerFromContext(ctx).Debug("JWT auth failed", zap.Error(err))
 		return status.Error(codes.Unauthenticated, "JWT validation failed")
