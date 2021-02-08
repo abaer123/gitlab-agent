@@ -22,6 +22,7 @@ go_library(
         "@com_github_cilium_cilium//pkg/k8s/apis/cilium.io/v2:cilium_io",
         "@com_github_cilium_cilium//pkg/k8s/client/clientset/versioned/typed/cilium.io/v2:cilium_io",
         "@com_github_cilium_cilium//pkg/monitor/api",
+        "@com_github_cilium_cilium//pkg/policy/api",
         "@com_github_golang_protobuf//proto",
         "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
         "@io_k8s_apimachinery//pkg/util/wait",

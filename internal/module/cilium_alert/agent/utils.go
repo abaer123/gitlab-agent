@@ -1,10 +1,12 @@
 package agent
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/cilium/cilium/api/v1/flow"
 	v2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
+	"github.com/cilium/cilium/pkg/policy/api"
 )
 
 const (
@@ -79,6 +81,51 @@ func existsLabelsInEndpointSelector(lbs []string, sel string) bool {
 	return true
 }
 
+func matchL4Info(flw *flow.Flow, cnp v2.CiliumNetworkPolicy) bool {
+	var (
+		flowPort     string
+		flowProtocol api.L4Proto
+	)
+	l4 := flw.GetL4()
+	switch l4.GetProtocol().(type) {
+	case *flow.Layer4_TCP:
+		flowPort = strconv.FormatUint(uint64(l4.GetTCP().GetDestinationPort()), 10)
+		flowProtocol = api.ProtoTCP
+	case *flow.Layer4_UDP:
+		flowPort = strconv.FormatUint(uint64(l4.GetUDP().GetDestinationPort()), 10)
+		flowProtocol = api.ProtoUDP
+	}
+	rls, err := cnp.Parse()
+	if err != nil {
+		return false
+	}
+	for _, rule := range rls {
+		switch flw.GetTrafficDirection() { // nolint: exhaustive
+		case flow.TrafficDirection_INGRESS:
+			for _, igrs := range rule.Ingress {
+				for _, tPt := range igrs.ToPorts {
+					for _, pt := range tPt.Ports {
+						if pt.Protocol == flowProtocol && pt.Port == flowPort {
+							return true
+						}
+					}
+				}
+			}
+		case flow.TrafficDirection_EGRESS:
+			for _, egrs := range rule.Egress {
+				for _, tPt := range egrs.ToPorts {
+					for _, pt := range tPt.Ports {
+						if pt.Protocol == flowProtocol && pt.Port == flowPort {
+							return true
+						}
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
 func getPolicy(flw *flow.Flow, cnps *v2.CiliumNetworkPolicyList) (*v2.CiliumNetworkPolicy, error) {
 	for _, cnp := range cnps.Items {
 		if cnp.Annotations[alertAnnotationKey] != alertAnnotationValue {
@@ -109,7 +156,7 @@ func getPolicy(flw *flow.Flow, cnps *v2.CiliumNetworkPolicyList) (*v2.CiliumNetw
 				return nil, err
 			}
 		}
-		if edp && !srcdst {
+		if edp && (!srcdst || !matchL4Info(flw, cnp)) {
 			return &cnp, nil
 		}
 	}
