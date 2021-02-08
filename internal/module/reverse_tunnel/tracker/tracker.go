@@ -145,6 +145,13 @@ func (t *RedisTracker) runGc(ctx context.Context) (int, error) {
 	return t.tunnelsByAgentId.GC(ctx)
 }
 
+type TunnelInfoCollector []*TunnelInfo
+
+func (c *TunnelInfoCollector) Collect(info *TunnelInfo) (bool, error) {
+	*c = append(*c, info)
+	return false, nil
+}
+
 // tunnelsByAgentIdHashKey returns a key for agentId -> (connectionId -> marshaled TunnelInfo).
 func tunnelsByAgentIdHashKey(agentKeyPrefix string) redistool.KeyToRedisKey {
 	prefix := agentKeyPrefix + ":conn_by_agent_id:"
