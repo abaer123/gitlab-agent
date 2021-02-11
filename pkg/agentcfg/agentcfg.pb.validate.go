@@ -745,6 +745,10 @@ func (m *AgentConfiguration) Validate() error {
 		}
 	}
 
+	// no validation rules for AgentId
+
+	// no validation rules for ProjectId
+
 	return nil
 }
 

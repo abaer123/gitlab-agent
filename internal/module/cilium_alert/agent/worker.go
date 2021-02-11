@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/cilium/cilium/api/v1/flow"
@@ -19,7 +20,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -33,9 +33,9 @@ const (
 type worker struct {
 	log            *zap.Logger
 	api            modagent.API
-	config         *agentcfg.CiliumCF
 	ciliumClient   typed_v2.CiliumV2Interface
 	observerClient observer.ObserverClient
+	projectId      int64
 }
 
 func (w *worker) Run(ctx context.Context) {
@@ -92,7 +92,13 @@ func (w *worker) processFlow(ctx context.Context, flw *flow.Flow) error {
 	if ns == "" {
 		return nil
 	}
-	cnps, err := w.ciliumClient.CiliumNetworkPolicies(ns).List(ctx, metav1.ListOptions{})
+	cnps, err := w.ciliumClient.CiliumNetworkPolicies(ns).List(ctx, metav1.ListOptions{
+		LabelSelector: metav1.FormatLabelSelector(&metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"app.gitlab.com/proj": strconv.FormatInt(w.projectId, 10),
+			},
+		}),
+	})
 	if err != nil {
 		return err
 	}

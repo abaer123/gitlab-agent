@@ -21,7 +21,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -116,9 +115,9 @@ func setupTest(t *testing.T, cv2 ciliumv2.CiliumV2Interface) (*worker, *MockObse
 	worker := &worker{
 		log:            zaptest.NewLogger(t, zaptest.Level(zapcore.DebugLevel)),
 		api:            mAPI,
-		config:         &agentcfg.CiliumCF{},
 		ciliumClient:   cv2,
 		observerClient: obsClient,
+		projectId:      21,
 	}
 	return worker, obsClient, flwClient, mAPI
 }
@@ -147,6 +146,7 @@ func matchingData() []*flwCnpListPair {
 						Name:        "Test",
 						Annotations: map[string]string{"app.gitlab.com/alert": "true"},
 						Namespace:   "ThisNamespace",
+						Labels:      map[string]string{"app.gitlab.com/proj": "21"},
 					},
 					Spec: &api.Rule{
 						EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
@@ -178,6 +178,7 @@ func matchingData() []*flwCnpListPair {
 						Name:        "Test",
 						Annotations: map[string]string{"app.gitlab.com/alert": "true"},
 						Namespace:   "ThisNamespace",
+						Labels:      map[string]string{"app.gitlab.com/proj": "21"},
 					},
 					Spec: &api.Rule{
 						EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
@@ -214,6 +215,7 @@ func unmatchingData() []*flwCnpListPair {
 						Name:        "Test",
 						Annotations: map[string]string{"app.gitlab.com/alert": "true"},
 						Namespace:   "ThisNamespace",
+						Labels:      map[string]string{"app.gitlab.com/proj": "21"},
 					},
 					Spec: &api.Rule{
 						EndpointSelector: api.NewESFromLabels(labels.NewLabel("notthiskey", "", "any")),
@@ -245,6 +247,39 @@ func unmatchingData() []*flwCnpListPair {
 						Name:        "Test",
 						Annotations: map[string]string{"app.gitlab.com/different": "true"},
 						Namespace:   "ThisNamespace",
+						Labels:      map[string]string{"app.gitlab.com/proj": "21"},
+					},
+					Spec: &api.Rule{
+						EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
+						Ingress: []api.IngressRule{
+							{
+								IngressCommonRule: api.IngressCommonRule{
+									FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+								},
+							},
+						},
+					},
+				}},
+			},
+		},
+		{
+			FlwResponse: &observer.GetFlowsResponse{ResponseTypes: &observer.GetFlowsResponse_Flow{Flow: &flow.Flow{
+				Source: &flow.Endpoint{
+					Labels: []string{"otherkey="},
+				},
+				TrafficDirection: flow.TrafficDirection_INGRESS,
+				Destination: &flow.Endpoint{
+					Namespace: "ThisNamespace",
+					Labels:    []string{"thiskey="},
+				},
+			}}},
+			CnpList: &v2.CiliumNetworkPolicyList{
+				Items: []v2.CiliumNetworkPolicy{v2.CiliumNetworkPolicy{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "Test",
+						Annotations: map[string]string{"app.gitlab.com/alert": "true"},
+						Namespace:   "ThisNamespace",
+						Labels:      map[string]string{"app.gitlab.com/proj": "invalid"},
 					},
 					Spec: &api.Rule{
 						EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),

@@ -61,6 +61,8 @@ func TestGetConfiguration_HappyPath(t *testing.T) {
 						},
 					},
 				},
+				AgentId:   agentInfo.Id,
+				ProjectId: agentInfo.ProjectId,
 			},
 			CommitId: revision,
 		}))
