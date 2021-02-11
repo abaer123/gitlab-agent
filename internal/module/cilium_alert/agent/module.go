@@ -69,9 +69,9 @@ func (m *module) applyNewConfiguration(ctx context.Context, holder *workerHolder
 	w := &worker{
 		log:            m.log,
 		api:            m.api,
-		config:         config.Cilium,
 		ciliumClient:   m.ciliumClient,
 		observerClient: observer.NewObserverClient(clientConn),
+		projectId:      config.ProjectId,
 	}
 	newHolder.wg.StartWithContext(ctx, w.Run)
 	return newHolder

@@ -89,4 +89,8 @@ message AgentConfiguration {
   GitopsCF gitops = 1;
   ObservabilityCF observability = 2;
   CiliumCF cilium = 3;
+  // GitLab-wide unique id of the agent.
+  int64 agent_id = 4;
+  // Id of the configuration project.
+  int64 project_id = 5;
 }
