@@ -14,51 +14,39 @@ const (
 	alertAnnotationValue = "true"
 )
 
-func checkEndpointL3(cnp v2.CiliumNetworkPolicy, lbs []string) (bool, error) {
-	rules, err := cnp.Parse()
-	if err != nil {
-		return false, err
-	}
+func checkEndpointL3(rules api.Rules, lbs []string) bool {
 	for _, rule := range rules {
 		if !existsLabelsInEndpointSelector(lbs, rule.EndpointSelector.LabelSelectorString()) {
-			return false, nil
+			return false
 		}
 	}
-	return true, nil
+	return true
 }
 
-func checkSourceL3(cnp v2.CiliumNetworkPolicy, lbs []string) (bool, error) {
-	rls, err := cnp.Parse()
-	if err != nil {
-		return false, err
-	}
-	for _, rule := range rls {
+func checkSourceL3(rules api.Rules, lbs []string) bool {
+	for _, rule := range rules {
 		for _, igrs := range rule.Ingress {
 			for _, eps := range igrs.FromEndpoints {
 				if !existsLabelsInEndpointSelector(lbs, eps.LabelSelectorString()) {
-					return false, nil
+					return false
 				}
 			}
 		}
 	}
-	return true, nil
+	return true
 }
 
-func checkDestinationL3(cnp v2.CiliumNetworkPolicy, lbs []string) (bool, error) {
-	rls, err := cnp.Parse()
-	if err != nil {
-		return false, err
-	}
-	for _, rule := range rls {
+func checkDestinationL3(rules api.Rules, lbs []string) bool {
+	for _, rule := range rules {
 		for _, egrs := range rule.Egress {
 			for _, eps := range egrs.ToEndpoints {
 				if !existsLabelsInEndpointSelector(lbs, eps.LabelSelectorString()) {
-					return false, nil
+					return false
 				}
 			}
 		}
 	}
-	return true, nil
+	return true
 }
 
 func existsLabelsInEndpointSelector(lbs []string, sel string) bool {
@@ -81,7 +69,7 @@ func existsLabelsInEndpointSelector(lbs []string, sel string) bool {
 	return true
 }
 
-func matchL4Info(flw *flow.Flow, cnp v2.CiliumNetworkPolicy) bool {
+func matchL4Info(rules api.Rules, flw *flow.Flow) bool {
 	var (
 		flowPort     string
 		flowProtocol api.L4Proto
@@ -95,11 +83,7 @@ func matchL4Info(flw *flow.Flow, cnp v2.CiliumNetworkPolicy) bool {
 		flowPort = strconv.FormatUint(uint64(l4.GetUDP().GetDestinationPort()), 10)
 		flowProtocol = api.ProtoUDP
 	}
-	rls, err := cnp.Parse()
-	if err != nil {
-		return false
-	}
-	for _, rule := range rls {
+	for _, rule := range rules {
 		switch flw.GetTrafficDirection() { // nolint: exhaustive
 		case flow.TrafficDirection_INGRESS:
 			for _, igrs := range rule.Ingress {
@@ -131,32 +115,26 @@ func getPolicy(flw *flow.Flow, cnps *v2.CiliumNetworkPolicyList) (*v2.CiliumNetw
 		if cnp.Annotations[alertAnnotationKey] != alertAnnotationValue {
 			continue
 		}
-		var (
-			edp    bool
-			srcdst bool
-			err    error
-		)
+		rules, err := cnp.Parse()
+		if err != nil {
+			return nil, err
+		}
+		var srcdst bool
 		switch flw.GetTrafficDirection() { // nolint: exhaustive
 		case flow.TrafficDirection_INGRESS:
-			edp, err = checkEndpointL3(cnp, flw.GetDestination().GetLabels())
-			if err != nil {
-				return nil, err
+			if !checkEndpointL3(rules, flw.GetDestination().GetLabels()) {
+				continue
 			}
-			srcdst, err = checkSourceL3(cnp, flw.GetSource().GetLabels())
-			if err != nil {
-				return nil, err
-			}
+			srcdst = checkSourceL3(rules, flw.GetSource().GetLabels())
 		case flow.TrafficDirection_EGRESS:
-			edp, err = checkEndpointL3(cnp, flw.GetSource().GetLabels())
-			if err != nil {
-				return nil, err
+			if !checkEndpointL3(rules, flw.GetSource().GetLabels()) {
+				continue
 			}
-			srcdst, err = checkDestinationL3(cnp, flw.GetDestination().GetLabels())
-			if err != nil {
-				return nil, err
-			}
+			srcdst = checkDestinationL3(rules, flw.GetDestination().GetLabels())
+		default: // TrafficDirection_TRAFFIC_DIRECTION_UNKNOWN or something else
+			continue
 		}
-		if edp && (!srcdst || !matchL4Info(flw, cnp)) {
+		if !srcdst || !matchL4Info(rules, flw) {
 			return &cnp, nil
 		}
 	}

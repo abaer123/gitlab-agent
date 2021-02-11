@@ -19,7 +19,6 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -77,8 +76,8 @@ func (a *serverAPI) PollImmediateUntil(ctx context.Context, interval, maxConnect
 	// this context must only be used here, not inside of condition() - connection should be closed only when idle.
 	ageCtx, cancel := context.WithTimeout(ctx, mathz.DurationWithJitter(maxConnectionAge, maxConnectionAgeJitterPercent))
 	defer cancel()
-	err := retry.PollImmediateUntil(ageCtx, interval, wait.ConditionFunc(condition))
-	if errors.Is(err, wait.ErrWaitTimeout) {
+	err := retry.PollImmediateUntil(ageCtx, interval, retry.ConditionFunc(condition))
+	if errors.Is(err, retry.ErrWaitTimeout) {
 		return nil // all good, ctx is done
 	}
 	return err
