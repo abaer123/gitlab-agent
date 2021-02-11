@@ -115,23 +115,26 @@ func getPolicy(flw *flow.Flow, cnps *v2.CiliumNetworkPolicyList) (*v2.CiliumNetw
 		if cnp.Annotations[alertAnnotationKey] != alertAnnotationValue {
 			continue
 		}
-		var (
-			edp    bool
-			srcdst bool
-		)
 		rules, err := cnp.Parse()
 		if err != nil {
 			return nil, err
 		}
+		var srcdst bool
 		switch flw.GetTrafficDirection() { // nolint: exhaustive
 		case flow.TrafficDirection_INGRESS:
-			edp = checkEndpointL3(rules, flw.GetDestination().GetLabels())
+			if !checkEndpointL3(rules, flw.GetDestination().GetLabels()) {
+				continue
+			}
 			srcdst = checkSourceL3(rules, flw.GetSource().GetLabels())
 		case flow.TrafficDirection_EGRESS:
-			edp = checkEndpointL3(rules, flw.GetSource().GetLabels())
+			if !checkEndpointL3(rules, flw.GetSource().GetLabels()) {
+				continue
+			}
 			srcdst = checkDestinationL3(rules, flw.GetDestination().GetLabels())
+		default: // TrafficDirection_TRAFFIC_DIRECTION_UNKNOWN or something else
+			continue
 		}
-		if edp && (!srcdst || !matchL4Info(rules, flw)) {
+		if !srcdst || !matchL4Info(rules, flw) {
 			return &cnp, nil
 		}
 	}
