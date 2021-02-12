@@ -1,5 +1,6 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("//cmd:cmd.bzl", "define_command_targets")
+load("//build:build.bzl", "copy_absolute")
 
 go_library(
     name = "kas_lib",
@@ -15,4 +16,16 @@ go_library(
 define_command_targets(
     name = "kas",
     binary_embed = [":kas_lib"],
+)
+
+copy_absolute(
+    name = "extract_kas",
+    file_to_copy = "kas",
+    label = ":kas",
+)
+
+copy_absolute(
+    name = "extract_kas_race",
+    file_to_copy = "kas_race",
+    label = ":kas_race",
 )

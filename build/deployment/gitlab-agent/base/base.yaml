@@ -24,7 +24,7 @@ spec:
       serviceAccountName: gitlab-agent
       containers:
         - name: agent
-          image: "registry.gitlab.com/gitlab-org/cluster-integration/gitlab-agent/agentk:latest"
+          image: "registry.gitlab.com/gitlab-org/cluster-integration/gitlab-agent/agentk:latest" # {"$openapi":"agent-version-subst"}
           args:
             - --token-file=/config/token
             - --kas-address

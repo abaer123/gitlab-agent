@@ -18,3 +18,32 @@ openAPI:
         setter:
           name: kas-address
           value: grpc://127.0.0.1:8150
+    io.k8s.cli.setters.agent-version:
+      description: Image tag for agentk container
+      type: string
+      x-k8s-cli:
+        setter:
+          name: agent-version
+          value: latest
+    io.k8s.cli.substitutions.agent-version-subst:
+      x-k8s-cli:
+        substitution:
+          name: agent-version-subst
+          pattern: registry.gitlab.com/gitlab-org/cluster-integration/gitlab-agent/agentk:${agent-version}
+          values:
+          - marker: ${agent-version}
+            ref: '#/definitions/io.k8s.cli.setters.agent-version'
+    io.k8s.cli.setters.agent-token:
+      description: Agent token obtained from registration in GitLab
+      x-k8s-cli:
+        setter:
+          name: agent-token
+          required: true
+    io.k8s.cli.substitutions.agent-token-subst:
+      x-k8s-cli:
+        substitution:
+          name: agent-token-subst
+          pattern: token=${agent-token}
+          values:
+          - marker: ${agent-token}
+            ref: '#/definitions/io.k8s.cli.setters.agent-token'

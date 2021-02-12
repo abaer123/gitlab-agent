@@ -47,7 +47,7 @@ type Runnable interface {
 	Run(context.Context) error
 }
 
-type RunnableFactory func(flagset *pflag.FlagSet, arguments []string) (Runnable, error)
+type RunnableFactory func(flagset *pflag.FlagSet, programName string, arguments []string) (Runnable, error)
 
 func Run(factory RunnableFactory) {
 	rand.Seed(time.Now().UnixNano())
@@ -67,14 +67,15 @@ func run(factory RunnableFactory) error {
 
 func runWithContext(ctx context.Context, factory RunnableFactory) error {
 	programName := os.Args[0]
-	flagset := pflag.NewFlagSet(programName, pflag.ContinueOnError)
+	binaryName := filepath.Base(programName)
+	flagset := pflag.NewFlagSet(binaryName, pflag.ContinueOnError)
 	printVersion := flagset.Bool("version", false, "Print version and exit")
-	app, err := factory(flagset, os.Args[1:])
+	app, err := factory(flagset, programName, os.Args[1:])
 	if err != nil {
 		return err
 	}
 	if *printVersion {
-		fmt.Fprintf(os.Stderr, "%s version: %s, commit: %s, built: %s\n", filepath.Base(programName), Version, Commit, BuildTime)
+		fmt.Fprintf(os.Stderr, "%s version: %s, commit: %s, built: %s\n", binaryName, Version, Commit, BuildTime)
 		return nil
 	}
 	return app.Run(ctx)

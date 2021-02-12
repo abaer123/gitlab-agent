@@ -285,7 +285,7 @@ func (a *App) constructInternalServerConn(ctx context.Context, dialContext func(
 	)
 }
 
-func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, error) {
+func NewFromFlags(flagset *pflag.FlagSet, programName string, arguments []string) (cmd.Runnable, error) {
 	log, level, err := logger()
 	if err != nil {
 		return nil, err

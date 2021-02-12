@@ -66,7 +66,7 @@ func LoadConfigurationFile(configFile string) (*kascfg.ConfigurationFile, error)
 	return cfg, nil
 }
 
-func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, error) {
+func NewFromFlags(flagset *pflag.FlagSet, programName string, arguments []string) (cmd.Runnable, error) {
 	app := &App{}
 	flagset.StringVar(&app.ConfigurationFile, "configuration-file", "", "Optional configuration file to use (YAML)")
 	if err := flagset.Parse(arguments); err != nil {

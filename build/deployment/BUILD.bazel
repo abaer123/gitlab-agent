@@ -1,0 +1,12 @@
+load("@rules_pkg//:pkg.bzl", "pkg_tar")
+
+pkg_tar(
+    name = "gitlab-agent-kpt-package",
+    srcs = glob(
+        ["gitlab-agent/**"],
+        exclude = ["gitlab-agent/README.*"],
+    ),
+    mode = "0777",
+    strip_prefix = "gitlab-agent",
+    visibility = ["//visibility:public"],
+)

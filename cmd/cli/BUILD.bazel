@@ -1,0 +1,63 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//cmd:cmd.bzl", "define_command_targets")
+load("@io_bazel_rules_docker//container:container.bzl", "container_image")
+
+go_library(
+    name = "cli_lib",
+    srcs = ["main.go"],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/cli",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//cmd",
+        "//cmd/cli/generate",
+        "@com_github_spf13_pflag//:pflag",
+    ],
+)
+
+container_image(
+    name = "tool_git",
+    base = "@go_debug_image_base//image",  # debug has the busybox shell
+    debs = [
+        "@tool_libpcre2//file",
+        "@tool_zlib1g//file",
+        "@tool_git//file",
+    ],
+    tags = ["manual"],
+)
+
+container_image(
+    name = "tools",
+    base = ":tool_git",
+    directory = "/app/path",
+    env = {
+        "PATH": "$$PATH:/app/path",
+    },
+    files = [
+        "@tool_kpt//:kpt",
+        "@tool_kustomize//:kustomize",
+    ],
+    symlinks = {
+        "/app/path/cli": "/app/cmd/cli/cli_linux",
+    },
+    tags = ["manual"],
+)
+
+container_image(
+    name = "kpt_package",
+    base = ":tools",
+    directory = "/app/kpt-package",
+    env = {
+        "KPT_PACKAGE_PATH": "/app/kpt-package",
+    },
+    tags = ["manual"],
+    tars = [
+        "//build/deployment:gitlab-agent-kpt-package",
+    ],
+)
+
+define_command_targets(
+    name = "cli",
+    base_image = ":kpt_package",
+    binary_embed = [":cli_lib"],
+    race_targets = False,
+)
