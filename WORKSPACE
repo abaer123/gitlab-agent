@@ -1,6 +1,7 @@
 workspace(name = "gitlab_k8s_agent")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
 
 # When updating rules_go make sure to update org_golang_x_tools dependency below by copying it from
 # https://github.com/bazelbuild/rules_go/blob/master/go/private/repositories.bzl
@@ -67,6 +68,47 @@ http_archive(
         "https://github.com/bazelbuild/bazel-skylib/releases/download/1.0.3/bazel-skylib-1.0.3.tar.gz",
         "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.0.3/bazel-skylib-1.0.3.tar.gz",
     ],
+)
+
+http_archive(
+    name = "rules_pkg",
+    sha256 = "6b5969a7acd7b60c02f816773b06fcf32fbe8ba0c7919ccdc2df4f8fb923804a",
+    url = "https://github.com/bazelbuild/rules_pkg/releases/download/0.3.0/rules_pkg-0.3.0.tar.gz",
+)
+
+http_archive(
+    name = "tool_kpt",
+    build_file_content = 'exports_files(["kpt"])',
+    sha256 = "e423802ab65e77c0d79d22effcd81ea726153f5347f42fb09f84b275ca5bb67f",
+    urls = ["https://github.com/GoogleContainerTools/kpt/releases/download/v0.37.1/kpt_linux_amd64-0.37.1.tar.gz"],
+)
+
+http_archive(
+    name = "tool_kustomize",
+    build_file_content = 'exports_files(["kustomize"])',
+    sha256 = "bab4ab8881718c29ba174bdf677fd89986ad25c40eb363fec9e78c1aff2ff0ea",
+    urls = ["https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv3.10.0/kustomize_v3.10.0_linux_amd64.tar.gz"],
+)
+
+http_file(
+    name = "tool_git",
+    downloaded_file_path = "git.deb",
+    sha256 = "32c6107a72665be54354585da69a464807a5c3d64654826307255da2c64bf930",
+    urls = ["http://ftp.debian.org/debian/pool/main/g/git/git_2.30.0-1_amd64.deb"],
+)
+
+http_file(
+    name = "tool_libpcre2",
+    downloaded_file_path = "libpcre2.deb",
+    sha256 = "18fa901205ed21c833ff669daae26f675803147f4cc64ddc95fc9cddd7f654c8",
+    urls = ["http://ftp.debian.org/debian/pool/main/p/pcre2/libpcre2-8-0_10.32-5_amd64.deb"],
+)
+
+http_file(
+    name = "tool_zlib1g",
+    downloaded_file_path = "zlib1g.deb",
+    sha256 = "61bc9085aadd3007433ce6f560a08446a3d3ceb0b5e061db3fc62c42fbfe3eff",
+    urls = ["http://ftp.debian.org/debian/pool/main/z/zlib/zlib1g_1.2.11.dfsg-1_amd64.deb"],
 )
 
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
@@ -162,6 +204,26 @@ go_register_toolchains(
 
 gazelle_dependencies()
 
+load("@io_bazel_rules_docker//container:container.bzl", "container_pull")
+
+# Latest images as of 2020-02-10
+
+# debug-nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian10
+container_pull(
+    name = "go_debug_image_base",
+    digest = "sha256:772350b3f38595992fca3f62e6f43b3af932a04e8f2082822d45c211ba730927",
+    registry = "gcr.io",
+    repository = "distroless/base-debian10",
+)
+
+# nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/static-debian10
+container_pull(
+    name = "go_image_static",
+    digest = "sha256:6d7e84ea3d305c4300e62187d5a0f102bab0c758b7fb637ad0911d10e2fcc741",
+    registry = "gcr.io",
+    repository = "distroless/static-debian10",
+)
+
 load("@com_github_bazelbuild_buildtools//buildifier:deps.bzl", "buildifier_dependencies")
 load("@com_github_atlassian_bazel_tools//buildozer:deps.bzl", "buildozer_dependencies")
 load("@com_github_atlassian_bazel_tools//multirun:deps.bzl", "multirun_dependencies")
@@ -184,6 +246,7 @@ load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_
 load("@rules_proto_grpc//:repositories.bzl", "rules_proto_grpc_toolchains")
 load("@rules_proto_grpc//go:repositories.bzl", rules_proto_grpc_go_repos = "go_repos")
 load("@com_github_envoyproxy_protoc_gen_validate//:dependencies.bzl", pgv_third_party = "go_third_party")
+load("@rules_pkg//:deps.bzl", "rules_pkg_dependencies")
 
 go_image_repositories()
 
@@ -202,3 +265,5 @@ rules_proto_grpc_toolchains()
 rules_proto_grpc_go_repos()
 
 pgv_third_party()
+
+rules_pkg_dependencies()

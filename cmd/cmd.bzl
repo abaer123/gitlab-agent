@@ -4,10 +4,14 @@ Macros for cmd.
 
 load("@io_bazel_rules_docker//go:image.bzl", "go_image")
 load("@io_bazel_rules_go//go:def.bzl", "go_binary")
-load("@io_bazel_rules_docker//container:container.bzl", "container_image", "container_push")
-load("//build:build.bzl", "copy_absolute")
+load("@io_bazel_rules_docker//container:container.bzl", "container_push")
 
-def define_command_targets(name, binary_embed):
+def define_command_targets(
+        name,
+        binary_embed,
+        race_targets = True,
+        base_image = "@go_image_static//image",
+        base_image_race = "@go_debug_image_base//image"):
     x_defs = {
         "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.Version": "{STABLE_BUILD_GIT_TAG}",
         "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.Commit": "{STABLE_BUILD_GIT_COMMIT}",
@@ -16,15 +20,6 @@ def define_command_targets(name, binary_embed):
     go_binary(
         name = name,
         embed = binary_embed,
-        visibility = ["//visibility:public"],
-        x_defs = x_defs,
-    )
-
-    go_binary(
-        name = "%s_race" % name,
-        embed = binary_embed,
-        race = "on",
-        tags = ["manual"],
         visibility = ["//visibility:public"],
         x_defs = x_defs,
     )
@@ -39,54 +34,10 @@ def define_command_targets(name, binary_embed):
         x_defs = x_defs,
     )
 
-    go_binary(
-        name = "%s_linux_race" % name,
-        embed = binary_embed,
-        goarch = "amd64",
-        goos = "linux",
-        race = "on",
-        tags = ["manual"],
-        visibility = ["//visibility:public"],
-        x_defs = x_defs,
-    )
-
-    copy_absolute(
-        name = "extract_%s" % name,
-        label = ":%s" % name,
-        file_to_copy = name,
-    )
-
-    copy_absolute(
-        name = "extract_%s_race" % name,
-        label = ":%s_race" % name,
-        file_to_copy = "%s_race" % name,
-    )
-
-    container_image(
-        name = "nonroot_go_image_static",
-        base = "@go_image_static//image",
-        user = "nonroot",
-        tags = ["manual"],
-    )
-
-    container_image(
-        name = "nonroot_go_debug_image_base",
-        base = "@go_debug_image_base//image",
-        user = "nonroot",
-        tags = ["manual"],
-    )
-
     go_image(
         name = "container",
-        base = ":nonroot_go_image_static",
+        base = base_image,
         binary = ":%s_linux" % name,
-        tags = ["manual"],
-    )
-
-    go_image(
-        name = "container_race",
-        base = ":nonroot_go_debug_image_base",
-        binary = ":%s_linux_race" % name,
         tags = ["manual"],
     )
 
@@ -101,32 +52,12 @@ def define_command_targets(name, binary_embed):
     )
 
     container_push(
-        name = "push_docker_tag_race",
-        format = "Docker",
-        image = ":container_race",
-        registry = "registry.gitlab.com",
-        repository = "{STABLE_CONTAINER_REPOSITORY_PATH}/%s" % name,
-        tag = "{STABLE_BUILD_GIT_TAG}-race",
-        tags = ["manual"],
-    )
-
-    container_push(
         name = "push_docker_commit",
         format = "Docker",
         image = ":container",
         registry = "registry.gitlab.com",
         repository = "{STABLE_CONTAINER_REPOSITORY_PATH}/%s" % name,
         tag = "{STABLE_BUILD_GIT_COMMIT}",
-        tags = ["manual"],
-    )
-
-    container_push(
-        name = "push_docker_commit_race",
-        format = "Docker",
-        image = ":container_race",
-        registry = "registry.gitlab.com",
-        repository = "{STABLE_CONTAINER_REPOSITORY_PATH}/%s" % name,
-        tag = "{STABLE_BUILD_GIT_COMMIT}-race",
         tags = ["manual"],
     )
 
@@ -140,12 +71,60 @@ def define_command_targets(name, binary_embed):
         tags = ["manual"],
     )
 
-    container_push(
-        name = "push_docker_latest_race",
-        format = "Docker",
-        image = ":container_race",
-        registry = "registry.gitlab.com",
-        repository = "{STABLE_CONTAINER_REPOSITORY_PATH}/%s" % name,
-        tag = "latest-race",
-        tags = ["manual"],
-    )
+    if race_targets:
+        go_binary(
+            name = "%s_race" % name,
+            embed = binary_embed,
+            race = "on",
+            tags = ["manual"],
+            visibility = ["//visibility:public"],
+            x_defs = x_defs,
+        )
+
+        go_binary(
+            name = "%s_linux_race" % name,
+            embed = binary_embed,
+            goarch = "amd64",
+            goos = "linux",
+            race = "on",
+            tags = ["manual"],
+            visibility = ["//visibility:public"],
+            x_defs = x_defs,
+        )
+
+        go_image(
+            name = "container_race",
+            base = base_image_race,
+            binary = ":%s_linux_race" % name,
+            tags = ["manual"],
+        )
+
+        container_push(
+            name = "push_docker_tag_race",
+            format = "Docker",
+            image = ":container_race",
+            registry = "registry.gitlab.com",
+            repository = "{STABLE_CONTAINER_REPOSITORY_PATH}/%s" % name,
+            tag = "{STABLE_BUILD_GIT_TAG}-race",
+            tags = ["manual"],
+        )
+
+        container_push(
+            name = "push_docker_commit_race",
+            format = "Docker",
+            image = ":container_race",
+            registry = "registry.gitlab.com",
+            repository = "{STABLE_CONTAINER_REPOSITORY_PATH}/%s" % name,
+            tag = "{STABLE_BUILD_GIT_COMMIT}-race",
+            tags = ["manual"],
+        )
+
+        container_push(
+            name = "push_docker_latest_race",
+            format = "Docker",
+            image = ":container_race",
+            registry = "registry.gitlab.com",
+            repository = "{STABLE_CONTAINER_REPOSITORY_PATH}/%s" % name,
+            tag = "latest-race",
+            tags = ["manual"],
+        )

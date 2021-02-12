@@ -104,7 +104,8 @@ quick-test:
 docker: update-bazel
 	bazel build \
 		//cmd/agentk:container \
-		//cmd/kas:container
+		//cmd/kas:container \
+		//cmd/cli:container \
 
 # This only works from a linux machine
 .PHONY: docker-race
@@ -122,6 +123,10 @@ docker-export: update-bazel
 		--norun
 	bazel run \
 		//cmd/kas:container \
+		-- \
+		--norun
+	bazel run \
+		//cmd/cli:container \
 		-- \
 		--norun
 
@@ -147,7 +152,8 @@ release-tag-all-ci:
 		//cmd/agentk:push_docker_tag \
 		//cmd/agentk:push_docker_tag_race \
 		//cmd/kas:push_docker_tag \
-		//cmd/kas:push_docker_tag_race
+		//cmd/kas:push_docker_tag_race \
+		//cmd/cli:push_docker_tag
 	# Actually push built images one by one
 	bazel run \
 		//cmd/agentk:push_docker_tag
@@ -157,6 +163,8 @@ release-tag-all-ci:
 		//cmd/kas:push_docker_tag
 	bazel run \
 		//cmd/kas:push_docker_tag_race
+	bazel run \
+		//cmd/cli:push_docker_tag
 
 # Build and push all docker images tagged with the current commit sha.
 # This only works on a linux machine
@@ -167,7 +175,8 @@ release-commit-all-ci:
 		//cmd/agentk:push_docker_commit \
 		//cmd/agentk:push_docker_commit_race \
 		//cmd/kas:push_docker_commit \
-		//cmd/kas:push_docker_commit_race
+		//cmd/kas:push_docker_commit_race \
+		//cmd/cli:push_docker_commit
 	# Actually push built images one by one
 	bazel run \
 		//cmd/agentk:push_docker_commit
@@ -177,7 +186,8 @@ release-commit-all-ci:
 		//cmd/kas:push_docker_commit
 	bazel run \
 		//cmd/kas:push_docker_commit_race
-
+	bazel run \
+		//cmd/cli:push_docker_commit
 
 # Build and push all docker images tagged "latest".
 # This only works on a linux machine
@@ -188,7 +198,8 @@ release-latest-all-ci:
 		//cmd/agentk:push_docker_latest \
 		//cmd/agentk:push_docker_latest_race \
 		//cmd/kas:push_docker_latest \
-		//cmd/kas:push_docker_latest_race
+		//cmd/kas:push_docker_latest_race \
+		//cmd/cli:push_docker_latest
 	# Actually push built images one by one
 	bazel run \
 		//cmd/agentk:push_docker_latest
@@ -198,6 +209,8 @@ release-latest-all-ci:
 		//cmd/kas:push_docker_latest
 	bazel run \
 		//cmd/kas:push_docker_latest_race
+	bazel run \
+		//cmd/cli:push_docker_latest
 
 .PHONY: release-commit-normal
 release-commit-normal: update-bazel
@@ -205,6 +218,8 @@ release-commit-normal: update-bazel
 		//cmd/agentk:push_docker_commit
 	bazel run \
 		//cmd/kas:push_docker_commit
+	bazel run \
+		//cmd/cli:push_docker_commit
 
 # This only works on a linux machine
 .PHONY: release-commit-race
