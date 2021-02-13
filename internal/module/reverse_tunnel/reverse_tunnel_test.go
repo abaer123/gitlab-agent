@@ -296,19 +296,29 @@ func runTest(t *testing.T, ats test.TestingServer, f func(context.Context, *test
 }
 
 type serverTestingServer struct {
-	streamForwarder reverse_tunnel.IncomingConnectionHandler
+	tunnelFinder reverse_tunnel.TunnelFinder
 }
 
 func (s *serverTestingServer) RequestResponse(srv interface{}, server grpc.ServerStream) error {
-	return s.streamForwarder.HandleIncomingConnection(testhelpers.AgentId, server)
+	tunnel, err := s.tunnelFinder.FindTunnel(server.Context(), testhelpers.AgentId)
+	if err != nil {
+		return err
+	}
+	defer tunnel.Done()
+	return tunnel.ForwardStream(server)
 }
 
 func (s *serverTestingServer) StreamingRequestResponse(srv interface{}, server grpc.ServerStream) error {
-	return s.streamForwarder.HandleIncomingConnection(testhelpers.AgentId, server)
+	tunnel, err := s.tunnelFinder.FindTunnel(server.Context(), testhelpers.AgentId)
+	if err != nil {
+		return err
+	}
+	defer tunnel.Done()
+	return tunnel.ForwardStream(server)
 }
 
 // registerTestingServer is a test.RegisterTestingServer clone that's been modified to be compatible with
-// reverse_tunnel.IncomingConnectionHandler.HandleIncomingConnection().
+// reverse_tunnel.TunnelFinder.FindTunnel().
 func registerTestingServer(s *grpc.Server, h *serverTestingServer) {
 	// ServiceDesc must match test._Testing_serviceDesc
 	s.RegisterService(&grpc.ServiceDesc{

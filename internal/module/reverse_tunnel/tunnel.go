@@ -2,6 +2,7 @@ package reverse_tunnel
 
 import (
 	"errors"
+	"fmt"
 	"io"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
@@ -14,6 +15,14 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+type stateType int
+
+const (
+	stateReady stateType = iota
+	stateForwarding
+	stateDone
+)
+
 const (
 	agentDescriptorNumber protoreflect.FieldNumber = 1
 	headerNumber          protoreflect.FieldNumber = 2
@@ -22,17 +31,29 @@ const (
 	errorNumber           protoreflect.FieldNumber = 5
 )
 
-type connection struct {
+type Tunnel interface {
+	// ForwardStream performs bi-directional message forwarding between incomingStream and the tunnel.
+	ForwardStream(incomingStream grpc.ServerStream) error
+	// Done must be called when the caller is done with the Tunnel.
+	Done()
+}
+
+type tunnel struct {
 	tunnel              rpc.ReverseTunnel_ConnectServer
 	tunnelStreamVisitor *grpctool.StreamVisitor
 	tunnelRetErr        chan<- error
 	tunnelInfo          *tracker.TunnelInfo
+	state               stateType
 }
 
-// ForwardStream performs bi-directional message forwarding between incomingStream and c.tunnel.
-func (c *connection) ForwardStream(incomingStream grpc.ServerStream) error {
+func (t *tunnel) ForwardStream(incomingStream grpc.ServerStream) error {
+	if t.state == stateReady {
+		t.state = stateForwarding
+	} else {
+		return status.Errorf(codes.Internal, "Invalid state %d", t.state)
+	}
 	// Here we have a situation where we need to pipe one server stream into another server stream.
-	// One stream is incoming request stream and the other one is incoming tunnel connection stream.
+	// One stream is incoming request stream and the other one is incoming tunnel tunnel stream.
 	// We need to use at least one extra goroutine in addition to the current one (or two separate ones) to
 	// implement full duplex bidirectional stream piping. One goroutine reads and writes in one direction and the other
 	// one in the opposite direction.
@@ -43,7 +64,7 @@ func (c *connection) ForwardStream(incomingStream grpc.ServerStream) error {
 	// To implement this, we read and write in both directions in separate goroutines and return from both
 	// handlers whenever there is an error, aborting both connections:
 	// - Returning from this function means returning from the incoming request handler.
-	// - Sending to c.tunnelRetErr leads to returning that value from the tunnel connection handler.
+	// - Sending to c.tunnelRetErr leads to returning that value from the tunnel handler.
 
 	// Channel of size 1 to ensure that if we return early, the second goroutine has space for the value.
 	// We don't care about the second value if the first one has at least one non-nil error.
@@ -58,7 +79,7 @@ func (c *connection) ForwardStream(incomingStream grpc.ServerStream) error {
 		//} else {
 		//md = metadata.MD{}
 		//}
-		err := c.tunnel.Send(&rpc.ConnectResponse{
+		err := t.tunnel.Send(&rpc.ConnectResponse{
 			Msg: &rpc.ConnectResponse_RequestInfo{
 				RequestInfo: &rpc.RequestInfo{
 					MethodName: grpc.ServerTransportStreamFromContext(incomingCtx).Method(),
@@ -79,7 +100,7 @@ func (c *connection) ForwardStream(incomingStream grpc.ServerStream) error {
 				}
 				return status.Error(codes.Unavailable, "unavailable"), err
 			}
-			err = c.tunnel.Send(&rpc.ConnectResponse{
+			err = t.tunnel.Send(&rpc.ConnectResponse{
 				Msg: &rpc.ConnectResponse_Message{
 					Message: &rpc.Message{
 						Data: frame.Data,
@@ -90,7 +111,7 @@ func (c *connection) ForwardStream(incomingStream grpc.ServerStream) error {
 				return err, err
 			}
 		}
-		err = c.tunnel.Send(&rpc.ConnectResponse{
+		err = t.tunnel.Send(&rpc.ConnectResponse{
 			Msg: &rpc.ConnectResponse_CloseSend{
 				CloseSend: &rpc.CloseSend{},
 			},
@@ -108,7 +129,7 @@ func (c *connection) ForwardStream(incomingStream grpc.ServerStream) error {
 		case <-startReadingTunnel:
 		}
 		var forTunnel, forIncomingStream error
-		fromVisitor := c.tunnelStreamVisitor.Visit(c.tunnel,
+		fromVisitor := t.tunnelStreamVisitor.Visit(t.tunnel,
 			grpctool.WithStartState(agentDescriptorNumber),
 			grpctool.WithCallback(agentDescriptorNumber, func(descriptor *rpc.Descriptor) error {
 				// It's been read already, shouldn't be received again
@@ -145,12 +166,27 @@ func (c *connection) ForwardStream(incomingStream grpc.ServerStream) error {
 	})
 	pair := <-res
 	if !pair.isNil() {
-		c.tunnelRetErr <- pair.forTunnel
+		t.tunnelRetErr <- pair.forTunnel
 		return pair.forIncomingStream
 	}
 	pair = <-res
-	c.tunnelRetErr <- pair.forTunnel
+	t.tunnelRetErr <- pair.forTunnel
 	return pair.forIncomingStream
+}
+
+func (t *tunnel) Done() {
+	switch t.state {
+	case stateReady:
+		t.state = stateDone
+		t.tunnelRetErr <- nil // unblock tunnel
+	case stateForwarding:
+	// Nothing to do
+	case stateDone:
+		panic(errors.New("Done() called more than once"))
+	default:
+		// Should never happen
+		panic(fmt.Errorf("invalid state: %d", t.state))
+	}
 }
 
 type errPair struct {

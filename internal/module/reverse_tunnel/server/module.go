@@ -17,9 +17,9 @@ const (
 )
 
 type module struct {
-	api                     modserver.API
-	maxConnectionAge        time.Duration
-	tunnelConnectionHandler reverse_tunnel.TunnelConnectionHandler
+	api              modserver.API
+	maxConnectionAge time.Duration
+	tunnelHandler    reverse_tunnel.TunnelHandler
 }
 
 func (m *module) Run(ctx context.Context) error {
@@ -40,5 +40,5 @@ func (m *module) Connect(server rpc.ReverseTunnel_ConnectServer) error {
 	if retErr {
 		return err // no wrap
 	}
-	return m.tunnelConnectionHandler.HandleTunnelConnection(ageCtx, agentInfo, server)
+	return m.tunnelHandler.HandleTunnel(ageCtx, agentInfo, server)
 }
