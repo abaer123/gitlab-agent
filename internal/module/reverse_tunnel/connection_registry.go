@@ -13,21 +13,20 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type TunnelConnectionHandler interface {
-	// HandleTunnelConnection is called with server-side interface of the reverse tunnel.
-	// It registers the connection and blocks, waiting for a request to proxy through the connection.
+type TunnelHandler interface {
+	// HandleTunnel is called with server-side interface of the reverse tunnel.
+	// It registers the tunnel and blocks, waiting for a request to proxy through the tunnel.
 	// The method returns the error value to return to gRPC framework.
 	// ctx can be used to unblock the method if the connection is not being used already.
 	// ctx should be a child of the server's context.
-	HandleTunnelConnection(ctx context.Context, agentInfo *api.AgentInfo, server rpc.ReverseTunnel_ConnectServer) error
+	HandleTunnel(ctx context.Context, agentInfo *api.AgentInfo, server rpc.ReverseTunnel_ConnectServer) error
 }
 
-type IncomingConnectionHandler interface {
-	// HandleIncomingConnection is called with server-side interface of the incoming connection.
-	// It registers the connection and blocks, waiting for a matching tunnel to proxy the connection through.
-	// When a matching tunnel is found, it is returned.
-	// The method returns the error value to return to gRPC framework when tunnel was not found.
-	HandleIncomingConnection(ctx context.Context, agentId int64) (Tunnel, error)
+type TunnelFinder interface {
+	// FindTunnel finds a tunnel to a matching agentk.
+	// It waits for a matching tunnel to proxy a connection through. When a matching tunnel is found, it is returned.
+	// It returns an error, compatible with gRPC status package.
+	FindTunnel(ctx context.Context, agentId int64) (Tunnel, error)
 }
 
 type connForwardRequest struct {
@@ -89,7 +88,7 @@ func (r *ConnectionRegistry) Run(ctx context.Context) error {
 	}
 }
 
-func (r *ConnectionRegistry) HandleIncomingConnection(ctx context.Context, agentId int64) (Tunnel, error) {
+func (r *ConnectionRegistry) FindTunnel(ctx context.Context, agentId int64) (Tunnel, error) {
 	retConn := make(chan Tunnel) // can receive nil from it if registry is shutting down
 	s := &connForwardRequest{
 		agentId: agentId,
@@ -120,7 +119,7 @@ func (r *ConnectionRegistry) HandleIncomingConnection(ctx context.Context, agent
 	}
 }
 
-func (r *ConnectionRegistry) HandleTunnelConnection(ctx context.Context, agentInfo *api.AgentInfo, server rpc.ReverseTunnel_ConnectServer) error {
+func (r *ConnectionRegistry) HandleTunnel(ctx context.Context, agentInfo *api.AgentInfo, server rpc.ReverseTunnel_ConnectServer) error {
 	recv, err := server.Recv()
 	if err != nil {
 		if !grpctool.RequestCanceled(err) {

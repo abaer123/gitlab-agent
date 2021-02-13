@@ -43,7 +43,7 @@ func serverConstructComponents(t *testing.T) (func(context.Context) error, grpc.
 	require.NoError(t, err)
 
 	serverFactory := reverse_tunnel_server.Factory{
-		TunnelConnectionHandler: connRegistry,
+		TunnelHandler: connRegistry,
 	}
 	serverConfig := &modserver.Config{
 		Log: log,
@@ -55,10 +55,10 @@ func serverConstructComponents(t *testing.T) (func(context.Context) error, grpc.
 				},
 			},
 		},
-		AgentServer:          agentServer,
-		ReverseTunnelServer:  internalServer,
-		ReverseTunnelClient:  internalServerConn,
-		AgentStreamForwarder: connRegistry,
+		AgentServer:         agentServer,
+		ReverseTunnelServer: internalServer,
+		ReverseTunnelClient: internalServerConn,
+		AgentTunnelFinder:   connRegistry,
 	}
 	serverModule, err := serverFactory.New(serverConfig)
 	require.NoError(t, err)
@@ -67,7 +67,7 @@ func serverConstructComponents(t *testing.T) (func(context.Context) error, grpc.
 	require.NoError(t, err)
 
 	registerTestingServer(internalServer, &serverTestingServer{
-		streamForwarder: connRegistry,
+		tunnelFinder: connRegistry,
 	})
 
 	return func(ctx context.Context) error {

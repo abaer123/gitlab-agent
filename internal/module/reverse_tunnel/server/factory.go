@@ -7,14 +7,14 @@ import (
 )
 
 type Factory struct {
-	TunnelConnectionHandler reverse_tunnel.TunnelConnectionHandler
+	TunnelHandler reverse_tunnel.TunnelHandler
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	m := &module{
-		api:                     config.Api,
-		maxConnectionAge:        config.Config.Agent.Listen.MaxConnectionAge.AsDuration(),
-		tunnelConnectionHandler: f.TunnelConnectionHandler,
+		api:              config.Api,
+		maxConnectionAge: config.Config.Agent.Listen.MaxConnectionAge.AsDuration(),
+		tunnelHandler:    f.TunnelHandler,
 	}
 	rpc.RegisterReverseTunnelServer(config.AgentServer, m)
 	return m, nil

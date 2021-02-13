@@ -176,7 +176,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			AgentQuerier: agentTracker,
 		},
 		&reverse_tunnel_server.Factory{
-			TunnelConnectionHandler: connRegistry,
+			TunnelHandler: connRegistry,
 		},
 	}
 
@@ -195,21 +195,21 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		// factory.New() must be called from the main goroutine because it may mutate a gRPC server (register an API)
 		// and that can only be done before Serve() is called on the server.
 		module, err := factory.New(&modserver.Config{
-			Log:                  a.Log.With(logz.ModuleName(factory.Name())),
-			Api:                  serverApi,
-			Config:               cfg,
-			GitLabClient:         gitLabClient,
-			Registerer:           registerer,
-			UsageTracker:         usageTracker,
-			AgentServer:          agentServer,
-			ApiServer:            apiServer,
-			ReverseTunnelServer:  internalServer,
-			ReverseTunnelClient:  internalServerConn,
-			AgentStreamForwarder: connRegistry,
-			Gitaly:               poolWrapper,
-			KasName:              kasName,
-			Version:              cmd.Version,
-			CommitId:             cmd.Commit,
+			Log:                 a.Log.With(logz.ModuleName(factory.Name())),
+			Api:                 serverApi,
+			Config:              cfg,
+			GitLabClient:        gitLabClient,
+			Registerer:          registerer,
+			UsageTracker:        usageTracker,
+			AgentServer:         agentServer,
+			ApiServer:           apiServer,
+			ReverseTunnelServer: internalServer,
+			ReverseTunnelClient: internalServerConn,
+			AgentTunnelFinder:   connRegistry,
+			Gitaly:              poolWrapper,
+			KasName:             kasName,
+			Version:             cmd.Version,
+			CommitId:            cmd.Commit,
 		})
 		if err != nil {
 			return fmt.Errorf("%s: %v", factory.Name(), err)

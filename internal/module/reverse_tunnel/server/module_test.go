@@ -41,7 +41,7 @@ func TestConnectAllowsValidToken(t *testing.T) {
 			GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken, false).
 			Return(agentInfo, nil, false),
 		h.EXPECT().
-			HandleTunnelConnection(gomock.Any(), agentInfo, server),
+			HandleTunnel(gomock.Any(), agentInfo, server),
 	)
 	err := m.Connect(server)
 	require.NoError(t, err)
@@ -64,12 +64,12 @@ func TestConnectRejectsInvalidToken(t *testing.T) {
 	assert.EqualError(t, err, "expected err")
 }
 
-func setupModule(t *testing.T) (*gomock.Controller, *mock_modserver.MockAPI, *mock_reverse_tunnel.MockTunnelConnectionHandler, *module) {
+func setupModule(t *testing.T) (*gomock.Controller, *mock_modserver.MockAPI, *mock_reverse_tunnel.MockTunnelHandler, *module) {
 	ctrl := gomock.NewController(t)
-	h := mock_reverse_tunnel.NewMockTunnelConnectionHandler(ctrl)
+	h := mock_reverse_tunnel.NewMockTunnelHandler(ctrl)
 	mockApi := mock_modserver.NewMockAPI(ctrl)
 	f := Factory{
-		TunnelConnectionHandler: h,
+		TunnelHandler: h,
 	}
 	m, err := f.New(&modserver.Config{
 		Log: zaptest.NewLogger(t),

@@ -47,9 +47,9 @@ type Config struct {
 	// ReverseTunnelClient is a connection to the ReverseTunnelServer to send requests.
 	// It can be used to send requests as if the connection is established to an agentk instance.
 	ReverseTunnelClient grpc.ClientConnInterface
-	// AgentStreamForwarder is a reverse tunnel to forward a gRPC request to an agentk.
-	AgentStreamForwarder reverse_tunnel.IncomingConnectionHandler
-	Gitaly               gitaly.PoolInterface
+	// AgentTunnelFinder can be used to find a reverse tunnel to forward a gRPC request to an agentk.
+	AgentTunnelFinder reverse_tunnel.TunnelFinder
+	Gitaly            gitaly.PoolInterface
 	// KasName is a string "gitlab-kas". Can be used as a user agent, server name, service name, etc.
 	KasName string
 	// Version is gitlab-kas version.

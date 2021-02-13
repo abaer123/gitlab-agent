@@ -32,8 +32,8 @@ const (
 )
 
 var (
-	_ TunnelConnectionHandler   = &ConnectionRegistry{}
-	_ IncomingConnectionHandler = &ConnectionRegistry{}
+	_ TunnelHandler = &ConnectionRegistry{}
+	_ TunnelFinder  = &ConnectionRegistry{}
 )
 
 func TestRunUnregistersAllConnections(t *testing.T) {
@@ -63,13 +63,13 @@ func TestRunUnregistersAllConnections(t *testing.T) {
 	wg.Start(func() {
 		assert.NoError(t, r.Run(ctx))
 	})
-	err = r.HandleTunnelConnection(context.Background(), testhelpers.AgentInfoObj(), tunnel)
+	err = r.HandleTunnel(context.Background(), testhelpers.AgentInfoObj(), tunnel)
 	assert.EqualError(t, err, "rpc error: code = Canceled desc = context done")
 }
 
 func TestHandleTunnelConnectionIsUnblockedByContext(t *testing.T) {
 	t.Parallel()
-	ctxConn, cancelConn := context.WithTimeout(context.Background(), 50*time.Millisecond) // will unblock HandleTunnelConnection()
+	ctxConn, cancelConn := context.WithTimeout(context.Background(), 50*time.Millisecond) // will unblock HandleTunnel()
 	defer cancelConn()
 
 	ctrl := gomock.NewController(t)
@@ -97,7 +97,7 @@ func TestHandleTunnelConnectionIsUnblockedByContext(t *testing.T) {
 	wg.Start(func() {
 		assert.NoError(t, r.Run(ctx))
 	})
-	err = r.HandleTunnelConnection(ctxConn, testhelpers.AgentInfoObj(), tunnel)
+	err = r.HandleTunnel(ctxConn, testhelpers.AgentInfoObj(), tunnel)
 	assert.EqualError(t, err, "rpc error: code = Canceled desc = context done")
 }
 
@@ -110,7 +110,7 @@ func TestHandleTunnelConnectionReturnErrOnRecvErr(t *testing.T) {
 	tunnelRegisterer := mock_reverse_tunnel.NewMockRegisterer(ctrl)
 	r, err := NewConnectionRegistry(zaptest.NewLogger(t), tunnelRegisterer)
 	require.NoError(t, err)
-	err = r.HandleTunnelConnection(context.Background(), testhelpers.AgentInfoObj(), tunnel)
+	err = r.HandleTunnel(context.Background(), testhelpers.AgentInfoObj(), tunnel)
 	assert.EqualError(t, err, "rpc error: code = Unavailable desc = unavailable")
 }
 
@@ -127,7 +127,7 @@ func TestHandleTunnelConnectionReturnErrOnInvalidMsg(t *testing.T) {
 	tunnelRegisterer := mock_reverse_tunnel.NewMockRegisterer(ctrl)
 	r, err := NewConnectionRegistry(zaptest.NewLogger(t), tunnelRegisterer)
 	require.NoError(t, err)
-	err = r.HandleTunnelConnection(context.Background(), testhelpers.AgentInfoObj(), tunnel)
+	err = r.HandleTunnel(context.Background(), testhelpers.AgentInfoObj(), tunnel)
 	assert.EqualError(t, err, "rpc error: code = InvalidArgument desc = Invalid oneof value type: *rpc.ConnectRequest_Header")
 }
 
@@ -143,10 +143,10 @@ func TestHandleTunnelConnectionIsMatchedToIncomingConnection(t *testing.T) {
 		assert.NoError(t, r.Run(ctx))
 	})
 	wg.Start(func() {
-		assert.NoError(t, r.HandleTunnelConnection(context.Background(), agentInfo, tunnel))
+		assert.NoError(t, r.HandleTunnel(context.Background(), agentInfo, tunnel))
 	})
 	time.Sleep(50 * time.Millisecond)
-	tun, err := r.HandleIncomingConnection(context.Background(), agentInfo.Id)
+	tun, err := r.FindTunnel(context.Background(), agentInfo.Id)
 	require.NoError(t, err)
 	defer tun.Done()
 	err = tun.ForwardStream(incomingStream)
@@ -165,7 +165,7 @@ func TestIncomingConnectionIsMatchedToHandleTunnelConnection(t *testing.T) {
 		assert.NoError(t, r.Run(ctx))
 	})
 	wg.Start(func() {
-		tun, err := r.HandleIncomingConnection(context.Background(), agentInfo.Id)
+		tun, err := r.FindTunnel(context.Background(), agentInfo.Id)
 		if !assert.NoError(t, err) {
 			return
 		}
@@ -174,7 +174,7 @@ func TestIncomingConnectionIsMatchedToHandleTunnelConnection(t *testing.T) {
 		assert.NoError(t, err)
 	})
 	time.Sleep(50 * time.Millisecond)
-	err := r.HandleTunnelConnection(context.Background(), agentInfo, tunnel)
+	err := r.HandleTunnel(context.Background(), agentInfo, tunnel)
 	require.NoError(t, err)
 }
 
