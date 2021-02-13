@@ -18,6 +18,10 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+var (
+	_ Tunnel = &connection{}
+)
+
 func TestVisitorErrorIsReturnedOnErrorMessageAndReadError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	tunnelRetErr := make(chan error)

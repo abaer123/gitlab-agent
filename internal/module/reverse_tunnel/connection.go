@@ -2,6 +2,7 @@ package reverse_tunnel
 
 import (
 	"errors"
+	"fmt"
 	"io"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
@@ -14,6 +15,14 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+type stateType int
+
+const (
+	stateReady stateType = iota
+	stateForwarding
+	stateDone
+)
+
 const (
 	agentDescriptorNumber protoreflect.FieldNumber = 1
 	headerNumber          protoreflect.FieldNumber = 2
@@ -22,15 +31,27 @@ const (
 	errorNumber           protoreflect.FieldNumber = 5
 )
 
+type Tunnel interface {
+	// ForwardStream performs bi-directional message forwarding between incomingStream and the tunnel.
+	ForwardStream(incomingStream grpc.ServerStream) error
+	// Done must be called when the caller is done with the Tunnel.
+	Done()
+}
+
 type connection struct {
 	tunnel              rpc.ReverseTunnel_ConnectServer
 	tunnelStreamVisitor *grpctool.StreamVisitor
 	tunnelRetErr        chan<- error
 	tunnelInfo          *tracker.TunnelInfo
+	state               stateType
 }
 
-// ForwardStream performs bi-directional message forwarding between incomingStream and c.tunnel.
 func (c *connection) ForwardStream(incomingStream grpc.ServerStream) error {
+	if c.state == stateReady {
+		c.state = stateForwarding
+	} else {
+		return status.Errorf(codes.Internal, "Invalid state %d", c.state)
+	}
 	// Here we have a situation where we need to pipe one server stream into another server stream.
 	// One stream is incoming request stream and the other one is incoming tunnel connection stream.
 	// We need to use at least one extra goroutine in addition to the current one (or two separate ones) to
@@ -151,6 +172,21 @@ func (c *connection) ForwardStream(incomingStream grpc.ServerStream) error {
 	pair = <-res
 	c.tunnelRetErr <- pair.forTunnel
 	return pair.forIncomingStream
+}
+
+func (c *connection) Done() {
+	switch c.state {
+	case stateReady:
+		c.state = stateDone
+		c.tunnelRetErr <- nil // unblock tunnel
+	case stateForwarding:
+	// Nothing to do
+	case stateDone:
+		panic(errors.New("Done() called more than once"))
+	default:
+		// Should never happen
+		panic(fmt.Errorf("invalid state: %d", c.state))
+	}
 }
 
 type errPair struct {

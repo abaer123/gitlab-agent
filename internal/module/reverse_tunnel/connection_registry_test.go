@@ -146,7 +146,10 @@ func TestHandleTunnelConnectionIsMatchedToIncomingConnection(t *testing.T) {
 		assert.NoError(t, r.HandleTunnelConnection(context.Background(), agentInfo, tunnel))
 	})
 	time.Sleep(50 * time.Millisecond)
-	err := r.HandleIncomingConnection(agentInfo.Id, incomingStream)
+	tun, err := r.HandleIncomingConnection(context.Background(), agentInfo.Id)
+	require.NoError(t, err)
+	defer tun.Done()
+	err = tun.ForwardStream(incomingStream)
 	require.NoError(t, err)
 }
 
@@ -162,7 +165,13 @@ func TestIncomingConnectionIsMatchedToHandleTunnelConnection(t *testing.T) {
 		assert.NoError(t, r.Run(ctx))
 	})
 	wg.Start(func() {
-		assert.NoError(t, r.HandleIncomingConnection(agentInfo.Id, incomingStream))
+		tun, err := r.HandleIncomingConnection(context.Background(), agentInfo.Id)
+		if !assert.NoError(t, err) {
+			return
+		}
+		defer tun.Done()
+		err = tun.ForwardStream(incomingStream)
+		assert.NoError(t, err)
 	})
 	time.Sleep(50 * time.Millisecond)
 	err := r.HandleTunnelConnection(context.Background(), agentInfo, tunnel)

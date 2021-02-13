@@ -9,7 +9,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/mathz"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -26,13 +25,14 @@ type TunnelConnectionHandler interface {
 type IncomingConnectionHandler interface {
 	// HandleIncomingConnection is called with server-side interface of the incoming connection.
 	// It registers the connection and blocks, waiting for a matching tunnel to proxy the connection through.
-	// The method returns the error value to return to gRPC framework.
-	HandleIncomingConnection(agentId int64, stream grpc.ServerStream) error
+	// When a matching tunnel is found, it is returned.
+	// The method returns the error value to return to gRPC framework when tunnel was not found.
+	HandleIncomingConnection(ctx context.Context, agentId int64) (Tunnel, error)
 }
 
 type connForwardRequest struct {
 	agentId int64
-	retConn chan<- *connection
+	retConn chan<- Tunnel
 }
 
 type ConnectionRegistry struct {
@@ -89,16 +89,15 @@ func (r *ConnectionRegistry) Run(ctx context.Context) error {
 	}
 }
 
-func (r *ConnectionRegistry) HandleIncomingConnection(agentId int64, stream grpc.ServerStream) error {
-	retConn := make(chan *connection) // can receive nil from it if registry is shutting down
+func (r *ConnectionRegistry) HandleIncomingConnection(ctx context.Context, agentId int64) (Tunnel, error) {
+	retConn := make(chan Tunnel) // can receive nil from it if registry is shutting down
 	s := &connForwardRequest{
 		agentId: agentId,
 		retConn: retConn,
 	}
-	ctx := stream.Context()
 	select {
 	case <-ctx.Done():
-		return status.Error(codes.Canceled, "context done")
+		return nil, status.Error(codes.Canceled, "context done")
 	case r.connRequest <- s:
 	}
 	select {
@@ -109,15 +108,15 @@ func (r *ConnectionRegistry) HandleIncomingConnection(agentId int64, stream grpc
 			if conn != nil {
 				// Got the connection, but it's too late. Must just close it as it's impossible to register it again.
 				// The agent will immediately reconnect so not a big deal.
-				conn.tunnelRetErr <- nil
+				conn.Done()
 			}
 		}
-		return status.Error(codes.Canceled, "context done")
+		return nil, status.Error(codes.Canceled, "context done")
 	case conn := <-retConn:
 		if conn == nil {
-			return status.Error(codes.Unavailable, "unavailable")
+			return nil, status.Error(codes.Unavailable, "unavailable")
 		}
-		return conn.ForwardStream(stream)
+		return conn, nil
 	}
 }
 

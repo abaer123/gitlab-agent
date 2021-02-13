@@ -300,11 +300,21 @@ type serverTestingServer struct {
 }
 
 func (s *serverTestingServer) RequestResponse(srv interface{}, server grpc.ServerStream) error {
-	return s.streamForwarder.HandleIncomingConnection(testhelpers.AgentId, server)
+	tunnel, err := s.streamForwarder.HandleIncomingConnection(server.Context(), testhelpers.AgentId)
+	if err != nil {
+		return err
+	}
+	defer tunnel.Done()
+	return tunnel.ForwardStream(server)
 }
 
 func (s *serverTestingServer) StreamingRequestResponse(srv interface{}, server grpc.ServerStream) error {
-	return s.streamForwarder.HandleIncomingConnection(testhelpers.AgentId, server)
+	tunnel, err := s.streamForwarder.HandleIncomingConnection(server.Context(), testhelpers.AgentId)
+	if err != nil {
+		return err
+	}
+	defer tunnel.Done()
+	return tunnel.ForwardStream(server)
 }
 
 // registerTestingServer is a test.RegisterTestingServer clone that's been modified to be compatible with
