@@ -139,8 +139,8 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Reverse gRPC tunnel tracker
 	tunnelTracker := a.constructTunnelTracker(redisClient)
 
-	// Connection registry
-	connRegistry, err := reverse_tunnel.NewConnectionRegistry(a.Log, tunnelTracker)
+	// Tunnel registry
+	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(a.Log, tunnelTracker)
 	if err != nil {
 		return err
 	}
@@ -176,7 +176,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			AgentQuerier: agentTracker,
 		},
 		&reverse_tunnel_server.Factory{
-			TunnelHandler: connRegistry,
+			TunnelHandler: tunnelRegistry,
 		},
 	}
 
@@ -205,7 +205,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			ApiServer:           apiServer,
 			ReverseTunnelServer: internalServer,
 			ReverseTunnelClient: internalServerConn,
-			AgentTunnelFinder:   connRegistry,
+			AgentTunnelFinder:   tunnelRegistry,
 			Gitaly:              poolWrapper,
 			KasName:             kasName,
 			Version:             cmd.Version,
@@ -226,7 +226,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		// Start things that modules use.
 		func(stage stager.Stage) {
 			stage.Go(agentTracker.Run)
-			stage.Go(connRegistry.Run)
+			stage.Go(tunnelRegistry.Run)
 		},
 		// Start modules.
 		func(stage stager.Stage) {

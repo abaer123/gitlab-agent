@@ -32,18 +32,18 @@ func TestConnectAllowsValidToken(t *testing.T) {
 	agentInfo := testhelpers.AgentInfoObj()
 	ctx := api.InjectAgentMD(context.Background(), &api.AgentMD{Token: testhelpers.AgentkToken})
 	ctx = grpctool.InjectLogger(ctx, zaptest.NewLogger(t))
-	server := mock_reverse_tunnel.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel.NewMockReverseTunnel_ConnectServer(ctrl)
 	gomock.InOrder(
-		server.EXPECT().
+		connectServer.EXPECT().
 			Context().
 			Return(ctx),
 		mockApi.EXPECT().
 			GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken, false).
 			Return(agentInfo, nil, false),
 		h.EXPECT().
-			HandleTunnel(gomock.Any(), agentInfo, server),
+			HandleTunnel(gomock.Any(), agentInfo, connectServer),
 	)
-	err := m.Connect(server)
+	err := m.Connect(connectServer)
 	require.NoError(t, err)
 }
 
@@ -51,16 +51,16 @@ func TestConnectRejectsInvalidToken(t *testing.T) {
 	ctrl, mockApi, _, m := setupModule(t)
 	ctx := api.InjectAgentMD(context.Background(), &api.AgentMD{Token: "invalid"})
 	ctx = grpctool.InjectLogger(ctx, zaptest.NewLogger(t))
-	server := mock_reverse_tunnel.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel.NewMockReverseTunnel_ConnectServer(ctrl)
 	gomock.InOrder(
-		server.EXPECT().
+		connectServer.EXPECT().
 			Context().
 			Return(ctx),
 		mockApi.EXPECT().
 			GetAgentInfo(gomock.Any(), gomock.Any(), gomock.Any(), false).
 			Return(nil, errors.New("expected err"), true),
 	)
-	err := m.Connect(server)
+	err := m.Connect(connectServer)
 	assert.EqualError(t, err, "expected err")
 }
 

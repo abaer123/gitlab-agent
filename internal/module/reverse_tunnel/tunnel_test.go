@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	_ Tunnel = &connection{}
+	_ Tunnel = &tunnel{}
 )
 
 func TestVisitorErrorIsReturnedOnErrorMessageAndReadError(t *testing.T) {
@@ -27,7 +27,7 @@ func TestVisitorErrorIsReturnedOnErrorMessageAndReadError(t *testing.T) {
 	tunnelRetErr := make(chan error)
 	tunnelStreamVisitor, err := grpctool.NewStreamVisitor(&rpc.ConnectRequest{})
 	require.NoError(t, err)
-	tunnel := mock_reverse_tunnel.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel.NewMockReverseTunnel_ConnectServer(ctrl)
 	incomingStream := mock_rpc.NewMockServerStream(ctrl)
 	sts := mock_rpc.NewMockServerTransportStream(ctrl)
 	incomingCtx := grpc.NewContextWithServerTransportStream(context.Background(), sts)
@@ -41,7 +41,7 @@ func TestVisitorErrorIsReturnedOnErrorMessageAndReadError(t *testing.T) {
 			Return("some method"),
 	)
 	gomock.InOrder(
-		tunnel.EXPECT().
+		connectServer.EXPECT().
 			Send(gomock.Any()),
 		incomingStream.EXPECT().
 			RecvMsg(gomock.Any()).
@@ -52,7 +52,7 @@ func TestVisitorErrorIsReturnedOnErrorMessageAndReadError(t *testing.T) {
 	)
 
 	gomock.InOrder(
-		tunnel.EXPECT().
+		connectServer.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&rpc.ConnectRequest{
 				Msg: &rpc.ConnectRequest_Error{
@@ -64,12 +64,12 @@ func TestVisitorErrorIsReturnedOnErrorMessageAndReadError(t *testing.T) {
 					},
 				},
 			})),
-		tunnel.EXPECT().
+		connectServer.EXPECT().
 			RecvMsg(gomock.Any()).
 			Return(errors.New("correct error")),
 	)
-	c := connection{
-		tunnel:              tunnel,
+	c := tunnel{
+		tunnel:              connectServer,
 		tunnelStreamVisitor: tunnelStreamVisitor,
 		tunnelRetErr:        tunnelRetErr,
 	}

@@ -35,7 +35,7 @@ func serverConstructComponents(t *testing.T) (func(context.Context) error, grpc.
 	agentServerListener := grpctool.NewDialListener()
 
 	internalListener := grpctool.NewDialListener()
-	connRegistry, err := reverse_tunnel.NewConnectionRegistry(log, tunnelRegisterer)
+	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(log, tunnelRegisterer)
 	require.NoError(t, err)
 
 	internalServer := serverConstructInternalServer(log)
@@ -43,7 +43,7 @@ func serverConstructComponents(t *testing.T) (func(context.Context) error, grpc.
 	require.NoError(t, err)
 
 	serverFactory := reverse_tunnel_server.Factory{
-		TunnelHandler: connRegistry,
+		TunnelHandler: tunnelRegistry,
 	}
 	serverConfig := &modserver.Config{
 		Log: log,
@@ -58,7 +58,7 @@ func serverConstructComponents(t *testing.T) (func(context.Context) error, grpc.
 		AgentServer:         agentServer,
 		ReverseTunnelServer: internalServer,
 		ReverseTunnelClient: internalServerConn,
-		AgentTunnelFinder:   connRegistry,
+		AgentTunnelFinder:   tunnelRegistry,
 	}
 	serverModule, err := serverFactory.New(serverConfig)
 	require.NoError(t, err)
@@ -67,14 +67,14 @@ func serverConstructComponents(t *testing.T) (func(context.Context) error, grpc.
 	require.NoError(t, err)
 
 	registerTestingServer(internalServer, &serverTestingServer{
-		tunnelFinder: connRegistry,
+		tunnelFinder: tunnelRegistry,
 	})
 
 	return func(ctx context.Context) error {
 		return cmd.RunStages(ctx,
 			// Start things that modules use.
 			func(stage stager.Stage) {
-				stage.Go(connRegistry.Run)
+				stage.Go(tunnelRegistry.Run)
 			},
 			// Start modules.
 			func(stage stager.Stage) {
