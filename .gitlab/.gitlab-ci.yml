@@ -13,8 +13,8 @@ default:
 variables:
   # must use image digest to invalidate cache if image is updated.
   # Image built using https://github.com/ash2k/container-definitions/compare/master...ash2k:bazel-and-clang-only
-  # Bazel v3.6.0
-  BUILD_IMAGE_SHA: "5d015dd7b8e889fc5acab1da454132c11310ebcb2cf5aa39e7a3095710fc43bd"
+  # Bazel v4.0.0
+  BUILD_IMAGE_SHA: "6739e24acf84fcd4224312074111e112ac56750899b015bbe7c8948f136a7ee8"
   SECURE_ANALYZERS_PREFIX: "registry.gitlab.com/gitlab-org/security-products/analyzers"
   CS_MAJOR_VERSION: 2
 
