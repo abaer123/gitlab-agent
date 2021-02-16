@@ -4,7 +4,23 @@ Macros for cmd.
 
 load("@io_bazel_rules_docker//go:image.bzl", "go_image")
 load("@io_bazel_rules_go//go:def.bzl", "go_binary")
-load("@io_bazel_rules_docker//container:container.bzl", "container_push")
+load("@io_bazel_rules_docker//container:container.bzl", "container_bundle")
+load("@io_bazel_rules_docker//contrib:push-all.bzl", "container_push")
+
+def push_bundle(name, images):
+    container_bundle(
+        name = name,
+        images = images,
+        tags = ["manual"],
+        visibility = ["//visibility:public"],
+    )
+    container_push(
+        name = "release-" + name,
+        bundle = ":" + name,
+        format = "Docker",
+        tags = ["manual"],
+        visibility = ["//visibility:public"],
+    )
 
 def define_command_targets(
         name,
@@ -39,36 +55,7 @@ def define_command_targets(
         base = base_image,
         binary = ":%s_linux" % name,
         tags = ["manual"],
-    )
-
-    container_push(
-        name = "push_docker_tag",
-        format = "Docker",
-        image = ":container",
-        registry = "registry.gitlab.com",
-        repository = "{STABLE_CONTAINER_REPOSITORY_PATH}/%s" % name,
-        tag = "{STABLE_BUILD_GIT_TAG}",
-        tags = ["manual"],
-    )
-
-    container_push(
-        name = "push_docker_commit",
-        format = "Docker",
-        image = ":container",
-        registry = "registry.gitlab.com",
-        repository = "{STABLE_CONTAINER_REPOSITORY_PATH}/%s" % name,
-        tag = "{STABLE_BUILD_GIT_COMMIT}",
-        tags = ["manual"],
-    )
-
-    container_push(
-        name = "push_docker_latest",
-        format = "Docker",
-        image = ":container",
-        registry = "registry.gitlab.com",
-        repository = "{STABLE_CONTAINER_REPOSITORY_PATH}/%s" % name,
-        tag = "latest",
-        tags = ["manual"],
+        visibility = ["//visibility:public"],
     )
 
     if race_targets:
@@ -97,34 +84,5 @@ def define_command_targets(
             base = base_image_race,
             binary = ":%s_linux_race" % name,
             tags = ["manual"],
-        )
-
-        container_push(
-            name = "push_docker_tag_race",
-            format = "Docker",
-            image = ":container_race",
-            registry = "registry.gitlab.com",
-            repository = "{STABLE_CONTAINER_REPOSITORY_PATH}/%s" % name,
-            tag = "{STABLE_BUILD_GIT_TAG}-race",
-            tags = ["manual"],
-        )
-
-        container_push(
-            name = "push_docker_commit_race",
-            format = "Docker",
-            image = ":container_race",
-            registry = "registry.gitlab.com",
-            repository = "{STABLE_CONTAINER_REPOSITORY_PATH}/%s" % name,
-            tag = "{STABLE_BUILD_GIT_COMMIT}-race",
-            tags = ["manual"],
-        )
-
-        container_push(
-            name = "push_docker_latest_race",
-            format = "Docker",
-            image = ":container_race",
-            registry = "registry.gitlab.com",
-            repository = "{STABLE_CONTAINER_REPOSITORY_PATH}/%s" % name,
-            tag = "latest-race",
-            tags = ["manual"],
+            visibility = ["//visibility:public"],
         )
