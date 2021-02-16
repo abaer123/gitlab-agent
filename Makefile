@@ -147,87 +147,28 @@ docker-export-race: update-bazel
 # This only works on a linux machine
 .PHONY: release-tag-all-ci
 release-tag-all-ci:
-	# Build all targets in a single invocation for maximum parallelism
-	bazel build \
-		//cmd/agentk:push_docker_tag \
-		//cmd/agentk:push_docker_tag_race \
-		//cmd/kas:push_docker_tag \
-		//cmd/kas:push_docker_tag_race \
-		//cmd/cli:push_docker_tag
-	# Actually push built images one by one
-	bazel run \
-		//cmd/agentk:push_docker_tag
-	bazel run \
-		//cmd/agentk:push_docker_tag_race
-	bazel run \
-		//cmd/kas:push_docker_tag
-	bazel run \
-		//cmd/kas:push_docker_tag_race
-	bazel run \
-		//cmd/cli:push_docker_tag
+	bazel run //cmd:release-tag-all
 
 # Build and push all docker images tagged with the current commit sha.
 # This only works on a linux machine
 .PHONY: release-commit-all-ci
 release-commit-all-ci:
-	# Build all targets in a single invocation for maximum parallelism
-	bazel build \
-		//cmd/agentk:push_docker_commit \
-		//cmd/agentk:push_docker_commit_race \
-		//cmd/kas:push_docker_commit \
-		//cmd/kas:push_docker_commit_race \
-		//cmd/cli:push_docker_commit
-	# Actually push built images one by one
-	bazel run \
-		//cmd/agentk:push_docker_commit
-	bazel run \
-		//cmd/agentk:push_docker_commit_race
-	bazel run \
-		//cmd/kas:push_docker_commit
-	bazel run \
-		//cmd/kas:push_docker_commit_race
-	bazel run \
-		//cmd/cli:push_docker_commit
+	bazel run //cmd:release-commit-all
 
 # Build and push all docker images tagged "latest".
 # This only works on a linux machine
 .PHONY: release-latest-all-ci
 release-latest-all-ci:
-	# Build all targets in a single invocation for maximum parallelism
-	bazel build \
-		//cmd/agentk:push_docker_latest \
-		//cmd/agentk:push_docker_latest_race \
-		//cmd/kas:push_docker_latest \
-		//cmd/kas:push_docker_latest_race \
-		//cmd/cli:push_docker_latest
-	# Actually push built images one by one
-	bazel run \
-		//cmd/agentk:push_docker_latest
-	bazel run \
-		//cmd/agentk:push_docker_latest_race
-	bazel run \
-		//cmd/kas:push_docker_latest
-	bazel run \
-		//cmd/kas:push_docker_latest_race
-	bazel run \
-		//cmd/cli:push_docker_latest
+	bazel run //cmd:release-latest-all
 
 .PHONY: release-commit-normal
 release-commit-normal: update-bazel
-	bazel run \
-		//cmd/agentk:push_docker_commit
-	bazel run \
-		//cmd/kas:push_docker_commit
-	bazel run \
-		//cmd/cli:push_docker_commit
+	bazel run //cmd:release-commit-normal
 
 # This only works on a linux machine
 .PHONY: release-commit-race
 release-commit-race: update-bazel
-	bazel run \
-		//cmd/agentk:push_docker_commit_race
-	bazel run \
-		//cmd/kas:push_docker_commit_race
+	bazel run //cmd:release-commit-race
 
 # Set TARGET_DIRECTORY variable to the target directory before running this target
 .PHONY: gdk-install
