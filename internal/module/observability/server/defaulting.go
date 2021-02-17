@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	defaultObservabilityListenAddress         = "0.0.0.0:8151"
+	defaultObservabilityListenAddress         = "127.0.0.1:8151"
 	defaultObservabilityPrometheusUrlPath     = "/metrics"
 	defaultObservabilityLivenessProbeUrlPath  = "/liveness"
 	defaultObservabilityReadinessProbeUrlPath = "/readiness"

@@ -37,7 +37,7 @@ observability:
   usage_reporting_period: "60s"
   listen:
     network: tcp
-    address: 0.0.0.0:8151
+    address: 127.0.0.1:8151
   prometheus:
     url_path: /metrics
   tracing:
