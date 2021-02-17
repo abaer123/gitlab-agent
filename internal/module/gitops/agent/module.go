@@ -11,7 +11,6 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -20,13 +19,15 @@ const (
 	defaultGitOpsManifestPathGlob  = "**/*.{yaml,yml,json}"
 )
 
+type workerKey string
+
 type module struct {
 	log           *zap.Logger
 	workerFactory GitopsWorkerFactory
 }
 
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
-	workers := make(map[string]*gitopsWorkerHolder) // project id -> worker holder instance
+	workers := make(map[workerKey]*gitopsWorkerHolder) // project id -> worker holder instance
 	defer stopAllWorkers(workers)
 	for config := range cfg {
 		err := m.configureWorkers(workers, config.Gitops.ManifestProjects)
@@ -61,36 +62,41 @@ func (m *module) Name() string {
 	return gitops.ModuleName
 }
 
-func (m *module) startNewWorker(workers map[string]*gitopsWorkerHolder, project *agentcfg.ManifestProjectCF) {
+func (m *module) startNewWorker(workers map[workerKey]*gitopsWorkerHolder, key workerKey, project *agentcfg.ManifestProjectCF) {
 	l := m.log.With(logz.ProjectId(project.Id))
 	l.Info("Starting synchronization worker")
 	worker := m.workerFactory.New(project)
 	ctx, cancel := context.WithCancel(context.Background())
 	workerHolder := &gitopsWorkerHolder{
+		key:     key,
 		worker:  worker,
 		project: project,
 		stop:    cancel,
 	}
 	workerHolder.wg.StartWithContext(ctx, worker.Run)
-	workers[project.Id] = workerHolder
+	workers[key] = workerHolder
 }
 
-func (m *module) configureWorkers(workers map[string]*gitopsWorkerHolder, projects []*agentcfg.ManifestProjectCF) error {
-	newSetOfProjects := sets.NewString()
-	var (
-		projectsToStartWorkersFor []*agentcfg.ManifestProjectCF
-		workersToStop             []*gitopsWorkerHolder
-	)
+func (m *module) configureWorkers(workers map[workerKey]*gitopsWorkerHolder, projects []*agentcfg.ManifestProjectCF) error {
+	newSetOfProjects := make(map[workerKey]struct{}, len(projects))
+	projectsToStartWorkersFor := make(map[workerKey]*agentcfg.ManifestProjectCF)
+	var workersToStop []*gitopsWorkerHolder
 
 	// Collect projects without workers or with updated configuration.
 	for _, project := range projects {
-		if newSetOfProjects.Has(project.Id) {
-			return fmt.Errorf("duplicate project id: %s", project.Id)
+		key, err := keyForProject(project)
+		if err != nil {
+			// This should never happen
+			m.log.Error("Failed to construct key for project", logz.ProjectId(project.Id), zap.Error(err))
+			continue
 		}
-		newSetOfProjects.Insert(project.Id)
-		workerHolder := workers[project.Id]
+		if _, ok := newSetOfProjects[key]; ok {
+			return fmt.Errorf("duplicate project id/paths configuration: %s", project.Id)
+		}
+		newSetOfProjects[key] = struct{}{}
+		workerHolder := workers[key]
 		if workerHolder == nil { // New project added
-			projectsToStartWorkersFor = append(projectsToStartWorkersFor, project)
+			projectsToStartWorkersFor[key] = project
 		} else { // We have a worker for this project already
 			if proto.Equal(project, workerHolder.project) {
 				// Worker's configuration hasn't changed, nothing to do here
@@ -98,13 +104,13 @@ func (m *module) configureWorkers(workers map[string]*gitopsWorkerHolder, projec
 			}
 			m.log.Info("Configuration has been updated, restarting synchronization worker", logz.ProjectId(project.Id))
 			workersToStop = append(workersToStop, workerHolder)
-			projectsToStartWorkersFor = append(projectsToStartWorkersFor, project)
+			projectsToStartWorkersFor[key] = project
 		}
 	}
 
 	// Stop workers for projects which have been removed from the list.
-	for projectId, workerHolder := range workers {
-		if newSetOfProjects.Has(projectId) {
+	for key, workerHolder := range workers {
+		if _, ok := newSetOfProjects[key]; ok {
 			continue
 		}
 		workersToStop = append(workersToStop, workerHolder)
@@ -114,7 +120,7 @@ func (m *module) configureWorkers(workers map[string]*gitopsWorkerHolder, projec
 	for _, workerHolder := range workersToStop {
 		m.log.Info("Stopping synchronization worker", logz.ProjectId(workerHolder.project.Id))
 		workerHolder.stop()
-		delete(workers, workerHolder.project.Id)
+		delete(workers, workerHolder.key)
 	}
 
 	// Wait for stopped workers to finish.
@@ -124,13 +130,13 @@ func (m *module) configureWorkers(workers map[string]*gitopsWorkerHolder, projec
 	}
 
 	// Start new workers for new projects or because of updated configuration.
-	for _, project := range projectsToStartWorkersFor {
-		m.startNewWorker(workers, project)
+	for key, project := range projectsToStartWorkersFor {
+		m.startNewWorker(workers, key, project)
 	}
 	return nil
 }
 
-func stopAllWorkers(workers map[string]*gitopsWorkerHolder) {
+func stopAllWorkers(workers map[workerKey]*gitopsWorkerHolder) {
 	// Tell all workers to stop
 	for _, workerHolder := range workers {
 		workerHolder.stop()
@@ -142,8 +148,23 @@ func stopAllWorkers(workers map[string]*gitopsWorkerHolder) {
 }
 
 type gitopsWorkerHolder struct {
+	key     workerKey
 	worker  GitopsWorker
 	project *agentcfg.ManifestProjectCF
 	wg      wait.Group
 	stop    context.CancelFunc
+}
+
+// keyForProject constructs a deterministic key for the passed manifest project message.
+func keyForProject(project *agentcfg.ManifestProjectCF) (workerKey, error) {
+	data, err := proto.MarshalOptions{
+		Deterministic: true,
+	}.Marshal(&agentcfg.ManifestProjectCF{
+		Id:    project.Id,
+		Paths: project.Paths,
+	})
+	if err != nil {
+		return "", err
+	}
+	return workerKey(data), nil
 }
