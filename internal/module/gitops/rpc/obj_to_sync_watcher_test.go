@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
@@ -83,10 +82,9 @@ func TestObjectsToSynchronizeWatcherResumeConnection(t *testing.T) {
 		GitopsClient: client,
 		RetryPeriod:  10 * time.Millisecond,
 	}
-	err := w.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
+	w.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
 		// Don't care
 	})
-	require.NoError(t, err)
 }
 
 func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
@@ -204,11 +202,10 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 				GitopsClient: client,
 				RetryPeriod:  10 * time.Millisecond,
 			}
-			err := w.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
+			w.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
 				// Must not be called
 				t.FailNow()
 			})
-			require.NoError(t, err)
 		})
 	}
 }

@@ -323,11 +323,9 @@ func (m *MockObjectsToSynchronizeWatcherInterface) EXPECT() *MockObjectsToSynchr
 }
 
 // Watch mocks base method.
-func (m *MockObjectsToSynchronizeWatcherInterface) Watch(arg0 context.Context, arg1 *rpc.ObjectsToSynchronizeRequest, arg2 rpc.ObjectsToSynchronizeCallback) error {
+func (m *MockObjectsToSynchronizeWatcherInterface) Watch(arg0 context.Context, arg1 *rpc.ObjectsToSynchronizeRequest, arg2 rpc.ObjectsToSynchronizeCallback) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Watch", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
+	m.ctrl.Call(m, "Watch", arg0, arg1, arg2)
 }
 
 // Watch indicates an expected call of Watch.

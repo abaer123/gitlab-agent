@@ -30,7 +30,7 @@ type ObjectsToSynchronizeCallback func(context.Context, ObjectsToSynchronizeData
 
 // ObjectsToSynchronizeWatcherInterface abstracts ObjectsToSynchronizeWatcher.
 type ObjectsToSynchronizeWatcherInterface interface {
-	Watch(context.Context, *ObjectsToSynchronizeRequest, ObjectsToSynchronizeCallback) error
+	Watch(context.Context, *ObjectsToSynchronizeRequest, ObjectsToSynchronizeCallback)
 }
 
 type ObjectsToSynchronizeWatcher struct {
@@ -39,11 +39,12 @@ type ObjectsToSynchronizeWatcher struct {
 	RetryPeriod  time.Duration
 }
 
-func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToSynchronizeRequest, callback ObjectsToSynchronizeCallback) error {
+func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToSynchronizeRequest, callback ObjectsToSynchronizeCallback) {
 	lastProcessedCommitId := req.CommitId
 	sv, err := grpctool.NewStreamVisitor(&ObjectsToSynchronizeResponse{})
 	if err != nil {
-		return err
+		// Coding error, must never happen
+		panic(err)
 	}
 	retry.JitterUntil(ctx, o.RetryPeriod, func(ctx context.Context) {
 		ctx, cancel := context.WithCancel(ctx)
@@ -71,7 +72,6 @@ func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToS
 		callback(ctx, v.objs)
 		lastProcessedCommitId = v.objs.CommitId
 	})
-	return nil
 }
 
 type objectsToSynchronizeVisitor struct {
