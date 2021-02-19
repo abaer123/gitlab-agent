@@ -13,7 +13,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"go.uber.org/zap/zaptest"
@@ -258,11 +258,11 @@ func TestAgentDescriptorIsSent(t *testing.T) {
 	require.EqualError(t, err, "Send(descriptor): expected err")
 }
 
-func setupConnection(t *testing.T) (*mock_reverse_tunnel.MockReverseTunnelClient, *mock_rpc.MockClientConnInterface, *mock_reverse_tunnel.MockReverseTunnel_ConnectClient, *connection) {
+func setupConnection(t *testing.T) (*mock_reverse_tunnel_rpc.MockReverseTunnelClient, *mock_rpc.MockClientConnInterface, *mock_reverse_tunnel_rpc.MockReverseTunnel_ConnectClient, *connection) {
 	ctrl := gomock.NewController(t)
-	client := mock_reverse_tunnel.NewMockReverseTunnelClient(ctrl)
+	client := mock_reverse_tunnel_rpc.NewMockReverseTunnelClient(ctrl)
 	conn := mock_rpc.NewMockClientConnInterface(ctrl)
-	tunnel := mock_reverse_tunnel.NewMockReverseTunnel_ConnectClient(ctrl)
+	tunnel := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectClient(ctrl)
 	sv, err := grpctool.NewStreamVisitor(&rpc.ConnectResponse{})
 	require.NoError(t, err)
 	c := &connection{

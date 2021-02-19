@@ -14,6 +14,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"go.uber.org/zap/zaptest"
@@ -32,7 +33,7 @@ func TestConnectAllowsValidToken(t *testing.T) {
 	agentInfo := testhelpers.AgentInfoObj()
 	ctx := api.InjectAgentMD(context.Background(), &api.AgentMD{Token: testhelpers.AgentkToken})
 	ctx = grpctool.InjectLogger(ctx, zaptest.NewLogger(t))
-	connectServer := mock_reverse_tunnel.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	gomock.InOrder(
 		connectServer.EXPECT().
 			Context().
@@ -51,7 +52,7 @@ func TestConnectRejectsInvalidToken(t *testing.T) {
 	ctrl, mockApi, _, m := setupModule(t)
 	ctx := api.InjectAgentMD(context.Background(), &api.AgentMD{Token: "invalid"})
 	ctx = grpctool.InjectLogger(ctx, zaptest.NewLogger(t))
-	connectServer := mock_reverse_tunnel.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	gomock.InOrder(
 		connectServer.EXPECT().
 			Context().

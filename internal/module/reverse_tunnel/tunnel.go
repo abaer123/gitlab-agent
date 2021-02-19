@@ -53,7 +53,7 @@ func (t *tunnel) ForwardStream(incomingStream grpc.ServerStream) error {
 		return status.Errorf(codes.Internal, "Invalid state %d", t.state)
 	}
 	// Here we have a situation where we need to pipe one server stream into another server stream.
-	// One stream is incoming request stream and the other one is incoming tunnel tunnel stream.
+	// One stream is incoming request stream and the other one is incoming tunnel stream.
 	// We need to use at least one extra goroutine in addition to the current one (or two separate ones) to
 	// implement full duplex bidirectional stream piping. One goroutine reads and writes in one direction and the other
 	// one in the opposite direction.
@@ -74,11 +74,6 @@ func (t *tunnel) ForwardStream(incomingStream grpc.ServerStream) error {
 	// Pipe incoming stream (i.e. data a client is sending us) into the tunnel stream
 	goErrPair(res, func() (error /* forTunnel */, error /* forIncomingStream */) {
 		md, _ := metadata.FromIncomingContext(incomingCtx)
-		//if md != nil {
-		// TODO sanitize?
-		//} else {
-		//md = metadata.MD{}
-		//}
 		err := t.tunnel.Send(&rpc.ConnectResponse{
 			Msg: &rpc.ConnectResponse_RequestInfo{
 				RequestInfo: &rpc.RequestInfo{

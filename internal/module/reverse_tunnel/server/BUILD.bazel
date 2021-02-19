@@ -30,6 +30,7 @@ go_test(
         "//internal/tool/grpctool",
         "//internal/tool/testing/mock_modserver",
         "//internal/tool/testing/mock_reverse_tunnel",
+        "//internal/tool/testing/mock_reverse_tunnel_rpc",
         "//internal/tool/testing/testhelpers",
         "//pkg/kascfg",
         "@com_github_golang_mock//gomock",

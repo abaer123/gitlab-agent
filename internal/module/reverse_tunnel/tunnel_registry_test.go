@@ -14,7 +14,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel_rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"go.uber.org/zap/zaptest"
@@ -39,8 +40,8 @@ var (
 func TestRunUnregistersAllConnections(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
-	connectServer := mock_reverse_tunnel.NewMockReverseTunnel_ConnectServer(ctrl)
-	tunnelRegisterer := mock_reverse_tunnel.NewMockRegisterer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
 	gomock.InOrder(
 		connectServer.EXPECT().
 			Recv().
@@ -73,8 +74,8 @@ func TestHandleTunnelConnectionIsUnblockedByContext(t *testing.T) {
 	defer cancelConn()
 
 	ctrl := gomock.NewController(t)
-	connectServer := mock_reverse_tunnel.NewMockReverseTunnel_ConnectServer(ctrl)
-	tunnelRegisterer := mock_reverse_tunnel.NewMockRegisterer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
 	gomock.InOrder(
 		connectServer.EXPECT().
 			Recv().
@@ -103,11 +104,11 @@ func TestHandleTunnelConnectionIsUnblockedByContext(t *testing.T) {
 
 func TestHandleTunnelConnectionReturnErrOnRecvErr(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	connectServer := mock_reverse_tunnel.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	connectServer.EXPECT().
 		Recv().
 		Return(nil, errors.New("expected err"))
-	tunnelRegisterer := mock_reverse_tunnel.NewMockRegisterer(ctrl)
+	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
 	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer)
 	require.NoError(t, err)
 	err = r.HandleTunnel(context.Background(), testhelpers.AgentInfoObj(), connectServer)
@@ -116,7 +117,7 @@ func TestHandleTunnelConnectionReturnErrOnRecvErr(t *testing.T) {
 
 func TestHandleTunnelConnectionReturnErrOnInvalidMsg(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	connectServer := mock_reverse_tunnel.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	connectServer.EXPECT().
 		Recv().
 		Return(&rpc.ConnectRequest{
@@ -124,7 +125,7 @@ func TestHandleTunnelConnectionReturnErrOnInvalidMsg(t *testing.T) {
 				Header: &rpc.Header{},
 			},
 		}, nil)
-	tunnelRegisterer := mock_reverse_tunnel.NewMockRegisterer(ctrl)
+	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
 	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer)
 	require.NoError(t, err)
 	err = r.HandleTunnel(context.Background(), testhelpers.AgentInfoObj(), connectServer)
@@ -178,7 +179,7 @@ func TestIncomingConnectionIsMatchedToHandleTunnelConnection(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServerStream, *mock_reverse_tunnel.MockReverseTunnel_ConnectServer, *TunnelRegistry) {
+func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServerStream, *mock_reverse_tunnel_rpc.MockReverseTunnel_ConnectServer, *TunnelRegistry) {
 	const metaKey = "Cba"
 	meta := metadata.MD{}
 	meta.Set(metaKey, "3", "4")
@@ -193,8 +194,8 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 		Return(incomingCtx).
 		MinTimes(1)
 
-	tunnelRegisterer := mock_reverse_tunnel.NewMockRegisterer(ctrl)
-	connectServer := mock_reverse_tunnel.NewMockReverseTunnel_ConnectServer(ctrl)
+	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	connectServer.EXPECT().
 		Recv().
 		Return(&rpc.ConnectRequest{

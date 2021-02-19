@@ -25,7 +25,7 @@ type TunnelHandler interface {
 type TunnelFinder interface {
 	// FindTunnel finds a tunnel to a matching agentk.
 	// It waits for a matching tunnel to proxy a connection through. When a matching tunnel is found, it is returned.
-	// It returns an error, compatible with gRPC status package.
+	// It only returns errors from the context or context.Canceled if the finder is shutting down.
 	FindTunnel(ctx context.Context, agentId int64) (Tunnel, error)
 }
 
@@ -96,7 +96,7 @@ func (r *TunnelRegistry) FindTunnel(ctx context.Context, agentId int64) (Tunnel,
 	}
 	select {
 	case <-ctx.Done():
-		return nil, status.Error(codes.Canceled, "context done")
+		return nil, ctx.Err()
 	case r.findRequest <- ftr:
 	}
 	select {
@@ -110,10 +110,10 @@ func (r *TunnelRegistry) FindTunnel(ctx context.Context, agentId int64) (Tunnel,
 				tun.Done()
 			}
 		}
-		return nil, status.Error(codes.Canceled, "context done")
+		return nil, ctx.Err()
 	case tun := <-retTun:
 		if tun == nil {
-			return nil, status.Error(codes.Unavailable, "unavailable")
+			return nil, context.Canceled
 		}
 		return tun, nil
 	}
