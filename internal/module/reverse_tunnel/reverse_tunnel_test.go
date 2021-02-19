@@ -299,19 +299,10 @@ type serverTestingServer struct {
 	tunnelFinder reverse_tunnel.TunnelFinder
 }
 
-func (s *serverTestingServer) RequestResponse(srv interface{}, server grpc.ServerStream) error {
+func (s *serverTestingServer) ForwardStream(srv interface{}, server grpc.ServerStream) error {
 	tunnel, err := s.tunnelFinder.FindTunnel(server.Context(), testhelpers.AgentId)
 	if err != nil {
-		return err
-	}
-	defer tunnel.Done()
-	return tunnel.ForwardStream(server)
-}
-
-func (s *serverTestingServer) StreamingRequestResponse(srv interface{}, server grpc.ServerStream) error {
-	tunnel, err := s.tunnelFinder.FindTunnel(server.Context(), testhelpers.AgentId)
-	if err != nil {
-		return err
+		return status.FromContextError(err).Err()
 	}
 	defer tunnel.Done()
 	return tunnel.ForwardStream(server)
@@ -326,13 +317,13 @@ func registerTestingServer(s *grpc.Server, h *serverTestingServer) {
 		Streams: []grpc.StreamDesc{
 			{
 				StreamName:    "RequestResponse",
-				Handler:       h.RequestResponse,
+				Handler:       h.ForwardStream,
 				ServerStreams: true,
 				ClientStreams: true,
 			},
 			{
 				StreamName:    "StreamingRequestResponse",
-				Handler:       h.StreamingRequestResponse,
+				Handler:       h.ForwardStream,
 				ServerStreams: true,
 				ClientStreams: true,
 			},
