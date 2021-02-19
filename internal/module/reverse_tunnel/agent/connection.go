@@ -142,8 +142,8 @@ func pipeInternalClientIntoTunnel(tunnel rpc.ReverseTunnel_ConnectClient, client
 	if err != nil {
 		return fmt.Errorf("Send(header): %w", err) // wrap
 	}
+	var frame grpctool.RawFrame
 	for {
-		var frame grpctool.RawFrame
 		err = clientStream.RecvMsg(&frame)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
