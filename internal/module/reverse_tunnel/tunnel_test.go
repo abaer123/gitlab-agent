@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	statuspb "google.golang.org/genproto/googleapis/rpc/status"
@@ -27,7 +27,7 @@ func TestVisitorErrorIsReturnedOnErrorMessageAndReadError(t *testing.T) {
 	tunnelRetErr := make(chan error)
 	tunnelStreamVisitor, err := grpctool.NewStreamVisitor(&rpc.ConnectRequest{})
 	require.NoError(t, err)
-	connectServer := mock_reverse_tunnel.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	incomingStream := mock_rpc.NewMockServerStream(ctrl)
 	sts := mock_rpc.NewMockServerTransportStream(ctrl)
 	incomingCtx := grpc.NewContextWithServerTransportStream(context.Background(), sts)

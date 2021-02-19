@@ -37,6 +37,8 @@ internal-regenerate-mocks:
 	go generate -x -v \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/agent" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel_rpc" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel_tracker" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_agent_tracker" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_usage_metrics" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab" \

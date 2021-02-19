@@ -17,7 +17,7 @@ import (
 	reverse_tunnel_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"go.uber.org/zap"
@@ -26,11 +26,11 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
-func serverConstructComponents(t *testing.T) (func(context.Context) error, grpc.ClientConnInterface, grpc.ClientConnInterface, *mock_modserver.MockAPI, *mock_reverse_tunnel.MockRegisterer) {
+func serverConstructComponents(t *testing.T) (func(context.Context) error, grpc.ClientConnInterface, grpc.ClientConnInterface, *mock_modserver.MockAPI, *mock_reverse_tunnel_tracker.MockRegisterer) {
 	log := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
 	serverApi := mock_modserver.NewMockAPI(ctrl)
-	tunnelRegisterer := mock_reverse_tunnel.NewMockRegisterer(ctrl)
+	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
 	agentServer := serverConstructAgentServer(log)
 	agentServerListener := grpctool.NewDialListener()
 

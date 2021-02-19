@@ -1,18 +1,17 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "mock_reverse_tunnel",
+    name = "mock_reverse_tunnel_rpc",
     srcs = [
-        "api.go",
         "doc.go",
+        "rpc.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel_rpc",
     visibility = ["//:__subpackages__"],
     deps = [
-        "//internal/api",
-        "//internal/module/reverse_tunnel",
         "//internal/module/reverse_tunnel/rpc",
         "@com_github_golang_mock//gomock",
         "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//metadata",
     ],
 )
