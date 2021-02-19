@@ -36,6 +36,7 @@ regenerate-proto: internal-regenerate-proto fmt update-bazel
 internal-regenerate-mocks:
 	go generate -x -v \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/agent" \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel_rpc" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel_tracker" \

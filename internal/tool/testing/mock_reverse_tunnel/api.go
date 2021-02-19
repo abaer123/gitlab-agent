@@ -126,15 +126,15 @@ func (mr *MockTunnelMockRecorder) Done() *gomock.Call {
 }
 
 // ForwardStream mocks base method.
-func (m *MockTunnel) ForwardStream(arg0 grpc.ServerStream) error {
+func (m *MockTunnel) ForwardStream(arg0 grpc.ServerStream, arg1 reverse_tunnel.TunnelDataCallback) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ForwardStream", arg0)
+	ret := m.ctrl.Call(m, "ForwardStream", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ForwardStream indicates an expected call of ForwardStream.
-func (mr *MockTunnelMockRecorder) ForwardStream(arg0 interface{}) *gomock.Call {
+func (mr *MockTunnelMockRecorder) ForwardStream(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ForwardStream", reflect.TypeOf((*MockTunnel)(nil).ForwardStream), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ForwardStream", reflect.TypeOf((*MockTunnel)(nil).ForwardStream), arg0, arg1)
 }

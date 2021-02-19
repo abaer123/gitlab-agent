@@ -31,9 +31,17 @@ const (
 	errorNumber           protoreflect.FieldNumber = 5
 )
 
+type TunnelDataCallback interface {
+	Header(metadata.MD) error
+	Message([]byte) error
+	Trailer(metadata.MD)
+}
+
 type Tunnel interface {
 	// ForwardStream performs bi-directional message forwarding between incomingStream and the tunnel.
-	ForwardStream(incomingStream grpc.ServerStream) error
+	// cb is called with headers, messages and trailers coming from the tunnel. It's the callers
+	// responsibility to forward them into the incomingStream.
+	ForwardStream(incomingStream grpc.ServerStream, cb TunnelDataCallback) error
 	// Done must be called when the caller is done with the Tunnel.
 	Done()
 }
@@ -46,7 +54,7 @@ type tunnel struct {
 	state               stateType
 }
 
-func (t *tunnel) ForwardStream(incomingStream grpc.ServerStream) error {
+func (t *tunnel) ForwardStream(incomingStream grpc.ServerStream, cb TunnelDataCallback) error {
 	if t.state == stateReady {
 		t.state = stateForwarding
 	} else {
@@ -132,15 +140,13 @@ func (t *tunnel) ForwardStream(incomingStream grpc.ServerStream) error {
 				return status.Errorf(codes.Internal, "Unexpected %T message received", descriptor)
 			}),
 			grpctool.WithCallback(headerNumber, func(header *rpc.Header) error {
-				return incomingStream.SetHeader(header.Metadata())
+				return cb.Header(header.Metadata())
 			}),
 			grpctool.WithCallback(messageNumber, func(message *rpc.Message) error {
-				return incomingStream.SendMsg(&grpctool.RawFrame{
-					Data: message.Data,
-				})
+				return cb.Message(message.Data)
 			}),
 			grpctool.WithCallback(trailerNumber, func(trailer *rpc.Trailer) error {
-				incomingStream.SetTrailer(trailer.Metadata())
+				cb.Trailer(trailer.Metadata())
 				return nil
 			}),
 			grpctool.WithCallback(errorNumber, func(rpcError *rpc.Error) error {
