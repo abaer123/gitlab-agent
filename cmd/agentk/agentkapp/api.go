@@ -16,9 +16,9 @@ import (
 const (
 	maxDataChunkSize = 32 * 1024
 
-	headerFieldNumber   protoreflect.FieldNumber = 1
-	dataFieldNumber     protoreflect.FieldNumber = 2
-	trailersFieldNumber protoreflect.FieldNumber = 3
+	headerFieldNumber  protoreflect.FieldNumber = 1
+	dataFieldNumber    protoreflect.FieldNumber = 2
+	trailerFieldNumber protoreflect.FieldNumber = 3
 )
 
 // agentAPI is an implementation of modagent.API.
@@ -77,7 +77,7 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 				_, err := pw.Write(data.Data)
 				return err
 			}),
-			grpctool.WithCallback(trailersFieldNumber, func(trailers *gitlab_access_rpc.Response_Trailers) error {
+			grpctool.WithCallback(trailerFieldNumber, func(trailer *gitlab_access_rpc.Response_Trailer) error {
 				return nil
 			}),
 			grpctool.WithEOFCallback(func() error {
@@ -150,12 +150,12 @@ func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequest
 		}
 	}
 	err = client.Send(&gitlab_access_rpc.Request{
-		Message: &gitlab_access_rpc.Request_Trailers_{
-			Trailers: &gitlab_access_rpc.Request_Trailers{},
+		Message: &gitlab_access_rpc.Request_Trailer_{
+			Trailer: &gitlab_access_rpc.Request_Trailer{},
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("send request trailers: %w", err) // wrap
+		return fmt.Errorf("send request trailer: %w", err) // wrap
 	}
 	err = client.CloseSend()
 	if err != nil {

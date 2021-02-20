@@ -169,12 +169,12 @@ func (m *ObjectsToSynchronizeResponse) Validate() error {
 			}
 		}
 
-	case *ObjectsToSynchronizeResponse_Trailers_:
+	case *ObjectsToSynchronizeResponse_Trailer_:
 
-		if v, ok := interface{}(m.GetTrailers()).(interface{ Validate() error }); ok {
+		if v, ok := interface{}(m.GetTrailer()).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return ObjectsToSynchronizeResponseValidationError{
-					field:  "Trailers",
+					field:  "Trailer",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
@@ -401,10 +401,10 @@ var _ interface {
 	ErrorName() string
 } = ObjectsToSynchronizeResponse_ObjectValidationError{}
 
-// Validate checks the field values on ObjectsToSynchronizeResponse_Trailers
+// Validate checks the field values on ObjectsToSynchronizeResponse_Trailer
 // with the rules defined in the proto definition for this message. If any
 // rules are violated, an error is returned.
-func (m *ObjectsToSynchronizeResponse_Trailers) Validate() error {
+func (m *ObjectsToSynchronizeResponse_Trailer) Validate() error {
 	if m == nil {
 		return nil
 	}
@@ -412,10 +412,10 @@ func (m *ObjectsToSynchronizeResponse_Trailers) Validate() error {
 	return nil
 }
 
-// ObjectsToSynchronizeResponse_TrailersValidationError is the validation error
-// returned by ObjectsToSynchronizeResponse_Trailers.Validate if the
-// designated constraints aren't met.
-type ObjectsToSynchronizeResponse_TrailersValidationError struct {
+// ObjectsToSynchronizeResponse_TrailerValidationError is the validation error
+// returned by ObjectsToSynchronizeResponse_Trailer.Validate if the designated
+// constraints aren't met.
+type ObjectsToSynchronizeResponse_TrailerValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -423,24 +423,24 @@ type ObjectsToSynchronizeResponse_TrailersValidationError struct {
 }
 
 // Field function returns field value.
-func (e ObjectsToSynchronizeResponse_TrailersValidationError) Field() string { return e.field }
+func (e ObjectsToSynchronizeResponse_TrailerValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e ObjectsToSynchronizeResponse_TrailersValidationError) Reason() string { return e.reason }
+func (e ObjectsToSynchronizeResponse_TrailerValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e ObjectsToSynchronizeResponse_TrailersValidationError) Cause() error { return e.cause }
+func (e ObjectsToSynchronizeResponse_TrailerValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e ObjectsToSynchronizeResponse_TrailersValidationError) Key() bool { return e.key }
+func (e ObjectsToSynchronizeResponse_TrailerValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e ObjectsToSynchronizeResponse_TrailersValidationError) ErrorName() string {
-	return "ObjectsToSynchronizeResponse_TrailersValidationError"
+func (e ObjectsToSynchronizeResponse_TrailerValidationError) ErrorName() string {
+	return "ObjectsToSynchronizeResponse_TrailerValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e ObjectsToSynchronizeResponse_TrailersValidationError) Error() string {
+func (e ObjectsToSynchronizeResponse_TrailerValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -452,14 +452,14 @@ func (e ObjectsToSynchronizeResponse_TrailersValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sObjectsToSynchronizeResponse_Trailers.%s: %s%s",
+		"invalid %sObjectsToSynchronizeResponse_Trailer.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = ObjectsToSynchronizeResponse_TrailersValidationError{}
+var _ error = ObjectsToSynchronizeResponse_TrailerValidationError{}
 
 var _ interface {
 	Field() string
@@ -467,4 +467,4 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = ObjectsToSynchronizeResponse_TrailersValidationError{}
+} = ObjectsToSynchronizeResponse_TrailerValidationError{}

@@ -78,7 +78,7 @@ func (j *pollJob) Attempt() (bool /*done*/, error) {
 	if err != nil {
 		return false, err // no wrap
 	}
-	err = j.sendObjectsToSynchronizeTrailers(j.server, log)
+	err = j.sendObjectsToSynchronizeTrailer(j.server, log)
 	if err != nil {
 		return false, err // no wrap
 	}
@@ -141,14 +141,14 @@ func (j *pollJob) sendObjectsToSynchronizeBody(req *rpc.ObjectsToSynchronizeRequ
 	return v.numberOfFiles, nil
 }
 
-func (j *pollJob) sendObjectsToSynchronizeTrailers(server rpc.Gitops_GetObjectsToSynchronizeServer, log *zap.Logger) error {
+func (j *pollJob) sendObjectsToSynchronizeTrailer(server rpc.Gitops_GetObjectsToSynchronizeServer, log *zap.Logger) error {
 	err := server.Send(&rpc.ObjectsToSynchronizeResponse{
-		Message: &rpc.ObjectsToSynchronizeResponse_Trailers_{
-			Trailers: &rpc.ObjectsToSynchronizeResponse_Trailers{},
+		Message: &rpc.ObjectsToSynchronizeResponse_Trailer_{
+			Trailer: &rpc.ObjectsToSynchronizeResponse_Trailer{},
 		},
 	})
 	if err != nil {
-		return j.api.HandleSendError(log, "GitOps: failed to send trailers for objects to synchronize", err)
+		return j.api.HandleSendError(log, "GitOps: failed to send trailer for objects to synchronize", err)
 	}
 	return nil
 }

@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	headerFieldNumber   protoreflect.FieldNumber = 1
-	objectFieldNumber   protoreflect.FieldNumber = 2
-	trailersFieldNumber protoreflect.FieldNumber = 3
+	headerFieldNumber  protoreflect.FieldNumber = 1
+	objectFieldNumber  protoreflect.FieldNumber = 2
+	trailerFieldNumber protoreflect.FieldNumber = 3
 )
 
 type ObjectSource struct {
@@ -61,7 +61,7 @@ func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToS
 		err = sv.Visit(res,
 			grpctool.WithCallback(headerFieldNumber, v.OnHeader),
 			grpctool.WithCallback(objectFieldNumber, v.OnObject),
-			grpctool.WithCallback(trailersFieldNumber, v.OnTrailers),
+			grpctool.WithCallback(trailerFieldNumber, v.OnTrailer),
 		)
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
@@ -98,7 +98,7 @@ func (v *objectsToSynchronizeVisitor) OnObject(object *ObjectsToSynchronizeRespo
 	return nil
 }
 
-func (v *objectsToSynchronizeVisitor) OnTrailers(trailers *ObjectsToSynchronizeResponse_Trailers) error {
+func (v *objectsToSynchronizeVisitor) OnTrailer(trailer *ObjectsToSynchronizeResponse_Trailer) error {
 	// Nothing to do at the moment
 	return nil
 }

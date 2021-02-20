@@ -44,7 +44,7 @@ message ObjectsToSynchronizeResponse {
     bytes data = 2;
   }
   // Last message of the stream.
-  message Trailers {
+  message Trailer {
   }
   oneof message {
 
@@ -53,7 +53,7 @@ message ObjectsToSynchronizeResponse {
 
     Header header = 1 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
     Object object = 2 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
-    Trailers trailers = 3 [(grpctool.automata.next_allowed_field) = -1];
+    Trailer trailer = 3 [(grpctool.automata.next_allowed_field) = -1];
   }
 }
 

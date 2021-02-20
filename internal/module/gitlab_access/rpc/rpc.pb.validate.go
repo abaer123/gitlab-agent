@@ -133,12 +133,12 @@ func (m *Request) Validate() error {
 			}
 		}
 
-	case *Request_Trailers_:
+	case *Request_Trailer_:
 
-		if v, ok := interface{}(m.GetTrailers()).(interface{ Validate() error }); ok {
+		if v, ok := interface{}(m.GetTrailer()).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return RequestValidationError{
-					field:  "Trailers",
+					field:  "Trailer",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
@@ -243,12 +243,12 @@ func (m *Response) Validate() error {
 			}
 		}
 
-	case *Response_Trailers_:
+	case *Response_Trailer_:
 
-		if v, ok := interface{}(m.GetTrailers()).(interface{ Validate() error }); ok {
+		if v, ok := interface{}(m.GetTrailer()).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return ResponseValidationError{
-					field:  "Trailers",
+					field:  "Trailer",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
@@ -507,10 +507,10 @@ var _ interface {
 	ErrorName() string
 } = Request_DataValidationError{}
 
-// Validate checks the field values on Request_Trailers with the rules defined
+// Validate checks the field values on Request_Trailer with the rules defined
 // in the proto definition for this message. If any rules are violated, an
 // error is returned.
-func (m *Request_Trailers) Validate() error {
+func (m *Request_Trailer) Validate() error {
 	if m == nil {
 		return nil
 	}
@@ -518,9 +518,9 @@ func (m *Request_Trailers) Validate() error {
 	return nil
 }
 
-// Request_TrailersValidationError is the validation error returned by
-// Request_Trailers.Validate if the designated constraints aren't met.
-type Request_TrailersValidationError struct {
+// Request_TrailerValidationError is the validation error returned by
+// Request_Trailer.Validate if the designated constraints aren't met.
+type Request_TrailerValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -528,22 +528,22 @@ type Request_TrailersValidationError struct {
 }
 
 // Field function returns field value.
-func (e Request_TrailersValidationError) Field() string { return e.field }
+func (e Request_TrailerValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e Request_TrailersValidationError) Reason() string { return e.reason }
+func (e Request_TrailerValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e Request_TrailersValidationError) Cause() error { return e.cause }
+func (e Request_TrailerValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e Request_TrailersValidationError) Key() bool { return e.key }
+func (e Request_TrailerValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e Request_TrailersValidationError) ErrorName() string { return "Request_TrailersValidationError" }
+func (e Request_TrailerValidationError) ErrorName() string { return "Request_TrailerValidationError" }
 
 // Error satisfies the builtin error interface
-func (e Request_TrailersValidationError) Error() string {
+func (e Request_TrailerValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -555,14 +555,14 @@ func (e Request_TrailersValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sRequest_Trailers.%s: %s%s",
+		"invalid %sRequest_Trailer.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = Request_TrailersValidationError{}
+var _ error = Request_TrailerValidationError{}
 
 var _ interface {
 	Field() string
@@ -570,7 +570,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = Request_TrailersValidationError{}
+} = Request_TrailerValidationError{}
 
 // Validate checks the field values on Response_Header with the rules defined
 // in the proto definition for this message. If any rules are violated, an
@@ -725,10 +725,10 @@ var _ interface {
 	ErrorName() string
 } = Response_DataValidationError{}
 
-// Validate checks the field values on Response_Trailers with the rules defined
+// Validate checks the field values on Response_Trailer with the rules defined
 // in the proto definition for this message. If any rules are violated, an
 // error is returned.
-func (m *Response_Trailers) Validate() error {
+func (m *Response_Trailer) Validate() error {
 	if m == nil {
 		return nil
 	}
@@ -736,9 +736,9 @@ func (m *Response_Trailers) Validate() error {
 	return nil
 }
 
-// Response_TrailersValidationError is the validation error returned by
-// Response_Trailers.Validate if the designated constraints aren't met.
-type Response_TrailersValidationError struct {
+// Response_TrailerValidationError is the validation error returned by
+// Response_Trailer.Validate if the designated constraints aren't met.
+type Response_TrailerValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -746,24 +746,22 @@ type Response_TrailersValidationError struct {
 }
 
 // Field function returns field value.
-func (e Response_TrailersValidationError) Field() string { return e.field }
+func (e Response_TrailerValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e Response_TrailersValidationError) Reason() string { return e.reason }
+func (e Response_TrailerValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e Response_TrailersValidationError) Cause() error { return e.cause }
+func (e Response_TrailerValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e Response_TrailersValidationError) Key() bool { return e.key }
+func (e Response_TrailerValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e Response_TrailersValidationError) ErrorName() string {
-	return "Response_TrailersValidationError"
-}
+func (e Response_TrailerValidationError) ErrorName() string { return "Response_TrailerValidationError" }
 
 // Error satisfies the builtin error interface
-func (e Response_TrailersValidationError) Error() string {
+func (e Response_TrailerValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -775,14 +773,14 @@ func (e Response_TrailersValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sResponse_Trailers.%s: %s%s",
+		"invalid %sResponse_Trailer.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = Response_TrailersValidationError{}
+var _ error = Response_TrailerValidationError{}
 
 var _ interface {
 	Field() string
@@ -790,4 +788,4 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = Response_TrailersValidationError{}
+} = Response_TrailerValidationError{}

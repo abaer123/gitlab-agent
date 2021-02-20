@@ -172,8 +172,8 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 			})),
 		server.EXPECT().
 			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
-				Message: &rpc.ObjectsToSynchronizeResponse_Trailers_{
-					Trailers: &rpc.ObjectsToSynchronizeResponse_Trailers{},
+				Message: &rpc.ObjectsToSynchronizeResponse_Trailer_{
+					Trailer: &rpc.ObjectsToSynchronizeResponse_Trailer{},
 				},
 			})).
 			Do(func(resp *rpc.ObjectsToSynchronizeResponse) {

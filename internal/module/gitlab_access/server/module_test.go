@@ -89,8 +89,8 @@ func TestMakeRequest(t *testing.T) {
 			},
 		},
 		&rpc.Request{
-			Message: &rpc.Request_Trailers_{
-				Trailers: &rpc.Request_Trailers{},
+			Message: &rpc.Request_Trailer_{
+				Trailer: &rpc.Request_Trailer{},
 			},
 		},
 	)...)
@@ -139,8 +139,8 @@ func TestMakeRequest(t *testing.T) {
 				}},
 		},
 		&rpc.Response{
-			Message: &rpc.Response_Trailers_{
-				Trailers: &rpc.Response_Trailers{},
+			Message: &rpc.Response_Trailer_{
+				Trailer: &rpc.Response_Trailer{},
 			},
 		},
 	)

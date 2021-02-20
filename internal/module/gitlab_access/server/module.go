@@ -21,9 +21,9 @@ import (
 )
 
 const (
-	headerFieldNumber   protoreflect.FieldNumber = 1
-	dataFieldNumber     protoreflect.FieldNumber = 2
-	trailersFieldNumber protoreflect.FieldNumber = 3
+	headerFieldNumber  protoreflect.FieldNumber = 1
+	dataFieldNumber    protoreflect.FieldNumber = 2
+	trailerFieldNumber protoreflect.FieldNumber = 3
 
 	urlPathForModules = "/api/v4/internal/kubernetes/modules/"
 	maxDataChunkSize  = 32 * 1024
@@ -62,7 +62,7 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 				_, err := pw.Write(data.Data)
 				return err
 			}),
-			grpctool.WithCallback(trailersFieldNumber, func(trailers *rpc.Request_Trailers) error {
+			grpctool.WithCallback(trailerFieldNumber, func(trailer *rpc.Request_Trailer) error {
 				// Nothing to do
 				return nil
 			}),
@@ -125,12 +125,12 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 			}
 		}
 		err = server.Send(&rpc.Response{
-			Message: &rpc.Response_Trailers_{
-				Trailers: &rpc.Response_Trailers{},
+			Message: &rpc.Response_Trailer_{
+				Trailer: &rpc.Response_Trailer{},
 			},
 		})
 		if err != nil {
-			return m.api.HandleSendError(log, "MakeRequest failed to send trailers", err)
+			return m.api.HandleSendError(log, "MakeRequest failed to send trailer", err)
 		}
 		return nil
 	})

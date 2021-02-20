@@ -39,7 +39,7 @@ type TunnelDataCallback interface {
 
 type Tunnel interface {
 	// ForwardStream performs bi-directional message forwarding between incomingStream and the tunnel.
-	// cb is called with header, messages and trailers coming from the tunnel. It's the callers
+	// cb is called with header, messages and trailer coming from the tunnel. It's the callers
 	// responsibility to forward them into the incomingStream.
 	ForwardStream(incomingStream grpc.ServerStream, cb TunnelDataCallback) error
 	// Done must be called when the caller is done with the Tunnel.
