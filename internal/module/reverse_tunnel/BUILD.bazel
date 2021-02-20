@@ -49,6 +49,7 @@ go_test(
         "//internal/module/reverse_tunnel/server",
         "//internal/tool/grpctool",
         "//internal/tool/grpctool/test",
+        "//internal/tool/prototool",
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_modserver",
         "//internal/tool/testing/mock_reverse_tunnel_rpc",

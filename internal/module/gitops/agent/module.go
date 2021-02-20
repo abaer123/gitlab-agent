@@ -6,7 +6,7 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/protodefault"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
@@ -40,7 +40,7 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 }
 
 func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error {
-	protodefault.NotNil(&config.Gitops)
+	prototool.NotNil(&config.Gitops)
 	for _, project := range config.Gitops.ManifestProjects {
 		applyDefaultsToManifestProject(project)
 	}
@@ -48,7 +48,7 @@ func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfigura
 }
 
 func applyDefaultsToManifestProject(project *agentcfg.ManifestProjectCF) {
-	protodefault.String(&project.DefaultNamespace, defaultGitOpsManifestNamespace)
+	prototool.String(&project.DefaultNamespace, defaultGitOpsManifestNamespace)
 	if len(project.Paths) == 0 {
 		project.Paths = []*agentcfg.PathCF{
 			{

@@ -36,70 +36,6 @@ var (
 // define the regex for a UUID once up-front
 var _rpc_uuidPattern = regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
-// Validate checks the field values on Values with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is returned.
-func (m *Values) Validate() error {
-	if m == nil {
-		return nil
-	}
-
-	return nil
-}
-
-// ValuesValidationError is the validation error returned by Values.Validate if
-// the designated constraints aren't met.
-type ValuesValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e ValuesValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e ValuesValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e ValuesValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e ValuesValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e ValuesValidationError) ErrorName() string { return "ValuesValidationError" }
-
-// Error satisfies the builtin error interface
-func (e ValuesValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sValues.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = ValuesValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = ValuesValidationError{}
-
 // Validate checks the field values on Request with the rules defined in the
 // proto definition for this message. If any rules are violated, an error is returned.
 func (m *Request) Validate() error {
@@ -335,52 +271,21 @@ func (m *Request_Header) Validate() error {
 		}
 	}
 
-	if utf8.RuneCountInString(m.GetMethod()) < 1 {
+	if m.GetRequest() == nil {
 		return Request_HeaderValidationError{
-			field:  "Method",
-			reason: "value length must be at least 1 runes",
+			field:  "Request",
+			reason: "value is required",
 		}
 	}
 
-	for key, val := range m.GetHeader() {
-		_ = val
-
-		// no validation rules for Header[key]
-
-		if v, ok := interface{}(val).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return Request_HeaderValidationError{
-					field:  fmt.Sprintf("Header[%v]", key),
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
+	if v, ok := interface{}(m.GetRequest()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return Request_HeaderValidationError{
+				field:  "Request",
+				reason: "embedded message failed validation",
+				cause:  err,
 			}
 		}
-
-	}
-
-	if utf8.RuneCountInString(m.GetUrlPath()) < 1 {
-		return Request_HeaderValidationError{
-			field:  "UrlPath",
-			reason: "value length must be at least 1 runes",
-		}
-	}
-
-	for key, val := range m.GetQuery() {
-		_ = val
-
-		// no validation rules for Query[key]
-
-		if v, ok := interface{}(val).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return Request_HeaderValidationError{
-					field:  fmt.Sprintf("Query[%v]", key),
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
 	}
 
 	return nil
@@ -580,25 +485,21 @@ func (m *Response_Header) Validate() error {
 		return nil
 	}
 
-	// no validation rules for StatusCode
+	if m.GetResponse() == nil {
+		return Response_HeaderValidationError{
+			field:  "Response",
+			reason: "value is required",
+		}
+	}
 
-	// no validation rules for Status
-
-	for key, val := range m.GetHeader() {
-		_ = val
-
-		// no validation rules for Header[key]
-
-		if v, ok := interface{}(val).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return Response_HeaderValidationError{
-					field:  fmt.Sprintf("Header[%v]", key),
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
+	if v, ok := interface{}(m.GetResponse()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return Response_HeaderValidationError{
+				field:  "Response",
+				reason: "embedded message failed validation",
+				cause:  err,
 			}
 		}
-
 	}
 
 	return nil

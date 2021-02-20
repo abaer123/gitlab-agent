@@ -10,7 +10,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/protodefault"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
 )
@@ -73,8 +73,8 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 }
 
 func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error {
-	protodefault.NotNil(&config.Observability)
-	protodefault.NotNil(&config.Observability.Logging)
+	prototool.NotNil(&config.Observability)
+	prototool.NotNil(&config.Observability.Logging)
 	err := m.defaultAndValidateLogging(config.Observability.Logging)
 	if err != nil {
 		return fmt.Errorf("logging: %v", err)

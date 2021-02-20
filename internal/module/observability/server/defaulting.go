@@ -1,7 +1,7 @@
 package server
 
 import (
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/protodefault"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 )
 
@@ -13,24 +13,24 @@ const (
 )
 
 func ApplyDefaults(config *kascfg.ConfigurationFile) {
-	protodefault.NotNil(&config.Observability)
+	prototool.NotNil(&config.Observability)
 	o := config.Observability
 
-	protodefault.NotNil(&o.Listen)
-	protodefault.String(&o.Listen.Address, defaultObservabilityListenAddress)
+	prototool.NotNil(&o.Listen)
+	prototool.String(&o.Listen.Address, defaultObservabilityListenAddress)
 
-	protodefault.NotNil(&o.Prometheus)
-	protodefault.String(&o.Prometheus.UrlPath, defaultObservabilityPrometheusUrlPath)
+	prototool.NotNil(&o.Prometheus)
+	prototool.String(&o.Prometheus.UrlPath, defaultObservabilityPrometheusUrlPath)
 
-	protodefault.NotNil(&o.Tracing)
+	prototool.NotNil(&o.Tracing)
 
-	protodefault.NotNil(&o.Sentry)
+	prototool.NotNil(&o.Sentry)
 
-	protodefault.NotNil(&o.Logging)
+	prototool.NotNil(&o.Logging)
 
-	protodefault.NotNil(&o.LivenessProbe)
-	protodefault.String(&o.LivenessProbe.UrlPath, defaultObservabilityLivenessProbeUrlPath)
+	prototool.NotNil(&o.LivenessProbe)
+	prototool.String(&o.LivenessProbe.UrlPath, defaultObservabilityLivenessProbeUrlPath)
 
-	protodefault.NotNil(&o.ReadinessProbe)
-	protodefault.String(&o.ReadinessProbe.UrlPath, defaultObservabilityReadinessProbeUrlPath)
+	prototool.NotNil(&o.ReadinessProbe)
+	prototool.String(&o.ReadinessProbe.UrlPath, defaultObservabilityReadinessProbeUrlPath)
 }

@@ -86,7 +86,7 @@ func (t *tunnel) ForwardStream(incomingStream grpc.ServerStream, cb TunnelDataCa
 			Msg: &rpc.ConnectResponse_RequestInfo{
 				RequestInfo: &rpc.RequestInfo{
 					MethodName: grpc.ServerTransportStreamFromContext(incomingCtx).Method(),
-					Meta:       rpc.MetaToValuesMap(md),
+					Meta:       grpctool.MetaToValuesMap(md),
 				},
 			},
 		})

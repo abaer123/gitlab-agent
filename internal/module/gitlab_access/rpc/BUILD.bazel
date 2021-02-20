@@ -6,6 +6,7 @@ go_grpc_generate(
     workspace_relative_target_directory = "internal/module/gitlab_access/rpc",
     deps = [
         "//internal/tool/grpctool/automata:proto",
+        "//internal/tool/prototool:proto",
         "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
     ],
 )
@@ -13,7 +14,6 @@ go_grpc_generate(
 go_library(
     name = "rpc",
     srcs = [
-        "extra_methods.go",
         "rpc.pb.go",
         "rpc.pb.validate.go",
     ],
@@ -21,6 +21,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/tool/grpctool/automata",
+        "//internal/tool/prototool",
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
         "@com_github_golang_protobuf//proto",
         "@com_github_golang_protobuf//ptypes",

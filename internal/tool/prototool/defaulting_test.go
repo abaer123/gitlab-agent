@@ -1,4 +1,4 @@
-package protodefault
+package prototool
 
 import (
 	"testing"
