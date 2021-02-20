@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+// If you make any changes make sure you run: make regenerate-proto
+
+package gitlab.agent.tool.prototool;
+
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool";
+
+//import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
+import "validate/validate.proto";
+
+message Values {
+  repeated string value = 1;
+}
+
+message HttpRequest {
+  // HTTP method.
+  string method = 1 [(validate.rules).string.min_len = 1];
+  // HTTP header.
+  map<string, Values> header = 2;
+  // URL path component that goes after /api/v4/internal/kubernetes/modules/{module_name}
+  // Should start with a slash.
+  string url_path = 3 [(validate.rules).string.min_len = 1];
+  // query is the URL query part without the leading question mark.
+  map<string, Values> query = 4;
+}
+
+message HttpResponse {
+  // HTTP status code.
+  int32 status_code = 1;
+  // HTTP status message.
+  string status = 2;
+  // HTTP header.
+  map<string, Values> header = 3;
+}

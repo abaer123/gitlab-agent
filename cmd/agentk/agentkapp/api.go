@@ -10,6 +10,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -57,9 +58,9 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 		err := a.ResponseVisitor.Visit(client,
 			grpctool.WithCallback(headerFieldNumber, func(header *gitlab_access_rpc.Response_Header) error {
 				resp := &modagent.GitLabResponse{
-					Status:     header.Status,
-					StatusCode: header.StatusCode,
-					Header:     header.ToHttpHeader(),
+					Status:     header.Response.Status,
+					StatusCode: header.Response.StatusCode,
+					Header:     header.Response.HttpHeader(),
 					Body: cancelingReadCloser{
 						ReadCloser: pr,
 						cancel:     cancel,
@@ -115,10 +116,12 @@ func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequest
 		Message: &gitlab_access_rpc.Request_Header_{
 			Header: &gitlab_access_rpc.Request_Header{
 				ModuleName: a.ModuleName,
-				Method:     config.Method,
-				Header:     gitlab_access_rpc.HeaderFromHttpHeader(config.Header),
-				UrlPath:    path,
-				Query:      gitlab_access_rpc.QueryFromUrlValues(config.Query),
+				Request: &prototool.HttpRequest{
+					Method:  config.Method,
+					Header:  prototool.ValuesMapFromHttpHeader(config.Header),
+					UrlPath: path,
+					Query:   prototool.ValuesMapFromUrlValues(config.Query),
+				},
 			},
 		},
 	})

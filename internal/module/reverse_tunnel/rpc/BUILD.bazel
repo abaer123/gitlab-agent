@@ -7,6 +7,7 @@ go_grpc_generate(
     deps = [
         "//internal/module/reverse_tunnel/info:proto",
         "//internal/tool/grpctool/automata:proto",
+        "//internal/tool/prototool:proto",
         "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
         "@go_googleapis//google/rpc:status_proto",
     ],
@@ -23,7 +24,9 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/reverse_tunnel/info",
+        "//internal/tool/grpctool",
         "//internal/tool/grpctool/automata",
+        "//internal/tool/prototool",
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
         "@com_github_golang_protobuf//proto",
         "@com_github_golang_protobuf//ptypes",

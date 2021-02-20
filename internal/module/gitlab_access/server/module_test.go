@@ -16,6 +16,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver"
@@ -67,10 +68,12 @@ func TestMakeRequest(t *testing.T) {
 			Message: &rpc.Request_Header_{
 				Header: &rpc.Request_Header{
 					ModuleName: moduleName,
-					Method:     httpMethod,
-					Header:     rpc.HeaderFromHttpHeader(header),
-					UrlPath:    urlPath,
-					Query:      rpc.QueryFromUrlValues(query),
+					Request: &prototool.HttpRequest{
+						Method:  httpMethod,
+						Header:  prototool.ValuesMapFromHttpHeader(header),
+						UrlPath: urlPath,
+						Query:   prototool.ValuesMapFromUrlValues(query),
+					},
 				},
 			},
 		},
@@ -127,16 +130,20 @@ func TestMakeRequest(t *testing.T) {
 		&rpc.Response{
 			Message: &rpc.Response_Header_{
 				Header: &rpc.Response_Header{
-					StatusCode: 200,
-					Status:     "status1",
-					Header:     rpc.HeaderFromHttpHeader(respHeader),
-				}},
+					Response: &prototool.HttpResponse{
+						StatusCode: 200,
+						Status:     "status1",
+						Header:     prototool.ValuesMapFromHttpHeader(respHeader),
+					},
+				},
+			},
 		},
 		&rpc.Response{
 			Message: &rpc.Response_Data_{
 				Data: &rpc.Response_Data{
 					Data: respBody,
-				}},
+				},
+			},
 		},
 		&rpc.Response{
 			Message: &rpc.Response_Trailer_{

@@ -7,8 +7,10 @@ import (
 
 	"github.com/ash2k/stager"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -61,4 +63,29 @@ func StartServer(stage stager.Stage, server *grpc.Server, interceptorsCancel con
 		server.GracefulStop()
 		return nil
 	})
+}
+
+func MetaToValuesMap(meta metadata.MD) map[string]*prototool.Values {
+	if len(meta) == 0 {
+		return nil
+	}
+	result := make(map[string]*prototool.Values, len(meta))
+	for k, v := range meta {
+		val := make([]string, len(v))
+		copy(val, v) // metadata may be mutated, so copy
+		result[k] = &prototool.Values{
+			Value: val,
+		}
+	}
+	return result
+}
+
+func ValuesMapToMeta(vals map[string]*prototool.Values) metadata.MD {
+	result := make(metadata.MD, len(vals))
+	for k, v := range vals {
+		val := make([]string, len(v.Value))
+		copy(val, v.Value) // metadata may be mutated, so copy
+		result[k] = val
+	}
+	return result
 }

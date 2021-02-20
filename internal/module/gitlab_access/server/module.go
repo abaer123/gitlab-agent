@@ -14,6 +14,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -83,8 +84,8 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 			return ctx.Err()
 		case h = <-headerMsg:
 		}
-		urlPath := urlPathForModules + url.PathEscape(h.ModuleName) + h.UrlPath
-		resp, err := m.gitLabClient.DoStream(ctx, h.Method, urlPath, h.ToHttpHeader(), h.ToUrlQuery(), agentToken, pr) // nolint:bodyclose
+		urlPath := urlPathForModules + url.PathEscape(h.ModuleName) + h.Request.UrlPath
+		resp, err := m.gitLabClient.DoStream(ctx, h.Request.Method, urlPath, h.Request.HttpHeader(), h.Request.UrlQuery(), agentToken, pr) // nolint:bodyclose
 		if err != nil {
 			return err
 		}
@@ -93,10 +94,13 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 		err = server.Send(&rpc.Response{
 			Message: &rpc.Response_Header_{
 				Header: &rpc.Response_Header{
-					StatusCode: int32(resp.StatusCode),
-					Status:     resp.Status,
-					Header:     rpc.HeaderFromHttpHeader(resp.Header),
-				}},
+					Response: &prototool.HttpResponse{
+						StatusCode: int32(resp.StatusCode),
+						Status:     resp.Status,
+						Header:     prototool.ValuesMapFromHttpHeader(resp.Header),
+					},
+				},
+			},
 		})
 		if err != nil {
 			return m.api.HandleSendError(log, "MakeRequest failed to send header", err)

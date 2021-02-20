@@ -135,7 +135,7 @@ func pipeInternalClientIntoTunnel(tunnel rpc.ReverseTunnel_ConnectClient, client
 	err = tunnel.Send(&rpc.ConnectRequest{
 		Msg: &rpc.ConnectRequest_Header{
 			Header: &rpc.Header{
-				Meta: rpc.MetaToValuesMap(header),
+				Meta: grpctool.MetaToValuesMap(header),
 			},
 		},
 	})
@@ -165,7 +165,7 @@ func pipeInternalClientIntoTunnel(tunnel rpc.ReverseTunnel_ConnectClient, client
 	err = tunnel.Send(&rpc.ConnectRequest{
 		Msg: &rpc.ConnectRequest_Trailer{
 			Trailer: &rpc.Trailer{
-				Meta: rpc.MetaToValuesMap(clientStream.Trailer()),
+				Meta: grpctool.MetaToValuesMap(clientStream.Trailer()),
 			},
 		},
 	})

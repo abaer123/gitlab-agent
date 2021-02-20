@@ -13,6 +13,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel_tracker"
@@ -238,7 +239,7 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 				Msg: &rpc.ConnectResponse_RequestInfo{
 					RequestInfo: &rpc.RequestInfo{
 						MethodName: fullMethodName,
-						Meta: map[string]*rpc.Values{
+						Meta: map[string]*prototool.Values{
 							"cba": {Value: []string{"3", "4"}},
 						},
 					},
@@ -271,7 +272,7 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 			Do(testhelpers.RecvMsg(&rpc.ConnectRequest{
 				Msg: &rpc.ConnectRequest_Header{
 					Header: &rpc.Header{
-						Meta: map[string]*rpc.Values{
+						Meta: map[string]*prototool.Values{
 							"resp": {Value: []string{"1", "2"}},
 						},
 					},
@@ -295,7 +296,7 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 			Do(testhelpers.RecvMsg(&rpc.ConnectRequest{
 				Msg: &rpc.ConnectRequest_Trailer{
 					Trailer: &rpc.Trailer{
-						Meta: map[string]*rpc.Values{
+						Meta: map[string]*prototool.Values{
 							"trailer": {Value: []string{"8", "9"}},
 						},
 					},
