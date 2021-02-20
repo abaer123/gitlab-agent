@@ -4,6 +4,7 @@ go_library(
     name = "reverse_tunnel",
     srcs = [
         "api.go",
+        "doc.go",
         "tunnel.go",
         "tunnel_registry.go",
     ],
@@ -28,6 +29,7 @@ go_test(
     name = "reverse_tunnel_test",
     size = "small",
     srcs = [
+        "mock_for_test.go",
         "reverse_tunnel_agent_plumbing_for_test.go",
         "reverse_tunnel_server_plumbing_for_test.go",
         "reverse_tunnel_test.go",

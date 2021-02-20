@@ -31,6 +31,7 @@ func TestVisitorErrorIsReturnedOnErrorMessageAndReadError(t *testing.T) {
 	incomingStream := mock_rpc.NewMockServerStream(ctrl)
 	sts := mock_rpc.NewMockServerTransportStream(ctrl)
 	incomingCtx := grpc.NewContextWithServerTransportStream(context.Background(), sts)
+	cb := NewMockTunnelDataCallback(ctrl)
 	gomock.InOrder(
 		incomingStream.EXPECT().
 			Context().
@@ -73,6 +74,6 @@ func TestVisitorErrorIsReturnedOnErrorMessageAndReadError(t *testing.T) {
 		tunnelStreamVisitor: tunnelStreamVisitor,
 		tunnelRetErr:        tunnelRetErr,
 	}
-	err = c.ForwardStream(incomingStream)
+	err = c.ForwardStream(incomingStream, cb)
 	assert.EqualError(t, err, "correct error")
 }

@@ -305,7 +305,7 @@ func (s *serverTestingServer) ForwardStream(srv interface{}, server grpc.ServerS
 		return status.FromContextError(err).Err()
 	}
 	defer tunnel.Done()
-	return tunnel.ForwardStream(server)
+	return tunnel.ForwardStream(server, streamingCallback{incomingStream: server})
 }
 
 // registerTestingServer is a test.RegisterTestingServer clone that's been modified to be compatible with
@@ -347,4 +347,24 @@ func (s *agentTestingServer) RequestResponse(ctx context.Context, request *test.
 
 func (s *agentTestingServer) StreamingRequestResponse(server test.Testing_StreamingRequestResponseServer) error {
 	return s.streamingRequestResponse(server)
+}
+
+var (
+	_ reverse_tunnel.TunnelDataCallback = streamingCallback{}
+)
+
+type streamingCallback struct {
+	incomingStream grpc.ServerStream
+}
+
+func (c streamingCallback) Header(md metadata.MD) error {
+	return c.incomingStream.SetHeader(md)
+}
+
+func (c streamingCallback) Message(data []byte) error {
+	return c.incomingStream.SendMsg(&grpctool.RawFrame{Data: data})
+}
+
+func (c streamingCallback) Trailer(md metadata.MD) {
+	c.incomingStream.SetTrailer(md)
 }

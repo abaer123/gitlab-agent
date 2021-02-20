@@ -134,7 +134,7 @@ func TestHandleTunnelConnectionReturnErrOnInvalidMsg(t *testing.T) {
 
 func TestHandleTunnelConnectionIsMatchedToIncomingConnection(t *testing.T) {
 	t.Parallel()
-	incomingStream, tunnel, r := setupStreams(t, true)
+	incomingStream, cb, tunnel, r := setupStreams(t, true)
 	agentInfo := testhelpers.AgentInfoObj()
 	var wg wait.Group
 	defer wg.Wait()
@@ -150,13 +150,13 @@ func TestHandleTunnelConnectionIsMatchedToIncomingConnection(t *testing.T) {
 	tun, err := r.FindTunnel(context.Background(), agentInfo.Id)
 	require.NoError(t, err)
 	defer tun.Done()
-	err = tun.ForwardStream(incomingStream)
+	err = tun.ForwardStream(incomingStream, cb)
 	require.NoError(t, err)
 }
 
 func TestIncomingConnectionIsMatchedToHandleTunnelConnection(t *testing.T) {
 	t.Parallel()
-	incomingStream, tunnel, r := setupStreams(t, false)
+	incomingStream, cb, tunnel, r := setupStreams(t, false)
 	agentInfo := testhelpers.AgentInfoObj()
 	var wg wait.Group
 	defer wg.Wait()
@@ -171,7 +171,7 @@ func TestIncomingConnectionIsMatchedToHandleTunnelConnection(t *testing.T) {
 			return
 		}
 		defer tun.Done()
-		err = tun.ForwardStream(incomingStream)
+		err = tun.ForwardStream(incomingStream, cb)
 		assert.NoError(t, err)
 	})
 	time.Sleep(50 * time.Millisecond)
@@ -179,12 +179,13 @@ func TestIncomingConnectionIsMatchedToHandleTunnelConnection(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServerStream, *mock_reverse_tunnel_rpc.MockReverseTunnel_ConnectServer, *TunnelRegistry) {
+func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServerStream, *MockTunnelDataCallback, *mock_reverse_tunnel_rpc.MockReverseTunnel_ConnectServer, *TunnelRegistry) {
 	const metaKey = "Cba"
 	meta := metadata.MD{}
 	meta.Set(metaKey, "3", "4")
 	ctrl := gomock.NewController(t)
 	sts := mock_rpc.NewMockServerTransportStream(ctrl)
+	cb := NewMockTunnelDataCallback(ctrl)
 
 	incomingCtx := grpc.NewContextWithServerTransportStream(context.Background(), sts)
 	incomingCtx = metadata.NewIncomingContext(incomingCtx, meta)
@@ -276,8 +277,8 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 					},
 				},
 			})),
-		incomingStream.EXPECT().
-			SetHeader(metadata.MD{"resp": []string{"1", "2"}}),
+		cb.EXPECT().
+			Header(metadata.MD{"resp": []string{"1", "2"}}),
 		connectServer.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&rpc.ConnectRequest{
@@ -287,10 +288,8 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 					},
 				},
 			})),
-		incomingStream.EXPECT().
-			SendMsg(&grpctool.RawFrame{
-				Data: []byte{5, 6, 7},
-			}),
+		cb.EXPECT().
+			Message([]byte{5, 6, 7}),
 		connectServer.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&rpc.ConnectRequest{
@@ -302,8 +301,8 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 					},
 				},
 			})),
-		incomingStream.EXPECT().
-			SetTrailer(metadata.MD{"trailer": []string{"8", "9"}}),
+		cb.EXPECT().
+			Trailer(metadata.MD{"trailer": []string{"8", "9"}}),
 		connectServer.EXPECT().
 			RecvMsg(gomock.Any()).
 			Return(io.EOF),
@@ -311,5 +310,5 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 
 	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer)
 	require.NoError(t, err)
-	return incomingStream, connectServer, r
+	return incomingStream, cb, connectServer, r
 }
