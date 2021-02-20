@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	headersFieldNumber  protoreflect.FieldNumber = 1
+	headerFieldNumber   protoreflect.FieldNumber = 1
 	objectFieldNumber   protoreflect.FieldNumber = 2
 	trailersFieldNumber protoreflect.FieldNumber = 3
 )
@@ -59,7 +59,7 @@ func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToS
 		}
 		v := objectsToSynchronizeVisitor{}
 		err = sv.Visit(res,
-			grpctool.WithCallback(headersFieldNumber, v.OnHeaders),
+			grpctool.WithCallback(headerFieldNumber, v.OnHeader),
 			grpctool.WithCallback(objectFieldNumber, v.OnObject),
 			grpctool.WithCallback(trailersFieldNumber, v.OnTrailers),
 		)
@@ -78,8 +78,8 @@ type objectsToSynchronizeVisitor struct {
 	objs ObjectsToSynchronizeData
 }
 
-func (v *objectsToSynchronizeVisitor) OnHeaders(headers *ObjectsToSynchronizeResponse_Headers) error {
-	v.objs.CommitId = headers.CommitId
+func (v *objectsToSynchronizeVisitor) OnHeader(header *ObjectsToSynchronizeResponse_Header) error {
+	v.objs.CommitId = header.CommitId
 	return nil
 }
 

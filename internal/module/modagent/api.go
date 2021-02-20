@@ -69,17 +69,17 @@ type Module interface {
 }
 
 type GitLabRequestConfig struct {
-	Method  string
-	Headers http.Header
-	Query   url.Values
-	Body    io.ReadCloser
+	Method string
+	Header http.Header
+	Query  url.Values
+	Body   io.ReadCloser
 }
 
 func defaultRequestConfig() *GitLabRequestConfig {
 	return &GitLabRequestConfig{
-		Method:  http.MethodGet,
-		Headers: make(http.Header),
-		Query:   make(url.Values),
+		Method: http.MethodGet,
+		Header: make(http.Header),
+		Query:  make(url.Values),
 	}
 }
 
@@ -93,15 +93,15 @@ func ApplyRequestOptions(opts []GitLabRequestOption) *GitLabRequestConfig {
 
 type GitLabRequestOption func(*GitLabRequestConfig)
 
-func WithRequestHeaders(headers http.Header) GitLabRequestOption {
+func WithRequestHeaders(header http.Header) GitLabRequestOption {
 	return func(c *GitLabRequestConfig) {
-		c.Headers = headers
+		c.Header = header
 	}
 }
 
 func WithRequestHeader(header string, values ...string) GitLabRequestOption {
 	return func(c *GitLabRequestConfig) {
-		c.Headers[header] = values
+		c.Header[header] = values
 	}
 }
 

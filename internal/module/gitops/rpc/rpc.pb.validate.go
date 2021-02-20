@@ -145,12 +145,12 @@ func (m *ObjectsToSynchronizeResponse) Validate() error {
 
 	switch m.Message.(type) {
 
-	case *ObjectsToSynchronizeResponse_Headers_:
+	case *ObjectsToSynchronizeResponse_Header_:
 
-		if v, ok := interface{}(m.GetHeaders()).(interface{ Validate() error }); ok {
+		if v, ok := interface{}(m.GetHeader()).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return ObjectsToSynchronizeResponseValidationError{
-					field:  "Headers",
+					field:  "Header",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
@@ -249,16 +249,16 @@ var _ interface {
 	ErrorName() string
 } = ObjectsToSynchronizeResponseValidationError{}
 
-// Validate checks the field values on ObjectsToSynchronizeResponse_Headers
-// with the rules defined in the proto definition for this message. If any
-// rules are violated, an error is returned.
-func (m *ObjectsToSynchronizeResponse_Headers) Validate() error {
+// Validate checks the field values on ObjectsToSynchronizeResponse_Header with
+// the rules defined in the proto definition for this message. If any rules
+// are violated, an error is returned.
+func (m *ObjectsToSynchronizeResponse_Header) Validate() error {
 	if m == nil {
 		return nil
 	}
 
 	if utf8.RuneCountInString(m.GetCommitId()) < 1 {
-		return ObjectsToSynchronizeResponse_HeadersValidationError{
+		return ObjectsToSynchronizeResponse_HeaderValidationError{
 			field:  "CommitId",
 			reason: "value length must be at least 1 runes",
 		}
@@ -267,10 +267,10 @@ func (m *ObjectsToSynchronizeResponse_Headers) Validate() error {
 	return nil
 }
 
-// ObjectsToSynchronizeResponse_HeadersValidationError is the validation error
-// returned by ObjectsToSynchronizeResponse_Headers.Validate if the designated
+// ObjectsToSynchronizeResponse_HeaderValidationError is the validation error
+// returned by ObjectsToSynchronizeResponse_Header.Validate if the designated
 // constraints aren't met.
-type ObjectsToSynchronizeResponse_HeadersValidationError struct {
+type ObjectsToSynchronizeResponse_HeaderValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -278,24 +278,24 @@ type ObjectsToSynchronizeResponse_HeadersValidationError struct {
 }
 
 // Field function returns field value.
-func (e ObjectsToSynchronizeResponse_HeadersValidationError) Field() string { return e.field }
+func (e ObjectsToSynchronizeResponse_HeaderValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e ObjectsToSynchronizeResponse_HeadersValidationError) Reason() string { return e.reason }
+func (e ObjectsToSynchronizeResponse_HeaderValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e ObjectsToSynchronizeResponse_HeadersValidationError) Cause() error { return e.cause }
+func (e ObjectsToSynchronizeResponse_HeaderValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e ObjectsToSynchronizeResponse_HeadersValidationError) Key() bool { return e.key }
+func (e ObjectsToSynchronizeResponse_HeaderValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e ObjectsToSynchronizeResponse_HeadersValidationError) ErrorName() string {
-	return "ObjectsToSynchronizeResponse_HeadersValidationError"
+func (e ObjectsToSynchronizeResponse_HeaderValidationError) ErrorName() string {
+	return "ObjectsToSynchronizeResponse_HeaderValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e ObjectsToSynchronizeResponse_HeadersValidationError) Error() string {
+func (e ObjectsToSynchronizeResponse_HeaderValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -307,14 +307,14 @@ func (e ObjectsToSynchronizeResponse_HeadersValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sObjectsToSynchronizeResponse_Headers.%s: %s%s",
+		"invalid %sObjectsToSynchronizeResponse_Header.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = ObjectsToSynchronizeResponse_HeadersValidationError{}
+var _ error = ObjectsToSynchronizeResponse_HeaderValidationError{}
 
 var _ interface {
 	Field() string
@@ -322,7 +322,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = ObjectsToSynchronizeResponse_HeadersValidationError{}
+} = ObjectsToSynchronizeResponse_HeaderValidationError{}
 
 // Validate checks the field values on ObjectsToSynchronizeResponse_Object with
 // the rules defined in the proto definition for this message. If any rules

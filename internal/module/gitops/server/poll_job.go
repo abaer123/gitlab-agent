@@ -70,7 +70,7 @@ func (j *pollJob) Attempt() (bool /*done*/, error) {
 	}
 	log := j.log.With(logz.CommitId(info.CommitId))
 	log.Info("GitOps: new commit")
-	err = j.sendObjectsToSynchronizeHeaders(j.server, log, info.CommitId)
+	err = j.sendObjectsToSynchronizeHeader(j.server, log, info.CommitId)
 	if err != nil {
 		return false, err // no wrap
 	}
@@ -87,16 +87,16 @@ func (j *pollJob) Attempt() (bool /*done*/, error) {
 	return true, nil
 }
 
-func (j *pollJob) sendObjectsToSynchronizeHeaders(server rpc.Gitops_GetObjectsToSynchronizeServer, log *zap.Logger, commitId string) error {
+func (j *pollJob) sendObjectsToSynchronizeHeader(server rpc.Gitops_GetObjectsToSynchronizeServer, log *zap.Logger, commitId string) error {
 	err := server.Send(&rpc.ObjectsToSynchronizeResponse{
-		Message: &rpc.ObjectsToSynchronizeResponse_Headers_{
-			Headers: &rpc.ObjectsToSynchronizeResponse_Headers{
+		Message: &rpc.ObjectsToSynchronizeResponse_Header_{
+			Header: &rpc.ObjectsToSynchronizeResponse_Header{
 				CommitId: commitId,
 			},
 		},
 	})
 	if err != nil {
-		return j.api.HandleSendError(log, "GitOps: failed to send headers for objects to synchronize", err)
+		return j.api.HandleSendError(log, "GitOps: failed to send header for objects to synchronize", err)
 	}
 	return nil
 }

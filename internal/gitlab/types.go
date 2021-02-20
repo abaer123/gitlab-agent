@@ -12,7 +12,7 @@ import (
 
 type ClientInterface interface {
 	DoJSON(ctx context.Context, method, path string, query url.Values, agentToken api.AgentToken, body, response interface{}) error
-	DoStream(ctx context.Context, method, path string, headers http.Header, query url.Values, agentToken api.AgentToken, body io.Reader) (*http.Response, error)
+	DoStream(ctx context.Context, method, path string, header http.Header, query url.Values, agentToken api.AgentToken, body io.Reader) (*http.Response, error)
 }
 
 // Some shared types below.

@@ -146,8 +146,8 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 	gomock.InOrder(
 		server.EXPECT().
 			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
-				Message: &rpc.ObjectsToSynchronizeResponse_Headers_{
-					Headers: &rpc.ObjectsToSynchronizeResponse_Headers{
+				Message: &rpc.ObjectsToSynchronizeResponse_Header_{
+					Header: &rpc.ObjectsToSynchronizeResponse_Header{
 						CommitId: revision,
 					},
 				},
@@ -294,8 +294,8 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 				MinTimes(1)
 			server.EXPECT().
 				Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
-					Message: &rpc.ObjectsToSynchronizeResponse_Headers_{
-						Headers: &rpc.ObjectsToSynchronizeResponse_Headers{
+					Message: &rpc.ObjectsToSynchronizeResponse_Header_{
+						Header: &rpc.ObjectsToSynchronizeResponse_Header{
 							CommitId: revision,
 						},
 					},

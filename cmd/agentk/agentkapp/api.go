@@ -16,7 +16,7 @@ import (
 const (
 	maxDataChunkSize = 32 * 1024
 
-	headersFieldNumber  protoreflect.FieldNumber = 1
+	headerFieldNumber   protoreflect.FieldNumber = 1
 	dataFieldNumber     protoreflect.FieldNumber = 2
 	trailersFieldNumber protoreflect.FieldNumber = 3
 )
@@ -55,11 +55,11 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 	go func() {
 		responseSent := false
 		err := a.ResponseVisitor.Visit(client,
-			grpctool.WithCallback(headersFieldNumber, func(headers *gitlab_access_rpc.Response_Headers) error {
+			grpctool.WithCallback(headerFieldNumber, func(header *gitlab_access_rpc.Response_Header) error {
 				resp := &modagent.GitLabResponse{
-					Status:     headers.Status,
-					StatusCode: headers.StatusCode,
-					Header:     headers.ToHttpHeader(),
+					Status:     header.Status,
+					StatusCode: header.StatusCode,
+					Header:     header.ToHttpHeader(),
 					Body: cancelingReadCloser{
 						ReadCloser: pr,
 						cancel:     cancel,
@@ -112,18 +112,18 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequestClient, path string, config *modagent.GitLabRequestConfig) (retErr error) {
 	defer errz.SafeClose(config.Body, &retErr)
 	err := client.Send(&gitlab_access_rpc.Request{
-		Message: &gitlab_access_rpc.Request_Headers_{
-			Headers: &gitlab_access_rpc.Request_Headers{
+		Message: &gitlab_access_rpc.Request_Header_{
+			Header: &gitlab_access_rpc.Request_Header{
 				ModuleName: a.ModuleName,
 				Method:     config.Method,
-				Headers:    gitlab_access_rpc.HeadersFromHttpHeaders(config.Headers),
+				Header:     gitlab_access_rpc.HeaderFromHttpHeader(config.Header),
 				UrlPath:    path,
 				Query:      gitlab_access_rpc.QueryFromUrlValues(config.Query),
 			},
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("send request headers: %w", err) // wrap
+		return fmt.Errorf("send request header: %w", err) // wrap
 	}
 	if config.Body != nil {
 		buffer := make([]byte, maxDataChunkSize)

@@ -49,7 +49,7 @@ func (s *MetricServer) constructHandler() http.Handler {
 	return mux
 }
 
-func (s *MetricServer) setHeaders(next http.Handler) http.Handler {
+func (s *MetricServer) setHeader(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Server", s.Name)
 		next.ServeHTTP(w, r)
@@ -59,13 +59,13 @@ func (s *MetricServer) setHeaders(next http.Handler) http.Handler {
 func (s *MetricServer) probesHandler(mux *http.ServeMux) {
 	mux.Handle(
 		s.LivenessProbeUrlPath,
-		s.setHeaders(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		s.setHeader(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		})),
 	)
 	mux.Handle(
 		s.ReadinessProbeUrlPath,
-		s.setHeaders(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		s.setHeader(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		})),
 	)
@@ -74,7 +74,7 @@ func (s *MetricServer) probesHandler(mux *http.ServeMux) {
 func (s *MetricServer) prometheusHandler(mux *http.ServeMux) {
 	mux.Handle(
 		s.PrometheusUrlPath,
-		s.setHeaders(promhttp.InstrumentMetricHandler(s.Registerer, promhttp.HandlerFor(s.Gatherer, promhttp.HandlerOpts{
+		s.setHeader(promhttp.InstrumentMetricHandler(s.Registerer, promhttp.HandlerFor(s.Gatherer, promhttp.HandlerOpts{
 			Timeout: defaultMaxRequestDuration,
 		}))),
 	)
@@ -89,6 +89,6 @@ func (s *MetricServer) pprofHandler(mux *http.ServeMux) {
 		"/debug/pprof/trace":   pprof.Trace,
 	}
 	for route, handler := range routes {
-		mux.Handle(route, s.setHeaders(http.HandlerFunc(handler)))
+		mux.Handle(route, s.setHeader(http.HandlerFunc(handler)))
 	}
 }

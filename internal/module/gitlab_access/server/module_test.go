@@ -64,11 +64,11 @@ func TestMakeRequest(t *testing.T) {
 	}
 	gomock.InOrder(mockRecvStream(server, true,
 		&rpc.Request{
-			Message: &rpc.Request_Headers_{
-				Headers: &rpc.Request_Headers{
+			Message: &rpc.Request_Header_{
+				Header: &rpc.Request_Header{
 					ModuleName: moduleName,
 					Method:     httpMethod,
-					Headers:    rpc.HeadersFromHttpHeaders(header),
+					Header:     rpc.HeaderFromHttpHeader(header),
 					UrlPath:    urlPath,
 					Query:      rpc.QueryFromUrlValues(query),
 				},
@@ -103,7 +103,7 @@ func TestMakeRequest(t *testing.T) {
 	pr, pw := io.Pipe()
 	doStream := gitLabClient.EXPECT().
 		DoStream(gomock.Any(), httpMethod, "/api/v4/internal/kubernetes/modules/"+moduleName+urlPath, header, query, agentMD.Token, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, method, path string, headers http.Header, query url.Values, agentToken api.AgentToken, body io.Reader) (*http.Response, error) {
+		DoAndReturn(func(ctx context.Context, method, path string, header http.Header, query url.Values, agentToken api.AgentToken, body io.Reader) (*http.Response, error) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -125,11 +125,11 @@ func TestMakeRequest(t *testing.T) {
 		})
 	responses := mockSendStream(t, server,
 		&rpc.Response{
-			Message: &rpc.Response_Headers_{
-				Headers: &rpc.Response_Headers{
+			Message: &rpc.Response_Header_{
+				Header: &rpc.Response_Header{
 					StatusCode: 200,
 					Status:     "status1",
-					Headers:    rpc.HeadersFromHttpHeaders(respHeader),
+					Header:     rpc.HeaderFromHttpHeader(respHeader),
 				}},
 		},
 		&rpc.Response{

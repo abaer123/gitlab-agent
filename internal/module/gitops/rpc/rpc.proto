@@ -27,7 +27,7 @@ message ObjectsToSynchronizeRequest {
 
 message ObjectsToSynchronizeResponse {
   // First message of the stream.
-  message Headers {
+  message Header {
     // Commit id of the manifest repository.
     // Can be used to resume connection from where it dropped.
     string commit_id = 1 [(validate.rules).string.min_len = 1];
@@ -51,7 +51,7 @@ message ObjectsToSynchronizeResponse {
     option (grpctool.automata.first_allowed_field) = 1;
     option (validate.required) = true;
 
-    Headers headers = 1 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
+    Header header = 1 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
     Object object = 2 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
     Trailers trailers = 3 [(grpctool.automata.next_allowed_field) = -1];
   }
