@@ -106,6 +106,12 @@ func serverConstructInternalServerConn(dialContext func(ctx context.Context, add
 	return grpc.DialContext(context.Background(), "pipe",
 		grpc.WithContextDialer(dialContext),
 		grpc.WithInsecure(),
+		grpc.WithChainStreamInterceptor(
+			grpctool.StreamClientValidatingInterceptor,
+		),
+		grpc.WithChainUnaryInterceptor(
+			grpctool.UnaryClientValidatingInterceptor,
+		),
 	)
 }
 
