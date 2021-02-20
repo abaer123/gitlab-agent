@@ -70,7 +70,7 @@ func (j *pollJob) Attempt() (bool /*done*/, error) {
 	}
 	log := j.log.With(logz.CommitId(info.CommitId))
 	log.Info("GitOps: new commit")
-	err = j.sendObjectsToSynchronizeHeaders(j.server, log, info.CommitId)
+	err = j.sendObjectsToSynchronizeHeader(j.server, log, info.CommitId)
 	if err != nil {
 		return false, err // no wrap
 	}
@@ -78,7 +78,7 @@ func (j *pollJob) Attempt() (bool /*done*/, error) {
 	if err != nil {
 		return false, err // no wrap
 	}
-	err = j.sendObjectsToSynchronizeTrailers(j.server, log)
+	err = j.sendObjectsToSynchronizeTrailer(j.server, log)
 	if err != nil {
 		return false, err // no wrap
 	}
@@ -87,16 +87,16 @@ func (j *pollJob) Attempt() (bool /*done*/, error) {
 	return true, nil
 }
 
-func (j *pollJob) sendObjectsToSynchronizeHeaders(server rpc.Gitops_GetObjectsToSynchronizeServer, log *zap.Logger, commitId string) error {
+func (j *pollJob) sendObjectsToSynchronizeHeader(server rpc.Gitops_GetObjectsToSynchronizeServer, log *zap.Logger, commitId string) error {
 	err := server.Send(&rpc.ObjectsToSynchronizeResponse{
-		Message: &rpc.ObjectsToSynchronizeResponse_Headers_{
-			Headers: &rpc.ObjectsToSynchronizeResponse_Headers{
+		Message: &rpc.ObjectsToSynchronizeResponse_Header_{
+			Header: &rpc.ObjectsToSynchronizeResponse_Header{
 				CommitId: commitId,
 			},
 		},
 	})
 	if err != nil {
-		return j.api.HandleSendError(log, "GitOps: failed to send headers for objects to synchronize", err)
+		return j.api.HandleSendError(log, "GitOps: failed to send header for objects to synchronize", err)
 	}
 	return nil
 }
@@ -141,14 +141,14 @@ func (j *pollJob) sendObjectsToSynchronizeBody(req *rpc.ObjectsToSynchronizeRequ
 	return v.numberOfFiles, nil
 }
 
-func (j *pollJob) sendObjectsToSynchronizeTrailers(server rpc.Gitops_GetObjectsToSynchronizeServer, log *zap.Logger) error {
+func (j *pollJob) sendObjectsToSynchronizeTrailer(server rpc.Gitops_GetObjectsToSynchronizeServer, log *zap.Logger) error {
 	err := server.Send(&rpc.ObjectsToSynchronizeResponse{
-		Message: &rpc.ObjectsToSynchronizeResponse_Trailers_{
-			Trailers: &rpc.ObjectsToSynchronizeResponse_Trailers{},
+		Message: &rpc.ObjectsToSynchronizeResponse_Trailer_{
+			Trailer: &rpc.ObjectsToSynchronizeResponse_Trailer{},
 		},
 	})
 	if err != nil {
-		return j.api.HandleSendError(log, "GitOps: failed to send trailers for objects to synchronize", err)
+		return j.api.HandleSendError(log, "GitOps: failed to send trailer for objects to synchronize", err)
 	}
 	return nil
 }

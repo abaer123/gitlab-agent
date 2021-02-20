@@ -16,13 +16,13 @@ message Values {
 
 message Request {
   // First message of the stream.
-  message Headers {
+  message Header {
     // Name of the module that' is making the request.
     string module_name = 1 [(validate.rules).string.min_len = 1];
     // HTTP method.
     string method = 2 [(validate.rules).string.min_len = 1];
-    // HTTP headers.
-    map<string, Values> headers = 3;
+    // HTTP header.
+    map<string, Values> header = 3;
     // URL path component that goes after /api/v4/internal/kubernetes/modules/{module_name}
     // Should start with a slash.
     string url_path = 4 [(validate.rules).string.min_len = 1];
@@ -35,28 +35,28 @@ message Request {
     bytes data = 1;
   }
   // Last message of the stream.
-  message Trailers {
+  message Trailer {
   }
   oneof message {
 
     option (grpctool.automata.first_allowed_field) = 1;
     option (validate.required) = true;
 
-    Headers headers = 1 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
+    Header header = 1 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
     Data data = 2 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
-    Trailers trailers = 3 [(grpctool.automata.next_allowed_field) = -1];
+    Trailer trailer = 3 [(grpctool.automata.next_allowed_field) = -1];
   }
 }
 
 message Response {
   // First message of the stream.
-  message Headers {
+  message Header {
     // HTTP status code.
     int32 status_code = 1;
     // HTTP status message.
     string status = 2;
-    // HTTP headers.
-    map<string, Values> headers = 3;
+    // HTTP header.
+    map<string, Values> header = 3;
   }
   // Subsequent messages of the stream.
   message Data {
@@ -64,16 +64,16 @@ message Response {
     bytes data = 1;
   }
   // Last message of the stream.
-  message Trailers {
+  message Trailer {
   }
   oneof message {
 
     option (grpctool.automata.first_allowed_field) = 1;
     option (validate.required) = true;
 
-    Headers headers = 1 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
+    Header header = 1 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
     Data data = 2 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
-    Trailers trailers = 3 [(grpctool.automata.next_allowed_field) = -1];
+    Trailer trailer = 3 [(grpctool.automata.next_allowed_field) = -1];
   }
 }
 

@@ -21,9 +21,9 @@ import (
 )
 
 const (
-	headersFieldNumber  protoreflect.FieldNumber = 1
-	dataFieldNumber     protoreflect.FieldNumber = 2
-	trailersFieldNumber protoreflect.FieldNumber = 3
+	headerFieldNumber  protoreflect.FieldNumber = 1
+	dataFieldNumber    protoreflect.FieldNumber = 2
+	trailerFieldNumber protoreflect.FieldNumber = 3
 
 	urlPathForModules = "/api/v4/internal/kubernetes/modules/"
 	maxDataChunkSize  = 32 * 1024
@@ -44,17 +44,17 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 
 	pr, pw := io.Pipe()
 
-	// A channel to pass received Headers message to the other goroutine so that it can make an HTTP call.
-	headersMsg := make(chan *rpc.Request_Headers)
+	// A channel to pass received Header message to the other goroutine so that it can make an HTTP call.
+	headerMsg := make(chan *rpc.Request_Header)
 
 	// Pipe gRPC request -> HTTP request
 	g.Go(func() error {
 		return m.streamVisitor.Visit(server,
-			grpctool.WithCallback(headersFieldNumber, func(headers *rpc.Request_Headers) error {
+			grpctool.WithCallback(headerFieldNumber, func(header *rpc.Request_Header) error {
 				select {
 				case <-ctx.Done():
 					return ctx.Err()
-				case headersMsg <- headers:
+				case headerMsg <- header:
 					return nil
 				}
 			}),
@@ -62,7 +62,7 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 				_, err := pw.Write(data.Data)
 				return err
 			}),
-			grpctool.WithCallback(trailersFieldNumber, func(trailers *rpc.Request_Trailers) error {
+			grpctool.WithCallback(trailerFieldNumber, func(trailer *rpc.Request_Trailer) error {
 				// Nothing to do
 				return nil
 			}),
@@ -77,11 +77,11 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 		// The error is ignored because it will always occur if things go normally - the pipe will have been
 		// closed already when this code is reached (and that's an error).
 		defer pr.Close() // nolint: errcheck
-		var h *rpc.Request_Headers
+		var h *rpc.Request_Header
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case h = <-headersMsg:
+		case h = <-headerMsg:
 		}
 		urlPath := urlPathForModules + url.PathEscape(h.ModuleName) + h.UrlPath
 		resp, err := m.gitLabClient.DoStream(ctx, h.Method, urlPath, h.ToHttpHeader(), h.ToUrlQuery(), agentToken, pr) // nolint:bodyclose
@@ -91,15 +91,15 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 		defer errz.SafeClose(resp.Body, &retErr)
 
 		err = server.Send(&rpc.Response{
-			Message: &rpc.Response_Headers_{
-				Headers: &rpc.Response_Headers{
+			Message: &rpc.Response_Header_{
+				Header: &rpc.Response_Header{
 					StatusCode: int32(resp.StatusCode),
 					Status:     resp.Status,
-					Headers:    rpc.HeadersFromHttpHeaders(resp.Header),
+					Header:     rpc.HeaderFromHttpHeader(resp.Header),
 				}},
 		})
 		if err != nil {
-			return m.api.HandleSendError(log, "MakeRequest failed to send headers", err)
+			return m.api.HandleSendError(log, "MakeRequest failed to send header", err)
 		}
 
 		buffer := make([]byte, maxDataChunkSize)
@@ -125,12 +125,12 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 			}
 		}
 		err = server.Send(&rpc.Response{
-			Message: &rpc.Response_Trailers_{
-				Trailers: &rpc.Response_Trailers{},
+			Message: &rpc.Response_Trailer_{
+				Trailer: &rpc.Response_Trailer{},
 			},
 		})
 		if err != nil {
-			return m.api.HandleSendError(log, "MakeRequest failed to send trailers", err)
+			return m.api.HandleSendError(log, "MakeRequest failed to send trailer", err)
 		}
 		return nil
 	})

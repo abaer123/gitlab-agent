@@ -5,15 +5,15 @@ import (
 	"net/url"
 )
 
-func (x *Response_Headers) ToHttpHeader() http.Header {
-	return toHttpHeaders(x.Headers)
+func (x *Response_Header) ToHttpHeader() http.Header {
+	return toHttpHeader(x.Header)
 }
 
-func (x *Request_Headers) ToHttpHeader() http.Header {
-	return toHttpHeaders(x.Headers)
+func (x *Request_Header) ToHttpHeader() http.Header {
+	return toHttpHeader(x.Header)
 }
 
-func (x *Request_Headers) ToUrlQuery() url.Values {
+func (x *Request_Header) ToUrlQuery() url.Values {
 	query := make(url.Values, len(x.Query))
 	for key, vals := range x.Query {
 		query[key] = vals.Value
@@ -21,7 +21,7 @@ func (x *Request_Headers) ToUrlQuery() url.Values {
 	return query
 }
 
-func toHttpHeaders(from map[string]*Values) http.Header {
+func toHttpHeader(from map[string]*Values) http.Header {
 	res := make(http.Header, len(from))
 	for key, val := range from {
 		res[key] = val.Value
@@ -29,7 +29,7 @@ func toHttpHeaders(from map[string]*Values) http.Header {
 	return res
 }
 
-func HeadersFromHttpHeaders(from http.Header) map[string]*Values {
+func HeaderFromHttpHeader(from http.Header) map[string]*Values {
 	res := make(map[string]*Values, len(from))
 	for key, val := range from {
 		res[key] = &Values{

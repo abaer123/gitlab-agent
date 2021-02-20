@@ -145,8 +145,8 @@ func (c *Client) DoJSON(ctx context.Context, method, path string, query url.Valu
 // agentToken may be empty to avoid sending Authorization header (not acting as agentk).
 // body may be nil to avoid sending a request payload.
 // query may be nil to avoid sending any URL query parameters.
-// headers may be used to send extra headers. May be nil.
-func (c *Client) DoStream(ctx context.Context, method, path string, headers http.Header, query url.Values, agentToken api.AgentToken, body io.Reader) (*http.Response, error) {
+// header may be used to send extra HTTP header. May be nil.
+func (c *Client) DoStream(ctx context.Context, method, path string, header http.Header, query url.Values, agentToken api.AgentToken, body io.Reader) (*http.Response, error) {
 	u := *c.Backend
 	u.Path = path
 	u.RawQuery = query.Encode() // handles query == nil
@@ -167,8 +167,8 @@ func (c *Client) DoStream(ctx context.Context, method, path string, headers http
 	if err != nil {
 		return nil, fmt.Errorf("sign JWT: %v", err)
 	}
-	if headers != nil {
-		r.Header = headers.Clone()
+	if header != nil {
+		r.Header = header.Clone()
 	}
 	if agentToken != "" {
 		r.Header.Set("Authorization", "Bearer "+string(agentToken))

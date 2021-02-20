@@ -47,8 +47,8 @@ func TestObjectsToSynchronizeWatcherResumeConnection(t *testing.T) {
 		stream1.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&rpc.ObjectsToSynchronizeResponse{
-				Message: &rpc.ObjectsToSynchronizeResponse_Headers_{
-					Headers: &rpc.ObjectsToSynchronizeResponse_Headers{
+				Message: &rpc.ObjectsToSynchronizeResponse_Header_{
+					Header: &rpc.ObjectsToSynchronizeResponse_Header{
 						CommitId: revision,
 					},
 				},
@@ -56,8 +56,8 @@ func TestObjectsToSynchronizeWatcherResumeConnection(t *testing.T) {
 		stream1.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&rpc.ObjectsToSynchronizeResponse{
-				Message: &rpc.ObjectsToSynchronizeResponse_Trailers_{
-					Trailers: &rpc.ObjectsToSynchronizeResponse_Trailers{},
+				Message: &rpc.ObjectsToSynchronizeResponse_Trailer_{
+					Trailer: &rpc.ObjectsToSynchronizeResponse_Trailer{},
 				},
 			})),
 		stream1.EXPECT().
@@ -98,28 +98,28 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 			eof:  true,
 		},
 		{
-			name: "missing headers",
+			name: "missing header",
 			stream: []*rpc.ObjectsToSynchronizeResponse{
 				{
-					Message: &rpc.ObjectsToSynchronizeResponse_Trailers_{
-						Trailers: &rpc.ObjectsToSynchronizeResponse_Trailers{},
+					Message: &rpc.ObjectsToSynchronizeResponse_Trailer_{
+						Trailer: &rpc.ObjectsToSynchronizeResponse_Trailer{},
 					},
 				},
 			},
 		},
 		{
-			name: "unexpected headers",
+			name: "unexpected header",
 			stream: []*rpc.ObjectsToSynchronizeResponse{
 				{
-					Message: &rpc.ObjectsToSynchronizeResponse_Headers_{
-						Headers: &rpc.ObjectsToSynchronizeResponse_Headers{
+					Message: &rpc.ObjectsToSynchronizeResponse_Header_{
+						Header: &rpc.ObjectsToSynchronizeResponse_Header{
 							CommitId: revision,
 						},
 					},
 				},
 				{
-					Message: &rpc.ObjectsToSynchronizeResponse_Headers_{
-						Headers: &rpc.ObjectsToSynchronizeResponse_Headers{
+					Message: &rpc.ObjectsToSynchronizeResponse_Header_{
+						Header: &rpc.ObjectsToSynchronizeResponse_Header{
 							CommitId: revision,
 						},
 					},
@@ -127,11 +127,11 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 			},
 		},
 		{
-			name: "missing trailers",
+			name: "missing trailer",
 			stream: []*rpc.ObjectsToSynchronizeResponse{
 				{
-					Message: &rpc.ObjectsToSynchronizeResponse_Headers_{
-						Headers: &rpc.ObjectsToSynchronizeResponse_Headers{
+					Message: &rpc.ObjectsToSynchronizeResponse_Header_{
+						Header: &rpc.ObjectsToSynchronizeResponse_Header{
 							CommitId: revision,
 						},
 					},
@@ -140,11 +140,11 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 			eof: true,
 		},
 		{
-			name: "trailers then headers",
+			name: "trailer then header",
 			stream: []*rpc.ObjectsToSynchronizeResponse{
 				{
-					Message: &rpc.ObjectsToSynchronizeResponse_Trailers_{
-						Trailers: &rpc.ObjectsToSynchronizeResponse_Trailers{},
+					Message: &rpc.ObjectsToSynchronizeResponse_Trailer_{
+						Trailer: &rpc.ObjectsToSynchronizeResponse_Trailer{},
 					},
 				},
 			},
