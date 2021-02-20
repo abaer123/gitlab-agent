@@ -12,7 +12,7 @@ go_library(
     deps = [
         "//internal/module/google_profiler",
         "//internal/module/modserver",
-        "//internal/tool/protodefault",
+        "//internal/tool/prototool",
         "//pkg/kascfg",
         "@com_google_cloud_go//profiler",
         "@org_golang_google_api//option",

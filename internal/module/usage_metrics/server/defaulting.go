@@ -3,7 +3,7 @@ package server
 import (
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/protodefault"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 )
 
@@ -12,6 +12,6 @@ const (
 )
 
 func ApplyDefaults(config *kascfg.ConfigurationFile) {
-	protodefault.NotNil(&config.Observability)
-	protodefault.Duration(&config.Observability.UsageReportingPeriod, defaultObservabilityUsageReportingPeriod)
+	prototool.NotNil(&config.Observability)
+	prototool.Duration(&config.Observability.UsageReportingPeriod, defaultObservabilityUsageReportingPeriod)
 }

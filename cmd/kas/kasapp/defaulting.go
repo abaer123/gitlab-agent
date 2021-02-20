@@ -9,7 +9,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/server"
 	usage_metrics_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics/server"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/protodefault"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 )
 
@@ -55,13 +55,13 @@ var (
 )
 
 func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
-	protodefault.NotNil(&cfg.Gitlab)
+	prototool.NotNil(&cfg.Gitlab)
 	defaultGitLab(cfg.Gitlab)
 
-	protodefault.NotNil(&cfg.Agent)
+	prototool.NotNil(&cfg.Agent)
 	defaultAgent(cfg.Agent)
 
-	protodefault.NotNil(&cfg.Gitaly)
+	prototool.NotNil(&cfg.Gitaly)
 	defaultGitaly(cfg.Gitaly)
 
 	// TODO this should become required
@@ -80,46 +80,46 @@ func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
 }
 
 func defaultApi(api *kascfg.ApiCF) {
-	protodefault.NotNil(&api.Listen)
-	protodefault.String(&api.Listen.Address, defaultApiListenAddress)
-	protodefault.Duration(&api.Listen.MaxConnectionAge, defaultApiListenMaxConnectionAge)
+	prototool.NotNil(&api.Listen)
+	prototool.String(&api.Listen.Address, defaultApiListenAddress)
+	prototool.Duration(&api.Listen.MaxConnectionAge, defaultApiListenMaxConnectionAge)
 }
 
 func defaultGitLab(g *kascfg.GitLabCF) {
-	protodefault.NotNil(&g.ApiRateLimit)
-	protodefault.Float64(&g.ApiRateLimit.RefillRatePerSecond, defaultGitLabApiRateLimitRefillRate)
-	protodefault.Uint32(&g.ApiRateLimit.BucketSize, defaultGitLabApiRateLimitBucketSize)
+	prototool.NotNil(&g.ApiRateLimit)
+	prototool.Float64(&g.ApiRateLimit.RefillRatePerSecond, defaultGitLabApiRateLimitRefillRate)
+	prototool.Uint32(&g.ApiRateLimit.BucketSize, defaultGitLabApiRateLimitBucketSize)
 }
 
 func defaultAgent(a *kascfg.AgentCF) {
-	protodefault.NotNil(&a.Listen)
-	protodefault.String(&a.Listen.Address, defaultAgentListenAddress)
-	protodefault.Uint32(&a.Listen.ConnectionsPerTokenPerMinute, defaultAgentListenConnectionsPerTokenPerMinute)
-	protodefault.Duration(&a.Listen.MaxConnectionAge, defaultAgentListenMaxConnectionAge)
+	prototool.NotNil(&a.Listen)
+	prototool.String(&a.Listen.Address, defaultAgentListenAddress)
+	prototool.Uint32(&a.Listen.ConnectionsPerTokenPerMinute, defaultAgentListenConnectionsPerTokenPerMinute)
+	prototool.Duration(&a.Listen.MaxConnectionAge, defaultAgentListenMaxConnectionAge)
 
-	protodefault.Duration(&a.InfoCacheTtl, defaultAgentInfoCacheTTL)
-	protodefault.Duration(&a.InfoCacheErrorTtl, defaultAgentInfoCacheErrorTTL)
-	protodefault.Duration(&a.RedisConnInfoTtl, defaultAgentRedisConnInfoTTL)
-	protodefault.Duration(&a.RedisConnInfoRefresh, defaultAgentRedisConnInfoRefresh)
-	protodefault.Duration(&a.RedisConnInfoGc, defaultAgentRedisConnInfoGC)
+	prototool.Duration(&a.InfoCacheTtl, defaultAgentInfoCacheTTL)
+	prototool.Duration(&a.InfoCacheErrorTtl, defaultAgentInfoCacheErrorTTL)
+	prototool.Duration(&a.RedisConnInfoTtl, defaultAgentRedisConnInfoTTL)
+	prototool.Duration(&a.RedisConnInfoRefresh, defaultAgentRedisConnInfoRefresh)
+	prototool.Duration(&a.RedisConnInfoGc, defaultAgentRedisConnInfoGC)
 }
 
 func defaultGitaly(g *kascfg.GitalyCF) {
-	protodefault.NotNil(&g.GlobalApiRateLimit)
-	protodefault.Float64(&g.GlobalApiRateLimit.RefillRatePerSecond, defaultGitalyGlobalApiRefillRate)
-	protodefault.Uint32(&g.GlobalApiRateLimit.BucketSize, defaultGitalyGlobalApiBucketSize)
+	prototool.NotNil(&g.GlobalApiRateLimit)
+	prototool.Float64(&g.GlobalApiRateLimit.RefillRatePerSecond, defaultGitalyGlobalApiRefillRate)
+	prototool.Uint32(&g.GlobalApiRateLimit.BucketSize, defaultGitalyGlobalApiBucketSize)
 
-	protodefault.NotNil(&g.PerServerApiRateLimit)
-	protodefault.Float64(&g.PerServerApiRateLimit.RefillRatePerSecond, defaultGitalyPerServerApiRate)
-	protodefault.Uint32(&g.PerServerApiRateLimit.BucketSize, defaultGitalyPerServerApiBucketSize)
+	prototool.NotNil(&g.PerServerApiRateLimit)
+	prototool.Float64(&g.PerServerApiRateLimit.RefillRatePerSecond, defaultGitalyPerServerApiRate)
+	prototool.Uint32(&g.PerServerApiRateLimit.BucketSize, defaultGitalyPerServerApiBucketSize)
 }
 
 func defaultRedis(r *kascfg.RedisCF) {
-	protodefault.Uint32(&r.PoolSize, defaultRedisPoolSize)
-	protodefault.Duration(&r.DialTimeout, defaultRedisDialTimeout)
-	protodefault.Duration(&r.ReadTimeout, defaultRedisReadTimeout)
-	protodefault.Duration(&r.WriteTimeout, defaultRedisWriteTimeout)
-	protodefault.Duration(&r.IdleTimeout, defaultRedisIdleTimeout)
-	protodefault.String(&r.KeyPrefix, defaultRedisKeyPrefix)
-	protodefault.String(&r.Network, defaultRedisNetwork)
+	prototool.Uint32(&r.PoolSize, defaultRedisPoolSize)
+	prototool.Duration(&r.DialTimeout, defaultRedisDialTimeout)
+	prototool.Duration(&r.ReadTimeout, defaultRedisReadTimeout)
+	prototool.Duration(&r.WriteTimeout, defaultRedisWriteTimeout)
+	prototool.Duration(&r.IdleTimeout, defaultRedisIdleTimeout)
+	prototool.String(&r.KeyPrefix, defaultRedisKeyPrefix)
+	prototool.String(&r.Network, defaultRedisNetwork)
 }

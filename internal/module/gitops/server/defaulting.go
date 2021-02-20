@@ -3,7 +3,7 @@ package server
 import (
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/protodefault"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 )
 
@@ -18,16 +18,16 @@ const (
 )
 
 func ApplyDefaults(config *kascfg.ConfigurationFile) {
-	protodefault.NotNil(&config.Agent)
-	protodefault.NotNil(&config.Agent.Listen)
-	protodefault.NotNil(&config.Agent.Gitops)
+	prototool.NotNil(&config.Agent)
+	prototool.NotNil(&config.Agent.Listen)
+	prototool.NotNil(&config.Agent.Gitops)
 
 	gitops := config.Agent.Gitops
-	protodefault.Duration(&gitops.PollPeriod, defaultGitopsPollPeriod)
-	protodefault.Duration(&gitops.ProjectInfoCacheTtl, defaultGitopsProjectInfoCacheTTL)
-	protodefault.Duration(&gitops.ProjectInfoCacheErrorTtl, defaultGitopsProjectInfoCacheErrorTTL)
-	protodefault.Uint32(&gitops.MaxManifestFileSize, defaultGitopsMaxManifestFileSize)
-	protodefault.Uint32(&gitops.MaxTotalManifestFileSize, defaultGitopsMaxTotalManifestFileSize)
-	protodefault.Uint32(&gitops.MaxNumberOfPaths, defaultGitopsMaxNumberOfPaths)
-	protodefault.Uint32(&gitops.MaxNumberOfFiles, defaultGitopsMaxNumberOfFiles)
+	prototool.Duration(&gitops.PollPeriod, defaultGitopsPollPeriod)
+	prototool.Duration(&gitops.ProjectInfoCacheTtl, defaultGitopsProjectInfoCacheTTL)
+	prototool.Duration(&gitops.ProjectInfoCacheErrorTtl, defaultGitopsProjectInfoCacheErrorTTL)
+	prototool.Uint32(&gitops.MaxManifestFileSize, defaultGitopsMaxManifestFileSize)
+	prototool.Uint32(&gitops.MaxTotalManifestFileSize, defaultGitopsMaxTotalManifestFileSize)
+	prototool.Uint32(&gitops.MaxNumberOfPaths, defaultGitopsMaxNumberOfPaths)
+	prototool.Uint32(&gitops.MaxNumberOfFiles, defaultGitopsMaxNumberOfFiles)
 }

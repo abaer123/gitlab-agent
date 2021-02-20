@@ -3,7 +3,7 @@ package server
 import (
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/protodefault"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 )
 
@@ -13,11 +13,11 @@ const (
 )
 
 func ApplyDefaults(config *kascfg.ConfigurationFile) {
-	protodefault.NotNil(&config.Agent)
-	protodefault.NotNil(&config.Agent.Configuration)
-	protodefault.NotNil(&config.Agent.Listen)
+	prototool.NotNil(&config.Agent)
+	prototool.NotNil(&config.Agent.Configuration)
+	prototool.NotNil(&config.Agent.Listen)
 
 	c := config.Agent.Configuration
-	protodefault.Duration(&c.PollPeriod, defaultAgentConfigurationPollPeriod)
-	protodefault.Uint32(&c.MaxConfigurationFileSize, defaultAgentConfigurationMaxConfigurationFileSize)
+	prototool.Duration(&c.PollPeriod, defaultAgentConfigurationPollPeriod)
+	prototool.Uint32(&c.MaxConfigurationFileSize, defaultAgentConfigurationMaxConfigurationFileSize)
 }

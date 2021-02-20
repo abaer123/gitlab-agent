@@ -1,9 +1,9 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
-    name = "protodefault",
+    name = "prototool",
     srcs = ["defaulting.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/protodefault",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool",
     visibility = ["//:__subpackages__"],
     deps = [
         "@com_github_golang_protobuf//ptypes/duration",
@@ -12,10 +12,10 @@ go_library(
 )
 
 go_test(
-    name = "protodefault_test",
+    name = "prototool_test",
     size = "small",
     srcs = ["defaulting_test.go"],
-    embed = [":protodefault"],
+    embed = [":prototool"],
     race = "on",
     deps = [
         "@com_github_stretchr_testify//assert",

@@ -13,7 +13,7 @@ go_library(
         "//internal/module/modagent",
         "//internal/module/observability",
         "//internal/tool/logz",
-        "//internal/tool/protodefault",
+        "//internal/tool/prototool",
         "//pkg/agentcfg",
         "@com_github_ash2k_stager//:stager",
         "@com_github_prometheus_client_golang//prometheus",

@@ -20,7 +20,7 @@ go_library(
         "//internal/module/modagent",
         "//internal/tool/errz",
         "//internal/tool/logz",
-        "//internal/tool/protodefault",
+        "//internal/tool/prototool",
         "//internal/tool/retry",
         "//pkg/agentcfg",
         "@com_github_argoproj_gitops_engine//pkg/cache",

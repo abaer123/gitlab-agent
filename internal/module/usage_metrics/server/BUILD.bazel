@@ -14,7 +14,7 @@ go_library(
         "//internal/module/modserver",
         "//internal/module/usage_metrics",
         "//internal/tool/errz",
-        "//internal/tool/protodefault",
+        "//internal/tool/prototool",
         "//pkg/kascfg",
         "@org_uber_go_zap//:zap",
     ],
