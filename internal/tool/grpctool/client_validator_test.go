@@ -48,6 +48,7 @@ func TestValidator(t *testing.T) {
 }
 
 type testingServer struct {
+	test.UnimplementedTestingServer
 }
 
 func (t *testingServer) RequestResponse(ctx context.Context, request *test.Request) (*test.Response, error) {

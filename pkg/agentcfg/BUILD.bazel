@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
-load("//build:proto.bzl", "go_grpc_generate")
+load("//build:proto.bzl", "go_proto_generate")
 
-go_grpc_generate(
+go_proto_generate(
     src = "agentcfg.proto",
     workspace_relative_target_directory = "pkg/agentcfg",
     deps = [

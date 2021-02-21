@@ -31,6 +31,7 @@ const (
 )
 
 type module struct {
+	rpc.UnimplementedGitlabAccessServer
 	api           modserver.API
 	gitLabClient  gitlab.ClientInterface
 	streamVisitor *grpctool.StreamVisitor

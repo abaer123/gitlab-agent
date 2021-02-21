@@ -337,6 +337,7 @@ var (
 )
 
 type agentTestingServer struct {
+	test.UnimplementedTestingServer
 	requestResponse          func(context.Context, *test.Request) (*test.Response, error)
 	streamingRequestResponse func(test.Testing_StreamingRequestResponseServer) error
 }

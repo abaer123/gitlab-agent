@@ -1,5 +1,5 @@
 load("@com_github_atlassian_bazel_tools//multirun:def.bzl", "multirun")
-load("@rules_proto_grpc//:plugin.bzl", "proto_plugin")
+load("@rules_proto_grpc//:defs.bzl", "proto_plugin")
 
 exports_files([
     "buildozer_commands.txt",
@@ -39,18 +39,23 @@ multirun(
     name = "extract_generated_proto",
     commands = [
         "//internal/module/agent_configuration/rpc:extract_generated",
+        "//internal/module/agent_configuration/rpc:extract_generated_grpc",
         "//internal/module/agent_configuration/rpc:extract_generated_validator",
         "//internal/module/agent_tracker/rpc:extract_generated",
+        "//internal/module/agent_tracker/rpc:extract_generated_grpc",
         "//internal/module/agent_tracker/rpc:extract_generated_validator",
         "//internal/module/agent_tracker:extract_generated",
         "//internal/module/gitlab_access/rpc:extract_generated",
+        "//internal/module/gitlab_access/rpc:extract_generated_grpc",
         "//internal/module/gitlab_access/rpc:extract_generated_validator",
         "//internal/module/gitops/rpc:extract_generated",
+        "//internal/module/gitops/rpc:extract_generated_grpc",
         "//internal/module/gitops/rpc:extract_generated_validator",
         "//internal/module/modshared:extract_generated",
         "//internal/module/reverse_tunnel/info:extract_generated",
         "//internal/module/reverse_tunnel/info:extract_generated_validator",
         "//internal/module/reverse_tunnel/rpc:extract_generated",
+        "//internal/module/reverse_tunnel/rpc:extract_generated_grpc",
         "//internal/module/reverse_tunnel/rpc:extract_generated_validator",
         "//internal/module/reverse_tunnel/tracker:extract_generated",
         "//internal/module/reverse_tunnel/tracker:extract_generated_validator",
