@@ -15,6 +15,7 @@ go_library(
     srcs = [
         "test.pb.go",
         "test.pb.validate.go",
+        "test_grpc.pb.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/test",
     visibility = ["//:__subpackages__"],

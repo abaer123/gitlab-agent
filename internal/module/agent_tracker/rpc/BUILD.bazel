@@ -15,6 +15,7 @@ go_library(
     srcs = [
         "rpc.pb.go",
         "rpc.pb.validate.go",
+        "rpc_grpc.pb.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_tracker/rpc",
     visibility = ["//:__subpackages__"],

@@ -7,7 +7,6 @@
 package rpc
 
 import (
-	context "context"
 	reflect "reflect"
 	sync "sync"
 
@@ -15,9 +14,6 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	_ "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/automata"
 	agentcfg "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
-	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
@@ -526,111 +522,4 @@ func file_internal_module_gitops_rpc_rpc_proto_init() {
 	file_internal_module_gitops_rpc_rpc_proto_rawDesc = nil
 	file_internal_module_gitops_rpc_rpc_proto_goTypes = nil
 	file_internal_module_gitops_rpc_rpc_proto_depIdxs = nil
-}
-
-// Reference imports to suppress errors if they are not otherwise used.
-var _ context.Context
-var _ grpc.ClientConnInterface
-
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion6
-
-// GitopsClient is the client API for Gitops service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type GitopsClient interface {
-	GetObjectsToSynchronize(ctx context.Context, in *ObjectsToSynchronizeRequest, opts ...grpc.CallOption) (Gitops_GetObjectsToSynchronizeClient, error)
-}
-
-type gitopsClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewGitopsClient(cc grpc.ClientConnInterface) GitopsClient {
-	return &gitopsClient{cc}
-}
-
-func (c *gitopsClient) GetObjectsToSynchronize(ctx context.Context, in *ObjectsToSynchronizeRequest, opts ...grpc.CallOption) (Gitops_GetObjectsToSynchronizeClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Gitops_serviceDesc.Streams[0], "/gitlab.agent.gitops.rpc.Gitops/GetObjectsToSynchronize", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &gitopsGetObjectsToSynchronizeClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type Gitops_GetObjectsToSynchronizeClient interface {
-	Recv() (*ObjectsToSynchronizeResponse, error)
-	grpc.ClientStream
-}
-
-type gitopsGetObjectsToSynchronizeClient struct {
-	grpc.ClientStream
-}
-
-func (x *gitopsGetObjectsToSynchronizeClient) Recv() (*ObjectsToSynchronizeResponse, error) {
-	m := new(ObjectsToSynchronizeResponse)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-// GitopsServer is the server API for Gitops service.
-type GitopsServer interface {
-	GetObjectsToSynchronize(*ObjectsToSynchronizeRequest, Gitops_GetObjectsToSynchronizeServer) error
-}
-
-// UnimplementedGitopsServer can be embedded to have forward compatible implementations.
-type UnimplementedGitopsServer struct {
-}
-
-func (*UnimplementedGitopsServer) GetObjectsToSynchronize(*ObjectsToSynchronizeRequest, Gitops_GetObjectsToSynchronizeServer) error {
-	return status.Errorf(codes.Unimplemented, "method GetObjectsToSynchronize not implemented")
-}
-
-func RegisterGitopsServer(s *grpc.Server, srv GitopsServer) {
-	s.RegisterService(&_Gitops_serviceDesc, srv)
-}
-
-func _Gitops_GetObjectsToSynchronize_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(ObjectsToSynchronizeRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(GitopsServer).GetObjectsToSynchronize(m, &gitopsGetObjectsToSynchronizeServer{stream})
-}
-
-type Gitops_GetObjectsToSynchronizeServer interface {
-	Send(*ObjectsToSynchronizeResponse) error
-	grpc.ServerStream
-}
-
-type gitopsGetObjectsToSynchronizeServer struct {
-	grpc.ServerStream
-}
-
-func (x *gitopsGetObjectsToSynchronizeServer) Send(m *ObjectsToSynchronizeResponse) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-var _Gitops_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "gitlab.agent.gitops.rpc.Gitops",
-	HandlerType: (*GitopsServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "GetObjectsToSynchronize",
-			Handler:       _Gitops_GetObjectsToSynchronize_Handler,
-			ServerStreams: true,
-		},
-	},
-	Metadata: "internal/module/gitops/rpc/rpc.proto",
 }

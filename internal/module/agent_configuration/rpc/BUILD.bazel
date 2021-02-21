@@ -17,6 +17,7 @@ go_library(
         "configuration_watcher.go",
         "rpc.pb.go",
         "rpc.pb.validate.go",
+        "rpc_grpc.pb.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc",
     visibility = ["//:__subpackages__"],

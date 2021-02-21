@@ -7,7 +7,6 @@
 package rpc
 
 import (
-	context "context"
 	reflect "reflect"
 	sync "sync"
 
@@ -15,9 +14,6 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	_ "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/automata"
 	prototool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
-	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
@@ -753,116 +749,4 @@ func file_internal_module_gitlab_access_rpc_rpc_proto_init() {
 	file_internal_module_gitlab_access_rpc_rpc_proto_rawDesc = nil
 	file_internal_module_gitlab_access_rpc_rpc_proto_goTypes = nil
 	file_internal_module_gitlab_access_rpc_rpc_proto_depIdxs = nil
-}
-
-// Reference imports to suppress errors if they are not otherwise used.
-var _ context.Context
-var _ grpc.ClientConnInterface
-
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion6
-
-// GitlabAccessClient is the client API for GitlabAccess service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type GitlabAccessClient interface {
-	MakeRequest(ctx context.Context, opts ...grpc.CallOption) (GitlabAccess_MakeRequestClient, error)
-}
-
-type gitlabAccessClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewGitlabAccessClient(cc grpc.ClientConnInterface) GitlabAccessClient {
-	return &gitlabAccessClient{cc}
-}
-
-func (c *gitlabAccessClient) MakeRequest(ctx context.Context, opts ...grpc.CallOption) (GitlabAccess_MakeRequestClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_GitlabAccess_serviceDesc.Streams[0], "/gitlab.agent.gitlab_access.rpc.GitlabAccess/MakeRequest", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &gitlabAccessMakeRequestClient{stream}
-	return x, nil
-}
-
-type GitlabAccess_MakeRequestClient interface {
-	Send(*Request) error
-	Recv() (*Response, error)
-	grpc.ClientStream
-}
-
-type gitlabAccessMakeRequestClient struct {
-	grpc.ClientStream
-}
-
-func (x *gitlabAccessMakeRequestClient) Send(m *Request) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *gitlabAccessMakeRequestClient) Recv() (*Response, error) {
-	m := new(Response)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-// GitlabAccessServer is the server API for GitlabAccess service.
-type GitlabAccessServer interface {
-	MakeRequest(GitlabAccess_MakeRequestServer) error
-}
-
-// UnimplementedGitlabAccessServer can be embedded to have forward compatible implementations.
-type UnimplementedGitlabAccessServer struct {
-}
-
-func (*UnimplementedGitlabAccessServer) MakeRequest(GitlabAccess_MakeRequestServer) error {
-	return status.Errorf(codes.Unimplemented, "method MakeRequest not implemented")
-}
-
-func RegisterGitlabAccessServer(s *grpc.Server, srv GitlabAccessServer) {
-	s.RegisterService(&_GitlabAccess_serviceDesc, srv)
-}
-
-func _GitlabAccess_MakeRequest_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(GitlabAccessServer).MakeRequest(&gitlabAccessMakeRequestServer{stream})
-}
-
-type GitlabAccess_MakeRequestServer interface {
-	Send(*Response) error
-	Recv() (*Request, error)
-	grpc.ServerStream
-}
-
-type gitlabAccessMakeRequestServer struct {
-	grpc.ServerStream
-}
-
-func (x *gitlabAccessMakeRequestServer) Send(m *Response) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *gitlabAccessMakeRequestServer) Recv() (*Request, error) {
-	m := new(Request)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-var _GitlabAccess_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "gitlab.agent.gitlab_access.rpc.GitlabAccess",
-	HandlerType: (*GitlabAccessServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "MakeRequest",
-			Handler:       _GitlabAccess_MakeRequest_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
-		},
-	},
-	Metadata: "internal/module/gitlab_access/rpc/rpc.proto",
 }

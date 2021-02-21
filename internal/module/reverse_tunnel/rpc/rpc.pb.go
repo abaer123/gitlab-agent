@@ -7,7 +7,6 @@
 package rpc
 
 import (
-	context "context"
 	reflect "reflect"
 	sync "sync"
 
@@ -17,9 +16,6 @@ import (
 	_ "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/automata"
 	prototool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	status "google.golang.org/genproto/googleapis/rpc/status"
-	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status1 "google.golang.org/grpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
@@ -916,116 +912,4 @@ func file_internal_module_reverse_tunnel_rpc_rpc_proto_init() {
 	file_internal_module_reverse_tunnel_rpc_rpc_proto_rawDesc = nil
 	file_internal_module_reverse_tunnel_rpc_rpc_proto_goTypes = nil
 	file_internal_module_reverse_tunnel_rpc_rpc_proto_depIdxs = nil
-}
-
-// Reference imports to suppress errors if they are not otherwise used.
-var _ context.Context
-var _ grpc.ClientConnInterface
-
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion6
-
-// ReverseTunnelClient is the client API for ReverseTunnel service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type ReverseTunnelClient interface {
-	Connect(ctx context.Context, opts ...grpc.CallOption) (ReverseTunnel_ConnectClient, error)
-}
-
-type reverseTunnelClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewReverseTunnelClient(cc grpc.ClientConnInterface) ReverseTunnelClient {
-	return &reverseTunnelClient{cc}
-}
-
-func (c *reverseTunnelClient) Connect(ctx context.Context, opts ...grpc.CallOption) (ReverseTunnel_ConnectClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_ReverseTunnel_serviceDesc.Streams[0], "/gitlab.agent.reverse_tunnel.rpc.ReverseTunnel/Connect", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &reverseTunnelConnectClient{stream}
-	return x, nil
-}
-
-type ReverseTunnel_ConnectClient interface {
-	Send(*ConnectRequest) error
-	Recv() (*ConnectResponse, error)
-	grpc.ClientStream
-}
-
-type reverseTunnelConnectClient struct {
-	grpc.ClientStream
-}
-
-func (x *reverseTunnelConnectClient) Send(m *ConnectRequest) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *reverseTunnelConnectClient) Recv() (*ConnectResponse, error) {
-	m := new(ConnectResponse)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-// ReverseTunnelServer is the server API for ReverseTunnel service.
-type ReverseTunnelServer interface {
-	Connect(ReverseTunnel_ConnectServer) error
-}
-
-// UnimplementedReverseTunnelServer can be embedded to have forward compatible implementations.
-type UnimplementedReverseTunnelServer struct {
-}
-
-func (*UnimplementedReverseTunnelServer) Connect(ReverseTunnel_ConnectServer) error {
-	return status1.Errorf(codes.Unimplemented, "method Connect not implemented")
-}
-
-func RegisterReverseTunnelServer(s *grpc.Server, srv ReverseTunnelServer) {
-	s.RegisterService(&_ReverseTunnel_serviceDesc, srv)
-}
-
-func _ReverseTunnel_Connect_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ReverseTunnelServer).Connect(&reverseTunnelConnectServer{stream})
-}
-
-type ReverseTunnel_ConnectServer interface {
-	Send(*ConnectResponse) error
-	Recv() (*ConnectRequest, error)
-	grpc.ServerStream
-}
-
-type reverseTunnelConnectServer struct {
-	grpc.ServerStream
-}
-
-func (x *reverseTunnelConnectServer) Send(m *ConnectResponse) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *reverseTunnelConnectServer) Recv() (*ConnectRequest, error) {
-	m := new(ConnectRequest)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-var _ReverseTunnel_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "gitlab.agent.reverse_tunnel.rpc.ReverseTunnel",
-	HandlerType: (*ReverseTunnelServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "Connect",
-			Handler:       _ReverseTunnel_Connect_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
-		},
-	},
-	Metadata: "internal/module/reverse_tunnel/rpc/rpc.proto",
 }
