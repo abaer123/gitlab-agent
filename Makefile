@@ -72,30 +72,14 @@ update-bazel: gazelle
 
 .PHONY: fmt
 fmt:
-	go run golang.org/x/tools/cmd/goimports -w cmd it internal pkg
+	go run golang.org/x/tools/cmd/goimports -w cmd internal pkg
 
 .PHONY: test
 test: fmt update-bazel test-ci
 
 .PHONY: test-ci
 test-ci:
-	bazel test \
-		-- //...
-	bazel build $$(bazel query 'attr(tags, manual, kind(test, //it/...))')
-
-.PHONY: test-it
-test-it: fmt update-bazel
-	bazel test \
-		--test_env=GITALY_ADDRESS=$(GITALY_ADDRESS) \
-		--test_env=GITLAB_ADDRESS=$(GITLAB_ADDRESS) \
-		--test_env=AGENTK_TOKEN=$(AGENTK_TOKEN) \
-		--test_env=KAS_GITLAB_AUTH_SECRET=$(KAS_GITLAB_AUTH_SECRET) \
-		--test_env=KUBECONFIG=$(KUBECONFIG) \
-		--test_env=KUBECONTEXT=$(KUBECONTEXT) \
-		--test_env=TEST_LOG_FORMATTER=$(TEST_LOG_FORMATTER) \
-		--test_output=all \
-		--test_arg=-test.v \
-		-- $$(bazel query 'attr(tags, manual, kind(test, //it/...))')
+	bazel test -- //...
 
 .PHONY: quick-test
 quick-test:
