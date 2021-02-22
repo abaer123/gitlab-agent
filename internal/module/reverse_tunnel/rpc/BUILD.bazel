@@ -19,6 +19,7 @@ go_library(
         "extra_methods.go",
         "rpc.pb.go",
         "rpc.pb.validate.go",
+        "rpc_grpc.pb.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc",
     visibility = ["//:__subpackages__"],

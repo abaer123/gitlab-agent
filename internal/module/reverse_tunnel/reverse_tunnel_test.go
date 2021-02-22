@@ -311,7 +311,7 @@ func (s *serverTestingServer) ForwardStream(srv interface{}, server grpc.ServerS
 // registerTestingServer is a test.RegisterTestingServer clone that's been modified to be compatible with
 // reverse_tunnel.TunnelFinder.FindTunnel().
 func registerTestingServer(s *grpc.Server, h *serverTestingServer) {
-	// ServiceDesc must match test._Testing_serviceDesc
+	// ServiceDesc must match test.Testing_ServiceDesc
 	s.RegisterService(&grpc.ServiceDesc{
 		ServiceName: "gitlab.agent.grpctool.test.Testing",
 		Streams: []grpc.StreamDesc{
@@ -337,6 +337,7 @@ var (
 )
 
 type agentTestingServer struct {
+	test.UnimplementedTestingServer
 	requestResponse          func(context.Context, *test.Request) (*test.Response, error)
 	streamingRequestResponse func(test.Testing_StreamingRequestResponseServer) error
 }

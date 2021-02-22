@@ -16,6 +16,7 @@ import (
 )
 
 type module struct {
+	rpc.UnimplementedAgentConfigurationServer
 	api                          modserver.API
 	gitaly                       gitaly.PoolInterface
 	agentRegisterer              agent_tracker.Registerer

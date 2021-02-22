@@ -7,16 +7,12 @@
 package rpc
 
 import (
-	context "context"
 	reflect "reflect"
 	sync "sync"
 
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	proto "github.com/golang/protobuf/proto"
 	agent_tracker "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_tracker"
-	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
@@ -285,84 +281,4 @@ func file_internal_module_agent_tracker_rpc_rpc_proto_init() {
 	file_internal_module_agent_tracker_rpc_rpc_proto_rawDesc = nil
 	file_internal_module_agent_tracker_rpc_rpc_proto_goTypes = nil
 	file_internal_module_agent_tracker_rpc_rpc_proto_depIdxs = nil
-}
-
-// Reference imports to suppress errors if they are not otherwise used.
-var _ context.Context
-var _ grpc.ClientConnInterface
-
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion6
-
-// AgentTrackerClient is the client API for AgentTracker service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type AgentTrackerClient interface {
-	GetConnectedAgents(ctx context.Context, in *GetConnectedAgentsRequest, opts ...grpc.CallOption) (*GetConnectedAgentsResponse, error)
-}
-
-type agentTrackerClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewAgentTrackerClient(cc grpc.ClientConnInterface) AgentTrackerClient {
-	return &agentTrackerClient{cc}
-}
-
-func (c *agentTrackerClient) GetConnectedAgents(ctx context.Context, in *GetConnectedAgentsRequest, opts ...grpc.CallOption) (*GetConnectedAgentsResponse, error) {
-	out := new(GetConnectedAgentsResponse)
-	err := c.cc.Invoke(ctx, "/gitlab.agent.agent_tracker.rpc.AgentTracker/GetConnectedAgents", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// AgentTrackerServer is the server API for AgentTracker service.
-type AgentTrackerServer interface {
-	GetConnectedAgents(context.Context, *GetConnectedAgentsRequest) (*GetConnectedAgentsResponse, error)
-}
-
-// UnimplementedAgentTrackerServer can be embedded to have forward compatible implementations.
-type UnimplementedAgentTrackerServer struct {
-}
-
-func (*UnimplementedAgentTrackerServer) GetConnectedAgents(context.Context, *GetConnectedAgentsRequest) (*GetConnectedAgentsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetConnectedAgents not implemented")
-}
-
-func RegisterAgentTrackerServer(s *grpc.Server, srv AgentTrackerServer) {
-	s.RegisterService(&_AgentTracker_serviceDesc, srv)
-}
-
-func _AgentTracker_GetConnectedAgents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetConnectedAgentsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AgentTrackerServer).GetConnectedAgents(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/gitlab.agent.agent_tracker.rpc.AgentTracker/GetConnectedAgents",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentTrackerServer).GetConnectedAgents(ctx, req.(*GetConnectedAgentsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-var _AgentTracker_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "gitlab.agent.agent_tracker.rpc.AgentTracker",
-	HandlerType: (*AgentTrackerServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "GetConnectedAgents",
-			Handler:    _AgentTracker_GetConnectedAgents_Handler,
-		},
-	},
-	Streams:  []grpc.StreamDesc{},
-	Metadata: "internal/module/agent_tracker/rpc/rpc.proto",
 }

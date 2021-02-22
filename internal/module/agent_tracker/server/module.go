@@ -12,6 +12,7 @@ import (
 )
 
 type module struct {
+	rpc.UnimplementedAgentTrackerServer
 	api          modserver.API
 	agentQuerier agent_tracker.Querier
 }

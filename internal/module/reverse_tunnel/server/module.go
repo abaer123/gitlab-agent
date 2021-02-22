@@ -17,6 +17,7 @@ const (
 )
 
 type module struct {
+	rpc.UnimplementedReverseTunnelServer
 	api              modserver.API
 	maxConnectionAge time.Duration
 	tunnelHandler    reverse_tunnel.TunnelHandler

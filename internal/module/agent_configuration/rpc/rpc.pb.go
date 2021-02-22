@@ -7,7 +7,6 @@
 package rpc
 
 import (
-	context "context"
 	reflect "reflect"
 	sync "sync"
 
@@ -15,9 +14,6 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	modshared "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared"
 	agentcfg "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
-	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
@@ -274,111 +270,4 @@ func file_internal_module_agent_configuration_rpc_rpc_proto_init() {
 	file_internal_module_agent_configuration_rpc_rpc_proto_rawDesc = nil
 	file_internal_module_agent_configuration_rpc_rpc_proto_goTypes = nil
 	file_internal_module_agent_configuration_rpc_rpc_proto_depIdxs = nil
-}
-
-// Reference imports to suppress errors if they are not otherwise used.
-var _ context.Context
-var _ grpc.ClientConnInterface
-
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion6
-
-// AgentConfigurationClient is the client API for AgentConfiguration service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type AgentConfigurationClient interface {
-	GetConfiguration(ctx context.Context, in *ConfigurationRequest, opts ...grpc.CallOption) (AgentConfiguration_GetConfigurationClient, error)
-}
-
-type agentConfigurationClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewAgentConfigurationClient(cc grpc.ClientConnInterface) AgentConfigurationClient {
-	return &agentConfigurationClient{cc}
-}
-
-func (c *agentConfigurationClient) GetConfiguration(ctx context.Context, in *ConfigurationRequest, opts ...grpc.CallOption) (AgentConfiguration_GetConfigurationClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_AgentConfiguration_serviceDesc.Streams[0], "/gitlab.agent.agent_configuration.rpc.AgentConfiguration/GetConfiguration", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &agentConfigurationGetConfigurationClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type AgentConfiguration_GetConfigurationClient interface {
-	Recv() (*ConfigurationResponse, error)
-	grpc.ClientStream
-}
-
-type agentConfigurationGetConfigurationClient struct {
-	grpc.ClientStream
-}
-
-func (x *agentConfigurationGetConfigurationClient) Recv() (*ConfigurationResponse, error) {
-	m := new(ConfigurationResponse)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-// AgentConfigurationServer is the server API for AgentConfiguration service.
-type AgentConfigurationServer interface {
-	GetConfiguration(*ConfigurationRequest, AgentConfiguration_GetConfigurationServer) error
-}
-
-// UnimplementedAgentConfigurationServer can be embedded to have forward compatible implementations.
-type UnimplementedAgentConfigurationServer struct {
-}
-
-func (*UnimplementedAgentConfigurationServer) GetConfiguration(*ConfigurationRequest, AgentConfiguration_GetConfigurationServer) error {
-	return status.Errorf(codes.Unimplemented, "method GetConfiguration not implemented")
-}
-
-func RegisterAgentConfigurationServer(s *grpc.Server, srv AgentConfigurationServer) {
-	s.RegisterService(&_AgentConfiguration_serviceDesc, srv)
-}
-
-func _AgentConfiguration_GetConfiguration_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(ConfigurationRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(AgentConfigurationServer).GetConfiguration(m, &agentConfigurationGetConfigurationServer{stream})
-}
-
-type AgentConfiguration_GetConfigurationServer interface {
-	Send(*ConfigurationResponse) error
-	grpc.ServerStream
-}
-
-type agentConfigurationGetConfigurationServer struct {
-	grpc.ServerStream
-}
-
-func (x *agentConfigurationGetConfigurationServer) Send(m *ConfigurationResponse) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-var _AgentConfiguration_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "gitlab.agent.agent_configuration.rpc.AgentConfiguration",
-	HandlerType: (*AgentConfigurationServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "GetConfiguration",
-			Handler:       _AgentConfiguration_GetConfiguration_Handler,
-			ServerStreams: true,
-		},
-	},
-	Metadata: "internal/module/agent_configuration/rpc/rpc.proto",
 }

@@ -17,6 +17,7 @@ go_library(
         "obj_to_sync_watcher.go",
         "rpc.pb.go",
         "rpc.pb.validate.go",
+        "rpc_grpc.pb.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc",
     visibility = ["//:__subpackages__"],

@@ -1,10 +1,10 @@
 load("@rules_proto//proto:defs.bzl", "proto_library")
-load("@rules_proto_grpc//go:defs.bzl", "go_grpc_compile")
+load("@rules_proto_grpc//go:defs.bzl", "go_grpc_compile", "go_proto_compile")
 load("//build:build.bzl", "copy_to_workspace")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//build:validate.bzl", "go_validate_compile")
 
-def go_grpc_generate(src, workspace_relative_target_directory, deps = []):
+def go_proto_generate(src, workspace_relative_target_directory, deps = []):
     proto_library(
         name = "proto",
         srcs = [src],
@@ -13,16 +13,16 @@ def go_grpc_generate(src, workspace_relative_target_directory, deps = []):
         deps = deps,
     )
 
-    go_grpc_compile(
-        name = "grpc_compile",
+    go_proto_compile(
+        name = "proto_compile",
         tags = ["manual"],
-        deps = [":proto"],
+        protos = [":proto"],
     )
 
     copy_to_workspace(
         name = "extract_generated",
         file_to_copy = paths.split_extension(src)[0] + ".pb.go",
-        label = ":grpc_compile",
+        label = ":proto_compile",
         workspace_relative_target_directory = workspace_relative_target_directory,
     )
 
@@ -31,7 +31,7 @@ def go_grpc_generate(src, workspace_relative_target_directory, deps = []):
             go_validate_compile(
                 name = "proto_compile_validate",
                 tags = ["manual"],
-                deps = [":proto"],
+                protos = [":proto"],
             )
             copy_to_workspace(
                 name = "extract_generated_validator",
@@ -40,3 +40,23 @@ def go_grpc_generate(src, workspace_relative_target_directory, deps = []):
                 workspace_relative_target_directory = workspace_relative_target_directory,
             )
             break
+
+def go_grpc_generate(src, workspace_relative_target_directory, deps = []):
+    go_proto_generate(
+        src = src,
+        workspace_relative_target_directory = workspace_relative_target_directory,
+        deps = deps,
+    )
+
+    go_grpc_compile(
+        name = "grpc_compile",
+        tags = ["manual"],
+        protos = [":proto"],
+    )
+
+    copy_to_workspace(
+        name = "extract_generated_grpc",
+        file_to_copy = paths.split_extension(src)[0] + "_grpc.pb.go",
+        label = ":grpc_compile",
+        workspace_relative_target_directory = workspace_relative_target_directory,
+    )

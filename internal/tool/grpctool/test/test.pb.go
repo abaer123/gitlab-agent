@@ -7,16 +7,12 @@
 package test
 
 import (
-	context "context"
 	reflect "reflect"
 	sync "sync"
 
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	proto "github.com/golang/protobuf/proto"
 	_ "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/automata"
-	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
@@ -1073,153 +1069,4 @@ func file_internal_tool_grpctool_test_test_proto_init() {
 	file_internal_tool_grpctool_test_test_proto_rawDesc = nil
 	file_internal_tool_grpctool_test_test_proto_goTypes = nil
 	file_internal_tool_grpctool_test_test_proto_depIdxs = nil
-}
-
-// Reference imports to suppress errors if they are not otherwise used.
-var _ context.Context
-var _ grpc.ClientConnInterface
-
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion6
-
-// TestingClient is the client API for Testing service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type TestingClient interface {
-	RequestResponse(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error)
-	StreamingRequestResponse(ctx context.Context, opts ...grpc.CallOption) (Testing_StreamingRequestResponseClient, error)
-}
-
-type testingClient struct {
-	cc grpc.ClientConnInterface
-}
-
-func NewTestingClient(cc grpc.ClientConnInterface) TestingClient {
-	return &testingClient{cc}
-}
-
-func (c *testingClient) RequestResponse(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error) {
-	out := new(Response)
-	err := c.cc.Invoke(ctx, "/gitlab.agent.grpctool.test.Testing/RequestResponse", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *testingClient) StreamingRequestResponse(ctx context.Context, opts ...grpc.CallOption) (Testing_StreamingRequestResponseClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Testing_serviceDesc.Streams[0], "/gitlab.agent.grpctool.test.Testing/StreamingRequestResponse", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &testingStreamingRequestResponseClient{stream}
-	return x, nil
-}
-
-type Testing_StreamingRequestResponseClient interface {
-	Send(*Request) error
-	Recv() (*Response, error)
-	grpc.ClientStream
-}
-
-type testingStreamingRequestResponseClient struct {
-	grpc.ClientStream
-}
-
-func (x *testingStreamingRequestResponseClient) Send(m *Request) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *testingStreamingRequestResponseClient) Recv() (*Response, error) {
-	m := new(Response)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-// TestingServer is the server API for Testing service.
-type TestingServer interface {
-	RequestResponse(context.Context, *Request) (*Response, error)
-	StreamingRequestResponse(Testing_StreamingRequestResponseServer) error
-}
-
-// UnimplementedTestingServer can be embedded to have forward compatible implementations.
-type UnimplementedTestingServer struct {
-}
-
-func (*UnimplementedTestingServer) RequestResponse(context.Context, *Request) (*Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RequestResponse not implemented")
-}
-func (*UnimplementedTestingServer) StreamingRequestResponse(Testing_StreamingRequestResponseServer) error {
-	return status.Errorf(codes.Unimplemented, "method StreamingRequestResponse not implemented")
-}
-
-func RegisterTestingServer(s *grpc.Server, srv TestingServer) {
-	s.RegisterService(&_Testing_serviceDesc, srv)
-}
-
-func _Testing_RequestResponse_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(TestingServer).RequestResponse(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/gitlab.agent.grpctool.test.Testing/RequestResponse",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TestingServer).RequestResponse(ctx, req.(*Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Testing_StreamingRequestResponse_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(TestingServer).StreamingRequestResponse(&testingStreamingRequestResponseServer{stream})
-}
-
-type Testing_StreamingRequestResponseServer interface {
-	Send(*Response) error
-	Recv() (*Request, error)
-	grpc.ServerStream
-}
-
-type testingStreamingRequestResponseServer struct {
-	grpc.ServerStream
-}
-
-func (x *testingStreamingRequestResponseServer) Send(m *Response) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *testingStreamingRequestResponseServer) Recv() (*Request, error) {
-	m := new(Request)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-var _Testing_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "gitlab.agent.grpctool.test.Testing",
-	HandlerType: (*TestingServer)(nil),
-	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "RequestResponse",
-			Handler:    _Testing_RequestResponse_Handler,
-		},
-	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "StreamingRequestResponse",
-			Handler:       _Testing_StreamingRequestResponse_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
-		},
-	},
-	Metadata: "internal/tool/grpctool/test/test.proto",
 }

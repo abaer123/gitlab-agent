@@ -17,6 +17,7 @@ import (
 )
 
 type module struct {
+	rpc.UnimplementedGitopsServer
 	api                      modserver.API
 	gitalyPool               gitaly.PoolInterface
 	projectInfoClient        *projectInfoClient
