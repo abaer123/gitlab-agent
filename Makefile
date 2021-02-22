@@ -182,3 +182,8 @@ show-go-dependency-updates:
 	go list \
 		-tags "${GO_BUILD_TAGS}" \
 		-u -f '{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}}: {{.Version}} -> {{.Update.Version}}{{end}}' -m all 2> /dev/null
+
+.PHONY: delete-generated-files
+delete-generated-files:
+	find -d . -name '*.pb.go' -type f -delete
+	find -d . -name '*.pb.validate.go' -type f -delete
