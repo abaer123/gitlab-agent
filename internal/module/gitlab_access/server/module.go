@@ -98,7 +98,7 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 					Response: &prototool.HttpResponse{
 						StatusCode: int32(resp.StatusCode),
 						Status:     resp.Status,
-						Header:     prototool.ValuesMapFromHttpHeader(resp.Header),
+						Header:     prototool.HttpHeaderToValuesMap(resp.Header),
 					},
 				},
 			},

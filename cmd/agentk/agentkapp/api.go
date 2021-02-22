@@ -118,9 +118,9 @@ func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequest
 				ModuleName: a.ModuleName,
 				Request: &prototool.HttpRequest{
 					Method:  config.Method,
-					Header:  prototool.ValuesMapFromHttpHeader(config.Header),
+					Header:  prototool.HttpHeaderToValuesMap(config.Header),
 					UrlPath: path,
-					Query:   prototool.ValuesMapFromUrlValues(config.Query),
+					Query:   prototool.UrlValuesToValuesMap(config.Query),
 				},
 			},
 		},

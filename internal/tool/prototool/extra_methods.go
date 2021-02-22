@@ -14,7 +14,7 @@ func (x *HttpResponse) HttpHeader() http.Header {
 }
 
 func (x *HttpRequest) UrlQuery() url.Values {
-	return UrlValuesFromValuesMap(x.Query)
+	return ValuesMapToUrlValues(x.Query)
 }
 
 func ValuesMapToHttpHeader(from map[string]*Values) http.Header {
@@ -25,7 +25,7 @@ func ValuesMapToHttpHeader(from map[string]*Values) http.Header {
 	return res
 }
 
-func ValuesMapFromHttpHeader(from http.Header) map[string]*Values {
+func HttpHeaderToValuesMap(from http.Header) map[string]*Values {
 	res := make(map[string]*Values, len(from))
 	for key, val := range from {
 		res[key] = &Values{
@@ -35,7 +35,7 @@ func ValuesMapFromHttpHeader(from http.Header) map[string]*Values {
 	return res
 }
 
-func ValuesMapFromUrlValues(from url.Values) map[string]*Values {
+func UrlValuesToValuesMap(from url.Values) map[string]*Values {
 	res := make(map[string]*Values, len(from))
 	for key, val := range from {
 		res[key] = &Values{
@@ -45,7 +45,7 @@ func ValuesMapFromUrlValues(from url.Values) map[string]*Values {
 	return res
 }
 
-func UrlValuesFromValuesMap(from map[string]*Values) url.Values {
+func ValuesMapToUrlValues(from map[string]*Values) url.Values {
 	query := make(url.Values, len(from))
 	for key, val := range from {
 		query[key] = val.Value

@@ -70,9 +70,9 @@ func TestMakeRequest(t *testing.T) {
 					ModuleName: moduleName,
 					Request: &prototool.HttpRequest{
 						Method:  httpMethod,
-						Header:  prototool.ValuesMapFromHttpHeader(header),
+						Header:  prototool.HttpHeaderToValuesMap(header),
 						UrlPath: urlPath,
-						Query:   prototool.ValuesMapFromUrlValues(query),
+						Query:   prototool.UrlValuesToValuesMap(query),
 					},
 				},
 			},
@@ -133,7 +133,7 @@ func TestMakeRequest(t *testing.T) {
 					Response: &prototool.HttpResponse{
 						StatusCode: 200,
 						Status:     "status1",
-						Header:     prototool.ValuesMapFromHttpHeader(respHeader),
+						Header:     prototool.HttpHeaderToValuesMap(respHeader),
 					},
 				},
 			},
