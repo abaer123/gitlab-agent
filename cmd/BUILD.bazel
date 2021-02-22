@@ -3,57 +3,14 @@ load("cmd.bzl", "push_bundle")
 
 prefix = "registry.gitlab.com/{STABLE_CONTAINER_REPOSITORY_PATH}/"
 
-COMMIT_NORMAL = {
-    prefix + "agentk:{STABLE_BUILD_GIT_COMMIT}": "//cmd/agentk:container",
-    prefix + "kas:{STABLE_BUILD_GIT_COMMIT}": "//cmd/kas:container",
-    prefix + "cli:{STABLE_BUILD_GIT_COMMIT}": "//cmd/cli:container",
-}
-
-COMMIT_RACE = {
-    prefix + "agentk:{STABLE_BUILD_GIT_COMMIT}-race": "//cmd/agentk:container_race",
-    prefix + "kas:{STABLE_BUILD_GIT_COMMIT}-race": "//cmd/kas:container_race",
-}
-
-COMMIT_ALL = {}
-
-COMMIT_ALL.update(COMMIT_NORMAL)
-
-COMMIT_ALL.update(COMMIT_RACE)
-
-push_bundle(
-    name = "commit-normal",
-    images = COMMIT_NORMAL,
-)
-
-push_bundle(
-    name = "commit-race",
-    images = COMMIT_RACE,
-)
-
-push_bundle(
-    name = "commit-all",
-    images = COMMIT_ALL,
-)
-
-push_bundle(
-    name = "latest-all",
-    images = {
-        prefix + "agentk:latest": "//cmd/agentk:container",
-        prefix + "kas:latest": "//cmd/kas:container",
-        prefix + "cli:latest": "//cmd/cli:container",
-        prefix + "agentk:latest-race": "//cmd/agentk:container_race",
-        prefix + "kas:latest-race": "//cmd/kas:container_race",
-    },
-)
-
 push_bundle(
     name = "tag-all",
     images = {
-        prefix + "agentk:{STABLE_BUILD_GIT_TAG}": "//cmd/agentk:container",
-        prefix + "kas:{STABLE_BUILD_GIT_TAG}": "//cmd/kas:container",
-        prefix + "cli:{STABLE_BUILD_GIT_TAG}": "//cmd/cli:container",
-        prefix + "agentk:{STABLE_BUILD_GIT_TAG}-race": "//cmd/agentk:container_race",
-        prefix + "kas:{STABLE_BUILD_GIT_TAG}-race": "//cmd/kas:container_race",
+        prefix + "agentk:{STABLE_BUILD_IMAGE_TAG}": "//cmd/agentk:container",
+        prefix + "kas:{STABLE_BUILD_IMAGE_TAG}": "//cmd/kas:container",
+        prefix + "cli:{STABLE_BUILD_IMAGE_TAG}": "//cmd/cli:container",
+        prefix + "agentk:{STABLE_BUILD_IMAGE_TAG}-race": "//cmd/agentk:container_race",
+        prefix + "kas:{STABLE_BUILD_IMAGE_TAG}-race": "//cmd/kas:container_race",
     },
 )
 
