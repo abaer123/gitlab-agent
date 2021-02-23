@@ -140,16 +140,15 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 		return nil
 	})
 	err := g.Wait()
-	if err != nil {
-		switch {
-		case errz.ContextDone(err):
-			err = status.Error(codes.Unavailable, "unavailable")
-		case status.Code(err) != codes.Unknown:
-			// A gRPC status already
-		default:
-			m.api.HandleProcessingError(ctx, log, "MakeRequest()", err)
-			err = status.Error(codes.Unavailable, "unavailable")
-		}
+	switch {
+	case err == nil:
+	case errz.ContextDone(err):
+		err = status.Error(codes.Unavailable, "unavailable")
+	case grpctool.IsStatusError(err):
+		// A gRPC status already
+	default:
+		m.api.HandleProcessingError(ctx, log, "MakeRequest()", err)
+		err = status.Error(codes.Unavailable, "unavailable")
 	}
 	return err
 }
