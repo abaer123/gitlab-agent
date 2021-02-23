@@ -65,6 +65,13 @@ func StartServer(stage stager.Stage, server *grpc.Server, interceptorsCancel con
 	})
 }
 
+func IsStatusError(err error) bool {
+	_, ok := err.(interface {
+		GRPCStatus() *status.Status
+	})
+	return ok
+}
+
 func MetaToValuesMap(meta metadata.MD) map[string]*prototool.Values {
 	if len(meta) == 0 {
 		return nil

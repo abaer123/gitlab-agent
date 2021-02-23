@@ -12,6 +12,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/test"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -358,14 +359,15 @@ type streamingCallback struct {
 	incomingStream grpc.ServerStream
 }
 
-func (c streamingCallback) Header(md metadata.MD) error {
-	return c.incomingStream.SetHeader(md)
+func (c streamingCallback) Header(md map[string]*prototool.Values) error {
+	return c.incomingStream.SetHeader(grpctool.ValuesMapToMeta(md))
 }
 
 func (c streamingCallback) Message(data []byte) error {
 	return c.incomingStream.SendMsg(&grpctool.RawFrame{Data: data})
 }
 
-func (c streamingCallback) Trailer(md metadata.MD) {
-	c.incomingStream.SetTrailer(md)
+func (c streamingCallback) Trailer(md map[string]*prototool.Values) error {
+	c.incomingStream.SetTrailer(grpctool.ValuesMapToMeta(md))
+	return nil
 }
