@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	metadata "google.golang.org/grpc/metadata"
+	prototool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 )
 
 // MockTunnelDataCallback is a mock of TunnelDataCallback interface.
@@ -35,7 +35,7 @@ func (m *MockTunnelDataCallback) EXPECT() *MockTunnelDataCallbackMockRecorder {
 }
 
 // Header mocks base method.
-func (m *MockTunnelDataCallback) Header(arg0 metadata.MD) error {
+func (m *MockTunnelDataCallback) Header(arg0 map[string]*prototool.Values) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Header", arg0)
 	ret0, _ := ret[0].(error)
@@ -63,9 +63,11 @@ func (mr *MockTunnelDataCallbackMockRecorder) Message(arg0 interface{}) *gomock.
 }
 
 // Trailer mocks base method.
-func (m *MockTunnelDataCallback) Trailer(arg0 metadata.MD) {
+func (m *MockTunnelDataCallback) Trailer(arg0 map[string]*prototool.Values) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Trailer", arg0)
+	ret := m.ctrl.Call(m, "Trailer", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // Trailer indicates an expected call of Trailer.

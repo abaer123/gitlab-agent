@@ -279,7 +279,9 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 				},
 			})),
 		cb.EXPECT().
-			Header(metadata.MD{"resp": []string{"1", "2"}}),
+			Header(map[string]*prototool.Values{
+				"resp": {Value: []string{"1", "2"}},
+			}),
 		connectServer.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&rpc.ConnectRequest{
@@ -303,7 +305,9 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 				},
 			})),
 		cb.EXPECT().
-			Trailer(metadata.MD{"trailer": []string{"8", "9"}}),
+			Trailer(map[string]*prototool.Values{
+				"trailer": {Value: []string{"8", "9"}},
+			}),
 		connectServer.EXPECT().
 			RecvMsg(gomock.Any()).
 			Return(io.EOF),

@@ -8,6 +8,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -32,9 +33,9 @@ const (
 )
 
 type TunnelDataCallback interface {
-	Header(metadata.MD) error
+	Header(map[string]*prototool.Values) error
 	Message([]byte) error
-	Trailer(metadata.MD)
+	Trailer(map[string]*prototool.Values) error
 }
 
 type Tunnel interface {
@@ -140,14 +141,13 @@ func (t *tunnel) ForwardStream(incomingStream grpc.ServerStream, cb TunnelDataCa
 				return status.Errorf(codes.Internal, "Unexpected %T message received", descriptor)
 			}),
 			grpctool.WithCallback(headerNumber, func(header *rpc.Header) error {
-				return cb.Header(header.Metadata())
+				return cb.Header(header.Meta)
 			}),
 			grpctool.WithCallback(messageNumber, func(message *rpc.Message) error {
 				return cb.Message(message.Data)
 			}),
 			grpctool.WithCallback(trailerNumber, func(trailer *rpc.Trailer) error {
-				cb.Trailer(trailer.Metadata())
-				return nil
+				return cb.Trailer(trailer.Meta)
 			}),
 			grpctool.WithCallback(errorNumber, func(rpcError *rpc.Error) error {
 				forIncomingStream = status.ErrorProto(rpcError.Status)
