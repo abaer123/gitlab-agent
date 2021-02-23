@@ -6,5 +6,5 @@ transformers:
 - namespace_transformer.yaml
 secretGenerator:
 - name: gitlab-agent-token
-  literals:
-  - token="" # {"$openapi":"agent-token-subst"}
+  files:
+  - token=secrets/agent.token

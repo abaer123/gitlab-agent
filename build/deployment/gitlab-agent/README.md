@@ -55,13 +55,16 @@ you use `kpt`, but `kpt` makes cloning and updating the package more convenient.
     ```shell
     # in gitlab-agent directory
     kustomize cfg list-setters .
-     NAME               VALUE               SET BY                  DESCRIPTION              COUNT
-     kas-address   grpc://127.0.0.1:8150                     kas address. Use                   1
-                                                             grpc://host.docker.internal:8150
-                                                             if connecting from within Docker
-                                                             e.g. from kind.
-     namespace     gitlab-agent            package-default   Namespace to install GitLab        1
-                                                             Kubernetes Agent into
+
+        NAME                VALUE               SET BY                  DESCRIPTION              COUNT   REQUIRED   IS SET
+    agent-version   latest                  package-default   Image tag for agentk container     1       No         No
+    kas-address     grpc://127.0.0.1:8150   package-default   kas address. Use                   1       No         No
+                                                              grpc://host.docker.internal:8150
+                                                              if connecting from within Docker
+                                                              e.g. from kind.
+    namespace       gitlab-agent            package-default   Namespace to install GitLab        1       No         No
+                                                              Kubernetes Agent into
+
     kustomize cfg set . namespace custom-place
     set 1 fields
     kustomize cfg set . kas-address wss://my-host.example.com:443/-/kubernetes-agent
@@ -70,16 +73,13 @@ you use `kpt`, but `kpt` makes cloning and updating the package more convenient.
 
 1. (Optional but recommended) Commit the configuration into a repository and manage it as code.
 
-1. Add the agent token into a `Secret` named `gitlab-agent-token`, and reference it
-   by the `token` key. Make sure it's within the same namespace (`gitlab-agent` by default)
-   as the agent, such as:
+1. Prior to deployment, write the agent token you obtained via registration in GitLab to `base/secrets/agent.token`.
+   Note that this should not be committed to a repository and is excluded by the `.gitignore` in the `base/secrets`
+   directory by default.
 
-   ```shell
-   kubectl create secret generic -n gitlab-agent gitlab-agent-token --from-literal=token='YOUR_AGENT_TOKEN'
-   ```
-
-   You can find out the currently set namespace by running `kustomize cfg list-setters .`.
-   Read the "Use Kustomize setters" step for more information
+    ```shell
+    echo -n "<agent token>" | base64 > base/secrets/agent.token
+    ```
 
 1. Deploy the stock configuration or your customized overlay:
 
