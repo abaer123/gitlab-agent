@@ -98,6 +98,8 @@ func (m *module) configureWorkers(workers map[workerKey]*gitopsWorkerHolder, pro
 		if workerHolder == nil { // New project added
 			projectsToStartWorkersFor[key] = project
 		} else { // We have a worker for this project already
+			// This branch will not trigger because we use the whole project object as the key, but we have it here
+			// if we change the behavior in the future.
 			if proto.Equal(project, workerHolder.project) {
 				// Worker's configuration hasn't changed, nothing to do here
 				continue
@@ -159,10 +161,7 @@ type gitopsWorkerHolder struct {
 func keyForProject(project *agentcfg.ManifestProjectCF) (workerKey, error) {
 	data, err := proto.MarshalOptions{
 		Deterministic: true,
-	}.Marshal(&agentcfg.ManifestProjectCF{
-		Id:    project.Id,
-		Paths: project.Paths,
-	})
+	}.Marshal(project)
 	if err != nil {
 		return "", err
 	}
