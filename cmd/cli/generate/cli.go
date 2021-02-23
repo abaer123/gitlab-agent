@@ -3,7 +3,9 @@ package generate
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,10 +15,11 @@ import (
 )
 
 const (
-	kustomizationPathEnvVar  = "KPT_PACKAGE_PATH"
-	kustomizationBaseOverlay = "base"
-	kustomizationRbacOverlay = "cluster"
-	warningText              = `
+	kustomizationPathEnvVar     = "KPT_PACKAGE_PATH"
+	kustomizationAgentTokenPath = "base/secrets/agent.token"
+	kustomizationBaseOverlay    = "base"
+	kustomizationRbacOverlay    = "cluster"
+	warningText                 = `
 ###
 # WARNING: output contains the agent token, which should be considered sensitive and never committed to source control
 ###
@@ -56,7 +59,7 @@ func (c *GenerateCmd) Run(ctx context.Context) (retErr error) {
 		overlay = kustomizationBaseOverlay
 	}
 
-	if err := c.kustomizeSet(ctx, "agent-token", c.AgentToken); err != nil {
+	if err := c.writeTokenFile(); err != nil {
 		return err
 	}
 	if err := c.kustomizeSet(ctx, "agent-version", c.AgentVersion); err != nil {
@@ -102,4 +105,13 @@ func (c *GenerateCmd) kustomizeBuild(ctx context.Context, overlay string) error 
 	}
 	_, _ = os.Stdout.Write(out.Bytes())
 	return nil
+}
+
+func (c *GenerateCmd) writeTokenFile() error {
+	if c.AgentToken == "" {
+		return errors.New("--agent-token is required")
+	}
+
+	tokenFilePath := filepath.Join(c.KustomizationPath, kustomizationAgentTokenPath)
+	return ioutil.WriteFile(tokenFilePath, []byte(c.AgentToken), 0777) //nolint:gosec
 }
