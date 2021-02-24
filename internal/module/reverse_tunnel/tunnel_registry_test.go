@@ -56,7 +56,7 @@ func TestRunUnregistersAllConnections(t *testing.T) {
 		tunnelRegisterer.EXPECT().
 			UnregisterTunnel(gomock.Any(), gomock.Any()),
 	)
-	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer)
+	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 	var wg wait.Group
 	defer wg.Wait()
@@ -90,7 +90,7 @@ func TestHandleTunnelIsUnblockedByContext(t *testing.T) {
 		tunnelRegisterer.EXPECT().
 			UnregisterTunnel(gomock.Any(), gomock.Any()),
 	)
-	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer)
+	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 	var wg wait.Group
 	defer wg.Wait()
@@ -110,7 +110,7 @@ func TestHandleTunnelReturnErrOnRecvErr(t *testing.T) {
 		Recv().
 		Return(nil, errors.New("expected err"))
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
-	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer)
+	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 	err = r.HandleTunnel(context.Background(), testhelpers.AgentInfoObj(), connectServer)
 	assert.EqualError(t, err, "rpc error: code = Unavailable desc = unavailable")
@@ -127,7 +127,7 @@ func TestHandleTunnelReturnErrOnInvalidMsg(t *testing.T) {
 			},
 		}, nil)
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
-	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer)
+	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 	err = r.HandleTunnel(context.Background(), testhelpers.AgentInfoObj(), connectServer)
 	assert.EqualError(t, err, "rpc error: code = InvalidArgument desc = Invalid oneof value type: *rpc.ConnectRequest_Header")
@@ -313,7 +313,7 @@ func setupStreams(t *testing.T, expectRegisterTunnel bool) (*mock_rpc.MockServer
 			Return(io.EOF),
 	)
 
-	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer)
+	r, err := NewTunnelRegistry(zaptest.NewLogger(t), tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 	return incomingStream, cb, connectServer, r
 }

@@ -37,6 +37,7 @@ type findTunnelRequest struct {
 type TunnelRegistry struct {
 	log                   *zap.Logger
 	tunnelRegisterer      tracker.Registerer
+	ownPrivateApiUrl      string
 	tunnelStreamVisitor   *grpctool.StreamVisitor
 	tuns                  map[*tunnel]struct{}
 	tunsByAgentId         map[int64]map[*tunnel]struct{}
@@ -49,7 +50,7 @@ type TunnelRegistry struct {
 	findRequestAbort chan *findTunnelRequest
 }
 
-func NewTunnelRegistry(log *zap.Logger, tunnelRegisterer tracker.Registerer) (*TunnelRegistry, error) {
+func NewTunnelRegistry(log *zap.Logger, tunnelRegisterer tracker.Registerer, ownPrivateApiUrl string) (*TunnelRegistry, error) {
 	tunnelStreamVisitor, err := grpctool.NewStreamVisitor(&rpc.ConnectRequest{})
 	if err != nil {
 		return nil, err
@@ -57,6 +58,7 @@ func NewTunnelRegistry(log *zap.Logger, tunnelRegisterer tracker.Registerer) (*T
 	return &TunnelRegistry{
 		log:                   log,
 		tunnelRegisterer:      tunnelRegisterer,
+		ownPrivateApiUrl:      ownPrivateApiUrl,
 		tunnelStreamVisitor:   tunnelStreamVisitor,
 		tuns:                  make(map[*tunnel]struct{}),
 		tunsByAgentId:         make(map[int64]map[*tunnel]struct{}),
@@ -140,6 +142,7 @@ func (r *TunnelRegistry) HandleTunnel(ctx context.Context, agentInfo *api.AgentI
 			AgentDescriptor: descriptor.Descriptor_.AgentDescriptor,
 			ConnectionId:    mathz.Int63(),
 			AgentId:         agentInfo.Id,
+			KasUrl:          r.ownPrivateApiUrl,
 		},
 	}
 	// Register

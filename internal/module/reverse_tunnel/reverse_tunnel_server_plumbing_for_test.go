@@ -35,7 +35,7 @@ func serverConstructComponents(t *testing.T) (func(context.Context) error, grpc.
 	agentServerListener := grpctool.NewDialListener()
 
 	internalListener := grpctool.NewDialListener()
-	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(log, tunnelRegisterer)
+	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(log, tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 
 	internalServer := serverConstructInternalServer(log)
@@ -55,10 +55,8 @@ func serverConstructComponents(t *testing.T) (func(context.Context) error, grpc.
 				},
 			},
 		},
-		AgentServer:         agentServer,
-		ReverseTunnelServer: internalServer,
-		ReverseTunnelClient: internalServerConn,
-		AgentTunnelFinder:   tunnelRegistry,
+		AgentServer: agentServer,
+		AgentConn:   internalServerConn,
 	}
 	serverModule, err := serverFactory.New(serverConfig)
 	require.NoError(t, err)
