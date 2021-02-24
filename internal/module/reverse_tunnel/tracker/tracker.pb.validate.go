@@ -64,6 +64,8 @@ func (m *TunnelInfo) Validate() error {
 
 	// no validation rules for AgentId
 
+	// no validation rules for KasUrl
+
 	return nil
 }
 

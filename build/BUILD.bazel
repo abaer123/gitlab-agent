@@ -38,6 +38,7 @@ sh_binary(
 multirun(
     name = "extract_generated_proto",
     commands = [
+        "//cmd/kas/kasapp:extract_generated",
         "//internal/module/agent_configuration/rpc:extract_generated",
         "//internal/module/agent_tracker/rpc:extract_generated",
         "//internal/module/agent_tracker:extract_generated",
