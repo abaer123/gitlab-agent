@@ -42,8 +42,6 @@ func (w *worker) Run(ctx context.Context) {
 	retry.JitterUntil(ctx, getFlowsRetryPeriod, func(ctx context.Context) {
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
-		// L4 https://gitlab.com/gitlab-org/gitlab/-/issues/293931
-		// L7 https://gitlab.com/gitlab-org/gitlab/-/issues/293932
 		flc, err := w.observerClient.GetFlows(ctx, &observer.GetFlowsRequest{
 			Follow: true,
 			Whitelist: []*flow.FlowFilter{
@@ -52,6 +50,9 @@ func (w *worker) Run(ctx context.Context) {
 					EventType: []*flow.EventTypeFilter{
 						{
 							Type: monitor_api.MessageTypePolicyVerdict, //L3_L4
+						},
+						{
+							Type: monitor_api.MessageTypeAccessLog, //L7
 						},
 					},
 				},

@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -110,6 +112,117 @@ func matchL4Info(rules api.Rules, flw *flow.Flow) bool {
 	return false
 }
 
+func matchL7Policy(rules api.Rules, flw *flow.Flow) bool {
+	flwHTTP := flw.GetL7().GetHttp()
+	if flwHTTP == nil {
+		return false
+	}
+	for _, ntwRule := range rules {
+		switch flw.GetTrafficDirection() { // nolint: exhaustive
+		case flow.TrafficDirection_INGRESS:
+			for _, igrs := range ntwRule.Ingress {
+				if matchL7Rules(igrs.ToPorts, flwHTTP) {
+					return true
+				}
+			}
+		case flow.TrafficDirection_EGRESS:
+			for _, egrs := range ntwRule.Egress {
+				if matchL7Rules(egrs.ToPorts, flwHTTP) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func matchL7Rules(rules api.PortRules, flwHTTP *flow.HTTP) bool {
+	for _, prt := range rules {
+		rule := prt.Rules
+		if rule == nil {
+			continue
+		}
+		for _, prtHTTP := range rule.HTTP {
+			if len(prtHTTP.Headers) != 0 {
+				if !includeHeader(prtHTTP.Headers, flwHTTP.GetHeaders()) {
+					continue
+				}
+			}
+			if prtHTTP.Host == "" && prtHTTP.Path == "" && prtHTTP.Method == "" {
+				return true
+			}
+			// The check above ensures the URL is only parsed if it's actually needed below
+			flwURL, err := url.Parse(flwHTTP.GetUrl())
+			if err != nil {
+				continue
+			}
+			if prtHTTP.Host != "" {
+				mch, err := regexp.MatchString(prtHTTP.Host, flwURL.Host)
+				if err != nil || !mch {
+					continue
+				}
+			}
+			if prtHTTP.Path != "" {
+				mch, err := regexp.MatchString(prtHTTP.Path, flwURL.Path)
+				if err != nil || !mch {
+					continue
+				}
+			}
+			if prtHTTP.Method != "" {
+				mch, err := regexp.MatchString(prtHTTP.Method, flwHTTP.GetMethod())
+				if err != nil || !mch {
+					continue
+				}
+			}
+			return true
+		}
+	}
+	return false
+}
+
+func includeHeader(ntwHdrs []string, flwHrds []*flow.HTTPHeader) bool {
+nextNtwHdr:
+	for _, ntwHdr := range ntwHdrs {
+		ntwHrdSplit := strings.SplitN(ntwHdr, ":", 2)
+		if len(ntwHrdSplit) != 2 {
+			return false
+		}
+		ntwHrdKey := ntwHrdSplit[0]
+		ntwHrdValue := strings.TrimLeft(ntwHrdSplit[1], " ")
+		for _, flwHrd := range flwHrds {
+			if flwHrd.Key == ntwHrdKey && flwHrd.Value == ntwHrdValue {
+				continue nextNtwHdr
+			}
+		}
+		return false
+	}
+	return true
+}
+
+func l7Applicable(rules api.Rules, dir flow.TrafficDirection) bool {
+	for _, rule := range rules {
+		switch dir { // nolint: exhaustive
+		case flow.TrafficDirection_INGRESS:
+			for _, igrs := range rule.Ingress {
+				for _, tPtr := range igrs.ToPorts {
+					if tPtr.Rules != nil && len(tPtr.Rules.HTTP) != 0 {
+						return true
+					}
+				}
+			}
+		case flow.TrafficDirection_EGRESS:
+			for _, egrs := range rule.Egress {
+				for _, tPtr := range egrs.ToPorts {
+					if tPtr.Rules != nil && len(tPtr.Rules.HTTP) != 0 {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
 func getPolicy(flw *flow.Flow, cnps *v2.CiliumNetworkPolicyList) (*v2.CiliumNetworkPolicy, error) {
 	for _, cnp := range cnps.Items {
 		if cnp.Annotations[alertAnnotationKey] != alertAnnotationValue {
@@ -134,7 +247,7 @@ func getPolicy(flw *flow.Flow, cnps *v2.CiliumNetworkPolicyList) (*v2.CiliumNetw
 		default: // TrafficDirection_TRAFFIC_DIRECTION_UNKNOWN or something else
 			continue
 		}
-		if !srcdst || !matchL4Info(rules, flw) {
+		if !srcdst || !matchL4Info(rules, flw) || (l7Applicable(rules, flw.GetTrafficDirection()) && !matchL7Policy(rules, flw)) {
 			return &cnp, nil
 		}
 	}
