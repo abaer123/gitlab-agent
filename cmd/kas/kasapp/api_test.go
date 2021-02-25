@@ -43,9 +43,13 @@ func TestGetAgentInfoFailures(t *testing.T) {
 		gitlabClient.EXPECT().
 			DoJSON(gomock.Any(), http.MethodGet, agentInfoApiPath, nil, testhelpers.AgentkToken, nil, gomock.Any()).
 			Return(&gitlab.ClientError{Kind: gitlab.ErrorKindForbidden, StatusCode: http.StatusForbidden}),
+		errTracker.EXPECT().
+			Capture(matcher.ErrorEq("GetAgentInfo(): error kind: 1; status: 403"), gomock.Any()),
 		gitlabClient.EXPECT().
 			DoJSON(gomock.Any(), http.MethodGet, agentInfoApiPath, nil, testhelpers.AgentkToken, nil, gomock.Any()).
 			Return(&gitlab.ClientError{Kind: gitlab.ErrorKindUnauthorized, StatusCode: http.StatusUnauthorized}),
+		errTracker.EXPECT().
+			Capture(matcher.ErrorEq("GetAgentInfo(): error kind: 2; status: 401"), gomock.Any()),
 		gitlabClient.EXPECT().
 			DoJSON(gomock.Any(), http.MethodGet, agentInfoApiPath, nil, testhelpers.AgentkToken, nil, gomock.Any()).
 			Return(&gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}),

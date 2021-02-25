@@ -58,8 +58,10 @@ func (a *serverAPI) GetAgentInfo(ctx context.Context, log *zap.Logger, agentToke
 	case errz.ContextDone(err):
 		err = status.Error(codes.Unavailable, "unavailable")
 	case gitlab.IsForbidden(err):
+		a.logAndCapture(ctx, log, "GetAgentInfo()", err)
 		err = status.Error(codes.PermissionDenied, "forbidden")
 	case gitlab.IsUnauthorized(err):
+		a.logAndCapture(ctx, log, "GetAgentInfo()", err)
 		err = status.Error(codes.Unauthenticated, "unauthenticated")
 	default:
 		a.logAndCapture(ctx, log, "GetAgentInfo()", err)
