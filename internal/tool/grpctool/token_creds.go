@@ -13,19 +13,19 @@ const (
 
 func NewTokenCredentials(token api.AgentToken, insecure bool) credentials.PerRPCCredentials {
 	return &tokenCredentials{
-		token:    token,
-		insecure: insecure,
+		authHeader: "Bearer " + string(token),
+		insecure:   insecure,
 	}
 }
 
 type tokenCredentials struct {
-	token    api.AgentToken
-	insecure bool
+	authHeader string
+	insecure   bool
 }
 
 func (t *tokenCredentials) GetRequestMetadata(ctx context.Context, uri ...string) (map[string]string, error) {
 	return map[string]string{
-		MetadataAuthorization: "Bearer " + string(t.token),
+		MetadataAuthorization: t.authHeader,
 	}, nil
 }
 
