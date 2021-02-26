@@ -6,7 +6,8 @@ pkg_tar(
         ["gitlab-agent/**"],
         exclude = ["gitlab-agent/README.*"],
     ),
-    mode = "0777",
+    mode = "0644",
+    owner = "65532.65532",  # nonroot.nonroot
     strip_prefix = "gitlab-agent",
     visibility = ["//visibility:public"],
 )
