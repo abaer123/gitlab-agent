@@ -69,7 +69,7 @@ func TestRunUnregistersAllConnections(t *testing.T) {
 	assert.EqualError(t, err, "rpc error: code = Canceled desc = context done")
 }
 
-func TestHandleTunnelConnectionIsUnblockedByContext(t *testing.T) {
+func TestHandleTunnelIsUnblockedByContext(t *testing.T) {
 	t.Parallel()
 	ctxConn, cancelConn := context.WithTimeout(context.Background(), 50*time.Millisecond) // will unblock HandleTunnel()
 	defer cancelConn()
@@ -103,7 +103,7 @@ func TestHandleTunnelConnectionIsUnblockedByContext(t *testing.T) {
 	assert.EqualError(t, err, "rpc error: code = Canceled desc = context done")
 }
 
-func TestHandleTunnelConnectionReturnErrOnRecvErr(t *testing.T) {
+func TestHandleTunnelReturnErrOnRecvErr(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	connectServer.EXPECT().
@@ -116,7 +116,7 @@ func TestHandleTunnelConnectionReturnErrOnRecvErr(t *testing.T) {
 	assert.EqualError(t, err, "rpc error: code = Unavailable desc = unavailable")
 }
 
-func TestHandleTunnelConnectionReturnErrOnInvalidMsg(t *testing.T) {
+func TestHandleTunnelReturnErrOnInvalidMsg(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
 	connectServer.EXPECT().
@@ -133,7 +133,7 @@ func TestHandleTunnelConnectionReturnErrOnInvalidMsg(t *testing.T) {
 	assert.EqualError(t, err, "rpc error: code = InvalidArgument desc = Invalid oneof value type: *rpc.ConnectRequest_Header")
 }
 
-func TestHandleTunnelConnectionIsMatchedToIncomingConnection(t *testing.T) {
+func TestHandleTunnelIsMatchedToIncomingConnection(t *testing.T) {
 	t.Parallel()
 	incomingStream, cb, tunnel, r := setupStreams(t, true)
 	agentInfo := testhelpers.AgentInfoObj()
@@ -155,7 +155,7 @@ func TestHandleTunnelConnectionIsMatchedToIncomingConnection(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestIncomingConnectionIsMatchedToHandleTunnelConnection(t *testing.T) {
+func TestForwardStreamIsMatchedToHandleTunnel(t *testing.T) {
 	t.Parallel()
 	incomingStream, cb, tunnel, r := setupStreams(t, false)
 	agentInfo := testhelpers.AgentInfoObj()
