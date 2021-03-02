@@ -3,8 +3,8 @@ package grpctool
 import (
 	"fmt"
 
-	legacy_proto "github.com/golang/protobuf/proto" // nolint:staticcheck
 	protoenc "google.golang.org/grpc/encoding/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 type RawFrame struct {
@@ -52,10 +52,8 @@ type RawCodecWithProtoFallback struct {
 func (c RawCodecWithProtoFallback) Marshal(v interface{}) ([]byte, error) {
 	out, ok := v.(*RawFrame)
 	if !ok {
-		// Mimics gRPC's proto codec.
-		// Unlike the new "google.golang.org/protobuf/proto".Marshal(), this method works for both
-		// v1 and v2 proto messages. New API only works for v2 messages.
-		return legacy_proto.Marshal(v.(legacy_proto.Message))
+		// Only works for v2 messages.
+		return proto.Marshal(v.(proto.Message))
 	}
 	return out.Data, nil
 }
@@ -63,7 +61,8 @@ func (c RawCodecWithProtoFallback) Marshal(v interface{}) ([]byte, error) {
 func (c RawCodecWithProtoFallback) Unmarshal(data []byte, v interface{}) error {
 	dst, ok := v.(*RawFrame)
 	if !ok {
-		return legacy_proto.Unmarshal(data, v.(legacy_proto.Message)) // mimics gRPC's proto codec
+		// Only works for v2 messages.
+		return proto.Unmarshal(data, v.(proto.Message))
 	}
 	dst.Data = data
 	return nil

@@ -75,6 +75,7 @@ type ConfiguredApp struct {
 func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// This should become required later
 	ownPrivateApiUrl := os.Getenv(envVarOwnPrivateApiUrl)
+	// TODO make it mandatory?
 	if ownPrivateApiUrl == "" {
 		a.Log.Warn(envVarOwnPrivateApiUrl + " is not set, this kas instance will not be accessible to other kas instances")
 	}
