@@ -66,7 +66,7 @@ func StartServer(stage stager.Stage, server *grpc.Server, interceptorsCancel con
 }
 
 func IsStatusError(err error) bool {
-	_, ok := err.(interface {
+	_, ok := err.(interface { // nolint:errorlint
 		GRPCStatus() *status.Status
 	})
 	return ok
