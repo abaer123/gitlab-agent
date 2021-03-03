@@ -9,6 +9,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
+	statuspb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -95,6 +96,16 @@ func (c wrappingCallback) Trailer(md map[string]*prototool.Values) error {
 		Msg: &GatewayKasResponse_Trailer_{
 			Trailer: &GatewayKasResponse_Trailer{
 				Meta: md,
+			},
+		},
+	})
+}
+
+func (c wrappingCallback) Error(stat *statuspb.Status) error {
+	return c.stream.SendMsg(&GatewayKasResponse{
+		Msg: &GatewayKasResponse_Error_{
+			Error: &GatewayKasResponse_Error{
+				Status: stat,
 			},
 		},
 	})

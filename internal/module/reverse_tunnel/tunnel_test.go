@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
@@ -52,19 +53,22 @@ func TestVisitorErrorIsReturnedOnErrorMessageAndReadError(t *testing.T) {
 			}),
 	)
 
+	stat := &statuspb.Status{
+		Code:    int32(codes.DataLoss),
+		Message: "expected data loss",
+	}
 	gomock.InOrder(
 		connectServer.EXPECT().
 			RecvMsg(gomock.Any()).
 			Do(testhelpers.RecvMsg(&rpc.ConnectRequest{
 				Msg: &rpc.ConnectRequest_Error{
 					Error: &rpc.Error{
-						Status: &statuspb.Status{
-							Code:    int32(codes.DataLoss),
-							Message: "expected data loss",
-						},
+						Status: stat,
 					},
 				},
 			})),
+		cb.EXPECT().
+			Error(matcher.ProtoEq(t, stat)),
 		connectServer.EXPECT().
 			RecvMsg(gomock.Any()).
 			Return(errors.New("correct error")),
