@@ -35,6 +35,7 @@ regenerate-proto: internal-regenerate-proto fmt update-bazel
 .PHONY: internal-regenerate-mocks
 internal-regenerate-mocks:
 	go generate -x -v \
+		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kas/kasapp" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/agent" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel" \
 		"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel" \

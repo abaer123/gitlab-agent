@@ -159,6 +159,18 @@ func (m *GatewayKasResponse) Validate() error {
 			}
 		}
 
+	case *GatewayKasResponse_Error_:
+
+		if v, ok := interface{}(m.GetError()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return GatewayKasResponseValidationError{
+					field:  "Error",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
 	default:
 		return GatewayKasResponseValidationError{
 			field:  "Msg",
@@ -530,3 +542,87 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = GatewayKasResponse_TrailerValidationError{}
+
+// Validate checks the field values on GatewayKasResponse_Error with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, an error is returned.
+func (m *GatewayKasResponse_Error) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if m.GetStatus() == nil {
+		return GatewayKasResponse_ErrorValidationError{
+			field:  "Status",
+			reason: "value is required",
+		}
+	}
+
+	if v, ok := interface{}(m.GetStatus()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return GatewayKasResponse_ErrorValidationError{
+				field:  "Status",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	return nil
+}
+
+// GatewayKasResponse_ErrorValidationError is the validation error returned by
+// GatewayKasResponse_Error.Validate if the designated constraints aren't met.
+type GatewayKasResponse_ErrorValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e GatewayKasResponse_ErrorValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e GatewayKasResponse_ErrorValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e GatewayKasResponse_ErrorValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e GatewayKasResponse_ErrorValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e GatewayKasResponse_ErrorValidationError) ErrorName() string {
+	return "GatewayKasResponse_ErrorValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e GatewayKasResponse_ErrorValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sGatewayKasResponse_Error.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = GatewayKasResponse_ErrorValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = GatewayKasResponse_ErrorValidationError{}

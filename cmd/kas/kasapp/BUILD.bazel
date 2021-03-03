@@ -8,6 +8,7 @@ go_proto_generate(
         "//internal/tool/grpctool/automata:proto",
         "//internal/tool/prototool:proto",
         "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
+        "@go_googleapis//google/rpc:status_proto",
     ],
 )
 
@@ -18,6 +19,7 @@ go_library(
         "app.go",
         "configured_app.go",
         "defaulting.go",
+        "doc.go",
         "extra_methods.go",
         "kas_pool.go",
         "kasapp.pb.go",
@@ -79,6 +81,7 @@ go_library(
         "@com_gitlab_gitlab_org_labkit//monitoring",
         "@io_k8s_klog_v2//:klog",
         "@io_k8s_sigs_yaml//:yaml",
+        "@org_golang_google_genproto//googleapis/rpc/status",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//credentials",
@@ -100,6 +103,7 @@ go_test(
     size = "small",
     srcs = [
         "api_test.go",
+        "mock_for_test.go",
         "router_test.go",
     ],
     embed = [":kasapp"],
@@ -117,6 +121,7 @@ go_test(
         "//internal/tool/testing/mock_gitlab",
         "//internal/tool/testing/mock_reverse_tunnel",
         "//internal/tool/testing/mock_reverse_tunnel_tracker",
+        "//internal/tool/testing/mock_rpc",
         "//internal/tool/testing/testhelpers",
         "@com_github_golang_mock//gomock",
         "@com_github_google_go_cmp//cmp",

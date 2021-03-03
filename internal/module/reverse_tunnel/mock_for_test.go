@@ -9,6 +9,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	prototool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
+	status "google.golang.org/genproto/googleapis/rpc/status"
 )
 
 // MockTunnelDataCallback is a mock of TunnelDataCallback interface.
@@ -32,6 +33,20 @@ func NewMockTunnelDataCallback(ctrl *gomock.Controller) *MockTunnelDataCallback 
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockTunnelDataCallback) EXPECT() *MockTunnelDataCallbackMockRecorder {
 	return m.recorder
+}
+
+// Error mocks base method.
+func (m *MockTunnelDataCallback) Error(arg0 *status.Status) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Error", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Error indicates an expected call of Error.
+func (mr *MockTunnelDataCallbackMockRecorder) Error(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Error", reflect.TypeOf((*MockTunnelDataCallback)(nil).Error), arg0)
 }
 
 // Header mocks base method.

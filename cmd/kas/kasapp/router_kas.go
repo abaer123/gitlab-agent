@@ -13,6 +13,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/mathz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 	"go.uber.org/zap"
+	statuspb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -28,6 +29,7 @@ const (
 	headerFieldNumber      protoreflect.FieldNumber = 2
 	messageFieldNumber     protoreflect.FieldNumber = 3
 	trailerFieldNumber     protoreflect.FieldNumber = 4
+	errorFieldNumber       protoreflect.FieldNumber = 5
 )
 
 var (
@@ -208,6 +210,7 @@ func (r *router) forwardStream(log *zap.Logger, kasStream grpc.ClientStream, str
 }
 
 func (r *router) pipeFromKasToStream(log *zap.Logger, kasStream grpc.ClientStream, stream grpc.ServerStream) *status.Status {
+	var stat *statuspb.Status
 	err := r.gatewayKasVisitor.Visit(kasStream,
 		grpctool.WithStartState(tunnelReadyFieldNumber),
 		grpctool.WithCallback(tunnelReadyFieldNumber, func(tunnelReady *GatewayKasResponse_TunnelReady) error {
@@ -226,8 +229,14 @@ func (r *router) pipeFromKasToStream(log *zap.Logger, kasStream grpc.ClientStrea
 			stream.SetTrailer(trailer.Metadata())
 			return nil
 		}),
+		grpctool.WithCallback(errorFieldNumber, func(err *GatewayKasResponse_Error) error {
+			stat = err.Status
+			return nil
+		}),
 	)
 	switch {
+	case err == nil && stat != nil:
+		return status.FromProto(stat)
 	case err == nil:
 		return nil
 	case grpctool.IsStatusError(err):
@@ -255,6 +264,9 @@ func pipeFromStreamToKas(kasStream grpc.ClientStream, stream grpc.ServerStream) 
 		}
 		err = kasStream.SendMsg(&frame)
 		if err != nil {
+			if errors.Is(err, io.EOF) { // the other goroutine will receive the error in RecvMsg()
+				return nil
+			}
 			return status.Convert(err) // as is
 		}
 	}

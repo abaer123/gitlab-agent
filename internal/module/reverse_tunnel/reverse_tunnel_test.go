@@ -15,6 +15,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"golang.org/x/sync/errgroup"
+	statuspb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -370,4 +371,8 @@ func (c streamingCallback) Message(data []byte) error {
 func (c streamingCallback) Trailer(md map[string]*prototool.Values) error {
 	c.incomingStream.SetTrailer(grpctool.ValuesMapToMeta(md))
 	return nil
+}
+
+func (c streamingCallback) Error(stat *statuspb.Status) error {
+	return status.ErrorProto(stat)
 }

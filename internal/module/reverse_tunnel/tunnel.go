@@ -9,6 +9,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
+	statuspb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -36,6 +37,7 @@ type TunnelDataCallback interface {
 	Header(map[string]*prototool.Values) error
 	Message([]byte) error
 	Trailer(map[string]*prototool.Values) error
+	Error(*statuspb.Status) error
 }
 
 type Tunnel interface {
@@ -150,7 +152,7 @@ func (t *tunnel) ForwardStream(incomingStream grpc.ServerStream, cb TunnelDataCa
 				return cb.Trailer(trailer.Meta)
 			}),
 			grpctool.WithCallback(errorNumber, func(rpcError *rpc.Error) error {
-				forIncomingStream = status.ErrorProto(rpcError.Status)
+				forIncomingStream = cb.Error(rpcError.Status)
 				// Not returning an error since we must be reading from the tunnel stream till io.EOF
 				// to properly consume it. There is no need to abort it in this scenario.
 				// The server is expected to close the stream (i.e. we'll get io.EOF) right after we got this message.
