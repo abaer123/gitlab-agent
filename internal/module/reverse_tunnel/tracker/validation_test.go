@@ -23,6 +23,20 @@ func TestValidation_Valid(t *testing.T) {
 				AgentDescriptor: &info.AgentDescriptor{},
 			},
 		},
+		{
+			name: "grpc",
+			valid: &TunnelInfo{
+				AgentDescriptor: &info.AgentDescriptor{},
+				KasUrl:          "grpc://1.1.1.1:10",
+			},
+		},
+		{
+			name: "grpcs",
+			valid: &TunnelInfo{
+				AgentDescriptor: &info.AgentDescriptor{},
+				KasUrl:          "grpcs://1.1.1.1:10",
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) { // nolint: scopelint
@@ -41,6 +55,14 @@ func TestValidation_Invalid(t *testing.T) {
 			name:      "missing TunnelInfo.AgentDescriptor",
 			errString: "invalid TunnelInfo.AgentDescriptor: value is required",
 			invalid:   &TunnelInfo{},
+		},
+		{
+			name:      "invalid TunnelInfo.KasUrl",
+			errString: `invalid TunnelInfo.KasUrl: value does not match regex pattern "(?:^$|^grpcs?://)"`,
+			invalid: &TunnelInfo{
+				AgentDescriptor: &info.AgentDescriptor{},
+				KasUrl:          "tcp://1.1.1.1:12",
+			},
 		},
 	}
 	for _, tc := range tests {

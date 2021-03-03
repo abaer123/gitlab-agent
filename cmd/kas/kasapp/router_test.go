@@ -281,7 +281,7 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 					},
 					ConnectionId: 1312312313,
 					AgentId:      agentId,
-					KasUrl:       "tcp://pipe",
+					KasUrl:       "grpc://pipe",
 				})
 				assert.False(t, done)
 				return err

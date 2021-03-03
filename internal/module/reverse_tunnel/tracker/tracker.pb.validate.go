@@ -64,7 +64,12 @@ func (m *TunnelInfo) Validate() error {
 
 	// no validation rules for AgentId
 
-	// no validation rules for KasUrl
+	if !_TunnelInfo_KasUrl_Pattern.MatchString(m.GetKasUrl()) {
+		return TunnelInfoValidationError{
+			field:  "KasUrl",
+			reason: "value does not match regex pattern \"(?:^$|^grpcs?://)\"",
+		}
+	}
 
 	return nil
 }
@@ -122,3 +127,5 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = TunnelInfoValidationError{}
+
+var _TunnelInfo_KasUrl_Pattern = regexp.MustCompile("(?:^$|^grpcs?://)")

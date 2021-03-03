@@ -33,9 +33,9 @@ func (p *defaultKasPool) Dial(ctx context.Context, target string) (ClientConnInt
 		return nil, err
 	}
 	switch u.Scheme {
-	case "tcp":
+	case "grpc":
 		target = u.Host
-	//case "tls":
+	//case "grpcs":
 	// TODO support TLS
 	default:
 		return nil, fmt.Errorf("unsupported kas URL scheme: %s", u.Scheme)

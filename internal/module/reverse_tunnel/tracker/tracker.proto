@@ -17,10 +17,10 @@ message TunnelInfo {
   int64 connection_id = 2;
   // GitLab-wide unique id of the agent.
   int64 agent_id = 3;
-  // <protocol>://<ip>:<port> of the kas instance this tunnel is established to.
+  // <protocol>://<host>:<port> of the kas instance this tunnel is established to.
   // protocol can be:
-  // - 'tcp' for unencrypted connection
-  // - 'tls' for TLS.
+  // - 'grpc' for unencrypted connection
+  // - 'grpcs' for TLS.
   // Might be empty if kas is not configured to expose it's address.
-  string kas_url = 4;
+  string kas_url = 4 [(validate.rules).string.pattern = "(?:^$|^grpcs?://)"];
 }
