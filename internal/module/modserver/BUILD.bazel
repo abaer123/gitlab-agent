@@ -9,12 +9,12 @@ go_library(
         "//internal/api",
         "//internal/gitaly",
         "//internal/gitlab",
-        "//internal/module/reverse_tunnel",
         "//internal/module/usage_metrics",
         "//pkg/kascfg",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_gitlab_gitlab_org_labkit//errortracking",
         "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//metadata",
         "@org_uber_go_zap//:zap",
     ],
 )

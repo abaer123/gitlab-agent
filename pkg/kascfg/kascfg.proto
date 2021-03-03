@@ -285,6 +285,11 @@ message ApiCF {
   ListenApiCF listen = 1 [json_name = "listen"];
 }
 
+message PrivateApiCF {
+  // RPC listener configuration for API connections.
+  ListenApiCF listen = 1 [json_name = "listen"];
+}
+
 // ConfigurationFile represents kas configuration file.
 message ConfigurationFile {
   // Configuration related to interaction with GitLab.
@@ -299,5 +304,8 @@ message ConfigurationFile {
   GitalyCF gitaly = 4 [json_name = "gitaly"];
   // Redis configurations available to kas
   RedisCF redis = 5 [json_name = "redis"];
+  // Public API.
   ApiCF api = 6 [json_name = "api"];
+  // Private API for kas->kas communication.
+  PrivateApiCF private_api = 7 [json_name = "private_api"];
 }

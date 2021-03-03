@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -61,6 +62,8 @@ const (
 	authSecretLength      = 32
 	defaultMaxMessageSize = 10 * 1024 * 1024
 
+	envVarOwnPrivateApiUrl = "OWN_PRIVATE_API_URL"
+
 	kasName = "gitlab-kas"
 )
 
@@ -70,6 +73,12 @@ type ConfiguredApp struct {
 }
 
 func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
+	// This should become required later
+	ownPrivateApiUrl := os.Getenv(envVarOwnPrivateApiUrl)
+	// TODO make it mandatory?
+	if ownPrivateApiUrl == "" {
+		a.Log.Warn(envVarOwnPrivateApiUrl + " is not set, this kas instance will not be accessible to other kas instances")
+	}
 	// Metrics
 	// TODO use an independent registry with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	// reg := prometheus.NewPedanticRegistry()
@@ -127,6 +136,12 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		return err
 	}
 
+	// Server for handling API requests from other kas instances
+	privateApiServer, err := a.constructPrivateApiServer(interceptorsCtx, tracer, ssh)
+	if err != nil {
+		return err
+	}
+
 	// Internal gRPC client->listener pipe
 	internalListener := grpctool.NewDialListener()
 
@@ -140,7 +155,16 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	tunnelTracker := a.constructTunnelTracker(redisClient)
 
 	// Tunnel registry
-	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(a.Log, tunnelTracker)
+	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(a.Log, tunnelTracker, ownPrivateApiUrl)
+	if err != nil {
+		return err
+	}
+
+	// Construct internal gRPC server
+	internalServer := a.constructInternalServer(interceptorsCtx, tracer)
+
+	// Kas to agentk router
+	kasToAgentRouter, err := a.constructKasToAgentRouter(tracer, tunnelTracker, tunnelRegistry, internalServer, privateApiServer)
 	if err != nil {
 		return err
 	}
@@ -150,9 +174,6 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 
 	// Usage tracker
 	usageTracker := usage_metrics.NewUsageTracker()
-
-	// Construct internal gRPC server
-	internalServer := a.constructInternalServer(interceptorsCtx, tracer)
 
 	// Gitaly client
 	gitalyClientPool := a.constructGitalyPool(csh, tracer)
@@ -195,21 +216,20 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		// factory.New() must be called from the main goroutine because it may mutate a gRPC server (register an API)
 		// and that can only be done before Serve() is called on the server.
 		module, err := factory.New(&modserver.Config{
-			Log:                 a.Log.With(logz.ModuleName(factory.Name())),
-			Api:                 serverApi,
-			Config:              cfg,
-			GitLabClient:        gitLabClient,
-			Registerer:          registerer,
-			UsageTracker:        usageTracker,
-			AgentServer:         agentServer,
-			ApiServer:           apiServer,
-			ReverseTunnelServer: internalServer,
-			ReverseTunnelClient: internalServerConn,
-			AgentTunnelFinder:   tunnelRegistry,
-			Gitaly:              poolWrapper,
-			KasName:             kasName,
-			Version:             cmd.Version,
-			CommitId:            cmd.Commit,
+			Log:              a.Log.With(logz.ModuleName(factory.Name())),
+			Api:              serverApi,
+			Config:           cfg,
+			GitLabClient:     gitLabClient,
+			Registerer:       registerer,
+			UsageTracker:     usageTracker,
+			AgentServer:      agentServer,
+			ApiServer:        apiServer,
+			RegisterAgentApi: kasToAgentRouter.RegisterAgentApi,
+			AgentConn:        internalServerConn,
+			Gitaly:           poolWrapper,
+			KasName:          kasName,
+			Version:          cmd.Version,
+			CommitId:         cmd.Commit,
 		})
 		if err != nil {
 			return fmt.Errorf("%s: %v", factory.Name(), err)
@@ -245,9 +265,56 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		func(stage stager.Stage) {
 			a.startAgentServer(stage, agentServer, interceptorsCancel)
 			a.startApiServer(stage, apiServer, interceptorsCancel)
+			a.startPrivateApiServer(stage, privateApiServer, interceptorsCancel)
 			a.startInternalServer(stage, internalServer, internalListener, interceptorsCancel)
 		},
 	)
+}
+
+func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, tunnelQuerier tracker.Querier, tunnelFinder reverse_tunnel.TunnelFinder, internalServer, privateApiServer grpc.ServiceRegistrar) (kasRouter, error) {
+	// TODO this should become required
+	if a.Configuration.PrivateApi == nil {
+		return nopKasRouter{}, nil
+	}
+	listenCfg := a.Configuration.PrivateApi.Listen
+	jwtSecret, err := ioutil.ReadFile(listenCfg.AuthenticationSecretFile)
+	if err != nil {
+		return nil, fmt.Errorf("auth secret file: %v", err)
+	}
+	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
+	if err != nil {
+		return nil, err
+	}
+	return &router{
+		kasPool: &defaultKasPool{
+			dialOpts: []grpc.DialOption{
+				grpc.WithInsecure(), // TODO support TLS
+				grpc.WithPerRPCCredentials(&grpctool.JwtCredentials{
+					Secret:   jwtSecret,
+					Audience: kasName,
+					Issuer:   kasName,
+					Insecure: true, // TODO support TLS
+				}),
+				grpc.WithChainStreamInterceptor(
+					grpc_prometheus.StreamClientInterceptor,
+					grpccorrelation.StreamClientCorrelationInterceptor(grpccorrelation.WithClientName(kasName)),
+					grpc_opentracing.StreamClientInterceptor(grpc_opentracing.WithTracer(tracer)),
+					grpctool.StreamClientValidatingInterceptor,
+				),
+				grpc.WithChainUnaryInterceptor(
+					grpc_prometheus.UnaryClientInterceptor,
+					grpccorrelation.UnaryClientCorrelationInterceptor(grpccorrelation.WithClientName(kasName)),
+					grpc_opentracing.UnaryClientInterceptor(grpc_opentracing.WithTracer(tracer)),
+					grpctool.UnaryClientValidatingInterceptor,
+				),
+			},
+		},
+		tunnelQuerier:     tunnelQuerier,
+		tunnelFinder:      tunnelFinder,
+		internalServer:    internalServer,
+		privateApiServer:  privateApiServer,
+		gatewayKasVisitor: gatewayKasVisitor,
+	}, nil
 }
 
 func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.Server, interceptorsCancel context.CancelFunc) {
@@ -258,7 +325,7 @@ func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.S
 			return nil, err
 		}
 
-		a.Log.Info("Listening for agentk connections",
+		a.Log.Info("Agentk API endpoint is up",
 			logz.NetNetworkFromAddr(lis.Addr()),
 			logz.NetAddressFromAddr(lis.Addr()),
 			logz.IsWebSocket(listenCfg.Websocket),
@@ -286,7 +353,26 @@ func (a *ConfiguredApp) startApiServer(stage stager.Stage, apiServer *grpc.Serve
 		if err != nil {
 			return nil, err
 		}
-		a.Log.Info("Listening for API connections",
+		a.Log.Info("API endpoint is up",
+			logz.NetNetworkFromAddr(lis.Addr()),
+			logz.NetAddressFromAddr(lis.Addr()),
+		)
+		return lis, nil
+	})
+}
+
+func (a *ConfiguredApp) startPrivateApiServer(stage stager.Stage, apiServer *grpc.Server, interceptorsCancel context.CancelFunc) {
+	// TODO this should become required
+	if a.Configuration.PrivateApi == nil {
+		return
+	}
+	grpctool.StartServer(stage, apiServer, interceptorsCancel, func() (net.Listener, error) {
+		listenCfg := a.Configuration.PrivateApi.Listen
+		lis, err := net.Listen(listenCfg.Network.String(), listenCfg.Address)
+		if err != nil {
+			return nil, err
+		}
+		a.Log.Info("Private API endpoint is up",
 			logz.NetNetworkFromAddr(lis.Addr()),
 			logz.NetAddressFromAddr(lis.Addr()),
 		)
@@ -425,6 +511,72 @@ func (a *ConfiguredApp) constructApiServer(interceptorsCtx context.Context, trac
 	return grpc.NewServer(serverOpts...), nil
 }
 
+func (a *ConfiguredApp) constructPrivateApiServer(interceptorsCtx context.Context, tracer opentracing.Tracer, ssh stats.Handler) (*grpc.Server, error) {
+	// TODO this should become required
+	if a.Configuration.PrivateApi == nil {
+		return grpc.NewServer(), nil
+	}
+	listenCfg := a.Configuration.PrivateApi.Listen
+	jwtSecret, err := ioutil.ReadFile(listenCfg.AuthenticationSecretFile)
+	if err != nil {
+		return nil, fmt.Errorf("auth secret file: %v", err)
+	}
+
+	jwtAuther := grpctool.JWTAuther{
+		Secret:   jwtSecret,
+		Audience: kasName,
+		Issuer:   kasName,
+	}
+
+	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
+	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
+		grpc_prometheus.StreamServerInterceptor,                                       // 1. measure all invocations
+		grpccorrelation.StreamServerCorrelationInterceptor(),                          // 2. add correlation id
+		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)), // 3. inject logger with correlation id
+		jwtAuther.StreamServerInterceptor,                                             // 4. auth and maybe log
+		grpc_validator.StreamServerInterceptor(),
+		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
+	}
+	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
+		grpc_prometheus.UnaryServerInterceptor,                                       // 1. measure all invocations
+		grpccorrelation.UnaryServerCorrelationInterceptor(),                          // 2. add correlation id
+		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)), // 3. inject logger with correlation id
+		jwtAuther.UnaryServerInterceptor,                                             // 4. auth and maybe log
+		grpc_validator.UnaryServerInterceptor(),
+		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
+	}
+	serverOpts := []grpc.ServerOption{
+		grpc.StatsHandler(ssh),
+		grpc.ChainStreamInterceptor(grpcStreamServerInterceptors...),
+		grpc.ChainUnaryInterceptor(grpcUnaryServerInterceptors...),
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+			MinTime:             20 * time.Second,
+			PermitWithoutStream: true,
+		}),
+		grpc.KeepaliveParams(keepaliveParams(listenCfg.MaxConnectionAge.AsDuration())),
+		// TODO Stop using the deprecated API once https://github.com/grpc/grpc-go/issues/3694 is resolved
+		grpc.CustomCodec(grpctool.RawCodecWithProtoFallback{}), // nolint: staticcheck
+	}
+
+	certFile := listenCfg.CertificateFile
+	keyFile := listenCfg.KeyFile
+	switch {
+	case certFile != "" && keyFile != "":
+		config, err := tlstool.DefaultServerTLSConfig(certFile, keyFile)
+		if err != nil {
+			return nil, err
+		}
+		serverOpts = append(serverOpts, grpc.Creds(credentials.NewTLS(config)))
+	case certFile == "" && keyFile == "":
+	default:
+		return nil, fmt.Errorf("both certificate_file (%s) and key_file (%s) must be either set or not set", certFile, keyFile)
+	}
+
+	return grpc.NewServer(serverOpts...), nil
+}
+
 func (a *ConfiguredApp) constructInternalServer(interceptorsCtx context.Context, tracer opentracing.Tracer) *grpc.Server {
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	return grpc.NewServer(
@@ -452,10 +604,12 @@ func (a *ConfiguredApp) constructInternalServerConn(ctx context.Context, tracer 
 		grpc.WithChainStreamInterceptor(
 			grpccorrelation.StreamClientCorrelationInterceptor(grpccorrelation.WithClientName(kasName)),
 			grpc_opentracing.StreamClientInterceptor(grpc_opentracing.WithTracer(tracer)),
+			grpctool.StreamClientValidatingInterceptor,
 		),
 		grpc.WithChainUnaryInterceptor(
 			grpccorrelation.UnaryClientCorrelationInterceptor(grpccorrelation.WithClientName(kasName)),
 			grpc_opentracing.UnaryClientInterceptor(grpc_opentracing.WithTracer(tracer)),
+			grpctool.UnaryClientValidatingInterceptor,
 		),
 	)
 }
@@ -702,6 +856,7 @@ var (
 	_ errortracking.Tracker = nopErrTracker{}
 	_ agent_tracker.Tracker = nopAgentTracker{}
 	_ tracker.Tracker       = nopTunnelTracker{}
+	_ kasRouter             = nopKasRouter{}
 )
 
 // nopErrTracker is the state of the art error tracking facility.
@@ -751,4 +906,10 @@ func (n nopTunnelTracker) GetTunnelsByAgentId(ctx context.Context, agentId int64
 
 func (n nopTunnelTracker) Run(ctx context.Context) error {
 	return nil
+}
+
+type nopKasRouter struct {
+}
+
+func (r nopKasRouter) RegisterAgentApi(desc *grpc.ServiceDesc) {
 }

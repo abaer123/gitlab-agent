@@ -29,3 +29,9 @@ func DurationWithJitter(d time.Duration, jitterPercent int64) time.Duration {
 	jitter := Int63n(2*r) - r
 	return d + time.Duration(jitter)
 }
+
+func Shuffle(n int, swap func(i, j int)) {
+	mu.Lock()
+	defer mu.Unlock()
+	r.Shuffle(n, swap)
+}

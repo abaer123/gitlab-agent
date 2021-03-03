@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+// If you make any changes make sure you run: make regenerate-proto
+
+package gitlab.agent.kas;
+
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kas/kasapp";
+
+import "internal/tool/grpctool/automata/automata.proto";
+import "internal/tool/prototool/prototool.proto";
+//import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
+import "validate/validate.proto";
+
+message StartStreaming {
+}
+
+message GatewayKasResponse {
+  // Tunnel is ready, can start forwarding stream.
+  message TunnelReady {
+  }
+  // Headers is a gRPC metadata.
+  message Header {
+    map<string, tool.prototool.Values> meta = 1;
+  }
+
+  // Message is a gRPC message data.
+  message Message {
+    bytes data = 1;
+  }
+
+  // Trailer is a gRPC trailer metadata.
+  message Trailer {
+    map<string, tool.prototool.Values> meta = 1;
+  }
+
+  oneof msg {
+    option (validate.required) = true;
+    option (grpctool.automata.first_allowed_field) = 1;
+
+    TunnelReady tunnel_ready = 1 [(grpctool.automata.next_allowed_field) = 2];
+    Header header = 2 [(grpctool.automata.next_allowed_field) = 3, (grpctool.automata.next_allowed_field) = 4];
+    Message message = 3 [(grpctool.automata.next_allowed_field) = 3, (grpctool.automata.next_allowed_field) = 4];
+    Trailer trailer = 4 [(grpctool.automata.next_allowed_field) = -1];
+  }
+}
