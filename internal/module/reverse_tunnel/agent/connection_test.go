@@ -12,12 +12,16 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -151,6 +155,210 @@ func TestNoErrorOnEofAfterMessage(t *testing.T) {
 		tunnel.EXPECT().
 			RecvMsg(gomock.Any()).
 			Return(io.EOF),
+	)
+
+	err := c.attempt(ctx)
+	require.NoError(t, err)
+}
+
+func TestNoTrailerAfterHeaderError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	client, conn, tunnel, c := setupConnection(t)
+	clientStream := mock_rpc.NewMockClientStream(ctrl)
+
+	done := make(chan struct{})
+
+	headerErr := status.Error(codes.InvalidArgument, "expected header err")
+	gomock.InOrder(
+		clientStream.EXPECT().
+			Header().
+			Return(nil, headerErr),
+		tunnel.EXPECT().
+			Send(matcher.ProtoEq(nil, &rpc.ConnectRequest{
+				Msg: &rpc.ConnectRequest_Error{
+					Error: &rpc.Error{
+						Status: status.Convert(headerErr).Proto(),
+					},
+				},
+			})),
+		tunnel.EXPECT().
+			CloseSend().
+			Do(func() {
+				close(done)
+			}),
+	)
+
+	gomock.InOrder(
+		client.EXPECT().
+			Connect(gomock.Any()).
+			Return(tunnel, nil),
+		tunnel.EXPECT().
+			Send(gomock.Any()),
+		tunnel.EXPECT().
+			RecvMsg(gomock.Any()).
+			Do(testhelpers.RecvMsg(&rpc.ConnectResponse{
+				Msg: &rpc.ConnectResponse_RequestInfo{
+					RequestInfo: &rpc.RequestInfo{},
+				},
+			})),
+		conn.EXPECT().
+			NewStream(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(clientStream, nil),
+		tunnel.EXPECT().
+			RecvMsg(gomock.Any()).
+			DoAndReturn(func(m interface{}) error {
+				<-done
+				return io.EOF
+			}),
+	)
+
+	err := c.attempt(ctx)
+	require.NoError(t, err)
+}
+
+func TestTrailerAfterRecvMsgEof(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	client, conn, tunnel, c := setupConnection(t)
+	clientStream := mock_rpc.NewMockClientStream(ctrl)
+
+	done := make(chan struct{})
+
+	gomock.InOrder(
+		clientStream.EXPECT().
+			Header(),
+		tunnel.EXPECT().
+			Send(matcher.ProtoEq(nil, &rpc.ConnectRequest{
+				Msg: &rpc.ConnectRequest_Header{
+					Header: &rpc.Header{},
+				},
+			})),
+		clientStream.EXPECT().
+			RecvMsg(gomock.Any()).
+			Return(io.EOF),
+		clientStream.EXPECT().
+			Trailer().
+			Return(metadata.MD{"abc": []string{"a", "b"}}),
+		tunnel.EXPECT().
+			Send(matcher.ProtoEq(nil, &rpc.ConnectRequest{
+				Msg: &rpc.ConnectRequest_Trailer{
+					Trailer: &rpc.Trailer{
+						Meta: map[string]*prototool.Values{
+							"abc": {Value: []string{"a", "b"}},
+						},
+					},
+				},
+			})),
+		tunnel.EXPECT().
+			CloseSend().
+			Do(func() {
+				close(done)
+			}),
+	)
+
+	gomock.InOrder(
+		client.EXPECT().
+			Connect(gomock.Any()).
+			Return(tunnel, nil),
+		tunnel.EXPECT().
+			Send(gomock.Any()),
+		tunnel.EXPECT().
+			RecvMsg(gomock.Any()).
+			Do(testhelpers.RecvMsg(&rpc.ConnectResponse{
+				Msg: &rpc.ConnectResponse_RequestInfo{
+					RequestInfo: &rpc.RequestInfo{},
+				},
+			})),
+		conn.EXPECT().
+			NewStream(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(clientStream, nil),
+		tunnel.EXPECT().
+			RecvMsg(gomock.Any()).
+			DoAndReturn(func(m interface{}) error {
+				<-done
+				return io.EOF
+			}),
+	)
+
+	err := c.attempt(ctx)
+	require.NoError(t, err)
+}
+
+func TestTrailerAndErrorAfterRecvMsgError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	client, conn, tunnel, c := setupConnection(t)
+	clientStream := mock_rpc.NewMockClientStream(ctrl)
+
+	done := make(chan struct{})
+
+	recvErr := status.Error(codes.InvalidArgument, "expected RecvMsg err")
+	gomock.InOrder(
+		clientStream.EXPECT().
+			Header(),
+		tunnel.EXPECT().
+			Send(matcher.ProtoEq(nil, &rpc.ConnectRequest{
+				Msg: &rpc.ConnectRequest_Header{
+					Header: &rpc.Header{},
+				},
+			})),
+		clientStream.EXPECT().
+			RecvMsg(gomock.Any()).
+			Return(recvErr),
+		clientStream.EXPECT().
+			Trailer().
+			Return(metadata.MD{"abc": []string{"a", "b"}}),
+		tunnel.EXPECT().
+			Send(matcher.ProtoEq(nil, &rpc.ConnectRequest{
+				Msg: &rpc.ConnectRequest_Trailer{
+					Trailer: &rpc.Trailer{
+						Meta: map[string]*prototool.Values{
+							"abc": {Value: []string{"a", "b"}},
+						},
+					},
+				},
+			})),
+		tunnel.EXPECT().
+			Send(matcher.ProtoEq(nil, &rpc.ConnectRequest{
+				Msg: &rpc.ConnectRequest_Error{
+					Error: &rpc.Error{
+						Status: status.Convert(recvErr).Proto(),
+					},
+				},
+			})),
+		tunnel.EXPECT().
+			CloseSend().
+			Do(func() {
+				close(done)
+			}),
+	)
+
+	gomock.InOrder(
+		client.EXPECT().
+			Connect(gomock.Any()).
+			Return(tunnel, nil),
+		tunnel.EXPECT().
+			Send(gomock.Any()),
+		tunnel.EXPECT().
+			RecvMsg(gomock.Any()).
+			Do(testhelpers.RecvMsg(&rpc.ConnectResponse{
+				Msg: &rpc.ConnectResponse_RequestInfo{
+					RequestInfo: &rpc.RequestInfo{},
+				},
+			})),
+		conn.EXPECT().
+			NewStream(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(clientStream, nil),
+		tunnel.EXPECT().
+			RecvMsg(gomock.Any()).
+			DoAndReturn(func(m interface{}) error {
+				<-done
+				return io.EOF
+			}),
 	)
 
 	err := c.attempt(ctx)
