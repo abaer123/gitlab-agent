@@ -144,12 +144,23 @@ func pipeInternalClientIntoTunnel(tunnel rpc.ReverseTunnel_ConnectClient, client
 	}
 	var frame grpctool.RawFrame
 	for {
-		err = clientStream.RecvMsg(&frame)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
+		recvErr := clientStream.RecvMsg(&frame)
+		if recvErr != nil {
+			// Trailer becomes available after RecvMsg() returns an error
+			err = tunnel.Send(&rpc.ConnectRequest{
+				Msg: &rpc.ConnectRequest_Trailer{
+					Trailer: &rpc.Trailer{
+						Meta: grpctool.MetaToValuesMap(clientStream.Trailer()),
+					},
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("Send(trailer): %w", err) // wrap
+			}
+			if errors.Is(recvErr, io.EOF) {
 				break
 			}
-			return sendErrorToTunnel(err, tunnel)
+			return sendErrorToTunnel(recvErr, tunnel)
 		}
 		err = tunnel.Send(&rpc.ConnectRequest{
 			Msg: &rpc.ConnectRequest_Message{
@@ -161,16 +172,6 @@ func pipeInternalClientIntoTunnel(tunnel rpc.ReverseTunnel_ConnectClient, client
 		if err != nil {
 			return fmt.Errorf("Send(message): %w", err) // wrap
 		}
-	}
-	err = tunnel.Send(&rpc.ConnectRequest{
-		Msg: &rpc.ConnectRequest_Trailer{
-			Trailer: &rpc.Trailer{
-				Meta: grpctool.MetaToValuesMap(clientStream.Trailer()),
-			},
-		},
-	})
-	if err != nil {
-		return fmt.Errorf("Send(trailer): %w", err) // wrap
 	}
 	err = tunnel.CloseSend()
 	if err != nil {

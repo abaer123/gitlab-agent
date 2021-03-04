@@ -38,6 +38,7 @@ go_test(
         "//internal/module/reverse_tunnel/info",
         "//internal/module/reverse_tunnel/rpc",
         "//internal/tool/grpctool",
+        "//internal/tool/prototool",
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_reverse_tunnel_rpc",
         "//internal/tool/testing/mock_rpc",
@@ -45,6 +46,9 @@ go_test(
         "@com_github_golang_mock//gomock",
         "@com_github_stretchr_testify//require",
         "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//metadata",
+        "@org_golang_google_grpc//status",
         "@org_uber_go_zap//zaptest",
     ],
 )
