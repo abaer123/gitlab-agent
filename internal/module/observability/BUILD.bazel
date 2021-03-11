@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "observability",
@@ -12,5 +12,19 @@ go_library(
         "//internal/tool/httpz",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_prometheus_client_golang//prometheus/promhttp",
+        "@org_uber_go_zap//:zap",
+    ],
+)
+
+go_test(
+    name = "observability_test",
+    size = "small",
+    srcs = ["metric_server_test.go"],
+    embed = [":observability"],
+    race = "on",
+    deps = [
+        "@com_github_prometheus_client_golang//prometheus",
+        "@com_github_stretchr_testify//require",
+        "@org_uber_go_zap//zaptest",
     ],
 )

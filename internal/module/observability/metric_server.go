@@ -2,6 +2,7 @@ package observability
 
 import (
 	"context"
+	"io"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -10,6 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/httpz"
+	"go.uber.org/zap"
 )
 
 const (
@@ -20,7 +22,16 @@ const (
 	idleTimeout               = 1 * time.Minute
 )
 
+// Probe is the expected type for probe functions
+type Probe func(context.Context) error
+
+// NoopProbe is a placeholder probe for convenience
+func NoopProbe(context.Context) error {
+	return nil
+}
+
 type MetricServer struct {
+	Log *zap.Logger
 	// Name is the name of the application.
 	Name                  string
 	Listener              net.Listener
@@ -29,6 +40,8 @@ type MetricServer struct {
 	ReadinessProbeUrlPath string
 	Gatherer              prometheus.Gatherer
 	Registerer            prometheus.Registerer
+	LivenessProbe         Probe
+	ReadinessProbe        Probe
 }
 
 func (s *MetricServer) Run(ctx context.Context) error {
@@ -60,12 +73,26 @@ func (s *MetricServer) probesHandler(mux *http.ServeMux) {
 	mux.Handle(
 		s.LivenessProbeUrlPath,
 		s.setHeader(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+			err := s.LivenessProbe(request.Context())
+			if err != nil {
+				s.Log.Error("LivenessProbe failed", zap.Error(err)) // TODO: Capture error with tracker
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = io.WriteString(w, err.Error())
+				return
+			}
 			w.WriteHeader(http.StatusOK)
 		})),
 	)
 	mux.Handle(
 		s.ReadinessProbeUrlPath,
 		s.setHeader(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+			err := s.ReadinessProbe(request.Context())
+			if err != nil {
+				s.Log.Error("ReadinessProbe failed", zap.Error(err)) // TODO: Capture error with tracker
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = io.WriteString(w, err.Error())
+				return
+			}
 			w.WriteHeader(http.StatusOK)
 		})),
 	)

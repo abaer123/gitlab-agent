@@ -57,6 +57,7 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 				)
 
 				metricSrv := observability.MetricServer{
+					Log:                   m.log,
 					Name:                  m.Name(),
 					Listener:              lis,
 					PrometheusUrlPath:     prometheusUrlPath,
@@ -64,6 +65,8 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 					ReadinessProbeUrlPath: readinessProbeUrlPath,
 					Gatherer:              prometheus.DefaultGatherer,
 					Registerer:            prometheus.DefaultRegisterer,
+					LivenessProbe:         observability.NoopProbe,
+					ReadinessProbe:        observability.NoopProbe,
 				}
 
 				return metricSrv.Run(ctx)

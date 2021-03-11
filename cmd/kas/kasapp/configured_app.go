@@ -30,6 +30,7 @@ import (
 	gitops_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/server"
 	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/google_profiler/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability"
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel"
 	reverse_tunnel_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/server"
@@ -182,7 +183,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Module factories
 	factories := []modserver.Factory{
 		&observability_server.Factory{
-			Gatherer: gatherer,
+			Gatherer:       gatherer,
+			LivenessProbe:  observability.NoopProbe,
+			ReadinessProbe: constructReadinessProbe(redisClient),
 		},
 		&google_profiler_server.Factory{},
 		&agent_configuration_server.Factory{
@@ -817,6 +820,20 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 	default:
 		// This should never happen
 		return nil, fmt.Errorf("unexpected Redis config type: %T", cfg.RedisConfig)
+	}
+}
+
+func constructReadinessProbe(redisClient redis.UniversalClient) observability.Probe {
+	if redisClient == nil {
+		return observability.NoopProbe
+	}
+	return func(ctx context.Context) error {
+		status := redisClient.Ping(ctx)
+		err := status.Err()
+		if err != nil {
+			return fmt.Errorf("redis: %v", err)
+		}
+		return nil
 	}
 }
 
