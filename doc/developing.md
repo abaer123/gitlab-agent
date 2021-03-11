@@ -13,20 +13,20 @@ The easiest way to test the agent locally is to run `kas` and `agentk` yourself.
 
 First you need to setup two files:
 
-1. `cfg.yaml`. This is easiest to copy off the example [`kas_config_example.yaml`](kas_config_example.yaml).
+1. `cfg.yaml`. This is easiest to copy off the [`config_example.yaml`](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/f9b55c3402e27c527fda6f2a9df511849192dac4/pkg/kascfg/config_example.yaml) file.
    For reference, here's an example file:
 
    ```yaml
-   listen_agent:
-     network: tcp
-     address: 127.0.0.1:8150
-     websocket: false
    gitlab:
      address: http://localhost:3000
      authentication_secret_file: /Users/tkuah/code/ee-gdk/gitlab/.gitlab_kas_secret
    agent:
      gitops:
        poll_period: "10s"
+     listen:
+       network: tcp
+       address: 127.0.0.1:8150
+       websocket: false
    ```
 
 1. `token.txt`. This is the token for the agent you [created](https://docs.gitlab.com/ee/user/clusters/agent/#create-an-agent-record-in-gitlab).
