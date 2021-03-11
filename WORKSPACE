@@ -93,8 +93,8 @@ http_archive(
 http_file(
     name = "tool_git",
     downloaded_file_path = "git.deb",
-    sha256 = "32c6107a72665be54354585da69a464807a5c3d64654826307255da2c64bf930",
-    urls = ["http://ftp.debian.org/debian/pool/main/g/git/git_2.30.0-1_amd64.deb"],
+    sha256 = "1efbc55de3ca1211fe4c0afc559f2edbded30ed3095d94dd602311bf604b3fd7",
+    urls = ["http://ftp.debian.org/debian/pool/main/g/git/git_2.30.2-1_amd64.deb"],
 )
 
 http_file(
