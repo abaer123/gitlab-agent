@@ -21,7 +21,7 @@ type module struct {
 }
 
 const (
-	listenAddress         = "127.0.0.1:8080"
+	listenAddress         = ":8080"
 	prometheusUrlPath     = "/metrics"
 	livenessProbeUrlPath  = "/liveness"
 	readinessProbeUrlPath = "/readiness"
@@ -43,7 +43,7 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 			})
 			// Start metrics server
 			stage.Go(func(ctx context.Context) error {
-				lis, err := net.Listen("tcp", listenAddress)
+				lis, err := net.Listen("tcp", listenAddress) // nolint:gosec
 				if err != nil {
 					return fmt.Errorf("Observability listener failed to start: %v", err)
 				}
