@@ -4,7 +4,9 @@ import (
 	"context"
 	"regexp"
 	"strings"
+	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
@@ -31,18 +33,20 @@ var (
 )
 
 type pollJob struct {
-	ctx                      context.Context
-	log                      *zap.Logger
-	api                      modserver.API
-	gitalyPool               gitaly.PoolInterface
-	projectInfoClient        *projectInfoClient
-	syncCount                usage_metrics.Counter
-	req                      *rpc.ObjectsToSynchronizeRequest
-	server                   rpc.Gitops_GetObjectsToSynchronizeServer
-	agentToken               api.AgentToken
-	maxManifestFileSize      int64
-	maxTotalManifestFileSize int64
-	maxNumberOfFiles         uint32
+	ctx                         context.Context
+	log                         *zap.Logger
+	api                         modserver.API
+	gitalyPool                  gitaly.PoolInterface
+	projectInfoClient           *projectInfoClient
+	syncCount                   usage_metrics.Counter
+	req                         *rpc.ObjectsToSynchronizeRequest
+	server                      rpc.Gitops_GetObjectsToSynchronizeServer
+	agentToken                  api.AgentToken
+	gitOpsPollIntervalHistogram prometheus.Histogram
+	lastPoll                    time.Time
+	maxManifestFileSize         int64
+	maxTotalManifestFileSize    int64
+	maxNumberOfFiles            uint32
 }
 
 func (j *pollJob) Attempt() (bool /*done*/, error) {
@@ -64,6 +68,9 @@ func (j *pollJob) Attempt() (bool /*done*/, error) {
 		j.api.HandleProcessingError(j.ctx, j.log, "GitOps: repository poll failed", err)
 		return false, nil // don't want to close the response stream, so report no error
 	}
+
+	j.trackPollInterval()
+
 	if !info.UpdateAvailable {
 		j.log.Debug("GitOps: no updates", logz.CommitId(j.req.CommitId))
 		return false, nil
@@ -85,6 +92,17 @@ func (j *pollJob) Attempt() (bool /*done*/, error) {
 	log.Info("GitOps: fetched files", logz.NumberOfFiles(numberOfFiles))
 	j.syncCount.Inc()
 	return true, nil
+}
+
+func (j *pollJob) trackPollInterval() {
+	now := time.Now()
+
+	if !j.lastPoll.IsZero() {
+		pollInterval := now.Sub(j.lastPoll).Seconds()
+		j.gitOpsPollIntervalHistogram.Observe(pollInterval)
+	}
+
+	j.lastPoll = now
 }
 
 func (j *pollJob) sendObjectsToSynchronizeHeader(server rpc.Gitops_GetObjectsToSynchronizeServer, log *zap.Logger, commitId string) error {

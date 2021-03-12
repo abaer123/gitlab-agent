@@ -3,10 +3,12 @@ package server
 import (
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/cache"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/metric"
 )
 
 const (
@@ -16,10 +18,23 @@ const (
 type Factory struct {
 }
 
+func constructGitOpsPollIntervalHistogram() prometheus.Histogram {
+	return prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name:    "gitops_poll_interval",
+		Help:    "The time between KAS calls to Gitaly to look for gitops updates",
+		Buckets: prometheus.LinearBuckets(20, 20, 5), // 5 buckets (20, 40, 60, 80, 100)
+	})
+}
+
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	gitops := config.Config.Agent.Gitops
 	projectInfoCacheTtl := gitops.ProjectInfoCacheTtl.AsDuration()
 	projectInfoCacheErrorTtl := gitops.ProjectInfoCacheErrorTtl.AsDuration()
+	gitOpsPollIntervalHistogram := constructGitOpsPollIntervalHistogram()
+	_, err := metric.Register(config.Registerer, gitOpsPollIntervalHistogram)
+	if err != nil {
+		return nil, err
+	}
 	m := &module{
 		api:        config.Api,
 		gitalyPool: config.Gitaly,
@@ -29,13 +44,14 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 			ProjectInfoCacheErrorTtl: projectInfoCacheErrorTtl,
 			ProjectInfoCache:         cache.New(minDuration(projectInfoCacheTtl, projectInfoCacheErrorTtl)),
 		},
-		syncCount:                config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
-		pollPeriod:               gitops.PollPeriod.AsDuration(),
-		maxConnectionAge:         config.Config.Agent.Listen.MaxConnectionAge.AsDuration(),
-		maxManifestFileSize:      int64(gitops.MaxManifestFileSize),
-		maxTotalManifestFileSize: int64(gitops.MaxTotalManifestFileSize),
-		maxNumberOfPaths:         gitops.MaxNumberOfPaths,
-		maxNumberOfFiles:         gitops.MaxNumberOfFiles,
+		syncCount:                   config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
+		pollPeriod:                  gitops.PollPeriod.AsDuration(),
+		maxConnectionAge:            config.Config.Agent.Listen.MaxConnectionAge.AsDuration(),
+		maxManifestFileSize:         int64(gitops.MaxManifestFileSize),
+		maxTotalManifestFileSize:    int64(gitops.MaxTotalManifestFileSize),
+		maxNumberOfPaths:            gitops.MaxNumberOfPaths,
+		maxNumberOfFiles:            gitops.MaxNumberOfFiles,
+		gitOpsPollIntervalHistogram: gitOpsPollIntervalHistogram,
 	}
 	rpc.RegisterGitopsServer(config.AgentServer, m)
 	return m, nil

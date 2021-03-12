@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops"
@@ -18,16 +19,17 @@ import (
 
 type module struct {
 	rpc.UnimplementedGitopsServer
-	api                      modserver.API
-	gitalyPool               gitaly.PoolInterface
-	projectInfoClient        *projectInfoClient
-	syncCount                usage_metrics.Counter
-	pollPeriod               time.Duration
-	maxConnectionAge         time.Duration
-	maxManifestFileSize      int64
-	maxTotalManifestFileSize int64
-	maxNumberOfPaths         uint32
-	maxNumberOfFiles         uint32
+	api                         modserver.API
+	gitalyPool                  gitaly.PoolInterface
+	projectInfoClient           *projectInfoClient
+	syncCount                   usage_metrics.Counter
+	gitOpsPollIntervalHistogram prometheus.Histogram
+	pollPeriod                  time.Duration
+	maxConnectionAge            time.Duration
+	maxManifestFileSize         int64
+	maxTotalManifestFileSize    int64
+	maxNumberOfPaths            uint32
+	maxNumberOfFiles            uint32
 }
 
 func (m *module) Run(ctx context.Context) error {
@@ -47,18 +49,19 @@ func (m *module) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 		return err // no wrap
 	}
 	p := pollJob{
-		ctx:                      ctx,
-		log:                      log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(req.ProjectId)),
-		api:                      m.api,
-		gitalyPool:               m.gitalyPool,
-		projectInfoClient:        m.projectInfoClient,
-		syncCount:                m.syncCount,
-		req:                      req,
-		server:                   server,
-		agentToken:               agentToken,
-		maxManifestFileSize:      m.maxManifestFileSize,
-		maxTotalManifestFileSize: m.maxTotalManifestFileSize,
-		maxNumberOfFiles:         m.maxNumberOfFiles,
+		ctx:                         ctx,
+		log:                         log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(req.ProjectId)),
+		api:                         m.api,
+		gitalyPool:                  m.gitalyPool,
+		projectInfoClient:           m.projectInfoClient,
+		syncCount:                   m.syncCount,
+		req:                         req,
+		server:                      server,
+		agentToken:                  agentToken,
+		gitOpsPollIntervalHistogram: m.gitOpsPollIntervalHistogram,
+		maxManifestFileSize:         m.maxManifestFileSize,
+		maxTotalManifestFileSize:    m.maxTotalManifestFileSize,
+		maxNumberOfFiles:            m.maxNumberOfFiles,
 	}
 	return m.api.PollImmediateUntil(ctx, m.pollPeriod, m.maxConnectionAge, p.Attempt)
 }
