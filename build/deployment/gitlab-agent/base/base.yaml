@@ -16,6 +16,10 @@ spec:
     metadata:
       labels:
         app: gitlab-agent
+      annotations:
+        prometheus.io/scrape: "true" # {"$openapi":"prometheus-scrape"}
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "8080"
     spec:
       securityContext:
         runAsUser: 65532
@@ -42,6 +46,18 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+          readinessProbe:
+            httpGet:
+              path: "/readiness"
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: "/liveness"
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
       volumes:
         - name: token-volume
           secret:

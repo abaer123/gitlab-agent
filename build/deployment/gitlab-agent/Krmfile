@@ -19,6 +19,13 @@ openAPI:
           name: kas-address
           value: grpc://127.0.0.1:8150
           setBy: package-default
+    io.k8s.cli.setters.prometheus-scrape:
+      description: Enable or disable Prometheus scraping of agentk metrics.
+      x-k8s-cli:
+        setter:
+          name: prometheus-scrape
+          value: "true"
+          setBy: package-default
     io.k8s.cli.setters.agent-version:
       description: Image tag for agentk container
       type: string
