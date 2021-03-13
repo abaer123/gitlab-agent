@@ -1,4 +1,5 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("//build:build.bzl", "go_custom_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "gitlab",
@@ -24,12 +25,10 @@ go_library(
     ],
 )
 
-go_test(
+go_custom_test(
     name = "gitlab_test",
-    size = "small",
     srcs = ["client_test.go"],
     embed = [":gitlab"],
-    race = "on",
     deps = [
         "//internal/tool/testing/mock_gitlab",
         "//internal/tool/testing/testhelpers",

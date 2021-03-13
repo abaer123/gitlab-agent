@@ -1,4 +1,5 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("//build:build.bzl", "go_custom_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "gitaly",
@@ -23,9 +24,8 @@ go_library(
     ],
 )
 
-go_test(
+go_custom_test(
     name = "gitaly_test",
-    size = "small",
     srcs = [
         "error_test.go",
         "path_fetcher_test.go",
@@ -34,7 +34,6 @@ go_test(
         "reference_discovery_test.go",
     ],
     embed = [":gitaly"],
-    race = "on",
     deps = [
         "//internal/gitaly/pktline",
         "//internal/tool/testing/matcher",

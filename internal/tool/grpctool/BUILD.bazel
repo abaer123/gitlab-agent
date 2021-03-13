@@ -1,4 +1,5 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("//build:build.bzl", "go_custom_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "grpctool",
@@ -45,9 +46,8 @@ go_library(
     ],
 )
 
-go_test(
+go_custom_test(
     name = "grpctool_test",
-    size = "small",
     srcs = [
         "client_validator_test.go",
         "dial_listener_test.go",
@@ -60,7 +60,6 @@ go_test(
     ],
     data = glob(["testdata/**"]),
     embed = [":grpctool"],
-    race = "on",
     deps = [
         "//internal/tool/grpctool/test",
         "//internal/tool/testing/mock_rpc",

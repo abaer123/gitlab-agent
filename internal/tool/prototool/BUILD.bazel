@@ -1,4 +1,5 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("//build:build.bzl", "go_custom_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("//build:proto.bzl", "go_proto_generate")
 
 go_proto_generate(
@@ -30,12 +31,10 @@ go_library(
     ],
 )
 
-go_test(
+go_custom_test(
     name = "prototool_test",
-    size = "small",
     srcs = ["defaulting_test.go"],
     embed = [":prototool"],
-    race = "on",
     deps = [
         "@com_github_stretchr_testify//assert",
         "@org_golang_google_protobuf//types/known/durationpb",

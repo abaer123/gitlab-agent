@@ -1,4 +1,5 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("//build:build.bzl", "go_custom_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "kube_testing",
@@ -20,12 +21,10 @@ go_library(
     ],
 )
 
-go_test(
+go_custom_test(
     name = "kube_testing_test",
-    size = "small",
     srcs = ["cmp_options_test.go"],
     embed = [":kube_testing"],
-    race = "on",
     deps = [
         "@com_github_google_go_cmp//cmp",
         "@com_github_stretchr_testify//assert",
