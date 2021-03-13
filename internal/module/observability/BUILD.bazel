@@ -1,4 +1,5 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("//build:build.bzl", "go_custom_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "observability",
@@ -16,12 +17,10 @@ go_library(
     ],
 )
 
-go_test(
+go_custom_test(
     name = "observability_test",
-    size = "small",
     srcs = ["metric_server_test.go"],
     embed = [":observability"],
-    race = "on",
     deps = [
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_stretchr_testify//require",

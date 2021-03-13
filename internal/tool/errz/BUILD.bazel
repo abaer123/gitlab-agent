@@ -1,4 +1,5 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("//build:build.bzl", "go_custom_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "errz",
@@ -10,11 +11,9 @@ go_library(
     visibility = ["//:__subpackages__"],
 )
 
-go_test(
+go_custom_test(
     name = "errz_test",
-    size = "small",
     srcs = ["user_error_test.go"],
     embed = [":errz"],
-    race = "on",
     deps = ["@com_github_stretchr_testify//assert"],
 )

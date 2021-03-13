@@ -1,4 +1,5 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("//build:build.bzl", "go_custom_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("//build:proto.bzl", "go_grpc_generate")
 
 go_grpc_generate(
@@ -38,12 +39,10 @@ go_library(
     ],
 )
 
-go_test(
+go_custom_test(
     name = "rpc_test",
-    size = "small",
     srcs = ["obj_to_sync_watcher_test.go"],
     embed = [":rpc"],
-    race = "on",
     deps = [
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_rpc",

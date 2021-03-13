@@ -1,4 +1,5 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("//build:build.bzl", "go_custom_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "wstunnel",
@@ -12,15 +13,13 @@ go_library(
     deps = ["@io_nhooyr_websocket//:websocket"],
 )
 
-go_test(
+go_custom_test(
     name = "wstunnel_test",
-    size = "small",
     srcs = [
         "main_test.go",
         "ws_test.go",
     ],
     embed = [":wstunnel"],
-    race = "on",
     deps = [
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",

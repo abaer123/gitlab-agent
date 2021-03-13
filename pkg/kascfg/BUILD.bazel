@@ -1,4 +1,5 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("//build:build.bzl", "go_custom_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("//build:proto.bzl", "go_proto_generate")
 
 go_proto_generate(
@@ -29,16 +30,14 @@ go_library(
     ],
 )
 
-go_test(
+go_custom_test(
     name = "kascfg_test",
-    size = "small",
     srcs = [
         "config_example_test.go",
         "validation_test.go",
     ],
     data = ["config_example.yaml"],
     embed = [":kascfg"],
-    race = "on",
     deps = [
         "//cmd/kas/kasapp",
         "@com_github_google_go_cmp//cmp",

@@ -1,4 +1,5 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("//build:build.bzl", "go_custom_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "usage_metrics",
@@ -7,11 +8,9 @@ go_library(
     visibility = ["//:__subpackages__"],
 )
 
-go_test(
+go_custom_test(
     name = "usage_metrics_test",
-    size = "small",
     srcs = ["api_test.go"],
     embed = [":usage_metrics"],
-    race = "on",
     deps = ["@com_github_stretchr_testify//require"],
 )

@@ -1,4 +1,5 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("//build:build.bzl", "go_custom_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "agent",
@@ -27,12 +28,10 @@ go_library(
     ],
 )
 
-go_test(
+go_custom_test(
     name = "agent_test",
-    size = "small",
     srcs = ["connection_test.go"],
     embed = [":agent"],
-    race = "on",
     deps = [
         "//internal/module/modagent",
         "//internal/module/reverse_tunnel/info",
