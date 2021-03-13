@@ -127,7 +127,6 @@ go_custom_test(
         "@com_github_google_go_cmp//cmp",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
-        "@com_gitlab_gitlab_org_labkit//errortracking",
         "@io_k8s_apimachinery//pkg/util/wait",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",
