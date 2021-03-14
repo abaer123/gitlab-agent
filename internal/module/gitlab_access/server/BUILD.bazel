@@ -31,12 +31,11 @@ go_custom_test(
     embed = [":server"],
     deps = [
         "//internal/api",
+        "//internal/gitlab",
         "//internal/module/gitlab_access/rpc",
         "//internal/module/modserver",
-        "//internal/tool/grpctool",
         "//internal/tool/prototool",
         "//internal/tool/testing/matcher",
-        "//internal/tool/testing/mock_gitlab",
         "//internal/tool/testing/mock_modserver",
         "//internal/tool/testing/mock_rpc",
         "//internal/tool/testing/testhelpers",

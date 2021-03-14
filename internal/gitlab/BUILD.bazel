@@ -6,7 +6,9 @@ go_library(
     srcs = [
         "client.go",
         "client_options.go",
+        "do_options.go",
         "error.go",
+        "response_handlers.go",
         "types.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab",

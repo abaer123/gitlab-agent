@@ -3,22 +3,17 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_usage_metrics"
@@ -35,19 +30,21 @@ var (
 )
 
 func TestSendUsage(t *testing.T) {
+	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	m, tracker, client, _ := setupModule(t)
 	counters := map[string]int64{
 		"x": 5,
 	}
+	m, tracker, _ := setupModule(t, func(w http.ResponseWriter, r *http.Request) {
+		assertNoContentRequest(t, r, counters)
+		w.WriteHeader(http.StatusNoContent)
+	})
 	ud := &usage_metrics.UsageData{Counters: counters}
 	gomock.InOrder(
 		tracker.EXPECT().
 			CloneUsageData().
 			Return(ud, false),
-		client.EXPECT().
-			DoJSON(ctx, http.MethodPost, usagePingApiPath, nil, api.AgentToken(""), counters, nil),
 		tracker.EXPECT().
 			Subtract(ud),
 		tracker.EXPECT().
@@ -61,10 +58,9 @@ func TestSendUsage(t *testing.T) {
 }
 
 func TestSendUsageFailureAndRetry(t *testing.T) {
+	t.Parallel()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	m, tracker, client, mockApi := setupModule(t)
-	expectedErr := errors.New("expected error")
 	counters1 := map[string]int64{
 		"x": 5,
 	}
@@ -73,20 +69,29 @@ func TestSendUsageFailureAndRetry(t *testing.T) {
 		"x": 6,
 	}
 	ud2 := &usage_metrics.UsageData{Counters: counters2}
+	var call int
+	m, tracker, mockApi := setupModule(t, func(w http.ResponseWriter, r *http.Request) {
+		call++
+		switch call {
+		case 1:
+			assertNoContentRequest(t, r, counters1)
+			w.WriteHeader(http.StatusInternalServerError)
+		case 2:
+			assertNoContentRequest(t, r, counters2)
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			assert.Fail(t, "unexpected call", call)
+		}
+	})
 	gomock.InOrder(
 		tracker.EXPECT().
 			CloneUsageData().
 			Return(ud1, false),
-		client.EXPECT().
-			DoJSON(ctx, http.MethodPost, usagePingApiPath, nil, api.AgentToken(""), counters1, nil).
-			Return(expectedErr),
 		mockApi.EXPECT().
-			HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to send usage data", expectedErr),
+			HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to send usage data", matcher.ErrorEq("error kind: 0; status: 500")),
 		tracker.EXPECT().
 			CloneUsageData().
 			Return(ud2, false),
-		client.EXPECT().
-			DoJSON(ctx, http.MethodPost, usagePingApiPath, nil, api.AgentToken(""), counters2, nil),
 		tracker.EXPECT().
 			Subtract(ud2),
 		tracker.EXPECT().
@@ -100,45 +105,18 @@ func TestSendUsageFailureAndRetry(t *testing.T) {
 }
 
 func TestSendUsageHttp(t *testing.T) {
-	ctx, correlationId := testhelpers.CtxWithCorrelation(t)
-	ctx, cancel := context.WithCancel(ctx)
+	t.Parallel()
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	counters := map[string]int64{
 		"x": 5,
 	}
 	ud := &usage_metrics.UsageData{Counters: counters}
-	r := http.NewServeMux()
-	r.HandleFunc(usagePingApiPath, func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodPost, r.Method)
-		testhelpers.AssertCommonRequestParams(t, r, correlationId)
-		if !testhelpers.AssertJWTSignature(t, w, r) {
-			return
-		}
-		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
-		data, err := ioutil.ReadAll(r.Body)
-		if !assert.NoError(t, err) {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		var req map[string]int64
-		err = json.Unmarshal(data, &req)
-		if !assert.NoError(t, err) {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		assert.Empty(t, cmp.Diff(req, counters))
-
+	m, tracker, _ := setupModule(t, func(w http.ResponseWriter, r *http.Request) {
+		assertNoContentRequest(t, r, counters)
 		w.WriteHeader(http.StatusNoContent)
 	})
-	s := httptest.NewServer(r)
-	defer s.Close()
-
-	u, err := url.Parse(s.URL)
-	require.NoError(t, err)
-
-	m, tracker, _, _ := setupModule(t)
-	m.gitLabClient = gitlab.NewClient(u, []byte(testhelpers.AuthSecretKey), mock_gitlab.ClientOptionsForTest()...)
 
 	gomock.InOrder(
 		tracker.EXPECT().
@@ -152,10 +130,9 @@ func TestSendUsageHttp(t *testing.T) {
 	require.NoError(t, m.Run(ctx))
 }
 
-func setupModule(t *testing.T) (*module, *mock_usage_metrics.MockUsageTrackerInterface, *mock_gitlab.MockClientInterface, *mock_modserver.MockAPI) {
+func setupModule(t *testing.T, handler func(http.ResponseWriter, *http.Request)) (*module, *mock_usage_metrics.MockUsageTrackerInterface, *mock_modserver.MockAPI) {
 	ctrl := gomock.NewController(t)
 	tracker := mock_usage_metrics.NewMockUsageTrackerInterface(ctrl)
-	client := mock_gitlab.NewMockClientInterface(ctrl)
 	mockApi := mock_modserver.NewMockAPI(ctrl)
 	f := Factory{
 		UsageTracker: tracker,
@@ -167,9 +144,37 @@ func setupModule(t *testing.T) (*module, *mock_usage_metrics.MockUsageTrackerInt
 		Log:          zaptest.NewLogger(t),
 		Api:          mockApi,
 		Config:       config,
-		GitLabClient: client,
+		GitLabClient: mock_gitlab.SetupClient(t, usagePingApiPath, handler),
 		UsageTracker: tracker,
 	})
 	require.NoError(t, err)
-	return m.(*module), tracker, client, mockApi
+	return m.(*module), tracker, mockApi
+}
+
+func assertNoContentRequest(t *testing.T, r *http.Request, expectedPayload interface{}) {
+	testhelpers.AssertRequestMethod(t, r, http.MethodPost)
+	assert.Nil(t, r.Header.Values("Accept"))
+	testhelpers.AssertRequestContentTypeJson(t, r)
+	testhelpers.AssertRequestUserAgent(t, r, testhelpers.KasUserAgent)
+	assert.Equal(t, testhelpers.KasCorrelationClientName, r.Header.Get(testhelpers.CorrelationClientNameHeader))
+	testhelpers.AssertJWTSignature(t, r)
+	expectedBin, err := json.Marshal(expectedPayload)
+	if !assert.NoError(t, err) {
+		return
+	}
+	var expected interface{}
+	err = json.Unmarshal(expectedBin, &expected)
+	if !assert.NoError(t, err) {
+		return
+	}
+	actualBin, err := ioutil.ReadAll(r.Body)
+	if !assert.NoError(t, err) {
+		return
+	}
+	var actual interface{}
+	err = json.Unmarshal(actualBin, &actual)
+	if !assert.NoError(t, err) {
+		return
+	}
+	assert.Equal(t, expected, actual)
 }

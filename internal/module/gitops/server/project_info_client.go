@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"net/http"
 	"net/url"
 	"time"
 
@@ -54,11 +53,16 @@ func (c *projectInfoClient) GetProjectInfo(ctx context.Context, agentToken api.A
 }
 
 func (c *projectInfoClient) getProjectInfoDirect(ctx context.Context, agentToken api.AgentToken, projectId string) (*api.ProjectInfo, error) {
-	query := url.Values{
-		projectIdQueryParam: []string{projectId},
-	}
 	response := projectInfoResponse{}
-	err := c.GitLabClient.DoJSON(ctx, http.MethodGet, projectInfoApiPath, query, agentToken, nil, &response)
+	err := c.GitLabClient.Do(ctx,
+		gitlab.WithPath(projectInfoApiPath),
+		gitlab.WithQuery(url.Values{
+			projectIdQueryParam: []string{projectId},
+		}),
+		gitlab.WithAgentToken(agentToken),
+		gitlab.WithResponseHandler(gitlab.JsonResponseHandler(&response)),
+		gitlab.WithJWT(true),
+	)
 	if err != nil {
 		return nil, err
 	}

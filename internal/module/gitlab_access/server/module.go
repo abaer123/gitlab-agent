@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
@@ -74,7 +75,7 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 		)
 	})
 	// Pipe HTTP response -> gRPC response
-	g.Go(func() (retErr error) {
+	g.Go(func() error {
 		// Make sure the writer is unblocked if we exit abruptly
 		// The error is ignored because it will always occur if things go normally - the pipe will have been
 		// closed already when this code is reached (and that's an error).
@@ -85,49 +86,65 @@ func (m *module) MakeRequest(server rpc.GitlabAccess_MakeRequestServer) error {
 			return ctx.Err()
 		case h = <-headerMsg:
 		}
-		urlPath := urlPathForModules + url.PathEscape(h.ModuleName) + h.Request.UrlPath
-		resp, err := m.gitLabClient.DoStream(ctx, h.Request.Method, urlPath, h.Request.HttpHeader(), h.Request.UrlQuery(), agentToken, pr) // nolint:bodyclose
+		err := m.gitLabClient.Do(ctx,
+			gitlab.WithMethod(h.Request.Method),
+			gitlab.WithPath(urlPathForModules+url.PathEscape(h.ModuleName)+h.Request.UrlPath),
+			gitlab.WithQuery(h.Request.UrlQuery()),
+			gitlab.WithHeader(h.Request.HttpHeader()),
+			gitlab.WithAgentToken(agentToken),
+			gitlab.WithRequestBody(pr, ""),
+			gitlab.WithJWT(true),
+			gitlab.WithResponseHandler(gitlab.ResponseHandlerStruct{
+				HandleFunc: func(resp *http.Response, err error) (retErr error) {
+					if err != nil {
+						return err
+					}
+					defer errz.SafeClose(resp.Body, &retErr)
+
+					err = server.Send(&rpc.Response{
+						Message: &rpc.Response_Header_{
+							Header: &rpc.Response_Header{
+								Response: &prototool.HttpResponse{
+									StatusCode: int32(resp.StatusCode),
+									Status:     resp.Status,
+									Header:     prototool.HttpHeaderToValuesMap(resp.Header),
+								},
+							},
+						},
+					})
+					if err != nil {
+						return m.api.HandleSendError(log, "MakeRequest failed to send header", err)
+					}
+
+					buffer := make([]byte, maxDataChunkSize)
+					for {
+						var n int
+						n, err = resp.Body.Read(buffer)
+						if err != nil && !errors.Is(err, io.EOF) {
+							return fmt.Errorf("read response body: %w", err) // wrap
+						}
+						if n > 0 { // handle n=0, err=io.EOF case
+							sendErr := server.Send(&rpc.Response{
+								Message: &rpc.Response_Data_{
+									Data: &rpc.Response_Data{
+										Data: buffer[:n],
+									},
+								},
+							})
+							if sendErr != nil {
+								return m.api.HandleSendError(log, "MakeRequest failed to send data", sendErr)
+							}
+						}
+						if errors.Is(err, io.EOF) {
+							break
+						}
+					}
+					return nil
+				},
+			}),
+		)
 		if err != nil {
 			return err
-		}
-		defer errz.SafeClose(resp.Body, &retErr)
-
-		err = server.Send(&rpc.Response{
-			Message: &rpc.Response_Header_{
-				Header: &rpc.Response_Header{
-					Response: &prototool.HttpResponse{
-						StatusCode: int32(resp.StatusCode),
-						Status:     resp.Status,
-						Header:     prototool.HttpHeaderToValuesMap(resp.Header),
-					},
-				},
-			},
-		})
-		if err != nil {
-			return m.api.HandleSendError(log, "MakeRequest failed to send header", err)
-		}
-
-		buffer := make([]byte, maxDataChunkSize)
-		for {
-			var n int
-			n, err = resp.Body.Read(buffer)
-			if err != nil && !errors.Is(err, io.EOF) {
-				return fmt.Errorf("read response body: %w", err) // wrap
-			}
-			if n > 0 { // handle n=0, err=io.EOF case
-				sendErr := server.Send(&rpc.Response{
-					Message: &rpc.Response_Data_{
-						Data: &rpc.Response_Data{
-							Data: buffer[:n],
-						}},
-				})
-				if sendErr != nil {
-					return m.api.HandleSendError(log, "MakeRequest failed to send data", sendErr)
-				}
-			}
-			if errors.Is(err, io.EOF) {
-				break
-			}
 		}
 		err = server.Send(&rpc.Response{
 			Message: &rpc.Response_Trailer_{

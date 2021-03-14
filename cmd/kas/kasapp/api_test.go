@@ -3,8 +3,6 @@ package kasapp
 import (
 	"context"
 	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -27,45 +25,30 @@ var (
 )
 
 func TestGetAgentInfoFailures_Forbidden(t *testing.T) {
-	log, gitlabClient, errTracker, apiObj := setupApi(t)
-	gomock.InOrder(
-		gitlabClient.EXPECT().
-			DoJSON(gomock.Any(), http.MethodGet, agentInfoApiPath, nil, testhelpers.AgentkToken, nil, gomock.Any()).
-			Return(&gitlab.ClientError{Kind: gitlab.ErrorKindForbidden, StatusCode: http.StatusForbidden}),
-		errTracker.EXPECT().
-			Capture(matcher.ErrorEq("GetAgentInfo(): error kind: 1; status: 403"), gomock.Any()),
-	)
-	info, err, retErr := apiObj.GetAgentInfo(context.Background(), log, testhelpers.AgentkToken, false)
+	ctx, log, errTracker, apiObj := setupApi(t, http.StatusForbidden)
+	errTracker.EXPECT().
+		Capture(matcher.ErrorEq("GetAgentInfo(): error kind: 1; status: 403"), gomock.Any())
+	info, err, retErr := apiObj.GetAgentInfo(ctx, log, testhelpers.AgentkToken, false)
 	require.True(t, retErr)
 	assert.Equal(t, codes.PermissionDenied, status.Code(err))
 	assert.Nil(t, info)
 }
 
 func TestGetAgentInfoFailures_Unauthorized(t *testing.T) {
-	log, gitlabClient, errTracker, apiObj := setupApi(t)
-	gomock.InOrder(
-		gitlabClient.EXPECT().
-			DoJSON(gomock.Any(), http.MethodGet, agentInfoApiPath, nil, testhelpers.AgentkToken, nil, gomock.Any()).
-			Return(&gitlab.ClientError{Kind: gitlab.ErrorKindUnauthorized, StatusCode: http.StatusUnauthorized}),
-		errTracker.EXPECT().
-			Capture(matcher.ErrorEq("GetAgentInfo(): error kind: 2; status: 401"), gomock.Any()),
-	)
-	info, err, retErr := apiObj.GetAgentInfo(context.Background(), log, testhelpers.AgentkToken, false)
+	ctx, log, errTracker, apiObj := setupApi(t, http.StatusUnauthorized)
+	errTracker.EXPECT().
+		Capture(matcher.ErrorEq("GetAgentInfo(): error kind: 2; status: 401"), gomock.Any())
+	info, err, retErr := apiObj.GetAgentInfo(ctx, log, testhelpers.AgentkToken, false)
 	require.True(t, retErr)
 	assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	assert.Nil(t, info)
 }
 
 func TestGetAgentInfoFailures_InternalServerError(t *testing.T) {
-	log, gitlabClient, errTracker, apiObj := setupApi(t)
-	gomock.InOrder(
-		gitlabClient.EXPECT().
-			DoJSON(gomock.Any(), http.MethodGet, agentInfoApiPath, nil, testhelpers.AgentkToken, nil, gomock.Any()).
-			Return(&gitlab.ClientError{Kind: gitlab.ErrorKindOther, StatusCode: http.StatusInternalServerError}),
-		errTracker.EXPECT().
-			Capture(matcher.ErrorEq("GetAgentInfo(): error kind: 0; status: 500"), gomock.Any()),
-	)
-	info, err, retErr := apiObj.GetAgentInfo(context.Background(), log, testhelpers.AgentkToken, false)
+	ctx, log, errTracker, apiObj := setupApi(t, http.StatusInternalServerError)
+	errTracker.EXPECT().
+		Capture(matcher.ErrorEq("GetAgentInfo(): error kind: 0; status: 500"), gomock.Any())
+	info, err, retErr := apiObj.GetAgentInfo(ctx, log, testhelpers.AgentkToken, false)
 	require.True(t, retErr)
 	assert.Equal(t, codes.Unavailable, status.Code(err))
 	assert.Nil(t, info)
@@ -91,24 +74,14 @@ func TestGetAgentInfo(t *testing.T) {
 			GlProjectPath: "64662",
 		},
 	}
-	r := http.NewServeMux()
-	r.HandleFunc(agentInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodGet, r.Method)
-		if !testhelpers.AssertGetRequestIsCorrect(t, w, r, correlationId) {
-			return
-		}
-
-		testhelpers.RespondWithJSON(t, w, response)
-	})
-	s := httptest.NewServer(r)
-	defer s.Close()
-
-	u, err := url.Parse(s.URL)
-	require.NoError(t, err)
 	l := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
+	gitLabClient := mock_gitlab.SetupClient(t, agentInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
+		testhelpers.AssertGetJsonRequestIsCorrect(t, r, correlationId)
+		testhelpers.RespondWithJSON(t, w, response)
+	})
 	apiObj := newAPI(apiConfig{
-		GitLabClient:           gitlab.NewClient(u, []byte(testhelpers.AuthSecretKey), mock_gitlab.ClientOptionsForTest()...),
+		GitLabClient:           gitLabClient,
 		ErrorTracker:           mock_errtracker.NewMockTracker(ctrl),
 		AgentInfoCacheTtl:      0, // no cache!
 		AgentInfoCacheErrorTtl: 0,
@@ -125,16 +98,20 @@ func TestGetAgentInfo(t *testing.T) {
 	mock_gitlab.AssertGitalyRepository(t, response.GitalyRepository, agentInfo.Repository)
 }
 
-func setupApi(t *testing.T) (*zap.Logger, *mock_gitlab.MockClientInterface, *mock_errtracker.MockTracker, *serverAPI) {
+func setupApi(t *testing.T, statusCode int) (context.Context, *zap.Logger, *mock_errtracker.MockTracker, *serverAPI) {
 	log := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
-	gitlabClient := mock_gitlab.NewMockClientInterface(ctrl)
 	errTracker := mock_errtracker.NewMockTracker(ctrl)
+	ctx, correlationId := testhelpers.CtxWithCorrelation(t)
+	gitLabClient := mock_gitlab.SetupClient(t, agentInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
+		testhelpers.AssertGetJsonRequestIsCorrect(t, r, correlationId)
+		w.WriteHeader(statusCode)
+	})
 	apiObj := newAPI(apiConfig{
-		GitLabClient:           gitlabClient,
+		GitLabClient:           gitLabClient,
 		ErrorTracker:           errTracker,
 		AgentInfoCacheTtl:      0, // no cache!
 		AgentInfoCacheErrorTtl: 0,
 	})
-	return log, gitlabClient, errTracker, apiObj
+	return ctx, log, errTracker, apiObj
 }

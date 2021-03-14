@@ -2,8 +2,6 @@ package server
 
 import (
 	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,23 +33,15 @@ func TestGetProjectInfo(t *testing.T) {
 			GlProjectPath: "64662",
 		},
 	}
-	r := http.NewServeMux()
-	r.HandleFunc(projectInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodGet, r.Method)
-		if !testhelpers.AssertGetRequestIsCorrect(t, w, r, correlationId) {
-			return
-		}
+	gitLabClient := mock_gitlab.SetupClient(t, projectInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
+		testhelpers.AssertRequestMethod(t, r, http.MethodGet)
+		testhelpers.AssertGetJsonRequestIsCorrect(t, r, correlationId)
 		assert.Equal(t, projectId, r.URL.Query().Get(projectIdQueryParam))
 
 		testhelpers.RespondWithJSON(t, w, response)
 	})
-	s := httptest.NewServer(r)
-	defer s.Close()
-
-	u, err := url.Parse(s.URL)
-	require.NoError(t, err)
 	pic := projectInfoClient{
-		GitLabClient:             gitlab.NewClient(u, []byte(testhelpers.AuthSecretKey), mock_gitlab.ClientOptionsForTest()...),
+		GitLabClient:             gitLabClient,
 		ProjectInfoCacheTtl:      0, // no cache
 		ProjectInfoCacheErrorTtl: 0,
 		ProjectInfoCache:         cache.New(0),

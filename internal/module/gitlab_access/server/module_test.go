@@ -5,20 +5,19 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
-	"sync"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
@@ -48,11 +47,8 @@ func TestMakeRequest(t *testing.T) {
 	defer cancel()
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver.NewMockAPI(ctrl)
-	gitLabClient := mock_gitlab.NewMockClientInterface(ctrl)
 	server := mock_rpc.NewMockGitlabAccess_MakeRequestServer(ctrl)
 	incomingCtx := mock_modserver.IncomingCtx(ctx, t, token)
-	agentMD, err := grpctool.AgentMDFromRawContext(incomingCtx)
-	require.NoError(t, err)
 	server.EXPECT().
 		Context().
 		Return(incomingCtx).
@@ -97,43 +93,46 @@ func TestMakeRequest(t *testing.T) {
 			},
 		},
 	)...)
-	respHeader := http.Header{
-		"resp": []string{"r1", "r2"},
-	}
 	respBody := []byte("some response")
-	var wg sync.WaitGroup
-	defer wg.Wait()
-	pr, pw := io.Pipe()
-	doStream := gitLabClient.EXPECT().
-		DoStream(gomock.Any(), httpMethod, "/api/v4/internal/kubernetes/modules/"+moduleName+urlPath, header, query, agentMD.Token, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, method, path string, header http.Header, query url.Values, agentToken api.AgentToken, body io.Reader) (*http.Response, error) {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				defer pw.Close() // close the write side of the pipe
-				all, errIO := ioutil.ReadAll(body)
-				if !assert.NoError(t, errIO) {
-					return
-				}
-				assert.Equal(t, []byte{1, 2, 3, 4, 5, 6}, all)
-				_, errIO = pw.Write(respBody) // only respond once the request is consumed
-				assert.NoError(t, errIO)
-			}()
-			return &http.Response{
-				Status:     "status1",
-				StatusCode: 200,
-				Header:     respHeader,
-				Body:       pr,
-			}, nil
-		})
-	responses := mockSendStream(t, server,
+	r := http.NewServeMux()
+	r.HandleFunc("/api/v4/internal/kubernetes/modules/"+moduleName+urlPath, func(w http.ResponseWriter, r *http.Request) {
+		all, errIO := ioutil.ReadAll(r.Body)
+		if !assert.NoError(t, errIO) {
+			return
+		}
+		assert.Equal(t, []byte{1, 2, 3, 4, 5, 6}, all)
+		w.Header().Set("resp", "r1")
+		w.Header().Add("resp", "r2")
+		w.Header().Set("Date", "no date") // override
+		_, errIO = w.Write(respBody)      // only respond once the request is consumed
+		assert.NoError(t, errIO)
+	})
+	s := httptest.NewServer(r)
+	defer s.Close()
+
+	u, err := url.Parse(s.URL)
+	require.NoError(t, err)
+	gomock.InOrder(mockSendStream(t, server,
 		&rpc.Response{
 			Message: &rpc.Response_Header_{
 				Header: &rpc.Response_Header{
 					Response: &prototool.HttpResponse{
-						StatusCode: 200,
-						Status:     "status1",
-						Header:     prototool.HttpHeaderToValuesMap(respHeader),
+						StatusCode: http.StatusOK,
+						Status:     "200 OK",
+						Header: map[string]*prototool.Values{
+							"Content-Length": {
+								Value: []string{"13"},
+							},
+							"Content-Type": {
+								Value: []string{"text/plain; charset=utf-8"},
+							},
+							"Date": {
+								Value: []string{"no date"},
+							},
+							"Resp": {
+								Value: []string{"r1", "r2"},
+							},
+						},
 					},
 				},
 			},
@@ -150,13 +149,13 @@ func TestMakeRequest(t *testing.T) {
 				Trailer: &rpc.Response_Trailer{},
 			},
 		},
-	)
-	gomock.InOrder(append([]*gomock.Call{doStream}, responses...)...)
+	)...)
 	f := Factory{}
+	log := zaptest.NewLogger(t)
 	m, err := f.New(&modserver.Config{
-		Log:          zaptest.NewLogger(t),
+		Log:          log,
 		Api:          mockApi,
-		GitLabClient: gitLabClient,
+		GitLabClient: gitlab.NewClient(u, []byte{1, 2, 3}, gitlab.WithLogger(log)),
 		AgentServer:  grpc.NewServer(),
 		ApiServer:    grpc.NewServer(),
 	})
