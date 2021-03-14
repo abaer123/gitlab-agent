@@ -2,17 +2,13 @@ package gitlab
 
 import (
 	"context"
-	"io"
-	"net/http"
-	"net/url"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 )
 
 type ClientInterface interface {
-	DoJSON(ctx context.Context, method, path string, query url.Values, agentToken api.AgentToken, body, response interface{}) error
-	DoStream(ctx context.Context, method, path string, header http.Header, query url.Values, agentToken api.AgentToken, body io.Reader) (*http.Response, error)
+	Do(ctx context.Context, opts ...DoOption) error
 }
 
 // Some shared types below.

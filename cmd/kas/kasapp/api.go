@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
@@ -145,7 +144,12 @@ func (a *serverAPI) getAgentInfoCached(ctx context.Context, agentToken api.Agent
 
 func (a *serverAPI) getAgentInfoDirect(ctx context.Context, agentToken api.AgentToken) (*api.AgentInfo, error) {
 	response := getAgentInfoResponse{}
-	err := a.cfg.GitLabClient.DoJSON(ctx, http.MethodGet, agentInfoApiPath, nil, agentToken, nil, &response)
+	err := a.cfg.GitLabClient.Do(ctx,
+		gitlab.WithPath(agentInfoApiPath),
+		gitlab.WithAgentToken(agentToken),
+		gitlab.WithJWT(true),
+		gitlab.WithResponseHandler(gitlab.JsonResponseHandler(&response)),
+	)
 	if err != nil {
 		return nil, err
 	}

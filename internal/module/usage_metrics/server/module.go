@@ -50,7 +50,13 @@ func (m *module) sendUsageInternal(ctx context.Context) error {
 		// No new counts
 		return nil
 	}
-	err := m.gitLabClient.DoJSON(ctx, http.MethodPost, usagePingApiPath, nil, "", usageData.Counters, nil)
+	err := m.gitLabClient.Do(ctx,
+		gitlab.WithMethod(http.MethodPost),
+		gitlab.WithPath(usagePingApiPath),
+		gitlab.WithJsonRequestBody(usageData.Counters),
+		gitlab.WithResponseHandler(gitlab.NoContentResponseHandler()),
+		gitlab.WithJWT(true),
+	)
 	if err != nil {
 		return err // don't wrap
 	}

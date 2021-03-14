@@ -45,33 +45,62 @@ func RespondWithJSON(t *testing.T, w http.ResponseWriter, response interface{}) 
 	assert.NoError(t, err)
 }
 
-func AssertGetRequestIsCorrect(t *testing.T, w http.ResponseWriter, r *http.Request, correlationId string) bool {
-	assert.Equal(t, "Bearer "+string(AgentkToken), r.Header.Get("Authorization"))
+func AssertRequestMethod(t *testing.T, r *http.Request, method string) {
+	assert.Equal(t, method, r.Method)
+}
+
+func AssertRequestAccept(t *testing.T, r *http.Request, accept string) {
+	assert.Equal(t, accept, r.Header.Get("Accept"))
+}
+
+func AssertRequestUserAgent(t *testing.T, r *http.Request, userAgent string) {
+	assert.Equal(t, userAgent, r.Header.Get("User-Agent"))
+}
+
+func AssertRequestAcceptJson(t *testing.T, r *http.Request) {
+	AssertRequestAccept(t, r, "application/json")
+}
+
+func AssertRequestContentTypeJson(t *testing.T, r *http.Request) {
+	assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+}
+
+func AssertGetJsonRequest(t *testing.T, r *http.Request) {
+	AssertRequestMethod(t, r, http.MethodGet)
+	AssertRequestAcceptJson(t, r)
+}
+
+func AssertAgentToken(t *testing.T, r *http.Request, agentToken api.AgentToken) {
+	assert.EqualValues(t, "Bearer "+agentToken, r.Header.Get("Authorization"))
+}
+
+func AssertGetJsonRequestIsCorrect(t *testing.T, r *http.Request, correlationId string) {
+	AssertRequestAcceptJson(t, r)
+	AssertGetRequestIsCorrect(t, r, correlationId)
+}
+
+func AssertGetRequestIsCorrect(t *testing.T, r *http.Request, correlationId string) {
+	AssertRequestMethod(t, r, http.MethodGet)
+	AssertAgentToken(t, r, AgentkToken)
 	assert.Empty(t, r.Header.Values("Content-Type"))
-	assert.Equal(t, "application/json", r.Header.Get("Accept"))
 	AssertCommonRequestParams(t, r, correlationId)
-	return AssertJWTSignature(t, w, r)
+	AssertJWTSignature(t, r)
 }
 
 func AssertCommonRequestParams(t *testing.T, r *http.Request, correlationId string) {
-	assert.Equal(t, KasUserAgent, r.Header.Get("User-Agent"))
+	AssertRequestUserAgent(t, r, KasUserAgent)
 	assert.Equal(t, correlationId, r.Header.Get(CorrelationIdHeader))
 	assert.Equal(t, KasCorrelationClientName, r.Header.Get(CorrelationClientNameHeader))
 }
 
-func AssertJWTSignature(t *testing.T, w http.ResponseWriter, r *http.Request) bool {
+func AssertJWTSignature(t *testing.T, r *http.Request) {
 	_, err := jwt.Parse(r.Header.Get(jwtRequestHeader), func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(AuthSecretKey), nil
 	}, jwt.WithAudience(jwtGitLabAudience), jwt.WithIssuer(jwtIssuer))
-	if !assert.NoError(t, err) {
-		w.WriteHeader(http.StatusUnauthorized)
-		return false
-	}
-
-	return true
+	assert.NoError(t, err)
 }
 
 func CtxWithCorrelation(t *testing.T) (context.Context, string) {
