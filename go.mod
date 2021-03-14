@@ -3,19 +3,19 @@ module gitlab.com/gitlab-org/cluster-integration/gitlab-agent
 go 1.15
 
 require (
-	cloud.google.com/go v0.77.0
-	github.com/argoproj/gitops-engine v0.2.1-0.20210218233004-354817a103ee
+	cloud.google.com/go v0.79.0
+	github.com/argoproj/gitops-engine v0.2.1-0.20210312191401-380f7be5bf32
 	github.com/ash2k/stager v0.2.1
 	github.com/bmatcuk/doublestar/v2 v2.0.4
-	github.com/cilium/cilium v1.9.4
+	github.com/cilium/cilium v1.9.5
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1.0.20200107205605-c66185887605
-	github.com/envoyproxy/protoc-gen-validate v0.4.2-0.20201217164128-7df253a68e6b
+	github.com/envoyproxy/protoc-gen-validate v0.4.2-0.20210105193028-872b28c45782
 	github.com/go-logr/zapr v0.4.0
-	github.com/go-redis/redis/v8 v8.6.0
+	github.com/go-redis/redis/v8 v8.7.1
 	github.com/go-redis/redismock/v8 v8.0.5
 	github.com/golang/mock v1.5.0
 	github.com/golang/protobuf v1.4.3
-	github.com/google/go-cmp v0.5.4
+	github.com/google/go-cmp v0.5.5
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.1-0.20200507082539-9abf3eb82b4a
 	github.com/opentracing/opentracing-go v1.2.0
@@ -27,19 +27,19 @@ require (
 	gitlab.com/gitlab-org/labkit v1.3.0
 	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
-	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324
 	golang.org/x/tools v0.1.0
-	google.golang.org/api v0.40.0
-	google.golang.org/genproto v0.0.0-20210219173056-d891e3cb3b5b
-	google.golang.org/grpc v1.35.0
+	google.golang.org/api v0.41.0
+	google.golang.org/genproto v0.0.0-20210312152112-fc591d9ea70f
+	google.golang.org/grpc v1.36.0
 	google.golang.org/grpc/examples v0.0.0-20200828165940-d8ef479ab79a // indirect
 	google.golang.org/protobuf v1.25.0
 	k8s.io/api v0.20.4
 	k8s.io/apimachinery v0.20.4
 	k8s.io/cli-runtime v0.20.4
 	k8s.io/client-go v0.20.4
-	k8s.io/klog/v2 v2.5.0
+	k8s.io/klog/v2 v2.8.0
 	nhooyr.io/websocket v1.8.6
 	sigs.k8s.io/yaml v1.2.0
 )

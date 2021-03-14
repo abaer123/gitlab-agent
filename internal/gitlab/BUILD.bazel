@@ -28,8 +28,8 @@ go_library(
 go_custom_test(
     name = "gitlab_test",
     srcs = ["client_test.go"],
-    embed = [":gitlab"],
     deps = [
+        ":gitlab",
         "//internal/tool/testing/mock_gitlab",
         "//internal/tool/testing/testhelpers",
         "@com_github_stretchr_testify//assert",

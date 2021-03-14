@@ -1,4 +1,4 @@
-load("@com_github_atlassian_bazel_tools//multirun:def.bzl", "multirun")
+load("@com_github_ash2k_bazel_tools//multirun:def.bzl", "multirun")
 load("@rules_proto_grpc//:defs.bzl", "proto_plugin")
 
 exports_files([

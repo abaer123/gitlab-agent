@@ -3,7 +3,7 @@ load("@rules_proto_grpc//go:defs.bzl", "go_grpc_compile", "go_proto_compile")
 load("//build:build.bzl", "copy_to_workspace")
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("//build:validate.bzl", "go_validate_compile")
-load("@com_github_atlassian_bazel_tools//multirun:def.bzl", "multirun")
+load("@com_github_ash2k_bazel_tools//multirun:def.bzl", "multirun")
 
 def go_proto_generate(src, workspace_relative_target_directory, deps = []):
     extract_targets = _go_proto_generate(src, workspace_relative_target_directory, deps)

@@ -42,8 +42,8 @@ go_library(
 go_custom_test(
     name = "rpc_test",
     srcs = ["configuration_watcher_test.go"],
-    embed = [":rpc"],
     deps = [
+        ":rpc",
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_rpc",
         "//pkg/agentcfg",
