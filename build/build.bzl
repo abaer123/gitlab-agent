@@ -1,4 +1,4 @@
-load("@com_github_atlassian_bazel_tools//multirun:def.bzl", "command")
+load("@com_github_ash2k_bazel_tools//multirun:def.bzl", "command")
 load("@bazel_skylib//lib:shell.bzl", "shell")
 load("@io_bazel_rules_go//go:def.bzl", "go_test")
 
