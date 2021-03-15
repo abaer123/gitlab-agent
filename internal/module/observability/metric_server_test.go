@@ -8,12 +8,15 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_errtracker"
 	"go.uber.org/zap/zaptest"
 )
 
 func TestMetricServer(t *testing.T) {
+	ctrl := gomock.NewController(t)
 	listener, err := net.Listen("tcp", "localhost:0")
 	require.NoError(t, err)
 	defer listener.Close()
@@ -26,7 +29,9 @@ func TestMetricServer(t *testing.T) {
 	readinessProbe := func(ctx context.Context) error {
 		return innerReadinessProbe(ctx)
 	}
+	tracker := mock_errtracker.NewMockTracker(ctrl)
 	metricServer := &MetricServer{
+		Tracker:               tracker,
 		Log:                   logger,
 		Name:                  "test-server",
 		Listener:              listener,
@@ -63,9 +68,12 @@ func TestMetricServer(t *testing.T) {
 		require.Empty(t, rec.Body)
 		httpResponse.Body.Close()
 
-		innerLivenessProbe = func(ctx context.Context) error {
-			return fmt.Errorf("failed liveness on purpose")
+		expectedErr := fmt.Errorf("failed liveness on purpose")
+		innerLivenessProbe = func(context.Context) error {
+			return expectedErr
 		}
+		tracker.EXPECT().Capture(fmt.Errorf("LivenessProbe failed: %v", expectedErr), gomock.Any())
+
 		rec = httpGet(t, "/liveness")
 		httpResponse = rec.Result()
 		require.Equal(t, http.StatusInternalServerError, httpResponse.StatusCode)
@@ -80,9 +88,12 @@ func TestMetricServer(t *testing.T) {
 		require.Empty(t, rec.Body)
 		httpResponse.Body.Close()
 
-		innerReadinessProbe = func(ctx context.Context) error {
-			return fmt.Errorf("failed readiness on purpose")
+		expectedErr := fmt.Errorf("failed readiness on purpose")
+		innerReadinessProbe = func(context.Context) error {
+			return expectedErr
 		}
+		tracker.EXPECT().Capture(fmt.Errorf("ReadinessProbe failed: %v", expectedErr), gomock.Any())
+
 		rec = httpGet(t, "/readiness")
 		httpResponse = rec.Result()
 		require.Equal(t, http.StatusInternalServerError, httpResponse.StatusCode)

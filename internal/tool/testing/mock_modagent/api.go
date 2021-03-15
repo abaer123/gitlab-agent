@@ -11,6 +11,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	modagent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	agentcfg "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
+	errortracking "gitlab.com/gitlab-org/labkit/errortracking"
 )
 
 // MockAPI is a mock of API interface.
@@ -34,6 +35,23 @@ func NewMockAPI(ctrl *gomock.Controller) *MockAPI {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 	return m.recorder
+}
+
+// Capture mocks base method.
+func (m *MockAPI) Capture(arg0 error, arg1 ...errortracking.CaptureOption) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0}
+	for _, a := range arg1 {
+		varargs = append(varargs, a)
+	}
+	m.ctrl.Call(m, "Capture", varargs...)
+}
+
+// Capture indicates an expected call of Capture.
+func (mr *MockAPIMockRecorder) Capture(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0}, arg1...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Capture", reflect.TypeOf((*MockAPI)(nil).Capture), varargs...)
 }
 
 // MakeGitLabRequest mocks base method.

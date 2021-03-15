@@ -14,6 +14,7 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	return &module{
 		log:      config.Log,
 		logLevel: f.LogLevel,
+		tracker:  config.Api,
 	}, nil
 }
 

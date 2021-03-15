@@ -17,6 +17,7 @@ go_library(
         "//pkg/agentcfg",
         "@com_github_ash2k_stager//:stager",
         "@com_github_prometheus_client_golang//prometheus",
+        "@com_gitlab_gitlab_org_labkit//errortracking",
         "@org_uber_go_zap//:zap",
     ],
 )

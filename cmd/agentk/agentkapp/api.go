@@ -11,6 +11,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
+	"gitlab.com/gitlab-org/labkit/errortracking"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -27,6 +28,10 @@ type agentAPI struct {
 	ModuleName      string
 	Client          gitlab_access_rpc.GitlabAccessClient
 	ResponseVisitor *grpctool.StreamVisitor
+}
+
+// Capture does nothing at the moment
+func (a *agentAPI) Capture(err error, opts ...errortracking.CaptureOption) {
 }
 
 func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...modagent.GitLabRequestOption) (*modagent.GitLabResponse, error) {

@@ -12,12 +12,14 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
+	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
 )
 
 type module struct {
 	log      *zap.Logger
 	logLevel zap.AtomicLevel
+	tracker  errortracking.Tracker
 }
 
 const (
@@ -57,6 +59,7 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 				)
 
 				metricSrv := observability.MetricServer{
+					Tracker:               m.tracker,
 					Log:                   m.log,
 					Name:                  m.Name(),
 					Listener:              lis,
