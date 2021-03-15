@@ -77,7 +77,7 @@ func NoContentResponseHandler() ResponseHandler {
 			switch resp.StatusCode {
 			case http.StatusOK, http.StatusNoContent:
 				const maxBodySlurpSize = 8 * 1024
-				_, err = io.CopyN(io.Discard, resp.Body, maxBodySlurpSize)
+				_, err = io.CopyN(ioutil.Discard, resp.Body, maxBodySlurpSize)
 				if errors.Is(err, io.EOF) {
 					return nil
 				}
