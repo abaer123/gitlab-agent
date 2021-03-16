@@ -112,7 +112,7 @@ push_image:
     - *registry_creds
     - make release-tag-all-ci
     # Re-run to push "stable" if this is a tagged release
-    - if [ -n "$CI_COMMIT_TAG" ] then IMAGE_TAG_OVERRIDE="stable" make release-tag-all-ci; fi
+    - if [ -n "$CI_COMMIT_TAG" ]; then IMAGE_TAG_OVERRIDE="stable" make release-tag-all-ci; fi
 
 create_release:
   stage: create_release
