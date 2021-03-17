@@ -14,8 +14,10 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/redistool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_redis"
 	"go.uber.org/zap/zaptest"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var (
@@ -174,4 +176,22 @@ func setupTracker(t *testing.T) (*RedisTracker, *mock_redis.MockExpiringHashInte
 		toRegister:       make(chan *TunnelInfo),
 		toUnregister:     make(chan *TunnelInfo),
 	}, hash, ti
+}
+
+func TestTunnelInfoSize(t *testing.T) {
+	infoAny, err := anypb.New(&TunnelInfo{
+		AgentDescriptor: &info.AgentDescriptor{
+			Services: []*info.Service{},
+		},
+		ConnectionId: 1231232,
+		AgentId:      123123,
+		KasUrl:       "grpcs://123.123.123.123:123",
+	})
+	require.NoError(t, err)
+	data, err := proto.Marshal(&redistool.ExpiringValue{
+		ExpiresAt: timestamppb.Now(),
+		Value:     infoAny,
+	})
+	require.NoError(t, err)
+	t.Log(len(data))
 }
