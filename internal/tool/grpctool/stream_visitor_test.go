@@ -292,14 +292,40 @@ func TestStreamVisitorHappyPathNoEof(t *testing.T) {
 	assert.Equal(t, 1, lastCalled)
 }
 
-func TestStreamVisitorMissingCallback(t *testing.T) {
+func TestStreamVisitorReachableMissingCallback(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	stream := mock_rpc.NewMockClientStream(ctrl)
 
 	v, err := grpctool.NewStreamVisitor(&test.Response{})
 	require.NoError(t, err)
+
 	err = v.Visit(stream)
 	require.EqualError(t, err, "no callback defined for field gitlab.agent.grpctool.test.Response.scalar (1)")
+}
+
+func TestStreamingVisitorUnreachableMissingCallback(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	v, err := grpctool.NewStreamVisitor(&test.Response{})
+	require.NoError(t, err)
+
+	// we will use start state x1Number, comment out "missing" start state entries for clarity
+
+	stream, calls := mock_rpc.InitMockClientStream(ctrl, true,
+		// /* skip (pretend it is already processed) */ &test.Response{Message: &test.Response_Scalar{Scalar: 123}},
+		// /* skip (pretend it is already processed) */ &test.Response{Message: &test.Response_X1{X1: test.Enum1_v1}},
+		&test.Response{Message: &test.Response_Data_{Data: &test.Response_Data{}}},
+		&test.Response{Message: &test.Response_Last_{Last: &test.Response_Last{}}},
+	)
+	gomock.InOrder(calls...)
+
+	err = v.Visit(stream,
+		grpctool.WithStartState(x1Number),
+		// /* skip (because unreachable) */ grpctool.WithCallback(scalarNumber, func(message *test.Response) error { return nil }),
+		// /* skip (because unreachable) */ grpctool.WithCallback(x1Number, func(message *test.Response) error { return nil }),
+		grpctool.WithCallback(dataNumber, func(message *test.Response) error { return nil }),
+		grpctool.WithCallback(lastNumber, func(message *test.Response) error { return nil }),
+	)
+	require.NoError(t, err)
 }
 
 func TestStreamVisitorNoOneofs(t *testing.T) {

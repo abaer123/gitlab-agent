@@ -137,11 +137,6 @@ func (t *tunnel) ForwardStream(incomingStream grpc.ServerStream, cb TunnelDataCa
 		var forTunnel, forIncomingStream error
 		fromVisitor := t.tunnelStreamVisitor.Visit(t.tunnel,
 			grpctool.WithStartState(agentDescriptorNumber),
-			grpctool.WithCallback(agentDescriptorNumber, func(descriptor *rpc.Descriptor) error {
-				// It's been read already, shouldn't be received again
-				forTunnel = status.Errorf(codes.InvalidArgument, "Unexpected %T message received", descriptor)
-				return status.Errorf(codes.Internal, "Unexpected %T message received", descriptor)
-			}),
 			grpctool.WithCallback(headerNumber, func(header *rpc.Header) error {
 				return cb.Header(header.Meta)
 			}),

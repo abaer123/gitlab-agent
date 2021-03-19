@@ -213,10 +213,6 @@ func (r *router) pipeFromKasToStream(log *zap.Logger, kasStream grpc.ClientStrea
 	var stat *statuspb.Status
 	err := r.gatewayKasVisitor.Visit(kasStream,
 		grpctool.WithStartState(tunnelReadyFieldNumber),
-		grpctool.WithCallback(tunnelReadyFieldNumber, func(tunnelReady *GatewayKasResponse_TunnelReady) error {
-			// It's been read already, shouldn't be received again
-			return status.Errorf(codes.InvalidArgument, "Unexpected %T message received", tunnelReady)
-		}),
 		grpctool.WithCallback(headerFieldNumber, func(header *GatewayKasResponse_Header) error {
 			return stream.SetHeader(header.Metadata())
 		}),

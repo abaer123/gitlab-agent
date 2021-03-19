@@ -135,12 +135,18 @@ func (s *StreamVisitor) applyOptions(opts []StreamVisitorOption) (config, error)
 			return config{}, err
 		}
 	}
+	// We only require reachable fields to have a callback
+	unreachableFields := getUnreachableFields(cfg.startState, s.allowedTransitions)
 	fields := s.oneof.Fields()
 	l := fields.Len()
 	for i := 0; i < l; i++ {
 		field := fields.Get(i)
 		fieldNumber := field.Number()
-		_, ok := cfg.msgCallbacks[fieldNumber]
+		_, ok := unreachableFields[fieldNumber]
+		if ok {
+			continue
+		}
+		_, ok = cfg.msgCallbacks[fieldNumber]
 		if ok {
 			continue
 		}
@@ -192,20 +198,29 @@ func allowedTransitionsForOneof(oneof protoreflect.OneofDescriptor) (map[protore
 	res[startState] = firstAllowedFieldsNumbers
 
 	unreachables := getUnreachableFields(startState, res)
+	delete(unreachables, startState) // the default starting state is expected to be unreachable
 	if len(unreachables) > 0 {
-		return nil, fmt.Errorf("unreachable fields in oneof %s: %v", oneof.FullName(), unreachables)
+		unreachablesList := make([]protoreflect.FieldNumber, 0, len(unreachables))
+		for f := range unreachables {
+			unreachablesList = append(unreachablesList, f)
+		}
+		sort.Sort(protoFieldNumbers(unreachablesList)) // sort to ensure deterministic results
+		return nil, fmt.Errorf("unreachable fields in oneof %s: %v", oneof.FullName(), unreachablesList)
 	}
 
 	return res, nil
 }
 
-func getUnreachableFields(root protoreflect.FieldNumber, graph map[protoreflect.FieldNumber][]protoreflect.FieldNumber) []protoreflect.FieldNumber {
+// getUnreachableFields returns a map m where m[f] is present if and only if
+// there exists a transition to f in the graph. Note that this also applies to
+// the root, so the root is always unreachable unless there is a transition
+// to the root.
+func getUnreachableFields(root protoreflect.FieldNumber, graph map[protoreflect.FieldNumber][]protoreflect.FieldNumber) map[protoreflect.FieldNumber]struct{} {
 	stack := []protoreflect.FieldNumber{root}
 	remaining := make(map[protoreflect.FieldNumber]struct{}, len(graph))
 	for node := range graph {
 		remaining[node] = struct{}{}
 	}
-	delete(remaining, root)
 	// non-recursive DFS, removing nodes from remaining as they are visited
 	for len(stack) > 0 {
 		var node protoreflect.FieldNumber
@@ -217,12 +232,7 @@ func getUnreachableFields(root protoreflect.FieldNumber, graph map[protoreflect.
 			}
 		}
 	}
-	result := make([]protoreflect.FieldNumber, 0, len(remaining))
-	for f := range remaining {
-		result = append(result, f)
-	}
-	sort.Sort(protoFieldNumbers(result)) // sort to ensure deterministic results
-	return result
+	return remaining
 }
 
 // implement sort.Interface
