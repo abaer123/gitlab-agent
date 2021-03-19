@@ -35,6 +35,7 @@ go_library(
         "@com_github_grpc_ecosystem_go_grpc_prometheus//:go-grpc-prometheus",
         "@com_github_spf13_pflag//:pflag",
         "@com_gitlab_gitlab_org_labkit//correlation/grpc",
+        "@com_gitlab_gitlab_org_labkit//errortracking",
         "@io_k8s_cli_runtime//pkg/genericclioptions",
         "@io_k8s_cli_runtime//pkg/resource",
         "@io_k8s_client_go//plugin/pkg/client/auth/gcp",

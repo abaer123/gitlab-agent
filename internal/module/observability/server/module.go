@@ -8,10 +8,12 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
+	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
 )
 
 type module struct {
+	tracker        errortracking.Tracker
 	log            *zap.Logger
 	cfg            *kascfg.ObservabilityCF
 	gatherer       prometheus.Gatherer
@@ -36,6 +38,7 @@ func (m *module) Run(ctx context.Context) (retErr error) {
 	)
 
 	metricSrv := observability.MetricServer{
+		Tracker:               m.tracker,
 		Log:                   m.log,
 		Name:                  m.serverName,
 		Listener:              lis,

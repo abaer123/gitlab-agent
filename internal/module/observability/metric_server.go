@@ -2,6 +2,7 @@ package observability
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/httpz"
+	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
 )
 
@@ -31,7 +33,8 @@ func NoopProbe(context.Context) error {
 }
 
 type MetricServer struct {
-	Log *zap.Logger
+	Tracker errortracking.Tracker
+	Log     *zap.Logger
 	// Name is the name of the application.
 	Name                  string
 	Listener              net.Listener
@@ -75,7 +78,7 @@ func (s *MetricServer) probesHandler(mux *http.ServeMux) {
 		s.setHeader(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 			err := s.LivenessProbe(request.Context())
 			if err != nil {
-				s.Log.Error("LivenessProbe failed", zap.Error(err)) // TODO: Capture error with tracker
+				s.logAndCapture(request.Context(), "LivenessProbe failed", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				_, _ = io.WriteString(w, err.Error())
 				return
@@ -88,7 +91,7 @@ func (s *MetricServer) probesHandler(mux *http.ServeMux) {
 		s.setHeader(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
 			err := s.ReadinessProbe(request.Context())
 			if err != nil {
-				s.Log.Error("ReadinessProbe failed", zap.Error(err)) // TODO: Capture error with tracker
+				s.logAndCapture(request.Context(), "ReadinessProbe failed", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				_, _ = io.WriteString(w, err.Error())
 				return
@@ -118,4 +121,9 @@ func (s *MetricServer) pprofHandler(mux *http.ServeMux) {
 	for route, handler := range routes {
 		mux.Handle(route, s.setHeader(http.HandlerFunc(handler)))
 	}
+}
+
+func (s *MetricServer) logAndCapture(ctx context.Context, msg string, err error) {
+	s.Log.Error(msg, zap.Error(err))
+	s.Tracker.Capture(fmt.Errorf("%s: %v", msg, err), errortracking.WithContext(ctx))
 }
