@@ -26,11 +26,12 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	cache "k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/cache"
 )
 
 const (
 	getFlowsRetryPeriod   = 10 * time.Second
+	informerResyncPeriod  = 30 * time.Minute
 	informerNotifierIndex = "InformerNotifierIdx"
 	gitLabProjectLabel    = "app.gitlab.com/proj"
 )
@@ -71,13 +72,14 @@ func (w *worker) Run(ctx context.Context) {
 	ciliumEndpointInformer := informers_v2.NewFilteredCiliumNetworkPolicyInformer(
 		w.ciliumClient,
 		metav1.NamespaceNone,
-		time.Duration(30*time.Minute),
+		informerResyncPeriod,
 		cache.Indexers{informerNotifierIndex: cnpIndexFunc},
-		func(listOptions *metav1.ListOptions) { listOptions.LabelSelector = labelSelector })
+		func(listOptions *metav1.ListOptions) { listOptions.LabelSelector = labelSelector },
+	)
 
 	var wg wait.Group
-	wg.StartWithChannel(ctx.Done(), ciliumEndpointInformer.Run)
 	defer wg.Wait()
+	wg.StartWithChannel(ctx.Done(), ciliumEndpointInformer.Run)
 
 	if !cache.WaitForCacheSync(ctx.Done(), ciliumEndpointInformer.HasSynced) {
 		return
@@ -105,7 +107,7 @@ func (w *worker) Run(ctx context.Context) {
 		})
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
-				w.log.Error("failed to get flows from hubble relay", zap.Error(err))
+				w.log.Error("Failed to get flows from Hubble relay", zap.Error(err))
 			}
 			return
 		}
@@ -124,7 +126,7 @@ func (w *worker) Run(ctx context.Context) {
 			case *observer.GetFlowsResponse_Flow:
 				err = w.processFlow(ctx, value.Flow, ciliumEndpointInformer)
 				if err != nil {
-					w.log.Error("flow processing failed", zap.Error(err))
+					w.log.Error("Flow processing failed", zap.Error(err))
 					return
 				}
 			}
