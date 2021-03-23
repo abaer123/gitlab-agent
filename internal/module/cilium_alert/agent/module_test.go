@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	fake_typed_v2 "github.com/cilium/cilium/pkg/k8s/client/clientset/versioned/typed/cilium.io/v2/fake"
+	cilium_fake "github.com/cilium/cilium/pkg/k8s/client/clientset/versioned/fake"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modagent"
@@ -16,7 +16,6 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
 	"k8s.io/apimachinery/pkg/util/wait"
-	fake_client_go "k8s.io/client-go/testing"
 )
 
 func TestStartsWorkersAccordingToConfiguration(t *testing.T) {
@@ -71,7 +70,7 @@ func setupModule(t *testing.T, errorEntryCount *int32) *module {
 	m := &module{
 		log:          log,
 		api:          mock_modagent.NewMockAPI(gomock.NewController(t)),
-		ciliumClient: &fake_typed_v2.FakeCiliumV2{Fake: &fake_client_go.Fake{}},
+		ciliumClient: cilium_fake.NewSimpleClientset(),
 	}
 	return m
 }

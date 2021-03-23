@@ -3,7 +3,7 @@ package agent
 import (
 	"fmt"
 
-	typed_v2 "github.com/cilium/cilium/pkg/k8s/client/clientset/versioned/typed/cilium.io/v2"
+	"github.com/cilium/cilium/pkg/k8s/client/clientset/versioned"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/cilium_alert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 )
@@ -16,7 +16,7 @@ func (f *Factory) New(cfg *modagent.Config) (modagent.Module, error) {
 	if err != nil {
 		return nil, err
 	}
-	ciliumClient, err := typed_v2.NewForConfig(restConfig)
+	ciliumClient, err := versioned.NewForConfig(restConfig)
 	if err != nil {
 		return nil, fmt.Errorf("client set for cilium v2: %v", err)
 	}

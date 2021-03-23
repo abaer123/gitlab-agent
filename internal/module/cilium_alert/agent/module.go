@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/cilium/cilium/api/v1/observer"
-	typed_v2 "github.com/cilium/cilium/pkg/k8s/client/clientset/versioned/typed/cilium.io/v2"
+	"github.com/cilium/cilium/pkg/k8s/client/clientset/versioned"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/cilium_alert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
@@ -17,7 +17,7 @@ import (
 type module struct {
 	log          *zap.Logger
 	api          modagent.API
-	ciliumClient typed_v2.CiliumV2Interface
+	ciliumClient versioned.Interface
 }
 
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {

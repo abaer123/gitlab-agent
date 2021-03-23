@@ -14,7 +14,8 @@ import (
 	"github.com/cilium/cilium/api/v1/flow"
 	"github.com/cilium/cilium/api/v1/observer"
 	v2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
-	typed_v2 "github.com/cilium/cilium/pkg/k8s/client/clientset/versioned/typed/cilium.io/v2"
+	"github.com/cilium/cilium/pkg/k8s/client/clientset/versioned"
+	informers_v2 "github.com/cilium/cilium/pkg/k8s/client/informers/externalversions/cilium.io/v2"
 	monitor_api "github.com/cilium/cilium/pkg/monitor/api"
 	legacy_proto "github.com/golang/protobuf/proto" // nolint:staticcheck
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
@@ -24,21 +25,64 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	cache "k8s.io/client-go/tools/cache"
 )
 
 const (
-	getFlowsRetryPeriod = 10 * time.Second
+	getFlowsRetryPeriod   = 10 * time.Second
+	informerNotifierIndex = "InformerNotifierIdx"
+	gitLabProjectLabel    = "app.gitlab.com/proj"
 )
 
 type worker struct {
 	log            *zap.Logger
 	api            modagent.API
-	ciliumClient   typed_v2.CiliumV2Interface
+	ciliumClient   versioned.Interface
 	observerClient observer.ObserverClient
 	projectId      int64
 }
 
+func cnpIndexFunc(obj interface{}) ([]string, error) {
+	cnp := obj.(*v2.CiliumNetworkPolicy)
+
+	if alertsEnabled := cnp.Annotations[alertAnnotationKey]; alertsEnabled != "true" {
+		return nil, nil
+	}
+
+	projectId, ok := cnp.Labels[gitLabProjectLabel]
+	if !ok {
+		return nil, nil
+	}
+
+	return []string{projectId}, nil
+}
+
 func (w *worker) Run(ctx context.Context) {
+	labelSelector := metav1.FormatLabelSelector(&metav1.LabelSelector{
+		MatchExpressions: []metav1.LabelSelectorRequirement{
+			{
+				Key:      gitLabProjectLabel,
+				Operator: metav1.LabelSelectorOpExists,
+			},
+		},
+	})
+
+	ciliumEndpointInformer := informers_v2.NewFilteredCiliumNetworkPolicyInformer(
+		w.ciliumClient,
+		metav1.NamespaceNone,
+		time.Duration(30*time.Minute),
+		cache.Indexers{informerNotifierIndex: cnpIndexFunc},
+		func(listOptions *metav1.ListOptions) { listOptions.LabelSelector = labelSelector })
+
+	var wg wait.Group
+	wg.StartWithChannel(ctx.Done(), ciliumEndpointInformer.Run)
+	defer wg.Wait()
+
+	if !cache.WaitForCacheSync(ctx.Done(), ciliumEndpointInformer.HasSynced) {
+		return
+	}
+
 	retry.JitterUntil(ctx, getFlowsRetryPeriod, func(ctx context.Context) {
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel()
@@ -78,7 +122,7 @@ func (w *worker) Run(ctx context.Context) {
 			}
 			switch value := resp.ResponseTypes.(type) {
 			case *observer.GetFlowsResponse_Flow:
-				err = w.processFlow(ctx, value.Flow)
+				err = w.processFlow(ctx, value.Flow, ciliumEndpointInformer)
 				if err != nil {
 					w.log.Error("flow processing failed", zap.Error(err))
 					return
@@ -88,21 +132,12 @@ func (w *worker) Run(ctx context.Context) {
 	})
 }
 
-func (w *worker) processFlow(ctx context.Context, flw *flow.Flow) error {
-	ns := getNamespace(flw)
-	if ns == "" {
-		return nil
-	}
-	cnps, err := w.ciliumClient.CiliumNetworkPolicies(ns).List(ctx, metav1.ListOptions{
-		LabelSelector: metav1.FormatLabelSelector(&metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"app.gitlab.com/proj": strconv.FormatInt(w.projectId, 10),
-			},
-		}),
-	})
+func (w *worker) processFlow(ctx context.Context, flw *flow.Flow, informer cache.SharedIndexInformer) error {
+	cnps, err := informer.GetIndexer().ByIndex(informerNotifierIndex, strconv.FormatInt(w.projectId, 10))
 	if err != nil {
 		return err
 	}
+
 	cnp, err := getPolicy(flw, cnps)
 	if err != nil {
 		return err
@@ -133,7 +168,7 @@ func (w *worker) sendAlert(ctx context.Context, fl *flow.Flow, cnp *v2.CiliumNet
 	}
 	switch resp.StatusCode {
 	case http.StatusOK, http.StatusNoContent:
-		w.log.Info("successfull response when creating alerts from cilium_alert endpoint", zap.Int32("status_code", resp.StatusCode))
+		w.log.Info("successful response when creating alerts from cilium_alert endpoint", zap.Int32("status_code", resp.StatusCode))
 	default:
 		return fmt.Errorf("failed to send flow to internal API: got %d HTTP response code", resp.StatusCode)
 	}
