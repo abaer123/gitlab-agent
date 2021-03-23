@@ -30,8 +30,8 @@ func TestIngressMatchButWithoutAnnotation(t *testing.T) {
 			},
 		},
 	}
-	cnpList := v2.CiliumNetworkPolicyList{
-		Items: []v2.CiliumNetworkPolicy{*policy},
+	cnpList := []interface{}{
+		policy,
 	}
 
 	cnp, err := getPolicy(&flow.Flow{
@@ -41,7 +41,7 @@ func TestIngressMatchButWithoutAnnotation(t *testing.T) {
 		},
 		TrafficDirection: flow.TrafficDirection_INGRESS,
 		Destination:      &flow.Endpoint{Labels: []string{"thiskey="}},
-	}, &cnpList)
+	}, cnpList)
 	require.NoError(t, err)
 	assert.Nil(t, cnp)
 }
@@ -50,7 +50,7 @@ func TestIngressMatch(t *testing.T) {
 	policy := &v2.CiliumNetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "Test",
-			Annotations: map[string]string{"app.gitlab.com/alert": "true"}},
+			Annotations: map[string]string{alertAnnotationKey: "true"}},
 		Spec: &api.Rule{
 			EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
 			Ingress: []api.IngressRule{
@@ -62,8 +62,8 @@ func TestIngressMatch(t *testing.T) {
 			},
 		},
 	}
-	cnpList := v2.CiliumNetworkPolicyList{
-		Items: []v2.CiliumNetworkPolicy{*policy},
+	cnpList := []interface{}{
+		policy,
 	}
 
 	cnp, err := getPolicy(&flow.Flow{
@@ -73,7 +73,7 @@ func TestIngressMatch(t *testing.T) {
 		},
 		TrafficDirection: flow.TrafficDirection_INGRESS,
 		Destination:      &flow.Endpoint{Labels: []string{"thiskey="}},
-	}, &cnpList)
+	}, cnpList)
 	require.NoError(t, err)
 	assert.Empty(t, cmp.Diff(cnp, policy, kube_testing.TransformToUnstructured()))
 }
@@ -92,8 +92,8 @@ func TestIngressNoMatch(t *testing.T) {
 			},
 		},
 	}
-	cnpList := v2.CiliumNetworkPolicyList{
-		Items: []v2.CiliumNetworkPolicy{*policy},
+	cnpList := []interface{}{
+		policy,
 	}
 
 	cnp, err := getPolicy(&flow.Flow{
@@ -103,7 +103,7 @@ func TestIngressNoMatch(t *testing.T) {
 		},
 		TrafficDirection: flow.TrafficDirection_INGRESS,
 		Destination:      &flow.Endpoint{Labels: []string{"unrelatedkey="}},
-	}, &cnpList)
+	}, cnpList)
 	require.NoError(t, err)
 	assert.Nil(t, cnp)
 }
@@ -112,7 +112,7 @@ func TestEgressMatch(t *testing.T) {
 	policy := &v2.CiliumNetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "Test",
-			Annotations: map[string]string{"app.gitlab.com/alert": "true"},
+			Annotations: map[string]string{alertAnnotationKey: "true"},
 		},
 		Spec: &api.Rule{
 			EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
@@ -125,8 +125,8 @@ func TestEgressMatch(t *testing.T) {
 			},
 		},
 	}
-	cnpList := v2.CiliumNetworkPolicyList{
-		Items: []v2.CiliumNetworkPolicy{*policy},
+	cnpList := []interface{}{
+		policy,
 	}
 
 	cnp, err := getPolicy(&flow.Flow{
@@ -136,7 +136,7 @@ func TestEgressMatch(t *testing.T) {
 		},
 		TrafficDirection: flow.TrafficDirection_EGRESS,
 		Source:           &flow.Endpoint{Labels: []string{"thiskey="}},
-	}, &cnpList)
+	}, cnpList)
 	require.NoError(t, err)
 	assert.Empty(t, cmp.Diff(cnp, policy, kube_testing.TransformToUnstructured()))
 }
@@ -145,7 +145,7 @@ func TestEgressNoMatch(t *testing.T) {
 	policy := &v2.CiliumNetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "Test",
-			Annotations: map[string]string{"app.gitlab.com/alert": "true"},
+			Annotations: map[string]string{alertAnnotationKey: "true"},
 		},
 		Spec: &api.Rule{
 			EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
@@ -158,8 +158,8 @@ func TestEgressNoMatch(t *testing.T) {
 			},
 		},
 	}
-	cnpList := v2.CiliumNetworkPolicyList{
-		Items: []v2.CiliumNetworkPolicy{*policy},
+	cnpList := []interface{}{
+		policy,
 	}
 
 	cnp, err := getPolicy(&flow.Flow{
@@ -169,17 +169,15 @@ func TestEgressNoMatch(t *testing.T) {
 		},
 		TrafficDirection: flow.TrafficDirection_EGRESS,
 		Source:           &flow.Endpoint{Labels: []string{"unrelatedkey="}},
-	}, &cnpList)
+	}, cnpList)
 	require.NoError(t, err)
 	assert.Nil(t, cnp)
 }
 
 func TestOtherThanIngressAndEgress(t *testing.T) {
-	cnpList := v2.CiliumNetworkPolicyList{
-		Items: []v2.CiliumNetworkPolicy{
-			{
-				ObjectMeta: metav1.ObjectMeta{Name: "Test"},
-			},
+	cnpList := []interface{}{
+		&v2.CiliumNetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{Name: "Test"},
 		},
 	}
 
@@ -187,7 +185,7 @@ func TestOtherThanIngressAndEgress(t *testing.T) {
 		Destination:      &flow.Endpoint{},
 		TrafficDirection: flow.TrafficDirection_TRAFFIC_DIRECTION_UNKNOWN,
 		Source:           &flow.Endpoint{},
-	}, &cnpList)
+	}, cnpList)
 	require.NoError(t, err)
 	assert.Nil(t, cnp)
 }
@@ -196,7 +194,7 @@ func TestL4OnlyEgressMatch(t *testing.T) {
 	policy := &v2.CiliumNetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "Test",
-			Annotations: map[string]string{"app.gitlab.com/alert": "true"},
+			Annotations: map[string]string{alertAnnotationKey: "true"},
 		},
 		Spec: &api.Rule{
 			EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
@@ -216,8 +214,8 @@ func TestL4OnlyEgressMatch(t *testing.T) {
 			},
 		},
 	}
-	cnpList := v2.CiliumNetworkPolicyList{
-		Items: []v2.CiliumNetworkPolicy{*policy},
+	cnpList := []interface{}{
+		policy,
 	}
 
 	cnp, err := getPolicy(&flow.Flow{
@@ -235,7 +233,7 @@ func TestL4OnlyEgressMatch(t *testing.T) {
 				},
 			},
 		},
-	}, &cnpList)
+	}, cnpList)
 	require.NoError(t, err)
 	assert.Empty(t, cmp.Diff(cnp, policy, kube_testing.TransformToUnstructured()))
 }
@@ -244,7 +242,7 @@ func TestL4OnlyUDPEgressMatch(t *testing.T) {
 	policy := &v2.CiliumNetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "Test",
-			Annotations: map[string]string{"app.gitlab.com/alert": "true"},
+			Annotations: map[string]string{alertAnnotationKey: "true"},
 		},
 		Spec: &api.Rule{
 			EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
@@ -264,8 +262,8 @@ func TestL4OnlyUDPEgressMatch(t *testing.T) {
 			},
 		},
 	}
-	cnpList := v2.CiliumNetworkPolicyList{
-		Items: []v2.CiliumNetworkPolicy{*policy},
+	cnpList := []interface{}{
+		policy,
 	}
 
 	cnp, err := getPolicy(&flow.Flow{
@@ -283,7 +281,7 @@ func TestL4OnlyUDPEgressMatch(t *testing.T) {
 				},
 			},
 		},
-	}, &cnpList)
+	}, cnpList)
 	require.NoError(t, err)
 	assert.Empty(t, cmp.Diff(cnp, policy, kube_testing.TransformToUnstructured()))
 }
@@ -292,7 +290,7 @@ func TestL4OnlyUDPFlowEgressMatch(t *testing.T) {
 	policy := &v2.CiliumNetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "Test",
-			Annotations: map[string]string{"app.gitlab.com/alert": "true"},
+			Annotations: map[string]string{alertAnnotationKey: "true"},
 		},
 		Spec: &api.Rule{
 			EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
@@ -312,8 +310,8 @@ func TestL4OnlyUDPFlowEgressMatch(t *testing.T) {
 			},
 		},
 	}
-	cnpList := v2.CiliumNetworkPolicyList{
-		Items: []v2.CiliumNetworkPolicy{*policy},
+	cnpList := []interface{}{
+		policy,
 	}
 
 	cnp, err := getPolicy(&flow.Flow{
@@ -331,7 +329,7 @@ func TestL4OnlyUDPFlowEgressMatch(t *testing.T) {
 				},
 			},
 		},
-	}, &cnpList)
+	}, cnpList)
 	require.NoError(t, err)
 	assert.Empty(t, cmp.Diff(cnp, policy, kube_testing.TransformToUnstructured()))
 }
@@ -340,7 +338,7 @@ func TestL4OnlyUDPFlowEgressNoMatch(t *testing.T) {
 	policy := &v2.CiliumNetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "Test",
-			Annotations: map[string]string{"app.gitlab.com/alert": "true"},
+			Annotations: map[string]string{alertAnnotationKey: "true"},
 		},
 		Spec: &api.Rule{
 			EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
@@ -360,8 +358,8 @@ func TestL4OnlyUDPFlowEgressNoMatch(t *testing.T) {
 			},
 		},
 	}
-	cnpList := v2.CiliumNetworkPolicyList{
-		Items: []v2.CiliumNetworkPolicy{*policy},
+	cnpList := []interface{}{
+		policy,
 	}
 
 	cnp, err := getPolicy(&flow.Flow{
@@ -379,7 +377,7 @@ func TestL4OnlyUDPFlowEgressNoMatch(t *testing.T) {
 				},
 			},
 		},
-	}, &cnpList)
+	}, cnpList)
 	require.NoError(t, err)
 	assert.Nil(t, cnp)
 }
@@ -388,7 +386,7 @@ func TestL4OnlyMultiplePortsEgressNoMatch(t *testing.T) {
 	policy := &v2.CiliumNetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "Test",
-			Annotations: map[string]string{"app.gitlab.com/alert": "true"},
+			Annotations: map[string]string{alertAnnotationKey: "true"},
 		},
 		Spec: &api.Rule{
 			EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
@@ -412,8 +410,8 @@ func TestL4OnlyMultiplePortsEgressNoMatch(t *testing.T) {
 			},
 		},
 	}
-	cnpList := v2.CiliumNetworkPolicyList{
-		Items: []v2.CiliumNetworkPolicy{*policy},
+	cnpList := []interface{}{
+		policy,
 	}
 
 	cnp, err := getPolicy(&flow.Flow{
@@ -431,7 +429,7 @@ func TestL4OnlyMultiplePortsEgressNoMatch(t *testing.T) {
 				},
 			},
 		},
-	}, &cnpList)
+	}, cnpList)
 	require.NoError(t, err)
 	assert.Nil(t, cnp)
 }
@@ -440,7 +438,7 @@ func TestL4OnlyEgressNoMatch(t *testing.T) {
 	policy := &v2.CiliumNetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "Test",
-			Annotations: map[string]string{"app.gitlab.com/alert": "true"},
+			Annotations: map[string]string{alertAnnotationKey: "true"},
 		},
 		Spec: &api.Rule{
 			EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
@@ -460,8 +458,8 @@ func TestL4OnlyEgressNoMatch(t *testing.T) {
 			},
 		},
 	}
-	cnpList := v2.CiliumNetworkPolicyList{
-		Items: []v2.CiliumNetworkPolicy{*policy},
+	cnpList := []interface{}{
+		policy,
 	}
 
 	cnp, err := getPolicy(&flow.Flow{
@@ -479,7 +477,7 @@ func TestL4OnlyEgressNoMatch(t *testing.T) {
 				},
 			},
 		},
-	}, &cnpList)
+	}, cnpList)
 	require.NoError(t, err)
 	assert.Nil(t, cnp)
 }
@@ -488,7 +486,7 @@ func TestWithL4IngressMatch(t *testing.T) {
 	policy := &v2.CiliumNetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "Test",
-			Annotations: map[string]string{"app.gitlab.com/alert": "true"}},
+			Annotations: map[string]string{alertAnnotationKey: "true"}},
 		Spec: &api.Rule{
 			EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
 			Ingress: []api.IngressRule{
@@ -510,8 +508,8 @@ func TestWithL4IngressMatch(t *testing.T) {
 			},
 		},
 	}
-	cnpList := v2.CiliumNetworkPolicyList{
-		Items: []v2.CiliumNetworkPolicy{*policy},
+	cnpList := []interface{}{
+		policy,
 	}
 
 	cnp, err := getPolicy(&flow.Flow{
@@ -529,7 +527,7 @@ func TestWithL4IngressMatch(t *testing.T) {
 				},
 			},
 		},
-	}, &cnpList)
+	}, cnpList)
 	require.NoError(t, err)
 	assert.Empty(t, cmp.Diff(cnp, policy, kube_testing.TransformToUnstructured()))
 }
@@ -538,7 +536,7 @@ func TestWithL7IngressMatch(t *testing.T) {
 	policy := &v2.CiliumNetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "Test",
-			Annotations: map[string]string{"app.gitlab.com/alert": "true"}},
+			Annotations: map[string]string{alertAnnotationKey: "true"}},
 		Spec: &api.Rule{
 			EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
 			Ingress: []api.IngressRule{
@@ -569,8 +567,8 @@ func TestWithL7IngressMatch(t *testing.T) {
 			},
 		},
 	}
-	cnpList := v2.CiliumNetworkPolicyList{
-		Items: []v2.CiliumNetworkPolicy{*policy},
+	cnpList := []interface{}{
+		policy,
 	}
 
 	flow := flow.Flow{
@@ -610,7 +608,7 @@ func TestWithL7IngressMatch(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, l7Applicable(rules, flow.GetTrafficDirection()))
 
-	cnp, err := getPolicy(&flow, &cnpList)
+	cnp, err := getPolicy(&flow, cnpList)
 	require.NoError(t, err)
 	assert.NotNil(t, cnp)
 	assert.Empty(t, cmp.Diff(cnp, policy, kube_testing.TransformToUnstructured()))
@@ -620,7 +618,7 @@ func TestWithL7EgressNoMatch(t *testing.T) {
 	policy := &v2.CiliumNetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "Test",
-			Annotations: map[string]string{"app.gitlab.com/alert": "true"}},
+			Annotations: map[string]string{alertAnnotationKey: "true"}},
 		Spec: &api.Rule{
 			EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
 			Egress: []api.EgressRule{
@@ -651,8 +649,8 @@ func TestWithL7EgressNoMatch(t *testing.T) {
 			},
 		},
 	}
-	cnpList := v2.CiliumNetworkPolicyList{
-		Items: []v2.CiliumNetworkPolicy{*policy},
+	cnpList := []interface{}{
+		policy,
 	}
 
 	flow := flow.Flow{
@@ -692,7 +690,7 @@ func TestWithL7EgressNoMatch(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, l7Applicable(rules, flow.GetTrafficDirection()))
 
-	cnp, err := getPolicy(&flow, &cnpList)
+	cnp, err := getPolicy(&flow, cnpList)
 	require.NoError(t, err)
 	assert.Nil(t, cnp)
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/cilium/cilium/api/v1/observer"
 	v2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
 	cilium_fake "github.com/cilium/cilium/pkg/k8s/client/clientset/versioned/fake"
-	ciliumv2 "github.com/cilium/cilium/pkg/k8s/client/clientset/versioned/typed/cilium.io/v2"
+	"github.com/cilium/cilium/pkg/k8s/client/clientset/versioned"
 	"github.com/cilium/cilium/pkg/labels"
 	"github.com/cilium/cilium/pkg/policy/api"
 	"github.com/golang/mock/gomock"
@@ -33,7 +33,7 @@ func TestSuccessfulMapping(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			cf := cilium_fake.NewSimpleClientset(matchingData.CnpList) // nolint: scopelint
-			worker, obsClient, flwClient, mAPI := setupTest(t, cf.CiliumV2())
+			worker, obsClient, flwClient, mAPI := setupTest(t, cf)
 			gomock.InOrder(
 				obsClient.EXPECT().
 					GetFlows(gomock.Any(), gomock.Any()).
@@ -62,7 +62,7 @@ func TestNoMatch(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			cf := cilium_fake.NewSimpleClientset(unmatchingData.CnpList) // nolint: scopelint
-			worker, obsClient, flwClient, _ := setupTest(t, cf.CiliumV2())
+			worker, obsClient, flwClient, _ := setupTest(t, cf)
 			gomock.InOrder(
 				obsClient.EXPECT().
 					GetFlows(gomock.Any(), gomock.Any()).
@@ -107,7 +107,7 @@ func TestJSON(t *testing.T) {
 	assert.Empty(t, cmp.Diff((*flow.Flow)(p1.Alert.Flow), (*flow.Flow)(p2.Alert.Flow), protocmp.Transform()))
 }
 
-func setupTest(t *testing.T, cv2 ciliumv2.CiliumV2Interface) (*worker, *MockObserverClient, *MockObserver_GetFlowsClient, *mock_modagent.MockAPI) {
+func setupTest(t *testing.T, cv2 versioned.Interface) (*worker, *MockObserverClient, *MockObserver_GetFlowsClient, *mock_modagent.MockAPI) {
 	ctrl := gomock.NewController(t)
 	flwClient := NewMockObserver_GetFlowsClient(ctrl)
 	obsClient := NewMockObserverClient(ctrl)
@@ -144,9 +144,9 @@ func matchingData() []*flwCnpListPair {
 				Items: []v2.CiliumNetworkPolicy{v2.CiliumNetworkPolicy{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        "Test",
-						Annotations: map[string]string{"app.gitlab.com/alert": "true"},
+						Annotations: map[string]string{alertAnnotationKey: "true"},
 						Namespace:   "ThisNamespace",
-						Labels:      map[string]string{"app.gitlab.com/proj": "21"},
+						Labels:      map[string]string{gitLabProjectLabel: "21"},
 					},
 					Spec: &api.Rule{
 						EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
@@ -176,9 +176,9 @@ func matchingData() []*flwCnpListPair {
 				Items: []v2.CiliumNetworkPolicy{v2.CiliumNetworkPolicy{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        "Test",
-						Annotations: map[string]string{"app.gitlab.com/alert": "true"},
+						Annotations: map[string]string{alertAnnotationKey: "true"},
 						Namespace:   "ThisNamespace",
-						Labels:      map[string]string{"app.gitlab.com/proj": "21"},
+						Labels:      map[string]string{gitLabProjectLabel: "21"},
 					},
 					Spec: &api.Rule{
 						EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
@@ -213,9 +213,9 @@ func unmatchingData() []*flwCnpListPair {
 				Items: []v2.CiliumNetworkPolicy{v2.CiliumNetworkPolicy{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        "Test",
-						Annotations: map[string]string{"app.gitlab.com/alert": "true"},
+						Annotations: map[string]string{alertAnnotationKey: "true"},
 						Namespace:   "ThisNamespace",
-						Labels:      map[string]string{"app.gitlab.com/proj": "21"},
+						Labels:      map[string]string{gitLabProjectLabel: "21"},
 					},
 					Spec: &api.Rule{
 						EndpointSelector: api.NewESFromLabels(labels.NewLabel("notthiskey", "", "any")),
@@ -247,7 +247,7 @@ func unmatchingData() []*flwCnpListPair {
 						Name:        "Test",
 						Annotations: map[string]string{"app.gitlab.com/different": "true"},
 						Namespace:   "ThisNamespace",
-						Labels:      map[string]string{"app.gitlab.com/proj": "21"},
+						Labels:      map[string]string{gitLabProjectLabel: "21"},
 					},
 					Spec: &api.Rule{
 						EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
@@ -277,9 +277,9 @@ func unmatchingData() []*flwCnpListPair {
 				Items: []v2.CiliumNetworkPolicy{v2.CiliumNetworkPolicy{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        "Test",
-						Annotations: map[string]string{"app.gitlab.com/alert": "true"},
+						Annotations: map[string]string{alertAnnotationKey: "true"},
 						Namespace:   "ThisNamespace",
-						Labels:      map[string]string{"app.gitlab.com/proj": "invalid"},
+						Labels:      map[string]string{gitLabProjectLabel: "invalid"},
 					},
 					Spec: &api.Rule{
 						EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
