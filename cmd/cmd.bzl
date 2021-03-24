@@ -8,15 +8,16 @@ load("@io_bazel_rules_docker//container:container.bzl", "container_bundle")
 load("@io_bazel_rules_docker//contrib:push-all.bzl", "container_push")
 
 def push_bundle(name, images):
+    bundle_name = name + "_bundle"
     container_bundle(
-        name = name,
+        name = bundle_name,
         images = images,
         tags = ["manual"],
         visibility = ["//visibility:public"],
     )
     container_push(
-        name = "release-" + name,
-        bundle = ":" + name,
+        name = name,
+        bundle = ":" + bundle_name,
         format = "Docker",
         tags = ["manual"],
         visibility = ["//visibility:public"],
