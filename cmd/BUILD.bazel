@@ -3,15 +3,58 @@ load("cmd.bzl", "push_bundle")
 
 prefix = "registry.gitlab.com/{STABLE_CONTAINER_REPOSITORY_PATH}/"
 
+TAG = {
+    prefix + "agentk:{STABLE_BUILD_GIT_TAG}": "//cmd/agentk:container",
+    prefix + "kas:{STABLE_BUILD_GIT_TAG}": "//cmd/kas:container",
+    prefix + "cli:{STABLE_BUILD_GIT_TAG}": "//cmd/cli:container",
+    prefix + "agentk:{STABLE_BUILD_GIT_TAG}-race": "//cmd/agentk:container_race",
+    prefix + "kas:{STABLE_BUILD_GIT_TAG}-race": "//cmd/kas:container_race",
+}
+
+STABLE = {
+    prefix + "agentk:stable": "//cmd/agentk:container",
+    prefix + "kas:stable": "//cmd/kas:container",
+    prefix + "cli:stable": "//cmd/cli:container",
+    prefix + "agentk:stable-race": "//cmd/agentk:container_race",
+    prefix + "kas:stable-race": "//cmd/kas:container_race",
+}
+
+TAG_AND_STABLE = {}
+
+TAG_AND_STABLE.update(TAG)
+
+TAG_AND_STABLE.update(STABLE)
+
 push_bundle(
-    name = "tag-all",
+    name = "push-commit",
     images = {
-        prefix + "agentk:{STABLE_BUILD_IMAGE_TAG}": "//cmd/agentk:container",
-        prefix + "kas:{STABLE_BUILD_IMAGE_TAG}": "//cmd/kas:container",
-        prefix + "cli:{STABLE_BUILD_IMAGE_TAG}": "//cmd/cli:container",
-        prefix + "agentk:{STABLE_BUILD_IMAGE_TAG}-race": "//cmd/agentk:container_race",
-        prefix + "kas:{STABLE_BUILD_IMAGE_TAG}-race": "//cmd/kas:container_race",
+        prefix + "agentk:{STABLE_BUILD_GIT_COMMIT}": "//cmd/agentk:container",
+        prefix + "kas:{STABLE_BUILD_GIT_COMMIT}": "//cmd/kas:container",
+        prefix + "cli:{STABLE_BUILD_GIT_COMMIT}": "//cmd/cli:container",
+        prefix + "agentk:{STABLE_BUILD_GIT_COMMIT}-race": "//cmd/agentk:container_race",
+        prefix + "kas:{STABLE_BUILD_GIT_COMMIT}-race": "//cmd/kas:container_race",
     },
+)
+
+push_bundle(
+    name = "push-latest",
+    images = {
+        prefix + "agentk:latest": "//cmd/agentk:container",
+        prefix + "kas:latest": "//cmd/kas:container",
+        prefix + "cli:latest": "//cmd/cli:container",
+        prefix + "agentk:latest-race": "//cmd/agentk:container_race",
+        prefix + "kas:latest-race": "//cmd/kas:container_race",
+    },
+)
+
+push_bundle(
+    name = "push-tag",
+    images = TAG,
+)
+
+push_bundle(
+    name = "push-tag-and-stable",
+    images = TAG_AND_STABLE,
 )
 
 go_library(
