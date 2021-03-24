@@ -189,5 +189,5 @@ func TestNoContentResponseHandler_Cancellation(t *testing.T) {
 
 func assertNoContentRequest(t *testing.T, r *http.Request) {
 	testhelpers.AssertRequestMethod(t, r, http.MethodGet)
-	assert.Nil(t, r.Header.Values("Accept"))
+	assert.Empty(t, r.Header.Values("Accept"))
 }

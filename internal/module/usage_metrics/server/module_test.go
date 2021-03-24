@@ -153,7 +153,7 @@ func setupModule(t *testing.T, handler func(http.ResponseWriter, *http.Request))
 
 func assertNoContentRequest(t *testing.T, r *http.Request, expectedPayload interface{}) {
 	testhelpers.AssertRequestMethod(t, r, http.MethodPost)
-	assert.Nil(t, r.Header.Values("Accept"))
+	assert.Empty(t, r.Header.Values("Accept"))
 	testhelpers.AssertRequestContentTypeJson(t, r)
 	testhelpers.AssertRequestUserAgent(t, r, testhelpers.KasUserAgent)
 	assert.Equal(t, testhelpers.KasCorrelationClientName, r.Header.Get(testhelpers.CorrelationClientNameHeader))
