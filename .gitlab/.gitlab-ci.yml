@@ -66,7 +66,7 @@ test:
     - echo 'test --test_env=REDIS_URL=redis://redis:6379' >> .bazelrc
     - make test-ci
     - *registry_creds
-    - if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then IMAGE_TAG_OVERRIDE="latest" make release-tag-all-ci; fi
+    - if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then make release-latest; fi
 
 lint:
   # registry.gitlab.com/gitlab-org/gitlab-build-images:golangci-lint-alpine as of 2021-03-02
@@ -93,26 +93,26 @@ sast:
     SCAN_KUBERNETES_MANIFESTS: "true"
   stage: test
 
-push_image:
+push_image_tag:
   stage: push_image
   extends: .bazel_build
   rules:
     # Run this job when the default branch changes and a tag is created manually.
     - if: $CI_COMMIT_TAG
-      variables:
-        # This is the default behavior of `make release-tag-all-ci` with a git tag present, only specified for clarity
-        IMAGE_TAG_OVERRIDE: $CI_COMMIT_TAG
+  script:
+    - *registry_creds
+    - if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then make release-tag-and-stable; else make release-tag; fi
+
+push_image_manual:
+  stage: push_image
+  extends: .bazel_build
+  rules:
     # Allow creating releases manually for any branch or tag.
     - when: manual
       allow_failure: true
-      variables:
-        # This is the default behavior of `make release-tag-all-ci` with no git tag, only specified for clarity
-        IMAGE_TAG_OVERRIDE: $CI_COMMIT_SHORT_SHA
   script:
     - *registry_creds
-    - make release-tag-all-ci
-    # Re-run to push "stable" if this is a tagged release
-    - if [ -n "$CI_COMMIT_TAG" ]; then IMAGE_TAG_OVERRIDE="stable" make release-tag-all-ci; fi
+    - make release-commit
 
 create_release:
   stage: create_release

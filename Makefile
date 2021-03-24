@@ -130,11 +130,29 @@ docker-export-race: update-bazel
 		-- \
 		--norun
 
-# Build and push all docker images tagged with the tag on the current commit (or "$IMAGE_TAG_OVERRIDE").
+# Build and push all docker images tagged as "latest".
 # This only works on a linux machine
-.PHONY: release-tag-all-ci
-release-tag-all-ci:
-	bazel run //cmd:release-tag-all
+.PHONY: release-latest
+release-latest:
+	bazel run //cmd:push-latest
+
+# Build and push all docker images tagged with the tag on the current commit and as "stable".
+# This only works on a linux machine
+.PHONY: release-tag-and-stable
+release-tag-and-stable:
+	bazel run //cmd:push-tag-and-stable
+
+# Build and push all docker images tagged with the tag on the current commit.
+# This only works on a linux machine
+.PHONY: release-tag
+release-tag:
+	bazel run //cmd:push-tag
+
+# Build and push all docker images tagged with as the current commit.
+# This only works on a linux machine
+.PHONY: release-commit
+release-commit:
+	bazel run //cmd:push-commit
 
 # Set TARGET_DIRECTORY variable to the target directory before running this target
 .PHONY: gdk-install

@@ -11,8 +11,6 @@ GIT_COMMIT=$(git rev-parse --short HEAD)
 GIT_TAG=$(git tag --points-at HEAD 2>/dev/null || true)
 GIT_TAG="${GIT_TAG:="latest"}"
 
-BUILD_IMAGE_TAG="${IMAGE_TAG_OVERRIDE:-$GIT_TAG}"
-BUILD_IMAGE_TAG="${BUILD_IMAGE_TAG:-$GIT_COMMIT}"
 CONTAINER_REPOSITORY_PATH="${CI_PROJECT_PATH:-"gitlab-org/cluster-integration/gitlab-agent"}"
 BUILD_TIME=$(date -u +%Y%m%d.%H%M%S)
 # Prefix with STABLE_ so that these values are saved to stable-status.txt
@@ -22,7 +20,7 @@ BUILD_TIME=$(date -u +%Y%m%d.%H%M%S)
 # See https://docs.bazel.build/versions/master/user-manual.html#flag--workspace_status_command
 cat <<EOF
 STABLE_BUILD_GIT_COMMIT ${GIT_COMMIT-}
-STABLE_BUILD_IMAGE_TAG ${BUILD_IMAGE_TAG-}
+STABLE_BUILD_GIT_TAG ${GIT_TAG-}
 STABLE_CONTAINER_REPOSITORY_PATH ${CONTAINER_REPOSITORY_PATH-}
 BUILD_TIME ${BUILD_TIME-}
 EOF
