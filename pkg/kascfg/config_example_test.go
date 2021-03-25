@@ -35,7 +35,7 @@ func TestExampleConfigHasCorrectDefaults(t *testing.T) {
 			PasswordFile: "/some/file",
 			Network:      "tcp",
 		},
-		// Not actually required, but Listen.AuthenticationSecretFile is required if Redis key is specified so add it here to show that and defaults too.
+		// Not actually required, but Listen.AuthenticationSecretFile is required if Api key is specified so add it here to show that and defaults too.
 		Api: &kascfg.ApiCF{
 			Listen: &kascfg.ListenApiCF{
 				AuthenticationSecretFile: "/some/file",
