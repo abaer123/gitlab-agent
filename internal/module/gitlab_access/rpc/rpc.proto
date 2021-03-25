@@ -16,6 +16,7 @@ message Request {
   message Header {
     // Name of the module that' is making the request.
     string module_name = 1 [(validate.rules).string.min_len = 1];
+    // URL path component in the request below is the path that goes after '/api/v4/internal/kubernetes/modules/{module_name}'
     tool.prototool.HttpRequest request = 2 [(validate.rules).message.required = true];
   }
   // Subsequent messages of the stream.
