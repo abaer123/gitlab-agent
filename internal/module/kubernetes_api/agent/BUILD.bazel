@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "agent",
+    srcs = [
+        "factory.go",
+        "module.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/kubernetes_api/agent",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/module/kubernetes_api",
+        "//internal/module/kubernetes_api/rpc",
+        "//internal/module/modagent",
+        "//internal/tool/errz",
+        "//internal/tool/grpctool",
+        "//pkg/agentcfg",
+        "@io_k8s_apimachinery//pkg/runtime/schema",
+        "@io_k8s_client_go//rest",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+        "@org_uber_go_zap//:zap",
+    ],
+)

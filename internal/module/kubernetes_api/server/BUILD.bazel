@@ -1,0 +1,60 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//build:build.bzl", "go_custom_test")
+
+go_library(
+    name = "server",
+    srcs = [
+        "defaulting.go",
+        "factory.go",
+        "module.go",
+        "proxy.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/kubernetes_api/server",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/gitlab",
+        "//internal/module/kubernetes_api",
+        "//internal/module/kubernetes_api/rpc",
+        "//internal/module/modserver",
+        "//internal/tool/grpctool",
+        "//internal/tool/httpz",
+        "//internal/tool/logz",
+        "//internal/tool/prototool",
+        "//internal/tool/tlstool",
+        "//pkg/kascfg",
+        "@com_gitlab_gitlab_org_labkit//correlation",
+        "@org_golang_google_grpc//metadata",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_x_sync//errgroup",
+        "@org_uber_go_zap//:zap",
+    ],
+)
+
+go_custom_test(
+    name = "server_test",
+    srcs = [
+        "module_test.go",
+        "proxy_test.go",
+    ],
+    embed = [":server"],
+    deps = [
+        "//internal/module/kubernetes_api/rpc",
+        "//internal/module/modserver",
+        "//internal/tool/grpctool",
+        "//internal/tool/prototool",
+        "//internal/tool/testing/matcher",
+        "//internal/tool/testing/mock_gitlab",
+        "//internal/tool/testing/mock_kubernetes_api",
+        "//internal/tool/testing/mock_modserver",
+        "//internal/tool/testing/testhelpers",
+        "@com_github_golang_mock//gomock",
+        "@com_github_google_go_cmp//cmp",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+        "@io_k8s_apimachinery//pkg/util/wait",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//metadata",
+        "@org_golang_google_protobuf//proto",
+        "@org_uber_go_zap//zaptest",
+    ],
+)

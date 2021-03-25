@@ -707,6 +707,156 @@ var _ interface {
 	ErrorName() string
 } = SentryCFValidationError{}
 
+// Validate checks the field values on ListenKubernetesApiCF with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, an error is returned.
+func (m *ListenKubernetesApiCF) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	// no validation rules for Network
+
+	// no validation rules for Address
+
+	// no validation rules for CertificateFile
+
+	// no validation rules for KeyFile
+
+	return nil
+}
+
+// ListenKubernetesApiCFValidationError is the validation error returned by
+// ListenKubernetesApiCF.Validate if the designated constraints aren't met.
+type ListenKubernetesApiCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ListenKubernetesApiCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ListenKubernetesApiCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ListenKubernetesApiCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ListenKubernetesApiCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ListenKubernetesApiCFValidationError) ErrorName() string {
+	return "ListenKubernetesApiCFValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ListenKubernetesApiCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sListenKubernetesApiCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ListenKubernetesApiCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ListenKubernetesApiCFValidationError{}
+
+// Validate checks the field values on KubernetesApiCF with the rules defined
+// in the proto definition for this message. If any rules are violated, an
+// error is returned.
+func (m *KubernetesApiCF) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if v, ok := interface{}(m.GetListen()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return KubernetesApiCFValidationError{
+				field:  "Listen",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	return nil
+}
+
+// KubernetesApiCFValidationError is the validation error returned by
+// KubernetesApiCF.Validate if the designated constraints aren't met.
+type KubernetesApiCFValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e KubernetesApiCFValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e KubernetesApiCFValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e KubernetesApiCFValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e KubernetesApiCFValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e KubernetesApiCFValidationError) ErrorName() string { return "KubernetesApiCFValidationError" }
+
+// Error satisfies the builtin error interface
+func (e KubernetesApiCFValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sKubernetesApiCF.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = KubernetesApiCFValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = KubernetesApiCFValidationError{}
+
 // Validate checks the field values on AgentCF with the rules defined in the
 // proto definition for this message. If any rules are violated, an error is returned.
 func (m *AgentCF) Validate() error {
@@ -810,6 +960,16 @@ func (m *AgentCF) Validate() error {
 		if err := v.Validate(); err != nil {
 			return AgentCFValidationError{
 				field:  "RedisConnInfoGc",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if v, ok := interface{}(m.GetKubernetesApi()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return AgentCFValidationError{
+				field:  "KubernetesApi",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}

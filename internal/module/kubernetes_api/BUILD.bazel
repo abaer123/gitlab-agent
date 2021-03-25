@@ -1,0 +1,8 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "kubernetes_api",
+    srcs = ["api.go"],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/kubernetes_api",
+    visibility = ["//:__subpackages__"],
+)

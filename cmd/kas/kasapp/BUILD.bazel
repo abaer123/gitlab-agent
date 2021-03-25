@@ -42,6 +42,7 @@ go_library(
         "//internal/module/gitlab_access/server",
         "//internal/module/gitops/server",
         "//internal/module/google_profiler/server",
+        "//internal/module/kubernetes_api/server",
         "//internal/module/modserver",
         "//internal/module/observability",
         "//internal/module/observability/server",

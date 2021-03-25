@@ -7,15 +7,15 @@
 package grpctool
 
 import (
-	"reflect"
-	"sync"
+	reflect "reflect"
+	sync "sync"
 
 	_ "github.com/envoyproxy/protoc-gen-validate/validate"
-	"github.com/golang/protobuf/ptypes/any"
+	any "github.com/golang/protobuf/ptypes/any"
 	_ "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/automata"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/runtime/protoimpl"
+	prototool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
