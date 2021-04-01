@@ -180,12 +180,20 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	gitalyClientPool := a.constructGitalyPool(csh, tracer)
 	defer errz.SafeClose(gitalyClientPool, &retErr)
 
+	serverStartingError := fmt.Errorf("Server is still starting")
+	serverStartingProbe := func(ctx context.Context) error {
+		return serverStartingError
+	}
+
 	// Module factories
 	factories := []modserver.Factory{
 		&observability_server.Factory{
-			Gatherer:       gatherer,
-			LivenessProbe:  observability.NoopProbe,
-			ReadinessProbe: constructReadinessProbe(redisClient),
+			Gatherer:      gatherer,
+			LivenessProbe: serverStartingProbe,
+			ReadinessProbe: observability.ChainProbes(
+				serverStartingProbe,
+				constructRedisReadinessProbe(redisClient),
+			),
 		},
 		&google_profiler_server.Factory{},
 		&agent_configuration_server.Factory{
@@ -270,6 +278,10 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			a.startApiServer(stage, apiServer, interceptorsCancel)
 			a.startPrivateApiServer(stage, privateApiServer, interceptorsCancel)
 			a.startInternalServer(stage, internalServer, internalListener, interceptorsCancel)
+		},
+		// Mark as live and ready to serve connections
+		func(stage stager.Stage) {
+			serverStartingError = nil
 		},
 	)
 }
@@ -823,7 +835,7 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 	}
 }
 
-func constructReadinessProbe(redisClient redis.UniversalClient) observability.Probe {
+func constructRedisReadinessProbe(redisClient redis.UniversalClient) observability.Probe {
 	if redisClient == nil {
 		return observability.NoopProbe
 	}
