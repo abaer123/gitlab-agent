@@ -30,7 +30,6 @@ go_library(
         "//internal/tool/grpctool/automata",
         "//internal/tool/prototool",
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
-        "@com_github_golang_protobuf//proto",
         "@com_github_golang_protobuf//ptypes",
         "@org_golang_google_genproto//googleapis/rpc/status",
         "@org_golang_google_grpc//:grpc",

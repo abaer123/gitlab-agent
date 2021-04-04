@@ -22,7 +22,6 @@ go_library(
     deps = [
         "//internal/tool/grpctool/automata",
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
-        "@com_github_golang_protobuf//proto",
         "@com_github_golang_protobuf//ptypes",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",

@@ -23,7 +23,6 @@ go_library(
     deps = [
         "//internal/tool/logz",
         "@com_github_go_redis_redis_v8//:redis",
-        "@com_github_golang_protobuf//proto",
         "@com_github_golang_protobuf//ptypes/any",
         "@com_github_golang_protobuf//ptypes/timestamp",
         "@org_golang_google_protobuf//proto",

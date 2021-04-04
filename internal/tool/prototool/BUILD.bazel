@@ -22,7 +22,6 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
-        "@com_github_golang_protobuf//proto",
         "@com_github_golang_protobuf//ptypes",
         "@com_github_golang_protobuf//ptypes/duration",
         "@org_golang_google_protobuf//reflect/protoreflect",

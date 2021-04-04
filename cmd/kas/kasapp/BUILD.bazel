@@ -68,7 +68,6 @@ go_library(
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
         "@com_github_go_logr_zapr//:zapr",
         "@com_github_go_redis_redis_v8//:redis",
-        "@com_github_golang_protobuf//proto",
         "@com_github_golang_protobuf//ptypes",
         "@com_github_grpc_ecosystem_go_grpc_middleware//:go-grpc-middleware",
         "@com_github_grpc_ecosystem_go_grpc_middleware//tracing/opentracing",
