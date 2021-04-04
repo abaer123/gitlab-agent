@@ -8,10 +8,10 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
 # Also update to the same version/commit in go.mod.
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "7c10271940c6bce577d51a075ae77728964db285dac0a46614a7934dc34303e6",
+    sha256 = "69de5c704a05ff37862f7e0f5534d4f479418afc21806c887db544a316f3cb6b",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.26.0/rules_go-v0.26.0.tar.gz",
-        "https://github.com/bazelbuild/rules_go/releases/download/v0.26.0/rules_go-v0.26.0.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.27.0/rules_go-v0.27.0.tar.gz",
+        "https://github.com/bazelbuild/rules_go/releases/download/v0.27.0/rules_go-v0.27.0.tar.gz",
     ],
 )
 
@@ -125,8 +125,8 @@ go_repository(
     build_file_proto_mode = "disable_global",
     importpath = "k8s.io/kubernetes",
     replace = "k8s.io/kubernetes",
-    sum = "h1:gPeOspTx01shAQuFhae+O7ZfU0WKlD7RE5L0pooU0g8=",
-    version = "v1.20.4",
+    sum = "h1:oY1KI7d/2rHETR3xngvQ46vuC1cNPp7R/5vQAVd2vqs=",
+    version = "v1.20.5",
 )
 
 # It's here to add build tags
@@ -142,8 +142,8 @@ go_repository(
         "tracer_static_jaeger",
     ],  # keep
     importpath = "gitlab.com/gitlab-org/labkit",
-    sum = "h1:PDP4id5YEvw6juWrGE88LcTtEridtRAOyvNvUOtcc9o=",
-    version = "v1.3.0",
+    sum = "h1:cssWl3rEjE7Knpf8PsCJQCYqIsevHsFtbIryjYL+ElE=",
+    version = "v1.3.1-0.20210223165550-07a836d89a1c",
 )
 
 go_repository(
@@ -157,8 +157,8 @@ go_repository(
     patches = [
         "@gitlab_k8s_agent//build:validate_dependency.patch",
     ],
-    sum = "h1:aperPbI1xzd4O1qEHm8jseZTzSbDRJzNEmY6diJnCjw=",
-    version = "v0.4.2-0.20210105193028-872b28c45782",
+    sum = "h1:MkpAQXrYF26uVnlFruA05G0xmM5rfE0OZDZPGY/UABU=",
+    version = "v0.5.1",
 )
 
 # Copied from rules_go to keep patches in place
@@ -173,12 +173,12 @@ http_archive(
         # gazelle args: -repo_root . -go_prefix golang.org/x/tools -go_naming_convention import_alias
         "@io_bazel_rules_go//third_party:org_golang_x_tools-gazelle.patch",
     ],
-    sha256 = "fe3987ccdff6a0e7e5a8353d4d1d2ca3ada5a72ea69462ba7b9b7343b5a25e06",
-    strip_prefix = "tools-a1b87a1c0de44760bd00894ef736a8c36548068f",
-    # master, as of 2020-12-01
+    sha256 = "60a5cee8304b4d9130344f156a10ba648e315b5fca4b84939b765b26ce217dee",
+    strip_prefix = "tools-0.1.0",
+    # v0.1.0, as of 2021-03-17
     urls = [
-        "https://mirror.bazel.build/github.com/golang/tools/archive/a1b87a1c0de44760bd00894ef736a8c36548068f.zip",
-        "https://github.com/golang/tools/archive/a1b87a1c0de44760bd00894ef736a8c36548068f.zip",
+        "https://mirror.bazel.build/github.com/golang/tools/archive/v0.1.0.zip",
+        "https://github.com/golang/tools/archive/v0.1.0.zip",
     ],
 )
 
@@ -215,7 +215,7 @@ load("@io_bazel_rules_docker//container:container.bzl", "container_pull")
 # debug-nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/base-debian10
 container_pull(
     name = "go_debug_image_base",
-    digest = "sha256:772350b3f38595992fca3f62e6f43b3af932a04e8f2082822d45c211ba730927",
+    digest = "sha256:565adbedbfed0048c30dd819fdf0cc0d8fd9c2ca466a32b6a9367ff156058a8e",
     registry = "gcr.io",
     repository = "distroless/base-debian10",
 )
@@ -223,7 +223,7 @@ container_pull(
 # nonroot-amd64 from https://console.cloud.google.com/gcr/images/distroless/GLOBAL/static-debian10
 container_pull(
     name = "go_image_static",
-    digest = "sha256:6d7e84ea3d305c4300e62187d5a0f102bab0c758b7fb637ad0911d10e2fcc741",
+    digest = "sha256:d44cf7460ae7373079975d96c6ad0e390fccb045b3e452ddb6b864be4044086d",
     registry = "gcr.io",
     repository = "distroless/static-debian10",
 )
