@@ -75,11 +75,12 @@ fmt:
 	go run golang.org/x/tools/cmd/goimports -w cmd internal pkg
 
 .PHONY: test
-test: fmt update-bazel test-ci
+test: fmt update-bazel
+	bazel test -- //...
 
 .PHONY: test-ci
 test-ci:
-	bazel test -- //...
+	bazel test -- //... //cmd:push-latest_bundle
 
 .PHONY: quick-test
 quick-test:
