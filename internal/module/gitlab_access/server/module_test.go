@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"testing"
 
@@ -13,11 +12,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
@@ -94,24 +93,6 @@ func TestMakeRequest(t *testing.T) {
 		},
 	)...)
 	respBody := []byte("some response")
-	r := http.NewServeMux()
-	r.HandleFunc("/api/v4/internal/kubernetes/modules/"+moduleName+urlPath, func(w http.ResponseWriter, r *http.Request) {
-		all, errIO := ioutil.ReadAll(r.Body)
-		if !assert.NoError(t, errIO) {
-			return
-		}
-		assert.Equal(t, []byte{1, 2, 3, 4, 5, 6}, all)
-		w.Header().Set("resp", "r1")
-		w.Header().Add("resp", "r2")
-		w.Header().Set("Date", "no date") // override
-		_, errIO = w.Write(respBody)      // only respond once the request is consumed
-		assert.NoError(t, errIO)
-	})
-	s := httptest.NewServer(r)
-	defer s.Close()
-
-	u, err := url.Parse(s.URL)
-	require.NoError(t, err)
 	gomock.InOrder(mockSendStream(t, server,
 		&rpc.Response{
 			Message: &rpc.Response_Header_{
@@ -151,13 +132,23 @@ func TestMakeRequest(t *testing.T) {
 		},
 	)...)
 	f := Factory{}
-	log := zaptest.NewLogger(t)
 	m, err := f.New(&modserver.Config{
-		Log:          log,
-		Api:          mockApi,
-		GitLabClient: gitlab.NewClient(u, []byte{1, 2, 3}, gitlab.WithLogger(log)),
-		AgentServer:  grpc.NewServer(),
-		ApiServer:    grpc.NewServer(),
+		Log: zaptest.NewLogger(t),
+		Api: mockApi,
+		GitLabClient: mock_gitlab.SetupClient(t, "/api/v4/internal/kubernetes/modules/"+moduleName+urlPath, func(w http.ResponseWriter, r *http.Request) {
+			all, errIO := ioutil.ReadAll(r.Body)
+			if !assert.NoError(t, errIO) {
+				return
+			}
+			assert.Equal(t, []byte{1, 2, 3, 4, 5, 6}, all)
+			w.Header().Set("resp", "r1")
+			w.Header().Add("resp", "r2")
+			w.Header().Set("Date", "no date") // override
+			_, errIO = w.Write(respBody)      // only respond once the request is consumed
+			assert.NoError(t, errIO)
+		}),
+		AgentServer: grpc.NewServer(),
+		ApiServer:   grpc.NewServer(),
 	})
 	require.NoError(t, err)
 	require.NoError(t, m.(*module).MakeRequest(server))
