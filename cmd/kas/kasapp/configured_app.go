@@ -96,6 +96,9 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 
 	cfg := a.Configuration
 
+	// Probe Registry
+	probeRegistry := observability.NewProbeRegistry()
+
 	// Tracing
 	tracer, closer, err := tracing.ConstructTracer(kasName, cfg.Observability.Tracing.ConnectionString)
 	if err != nil {
@@ -120,6 +123,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	if err != nil {
 		return err
 	}
+	probeRegistry.RegisterReadinessProbe("redis", constructRedisReadinessProbe(redisClient))
 
 	// Interceptors
 	interceptorsCtx, interceptorsCancel := context.WithCancel(context.Background())
@@ -130,18 +134,21 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	if err != nil {
 		return err
 	}
+	agentServerReadinessToggle := probeRegistry.RegisterReadinessToggle("agentServer")
 
 	// Server for handling external requests e.g. from GitLab
 	apiServer, err := a.constructApiServer(interceptorsCtx, tracer, ssh)
 	if err != nil {
 		return err
 	}
+	apiServerReadinessToggle := probeRegistry.RegisterReadinessToggle("apiServer")
 
 	// Server for handling API requests from other kas instances
 	privateApiServer, err := a.constructPrivateApiServer(interceptorsCtx, tracer, ssh)
 	if err != nil {
 		return err
 	}
+	privateApiServerReadinessToggle := probeRegistry.RegisterReadinessToggle("privateApiServer")
 
 	// Internal gRPC client->listener pipe
 	internalListener := grpctool.NewDialListener()
@@ -163,6 +170,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 
 	// Construct internal gRPC server
 	internalServer := a.constructInternalServer(interceptorsCtx, tracer)
+	internalServerReadinessToggle := probeRegistry.RegisterReadinessToggle("internalServer")
 
 	// Kas to agentk router
 	kasToAgentRouter, err := a.constructKasToAgentRouter(tracer, tunnelTracker, tunnelRegistry, internalServer, privateApiServer)
@@ -180,20 +188,10 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	gitalyClientPool := a.constructGitalyPool(csh, tracer)
 	defer errz.SafeClose(gitalyClientPool, &retErr)
 
-	serverStartingError := fmt.Errorf("Server is still starting")
-	serverStartingProbe := func(ctx context.Context) error {
-		return serverStartingError
-	}
-
 	// Module factories
 	factories := []modserver.Factory{
 		&observability_server.Factory{
-			Gatherer:      gatherer,
-			LivenessProbe: serverStartingProbe,
-			ReadinessProbe: observability.ChainProbes(
-				serverStartingProbe,
-				constructRedisReadinessProbe(redisClient),
-			),
+			Gatherer: gatherer,
 		},
 		&google_profiler_server.Factory{},
 		&agent_configuration_server.Factory{
@@ -241,6 +239,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			KasName:          kasName,
 			Version:          cmd.Version,
 			CommitId:         cmd.Commit,
+			ProbeRegistry:    probeRegistry,
 		})
 		if err != nil {
 			return fmt.Errorf("%s: %v", factory.Name(), err)
@@ -274,14 +273,10 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		},
 		// Start gRPC servers.
 		func(stage stager.Stage) {
-			a.startAgentServer(stage, agentServer, interceptorsCancel)
-			a.startApiServer(stage, apiServer, interceptorsCancel)
-			a.startPrivateApiServer(stage, privateApiServer, interceptorsCancel)
-			a.startInternalServer(stage, internalServer, internalListener, interceptorsCancel)
-		},
-		// Mark as live and ready to serve connections
-		func(stage stager.Stage) {
-			serverStartingError = nil
+			a.startAgentServer(stage, agentServer, agentServerReadinessToggle, interceptorsCancel)
+			a.startApiServer(stage, apiServer, apiServerReadinessToggle, interceptorsCancel)
+			a.startPrivateApiServer(stage, privateApiServer, privateApiServerReadinessToggle, interceptorsCancel)
+			a.startInternalServer(stage, internalServer, internalListener, internalServerReadinessToggle, interceptorsCancel)
 		},
 	)
 }
@@ -332,7 +327,7 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, tun
 	}, nil
 }
 
-func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.Server, interceptorsCancel context.CancelFunc) {
+func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.Server, markReady func(), interceptorsCancel context.CancelFunc) {
 	grpctool.StartServer(stage, agentServer, interceptorsCancel, func() (net.Listener, error) {
 		listenCfg := a.Configuration.Agent.Listen
 		lis, err := net.Listen(listenCfg.Network.String(), listenCfg.Address)
@@ -353,11 +348,14 @@ func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.S
 			}
 			lis = wsWrapper.Wrap(lis)
 		}
+
+		markReady()
+
 		return lis, nil
 	})
 }
 
-func (a *ConfiguredApp) startApiServer(stage stager.Stage, apiServer *grpc.Server, interceptorsCancel context.CancelFunc) {
+func (a *ConfiguredApp) startApiServer(stage stager.Stage, apiServer *grpc.Server, markReady func(), interceptorsCancel context.CancelFunc) {
 	// TODO this should become required
 	if a.Configuration.Api == nil {
 		return
@@ -372,11 +370,12 @@ func (a *ConfiguredApp) startApiServer(stage stager.Stage, apiServer *grpc.Serve
 			logz.NetNetworkFromAddr(lis.Addr()),
 			logz.NetAddressFromAddr(lis.Addr()),
 		)
+		markReady()
 		return lis, nil
 	})
 }
 
-func (a *ConfiguredApp) startPrivateApiServer(stage stager.Stage, apiServer *grpc.Server, interceptorsCancel context.CancelFunc) {
+func (a *ConfiguredApp) startPrivateApiServer(stage stager.Stage, apiServer *grpc.Server, markReady func(), interceptorsCancel context.CancelFunc) {
 	// TODO this should become required
 	if a.Configuration.PrivateApi == nil {
 		return
@@ -391,12 +390,14 @@ func (a *ConfiguredApp) startPrivateApiServer(stage stager.Stage, apiServer *grp
 			logz.NetNetworkFromAddr(lis.Addr()),
 			logz.NetAddressFromAddr(lis.Addr()),
 		)
+		markReady()
 		return lis, nil
 	})
 }
 
-func (a *ConfiguredApp) startInternalServer(stage stager.Stage, internalServer *grpc.Server, internalListener net.Listener, interceptorsCancel context.CancelFunc) {
+func (a *ConfiguredApp) startInternalServer(stage stager.Stage, internalServer *grpc.Server, internalListener net.Listener, markReady func(), interceptorsCancel context.CancelFunc) {
 	grpctool.StartServer(stage, internalServer, interceptorsCancel, func() (net.Listener, error) {
+		markReady()
 		return internalListener, nil
 	})
 }

@@ -23,12 +23,14 @@ func TestMetricServer(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 	innerLivenessProbe := NoopProbe
 	innerReadinessProbe := NoopProbe
-	livenessProbe := func(ctx context.Context) error {
+	probeRegistry := NewProbeRegistry()
+	probeRegistry.RegisterLivenessProbe("test-liveness", func(ctx context.Context) error {
 		return innerLivenessProbe(ctx)
-	}
-	readinessProbe := func(ctx context.Context) error {
+	})
+	probeRegistry.RegisterReadinessProbe("test-readiness", func(ctx context.Context) error {
 		return innerReadinessProbe(ctx)
-	}
+	})
+	readinessToggle := probeRegistry.RegisterReadinessToggle("test-readiness-toggle")
 	tracker := mock_errtracker.NewMockTracker(ctrl)
 	metricServer := &MetricServer{
 		Tracker:               tracker,
@@ -40,8 +42,7 @@ func TestMetricServer(t *testing.T) {
 		ReadinessProbeUrlPath: "/readiness",
 		Gatherer:              prometheus.DefaultGatherer,
 		Registerer:            prometheus.DefaultRegisterer,
-		LivenessProbe:         livenessProbe,
-		ReadinessProbe:        readinessProbe,
+		ProbeRegistry:         probeRegistry,
 	}
 	handler := metricServer.constructHandler()
 
@@ -72,32 +73,44 @@ func TestMetricServer(t *testing.T) {
 		innerLivenessProbe = func(context.Context) error {
 			return expectedErr
 		}
-		tracker.EXPECT().Capture(fmt.Errorf("LivenessProbe failed: %v", expectedErr), gomock.Any())
+		tracker.EXPECT().Capture(fmt.Errorf("LivenessProbe failed: test-liveness: %v", expectedErr), gomock.Any())
 
 		rec = httpGet(t, "/liveness")
 		httpResponse = rec.Result()
 		require.Equal(t, http.StatusInternalServerError, httpResponse.StatusCode)
-		require.Equal(t, "failed liveness on purpose", rec.Body.String())
+		require.Equal(t, "test-liveness: failed liveness on purpose", rec.Body.String())
 		httpResponse.Body.Close()
 	})
 
 	t.Run("/readiness", func(t *testing.T) {
+		// fails when toggle has not been called
+		tracker.EXPECT().Capture(fmt.Errorf("ReadinessProbe failed: test-readiness-toggle: not ready yet"), gomock.Any())
 		rec := httpGet(t, "/readiness")
 		httpResponse := rec.Result()
+		require.Equal(t, http.StatusInternalServerError, httpResponse.StatusCode)
+		require.Equal(t, "test-readiness-toggle: not ready yet", rec.Body.String())
+		httpResponse.Body.Close()
+
+		readinessToggle()
+
+		// succeeds when toggle has been called
+		rec = httpGet(t, "/readiness")
+		httpResponse = rec.Result()
 		require.Equal(t, http.StatusOK, httpResponse.StatusCode)
 		require.Empty(t, rec.Body)
 		httpResponse.Body.Close()
 
+		// fails when probe fails
 		expectedErr := fmt.Errorf("failed readiness on purpose")
 		innerReadinessProbe = func(context.Context) error {
 			return expectedErr
 		}
-		tracker.EXPECT().Capture(fmt.Errorf("ReadinessProbe failed: %v", expectedErr), gomock.Any())
+		tracker.EXPECT().Capture(fmt.Errorf("ReadinessProbe failed: test-readiness: %v", expectedErr), gomock.Any())
 
 		rec = httpGet(t, "/readiness")
 		httpResponse = rec.Result()
 		require.Equal(t, http.StatusInternalServerError, httpResponse.StatusCode)
-		require.Equal(t, "failed readiness on purpose", rec.Body.String())
+		require.Equal(t, "test-readiness: failed readiness on purpose", rec.Body.String())
 		httpResponse.Body.Close()
 	})
 }

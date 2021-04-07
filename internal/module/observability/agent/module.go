@@ -68,8 +68,7 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 					ReadinessProbeUrlPath: readinessProbeUrlPath,
 					Gatherer:              prometheus.DefaultGatherer,
 					Registerer:            prometheus.DefaultRegisterer,
-					LivenessProbe:         observability.NoopProbe,
-					ReadinessProbe:        observability.NoopProbe,
+					ProbeRegistry:         observability.NewProbeRegistry(),
 				}
 
 				return metricSrv.Run(ctx)

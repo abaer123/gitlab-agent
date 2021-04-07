@@ -9,6 +9,7 @@ go_library(
         "//internal/api",
         "//internal/gitaly",
         "//internal/gitlab",
+        "//internal/module/observability",
         "//internal/module/usage_metrics",
         "//pkg/kascfg",
         "@com_github_prometheus_client_golang//prometheus",

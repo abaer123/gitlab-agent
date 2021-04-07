@@ -13,14 +13,13 @@ import (
 )
 
 type module struct {
-	tracker        errortracking.Tracker
-	log            *zap.Logger
-	cfg            *kascfg.ObservabilityCF
-	gatherer       prometheus.Gatherer
-	registerer     prometheus.Registerer
-	serverName     string
-	livenessProbe  observability.Probe
-	readinessProbe observability.Probe
+	tracker       errortracking.Tracker
+	log           *zap.Logger
+	cfg           *kascfg.ObservabilityCF
+	gatherer      prometheus.Gatherer
+	registerer    prometheus.Registerer
+	serverName    string
+	probeRegistry *observability.ProbeRegistry
 }
 
 func (m *module) Run(ctx context.Context) (retErr error) {
@@ -47,8 +46,7 @@ func (m *module) Run(ctx context.Context) (retErr error) {
 		ReadinessProbeUrlPath: m.cfg.ReadinessProbe.UrlPath,
 		Gatherer:              m.gatherer,
 		Registerer:            m.registerer,
-		LivenessProbe:         m.livenessProbe,
-		ReadinessProbe:        m.readinessProbe,
+		ProbeRegistry:         m.probeRegistry,
 	}
 	return metricSrv.Run(ctx)
 }

@@ -9,6 +9,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"gitlab.com/gitlab-org/labkit/errortracking"
@@ -63,6 +64,8 @@ type Config struct {
 	Version string
 	// CommitId is gitlab-kas commit sha.
 	CommitId string
+	// ProbeRegistry is for registering liveness probes and readiness probes
+	ProbeRegistry *observability.ProbeRegistry
 }
 
 // API provides the API for the module to use.

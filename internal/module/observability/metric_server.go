@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -44,6 +45,60 @@ func ChainProbes(probes ...Probe) Probe {
 	}
 }
 
+func NewProbeRegistry() *ProbeRegistry {
+	return &ProbeRegistry{
+		liveness:  &sync.Map{},
+		readiness: &sync.Map{},
+	}
+}
+
+type ProbeRegistry struct {
+	liveness  *sync.Map
+	readiness *sync.Map
+}
+
+func (p *ProbeRegistry) RegisterLivenessProbe(key string, probe Probe) {
+	p.liveness.Store(key, probe)
+}
+
+func (p *ProbeRegistry) RegisterReadinessProbe(key string, probe Probe) {
+	p.readiness.Store(key, probe)
+}
+
+func (p *ProbeRegistry) Liveness(ctx context.Context) error {
+	return execProbeMap(ctx, p.liveness)
+}
+
+func (p *ProbeRegistry) Readiness(ctx context.Context) error {
+	return execProbeMap(ctx, p.readiness)
+}
+
+func (p *ProbeRegistry) RegisterReadinessToggle(key string) func() {
+	var status bool
+	p.RegisterReadinessProbe(key, func(ctx context.Context) error {
+		if status {
+			return nil
+		}
+		return fmt.Errorf("not ready yet")
+	})
+	return func() { status = true }
+}
+
+func execProbeMap(ctx context.Context, probes *sync.Map) error {
+	var err error
+	probes.Range(func(keyI interface{}, value interface{}) bool {
+		key := keyI.(string)
+		probe := value.(Probe)
+		err = probe(ctx)
+		if err != nil {
+			err = fmt.Errorf("%s: %w", key, err)
+			return false
+		}
+		return true
+	})
+	return err
+}
+
 type MetricServer struct {
 	Tracker errortracking.Tracker
 	Log     *zap.Logger
@@ -55,8 +110,7 @@ type MetricServer struct {
 	ReadinessProbeUrlPath string
 	Gatherer              prometheus.Gatherer
 	Registerer            prometheus.Registerer
-	LivenessProbe         Probe
-	ReadinessProbe        Probe
+	ProbeRegistry         *ProbeRegistry
 }
 
 func (s *MetricServer) Run(ctx context.Context) error {
@@ -88,7 +142,7 @@ func (s *MetricServer) probesHandler(mux *http.ServeMux) {
 	mux.Handle(
 		s.LivenessProbeUrlPath,
 		s.setHeader(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
-			err := s.LivenessProbe(request.Context())
+			err := s.ProbeRegistry.Liveness(request.Context())
 			if err != nil {
 				s.logAndCapture(request.Context(), "LivenessProbe failed", err)
 				w.WriteHeader(http.StatusInternalServerError)
@@ -101,7 +155,7 @@ func (s *MetricServer) probesHandler(mux *http.ServeMux) {
 	mux.Handle(
 		s.ReadinessProbeUrlPath,
 		s.setHeader(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
-			err := s.ReadinessProbe(request.Context())
+			err := s.ProbeRegistry.Readiness(request.Context())
 			if err != nil {
 				s.logAndCapture(request.Context(), "ReadinessProbe failed", err)
 				w.WriteHeader(http.StatusInternalServerError)
