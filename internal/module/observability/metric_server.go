@@ -33,18 +33,6 @@ func NoopProbe(context.Context) error {
 	return nil
 }
 
-func ChainProbes(probes ...Probe) Probe {
-	return func(ctx context.Context) error {
-		for _, probe := range probes {
-			err := probe(ctx)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-}
-
 func NewProbeRegistry() *ProbeRegistry {
 	return &ProbeRegistry{
 		liveness:  &sync.Map{},
