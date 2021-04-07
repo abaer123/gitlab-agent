@@ -108,6 +108,14 @@ func WithAgentToken(agentToken api.AgentToken) DoOption {
 	}
 }
 
+func WithJobToken(jobToken string) DoOption {
+	return func(config *doConfig) error {
+		config.ensureHeaderNotNil()
+		config.header.Set("Job-Token", jobToken)
+		return nil
+	}
+}
+
 // WithRequestBody sets the request body and HTTP Content-Type header if contentType is not empty.
 func WithRequestBody(body io.Reader, contentType string) DoOption {
 	return func(config *doConfig) error {

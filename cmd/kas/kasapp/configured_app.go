@@ -29,6 +29,7 @@ import (
 	gitlab_access_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/server"
 	gitops_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/server"
 	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/google_profiler/server"
+	kubernetes_api_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/kubernetes_api/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability"
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/server"
@@ -202,6 +203,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		&reverse_tunnel_server.Factory{
 			TunnelHandler: tunnelRegistry,
 		},
+		&kubernetes_api_server.Factory{},
 	}
 
 	// Construct modules

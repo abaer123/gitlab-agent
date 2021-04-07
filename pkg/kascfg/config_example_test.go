@@ -25,6 +25,11 @@ func TestExampleConfigHasCorrectDefaults(t *testing.T) {
 			Address:                  "http://localhost:8080",
 			AuthenticationSecretFile: "/some/file",
 		},
+		Agent: &kascfg.AgentCF{
+			KubernetesApi: &kascfg.KubernetesApiCF{
+				Listen: &kascfg.ListenKubernetesApiCF{},
+			},
+		},
 		// Not actually required, but Redis.RedisConfig.Server.Address is required if Redis key is specified so add it here to show that and defaults too.
 		Redis: &kascfg.RedisCF{
 			RedisConfig: &kascfg.RedisCF_Server{

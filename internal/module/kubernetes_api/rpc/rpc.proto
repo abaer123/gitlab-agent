@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+// If you make any changes make sure you run: make regenerate-proto
+
+package gitlab.agent.kubernetes_api.rpc;
+
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/kubernetes_api/rpc";
+
+import "internal/tool/grpctool/grpctool.proto";
+
+service KubernetesApi {
+  // MakeRequest allows to make a HTTP request to Kubernetes API.
+  rpc MakeRequest (stream grpctool.HttpRequest) returns (stream grpctool.HttpResponse) {
+  }
+}
