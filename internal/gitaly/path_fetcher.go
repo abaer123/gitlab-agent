@@ -70,12 +70,7 @@ func (f *PathFetcher) StreamFile(ctx context.Context, repo *gitalypb.Repository,
 		MaxSize:    sizeLimit,
 	})
 	if err != nil {
-		switch status.Code(err) { // nolint:exhaustive
-		case codes.FailedPrecondition:
-			return NewFileTooBigError(err, "TreeEntry", string(repoPath))
-		default:
-			return NewRpcError(err, "TreeEntry", string(repoPath))
-		}
+		return NewRpcError(err, "TreeEntry", string(repoPath))
 	}
 	emptyEntry := &gitalypb.TreeEntryResponse{}
 	notFound := false
@@ -83,10 +78,20 @@ func (f *PathFetcher) StreamFile(ctx context.Context, repo *gitalypb.Repository,
 	for {
 		entry, err := teResp.Recv()
 		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
+			code := status.Code(err)
+			switch {
+			case code == codes.FailedPrecondition:
+				return NewFileTooBigError(err, "TreeEntry", string(repoPath))
+			case code == codes.NotFound:
+				return NewNotFoundError("TreeEntry.Recv", string(repoPath))
+			case errors.Is(err, io.EOF):
+				if notFound {
+					return NewNotFoundError("TreeEntry.Recv", string(repoPath))
+				}
+				return nil
+			default:
+				return NewRpcError(err, "TreeEntry.Recv", string(repoPath))
 			}
-			return NewRpcError(err, "TreeEntry.Recv", string(repoPath))
 		}
 		if firstMessage {
 			firstMessage = false
@@ -109,10 +114,6 @@ func (f *PathFetcher) StreamFile(ctx context.Context, repo *gitalypb.Repository,
 			return err
 		}
 	}
-	if notFound {
-		return NewNotFoundError("TreeEntry.Recv", string(repoPath))
-	}
-	return nil
 }
 
 func (f *PathFetcher) FetchFile(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, sizeLimit int64) ([]byte, error) {
