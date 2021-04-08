@@ -14,7 +14,7 @@ Modules may share code via separate packages but must not depend on each other d
 
 ## Server module
 
-API for module's server part is defined in the `internal/module/modserver` directory.
+API for module's server part is defined in the [`internal/module/modserver`](/internal/module/modserver) directory.
 
 ### Responsibilities
 
@@ -24,7 +24,7 @@ API for module's server part is defined in the `internal/module/modserver` direc
 
 ## Agent module
 
-API for module's agent part is defined in `internal/module/modagent` directory.
+API for module's agent part is defined in [`internal/module/modagent`](/internal/module/modagent) directory.
 
 ### Responsibilities
 
