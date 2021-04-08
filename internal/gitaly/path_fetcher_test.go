@@ -14,6 +14,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_internalgitaly"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -90,7 +92,7 @@ func TestPathFetcher_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestPathFetcher_StreamFile_NotFound(t *testing.T) {
+func TestPathFetcher_StreamFile_NotFoundMessage(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	commitClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
 	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(mockCtrl)
@@ -119,6 +121,60 @@ func TestPathFetcher_StreamFile_NotFound(t *testing.T) {
 	}
 	err := v.StreamFile(context.Background(), r, []byte(revision), []byte(repoPath), fileMaxSize, mockVisitor)
 	require.EqualError(t, err, "FileNotFound: TreeEntry.Recv: file/directory/ref not found: dir")
+}
+
+func TestPathFetcher_StreamFile_NotFoundCode(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	commitClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
+	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(mockCtrl)
+	mockVisitor := mock_internalgitaly.NewMockFileVisitor(mockCtrl)
+	r := repo()
+	req := &gitalypb.TreeEntryRequest{
+		Repository: r,
+		Revision:   []byte(revision),
+		Path:       []byte(repoPath),
+		MaxSize:    fileMaxSize,
+	}
+	gomock.InOrder(
+		commitClient.EXPECT().
+			TreeEntry(gomock.Any(), matcher.ProtoEq(t, req)).
+			Return(treeEntryClient, nil),
+		treeEntryClient.EXPECT().
+			Recv().
+			Return(nil, status.Error(codes.NotFound, "file is not here")),
+	)
+	v := gitaly.PathFetcher{
+		Client: commitClient,
+	}
+	err := v.StreamFile(context.Background(), r, []byte(revision), []byte(repoPath), fileMaxSize, mockVisitor)
+	require.EqualError(t, err, "FileNotFound: TreeEntry.Recv: file/directory/ref not found: dir")
+}
+
+func TestPathFetcher_StreamFile_TooBig(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	commitClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
+	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(mockCtrl)
+	mockVisitor := mock_internalgitaly.NewMockFileVisitor(mockCtrl)
+	r := repo()
+	req := &gitalypb.TreeEntryRequest{
+		Repository: r,
+		Revision:   []byte(revision),
+		Path:       []byte(repoPath),
+		MaxSize:    fileMaxSize,
+	}
+	gomock.InOrder(
+		commitClient.EXPECT().
+			TreeEntry(gomock.Any(), matcher.ProtoEq(t, req)).
+			Return(treeEntryClient, nil),
+		treeEntryClient.EXPECT().
+			Recv().
+			Return(nil, status.Error(codes.FailedPrecondition, "file is too big")),
+	)
+	v := gitaly.PathFetcher{
+		Client: commitClient,
+	}
+	err := v.StreamFile(context.Background(), r, []byte(revision), []byte(repoPath), fileMaxSize, mockVisitor)
+	require.EqualError(t, err, "FileTooBig: TreeEntry: file is too big: dir: rpc error: code = FailedPrecondition desc = file is too big")
 }
 
 func TestPathFetcher_StreamFile_InvalidType(t *testing.T) {
