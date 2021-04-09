@@ -5,6 +5,7 @@ package rpc
 import (
 	context "context"
 
+	grpctool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -40,8 +41,8 @@ func (c *gitlabAccessClient) MakeRequest(ctx context.Context, opts ...grpc.CallO
 }
 
 type GitlabAccess_MakeRequestClient interface {
-	Send(*Request) error
-	Recv() (*Response, error)
+	Send(*grpctool.HttpRequest) error
+	Recv() (*grpctool.HttpResponse, error)
 	grpc.ClientStream
 }
 
@@ -49,12 +50,12 @@ type gitlabAccessMakeRequestClient struct {
 	grpc.ClientStream
 }
 
-func (x *gitlabAccessMakeRequestClient) Send(m *Request) error {
+func (x *gitlabAccessMakeRequestClient) Send(m *grpctool.HttpRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *gitlabAccessMakeRequestClient) Recv() (*Response, error) {
-	m := new(Response)
+func (x *gitlabAccessMakeRequestClient) Recv() (*grpctool.HttpResponse, error) {
+	m := new(grpctool.HttpResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -94,8 +95,8 @@ func _GitlabAccess_MakeRequest_Handler(srv interface{}, stream grpc.ServerStream
 }
 
 type GitlabAccess_MakeRequestServer interface {
-	Send(*Response) error
-	Recv() (*Request, error)
+	Send(*grpctool.HttpResponse) error
+	Recv() (*grpctool.HttpRequest, error)
 	grpc.ServerStream
 }
 
@@ -103,12 +104,12 @@ type gitlabAccessMakeRequestServer struct {
 	grpc.ServerStream
 }
 
-func (x *gitlabAccessMakeRequestServer) Send(m *Response) error {
+func (x *gitlabAccessMakeRequestServer) Send(m *grpctool.HttpResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *gitlabAccessMakeRequestServer) Recv() (*Request, error) {
-	m := new(Request)
+func (x *gitlabAccessMakeRequestServer) Recv() (*grpctool.HttpRequest, error) {
+	m := new(grpctool.HttpRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
