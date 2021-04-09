@@ -24,6 +24,18 @@ func (r ResponseHandlerStruct) Accept() string {
 	return r.AcceptHeader
 }
 
+func NakedResponseHandler(response **http.Response) ResponseHandler {
+	return ResponseHandlerStruct{
+		HandleFunc: func(r *http.Response, err error) error {
+			if err != nil {
+				return err
+			}
+			*response = r
+			return nil
+		},
+	}
+}
+
 func JsonResponseHandler(response interface{}) ResponseHandler {
 	return ResponseHandlerStruct{
 		AcceptHeader: "application/json",

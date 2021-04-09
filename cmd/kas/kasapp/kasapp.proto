@@ -22,7 +22,7 @@ message GatewayKasResponse {
   }
   // Headers is a gRPC metadata.
   message Header {
-    map<string, tool.prototool.Values> meta = 1;
+    map<string, prototool.Values> meta = 1;
   }
 
   // Message is a gRPC message data.
@@ -32,7 +32,7 @@ message GatewayKasResponse {
 
   // Trailer is a gRPC trailer metadata.
   message Trailer {
-    map<string, tool.prototool.Values> meta = 1;
+    map<string, prototool.Values> meta = 1;
   }
 
   // Error represents a gRPC error that should be returned.

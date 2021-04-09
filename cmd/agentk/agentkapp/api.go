@@ -13,6 +13,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 const (
@@ -61,7 +62,7 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 	go func() {
 		responseSent := false
 		err := a.ResponseVisitor.Visit(client,
-			grpctool.WithCallback(headerFieldNumber, func(header *gitlab_access_rpc.Response_Header) error {
+			grpctool.WithCallback(headerFieldNumber, func(header *grpctool.HttpResponse_Header) error {
 				resp := &modagent.GitLabResponse{
 					Status:     header.Response.Status,
 					StatusCode: header.Response.StatusCode,
@@ -79,11 +80,11 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 					return nil
 				}
 			}),
-			grpctool.WithCallback(dataFieldNumber, func(data *gitlab_access_rpc.Response_Data) error {
+			grpctool.WithCallback(dataFieldNumber, func(data *grpctool.HttpResponse_Data) error {
 				_, err := pw.Write(data.Data)
 				return err
 			}),
-			grpctool.WithCallback(trailerFieldNumber, func(trailer *gitlab_access_rpc.Response_Trailer) error {
+			grpctool.WithCallback(trailerFieldNumber, func(trailer *grpctool.HttpResponse_Trailer) error {
 				return nil
 			}),
 			grpctool.WithEOFCallback(func() error {
@@ -117,16 +118,22 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 
 func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequestClient, path string, config *modagent.GitLabRequestConfig) (retErr error) {
 	defer errz.SafeClose(config.Body, &retErr)
-	err := client.Send(&gitlab_access_rpc.Request{
-		Message: &gitlab_access_rpc.Request_Header_{
-			Header: &gitlab_access_rpc.Request_Header{
-				ModuleName: a.ModuleName,
+	extra, err := anypb.New(&gitlab_access_rpc.HeaderExtra{
+		ModuleName: a.ModuleName,
+	})
+	if err != nil {
+		return err
+	}
+	err = client.Send(&grpctool.HttpRequest{
+		Message: &grpctool.HttpRequest_Header_{
+			Header: &grpctool.HttpRequest_Header{
 				Request: &prototool.HttpRequest{
 					Method:  config.Method,
 					Header:  prototool.HttpHeaderToValuesMap(config.Header),
 					UrlPath: path,
 					Query:   prototool.UrlValuesToValuesMap(config.Query),
 				},
+				Extra: extra,
 			},
 		},
 	})
@@ -142,9 +149,9 @@ func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequest
 				return fmt.Errorf("send request body: %w", err) // wrap
 			}
 			if n > 0 { // handle n=0, err=io.EOF case
-				sendErr := client.Send(&gitlab_access_rpc.Request{
-					Message: &gitlab_access_rpc.Request_Data_{
-						Data: &gitlab_access_rpc.Request_Data{
+				sendErr := client.Send(&grpctool.HttpRequest{
+					Message: &grpctool.HttpRequest_Data_{
+						Data: &grpctool.HttpRequest_Data{
 							Data: buffer[:n],
 						}},
 				})
@@ -157,9 +164,9 @@ func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequest
 			}
 		}
 	}
-	err = client.Send(&gitlab_access_rpc.Request{
-		Message: &gitlab_access_rpc.Request_Trailer_{
-			Trailer: &gitlab_access_rpc.Request_Trailer{},
+	err = client.Send(&grpctool.HttpRequest{
+		Message: &grpctool.HttpRequest_Trailer_{
+			Trailer: &grpctool.HttpRequest_Trailer{},
 		},
 	})
 	if err != nil {

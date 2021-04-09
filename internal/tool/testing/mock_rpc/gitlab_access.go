@@ -9,7 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/rpc"
+	grpctool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	metadata "google.golang.org/grpc/metadata"
 )
 
@@ -51,10 +51,10 @@ func (mr *MockGitlabAccess_MakeRequestServerMockRecorder) Context() *gomock.Call
 }
 
 // Recv mocks base method.
-func (m *MockGitlabAccess_MakeRequestServer) Recv() (*rpc.Request, error) {
+func (m *MockGitlabAccess_MakeRequestServer) Recv() (*grpctool.HttpRequest, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Recv")
-	ret0, _ := ret[0].(*rpc.Request)
+	ret0, _ := ret[0].(*grpctool.HttpRequest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -80,7 +80,7 @@ func (mr *MockGitlabAccess_MakeRequestServerMockRecorder) RecvMsg(arg0 interface
 }
 
 // Send mocks base method.
-func (m *MockGitlabAccess_MakeRequestServer) Send(arg0 *rpc.Response) error {
+func (m *MockGitlabAccess_MakeRequestServer) Send(arg0 *grpctool.HttpResponse) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Send", arg0)
 	ret0, _ := ret[0].(error)
