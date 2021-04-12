@@ -124,7 +124,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 }
 
 func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalServerConn grpc.ClientConnInterface) ([]modagent.Module, error) {
-	sv, err := grpctool.NewStreamVisitor(&gitlab_access_rpc.Response{})
+	sv, err := grpctool.NewStreamVisitor(&grpctool.HttpResponse{})
 	if err != nil {
 		return nil, err
 	}

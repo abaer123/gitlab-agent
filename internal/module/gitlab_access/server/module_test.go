@@ -11,22 +11,18 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
-	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
-)
-
-const (
-	token api.AgentToken = "abfaasdfasdfasdf"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 var (
@@ -42,12 +38,10 @@ const (
 )
 
 func TestMakeRequest(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver.NewMockAPI(ctrl)
 	server := mock_rpc.NewMockGitlabAccess_MakeRequestServer(ctrl)
-	incomingCtx := mock_modserver.IncomingCtx(ctx, t, token)
+	incomingCtx := mock_modserver.IncomingCtx(context.Background(), t, testhelpers.AgentkToken)
 	server.EXPECT().
 		Context().
 		Return(incomingCtx).
@@ -58,45 +52,49 @@ func TestMakeRequest(t *testing.T) {
 	query := url.Values{
 		"k1": []string{"q1", "q2"},
 	}
+	extra, err := anypb.New(&rpc.HeaderExtra{
+		ModuleName: moduleName,
+	})
+	require.NoError(t, err)
 	gomock.InOrder(mockRecvStream(server, true,
-		&rpc.Request{
-			Message: &rpc.Request_Header_{
-				Header: &rpc.Request_Header{
-					ModuleName: moduleName,
+		&grpctool.HttpRequest{
+			Message: &grpctool.HttpRequest_Header_{
+				Header: &grpctool.HttpRequest_Header{
 					Request: &prototool.HttpRequest{
 						Method:  httpMethod,
 						Header:  prototool.HttpHeaderToValuesMap(header),
 						UrlPath: urlPath,
 						Query:   prototool.UrlValuesToValuesMap(query),
 					},
+					Extra: extra,
 				},
 			},
 		},
-		&rpc.Request{
-			Message: &rpc.Request_Data_{
-				Data: &rpc.Request_Data{
+		&grpctool.HttpRequest{
+			Message: &grpctool.HttpRequest_Data_{
+				Data: &grpctool.HttpRequest_Data{
 					Data: []byte{1, 2, 3},
 				},
 			},
 		},
-		&rpc.Request{
-			Message: &rpc.Request_Data_{
-				Data: &rpc.Request_Data{
+		&grpctool.HttpRequest{
+			Message: &grpctool.HttpRequest_Data_{
+				Data: &grpctool.HttpRequest_Data{
 					Data: []byte{4, 5, 6},
 				},
 			},
 		},
-		&rpc.Request{
-			Message: &rpc.Request_Trailer_{
-				Trailer: &rpc.Request_Trailer{},
+		&grpctool.HttpRequest{
+			Message: &grpctool.HttpRequest_Trailer_{
+				Trailer: &grpctool.HttpRequest_Trailer{},
 			},
 		},
 	)...)
 	respBody := []byte("some response")
 	gomock.InOrder(mockSendStream(t, server,
-		&rpc.Response{
-			Message: &rpc.Response_Header_{
-				Header: &rpc.Response_Header{
+		&grpctool.HttpResponse{
+			Message: &grpctool.HttpResponse_Header_{
+				Header: &grpctool.HttpResponse_Header{
 					Response: &prototool.HttpResponse{
 						StatusCode: http.StatusOK,
 						Status:     "200 OK",
@@ -118,22 +116,21 @@ func TestMakeRequest(t *testing.T) {
 				},
 			},
 		},
-		&rpc.Response{
-			Message: &rpc.Response_Data_{
-				Data: &rpc.Response_Data{
+		&grpctool.HttpResponse{
+			Message: &grpctool.HttpResponse_Data_{
+				Data: &grpctool.HttpResponse_Data{
 					Data: respBody,
 				},
 			},
 		},
-		&rpc.Response{
-			Message: &rpc.Response_Trailer_{
-				Trailer: &rpc.Response_Trailer{},
+		&grpctool.HttpResponse{
+			Message: &grpctool.HttpResponse_Trailer_{
+				Trailer: &grpctool.HttpResponse_Trailer{},
 			},
 		},
 	)...)
 	f := Factory{}
 	m, err := f.New(&modserver.Config{
-		Log: zaptest.NewLogger(t),
 		Api: mockApi,
 		GitLabClient: mock_gitlab.SetupClient(t, "/api/v4/internal/kubernetes/modules/"+moduleName+urlPath, func(w http.ResponseWriter, r *http.Request) {
 			all, errIO := ioutil.ReadAll(r.Body)
@@ -148,7 +145,6 @@ func TestMakeRequest(t *testing.T) {
 			assert.NoError(t, errIO)
 		}),
 		AgentServer: grpc.NewServer(),
-		ApiServer:   grpc.NewServer(),
 	})
 	require.NoError(t, err)
 	require.NoError(t, m.(*module).MakeRequest(server))
@@ -171,11 +167,11 @@ func mockRecvStream(server *mock_rpc.MockGitlabAccess_MakeRequestServer, eof boo
 	return res
 }
 
-func mockSendStream(t *testing.T, server *mock_rpc.MockGitlabAccess_MakeRequestServer, msgs ...*rpc.Response) []*gomock.Call {
+func mockSendStream(t *testing.T, server *mock_rpc.MockGitlabAccess_MakeRequestServer, msgs ...*grpctool.HttpResponse) []*gomock.Call {
 	var res []*gomock.Call
 	for _, msg := range msgs {
 		call := server.EXPECT().
-			Send(matcher.ProtoEq(t, msg))
+			SendMsg(matcher.ProtoEq(t, msg))
 		res = append(res, call)
 	}
 	return res

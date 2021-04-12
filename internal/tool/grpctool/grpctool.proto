@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+// If you make any changes make sure you run: make regenerate-proto
+
+package gitlab.agent.grpctool;
+
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool";
+
+import "internal/tool/grpctool/automata/automata.proto";
+import "internal/tool/prototool/prototool.proto";
+//import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
+import "validate/validate.proto";
+import "google/protobuf/any.proto";
+
+message HttpRequest {
+  // First message of the stream.
+  message Header {
+    prototool.HttpRequest request = 1 [(validate.rules).message.required = true];
+    google.protobuf.Any extra = 2;
+  }
+  // Subsequent messages of the stream.
+  message Data {
+    // A chunk of request body.
+    bytes data = 1;
+  }
+  // Last message of the stream.
+  message Trailer {
+  }
+  oneof message {
+
+    option (grpctool.automata.first_allowed_field) = 1;
+    option (validate.required) = true;
+
+    Header header = 1 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
+    Data data = 2 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
+    Trailer trailer = 3 [(grpctool.automata.next_allowed_field) = -1];
+  }
+}
+
+message HttpResponse {
+  // First message of the stream.
+  message Header {
+    prototool.HttpResponse response = 1 [(validate.rules).message.required = true];
+  }
+  // Subsequent messages of the stream.
+  message Data {
+    // A chunk of response body.
+    bytes data = 1;
+  }
+  // Last message of the stream.
+  message Trailer {
+  }
+  oneof message {
+
+    option (grpctool.automata.first_allowed_field) = 1;
+    option (validate.required) = true;
+
+    Header header = 1 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
+    Data data = 2 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
+    Trailer trailer = 3 [(grpctool.automata.next_allowed_field) = -1];
+  }
+}

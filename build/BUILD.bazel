@@ -50,6 +50,7 @@ multirun(
         "//internal/module/reverse_tunnel/tracker:extract_generated",
         "//internal/tool/grpctool/automata:extract_generated",
         "//internal/tool/grpctool/test:extract_generated",
+        "//internal/tool/grpctool:extract_generated",
         "//internal/tool/prototool:extract_generated",
         "//internal/tool/redistool:extract_generated",
         "//pkg/agentcfg:extract_generated",
