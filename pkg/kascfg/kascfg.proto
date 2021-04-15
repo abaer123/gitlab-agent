@@ -116,6 +116,24 @@ message SentryCF {
   string environment = 2 [json_name = "environment"];
 }
 
+message ListenKubernetesApiCF {
+  // Network type to listen on. Supported values: tcp, tcp4, tcp6, unix.
+  listen_network_enum network = 1 [json_name = "network"];
+  // Address to listen on.
+  string address = 2 [json_name = "address"];
+  // X.509 certificate for TLS in PEM format.
+  // TLS is enabled iff both certificate_file and key_file are provided.
+  string certificate_file = 3 [json_name = "certificate_file"];
+  // X.509 key file for TLS in PEM format.
+  // TLS is enabled iff both certificate_file and key_file are provided.
+  string key_file = 4 [json_name = "key_file"];
+}
+
+message KubernetesApiCF {
+  // HTTP listener configuration for Kubernetes API connections.
+  ListenKubernetesApiCF listen = 1 [json_name = "listen"];
+}
+
 message AgentCF {
   // RPC listener configuration for agentk connections.
   ListenAgentCF listen = 1 [json_name = "listen"];
@@ -137,6 +155,8 @@ message AgentCF {
   // Garbage collection period for information about connected agents, stored in Redis.
   // If gitlab-kas crashes, another gitlab-kas instance will clean up stale data. This is how often this cleanup runs.
   google.protobuf.Duration redis_conn_info_gc = 9 [json_name = "redis_conn_info_gc"];
+  // Configuration for exposing Kubernetes API.
+  KubernetesApiCF kubernetes_api = 10 [json_name = "kubernetes_api"];
 }
 
 message AgentConfigurationCF {

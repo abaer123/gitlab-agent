@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "mock_kubernetes_api",
+    srcs = [
+        "doc.go",
+        "rpc.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_kubernetes_api",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/module/kubernetes_api/rpc",
+        "//internal/tool/grpctool",
+        "@com_github_golang_mock//gomock",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//metadata",
+    ],
+)

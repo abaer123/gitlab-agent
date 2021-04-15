@@ -6,6 +6,7 @@ import (
 	agent_configuration_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/server"
 	gitops_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/server"
 	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/google_profiler/server"
+	kubernetes_api_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/kubernetes_api/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	observability_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/server"
 	usage_metrics_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics/server"
@@ -51,6 +52,7 @@ var (
 		agent_configuration_server.ApplyDefaults,
 		usage_metrics_server.ApplyDefaults,
 		gitops_server.ApplyDefaults,
+		kubernetes_api_server.ApplyDefaults,
 	}
 )
 

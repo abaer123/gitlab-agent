@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "rate_limiter.go",
         "run_server.go",
+        "tools.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/httpz",
     visibility = ["//:__subpackages__"],

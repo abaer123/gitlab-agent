@@ -28,6 +28,12 @@ agent:
     max_total_manifest_file_size: 20971520
     max_number_of_paths: 100
     max_number_of_files: 1000
+  kubernetes_api:
+    listen:
+      network: tcp
+      address: 0.0.0.0:8154
+      # certificate_file: /server-cert.pem
+      # key_file: /server-key.pem
   info_cache_ttl: "300s"
   info_cache_error_ttl: "60s"
   redis_conn_info_ttl: "300s"

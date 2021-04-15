@@ -1,0 +1,28 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//build:proto.bzl", "go_grpc_generate")
+
+go_grpc_generate(
+    src = "rpc.proto",
+    workspace_relative_target_directory = "internal/module/kubernetes_api/rpc",
+    deps = [
+        "//internal/tool/grpctool:proto",
+    ],
+)
+
+go_library(
+    name = "rpc",
+    srcs = [
+        "rpc.pb.go",
+        "rpc_grpc.pb.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/kubernetes_api/rpc",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/tool/grpctool",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+    ],
+)

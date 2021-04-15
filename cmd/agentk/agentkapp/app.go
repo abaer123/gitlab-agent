@@ -21,6 +21,7 @@ import (
 	cilium_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/cilium_alert/agent"
 	gitlab_access_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/rpc"
 	gitops_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/agent"
+	kubernetes_api_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/kubernetes_api/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared"
 	observability_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability/agent"
@@ -140,6 +141,7 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 		&reverse_tunnel_agent.Factory{
 			InternalServerConn: internalServerConn,
 		},
+		&kubernetes_api_agent.Factory{},
 	}
 	modules := make([]modagent.Module, 0, len(factories))
 	for _, factory := range factories {
