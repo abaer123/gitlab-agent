@@ -37,33 +37,37 @@ func (w *ConfigurationWatcher) Watch(ctx context.Context, callback Configuration
 	retry.JitterUntil(ctx, w.RetryPeriod, func(ctx context.Context) {
 		ctx, cancel := context.WithCancel(ctx)
 		defer cancel() // ensure streaming call is canceled
-		req := &ConfigurationRequest{
-			CommitId:  lastProcessedCommitId,
-			AgentMeta: w.AgentMeta,
-		}
-		res, err := w.Client.GetConfiguration(ctx, req)
-		if err != nil {
-			if !grpctool.RequestCanceled(err) {
-				w.Log.Warn("GetConfiguration failed", zap.Error(err))
-			}
-			return
-		}
+	nextAttempt:
 		for {
-			config, err := res.Recv()
+			req := &ConfigurationRequest{
+				CommitId:  lastProcessedCommitId,
+				AgentMeta: w.AgentMeta,
+			}
+			res, err := w.Client.GetConfiguration(ctx, req)
 			if err != nil {
-				switch {
-				case errors.Is(err, io.EOF):
-				case grpctool.RequestCanceled(err):
-				default:
-					w.Log.Warn("GetConfiguration.Recv failed", zap.Error(err))
+				if !grpctool.RequestCanceled(err) {
+					w.Log.Warn("GetConfiguration failed", zap.Error(err))
 				}
 				return
 			}
-			callback(ctx, ConfigurationData{
-				CommitId: config.CommitId,
-				Config:   config.Configuration,
-			})
-			lastProcessedCommitId = config.CommitId
+			for {
+				config, err := res.Recv()
+				if err != nil {
+					switch {
+					case errors.Is(err, io.EOF):
+						continue nextAttempt // immediately reconnect after a clean close
+					case grpctool.RequestCanceled(err):
+					default:
+						w.Log.Warn("GetConfiguration.Recv failed", zap.Error(err))
+					}
+					return
+				}
+				callback(ctx, ConfigurationData{
+					CommitId: config.CommitId,
+					Config:   config.Configuration,
+				})
+				lastProcessedCommitId = config.CommitId
+			}
 		}
 	})
 }

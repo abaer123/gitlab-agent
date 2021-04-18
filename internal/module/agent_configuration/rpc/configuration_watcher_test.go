@@ -62,13 +62,13 @@ func TestConfigurationWatcher(t *testing.T) {
 			Recv().
 			DoAndReturn(func() (*rpc.ConfigurationResponse, error) {
 				cancel()
-				return nil, io.EOF
+				return nil, context.Canceled
 			}),
 	)
 	w := rpc.ConfigurationWatcher{
 		Log:         zaptest.NewLogger(t),
 		Client:      client,
-		RetryPeriod: 10 * time.Millisecond,
+		RetryPeriod: time.Minute,
 	}
 	iter := 0
 	w.Watch(ctx, func(ctx context.Context, config rpc.ConfigurationData) {
@@ -85,7 +85,7 @@ func TestConfigurationWatcher(t *testing.T) {
 	assert.EqualValues(t, 2, iter)
 }
 
-func TestConfigurationWatcherResumeConnection(t *testing.T) {
+func TestConfigurationWatcher_ResumeConnection(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	mockCtrl := gomock.NewController(t)
@@ -114,13 +114,64 @@ func TestConfigurationWatcherResumeConnection(t *testing.T) {
 			Recv().
 			DoAndReturn(func() (*rpc.ConfigurationResponse, error) {
 				cancel()
-				return nil, io.EOF
+				return nil, context.Canceled
 			}),
 	)
 	w := rpc.ConfigurationWatcher{
 		Log:         zaptest.NewLogger(t),
 		Client:      client,
-		RetryPeriod: 10 * time.Millisecond,
+		RetryPeriod: time.Minute,
+	}
+	w.Watch(ctx, func(ctx context.Context, config rpc.ConfigurationData) {
+		// Don't care
+	})
+}
+
+func TestConfigurationWatcher_ImmediateReconnectOnEOF(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	mockCtrl := gomock.NewController(t)
+	client := mock_rpc.NewMockAgentConfigurationClient(mockCtrl)
+	configStream1 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient(mockCtrl)
+	configStream2 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient(mockCtrl)
+	cfg1 := &agentcfg.AgentConfiguration{
+		Gitops: &agentcfg.GitopsCF{
+			ManifestProjects: []*agentcfg.ManifestProjectCF{
+				{
+					Id: "bla",
+				},
+			},
+		},
+	}
+	gomock.InOrder(
+		client.EXPECT().
+			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc.ConfigurationRequest{})).
+			Return(configStream1, nil),
+		configStream1.EXPECT().
+			Recv().
+			Return(&rpc.ConfigurationResponse{
+				Configuration: cfg1,
+				CommitId:      revision1,
+			}, nil),
+		configStream1.EXPECT().
+			Recv().
+			Return(nil, io.EOF), // immediately retries after EOF
+		client.EXPECT().
+			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc.ConfigurationRequest{
+				CommitId: revision1,
+			})).
+			Return(configStream2, nil),
+		configStream2.EXPECT().
+			Recv().
+			DoAndReturn(func() (*rpc.ConfigurationResponse, error) {
+				cancel()
+				return nil, context.Canceled
+			}),
+	)
+	w := rpc.ConfigurationWatcher{
+		Log:         zaptest.NewLogger(t),
+		Client:      client,
+		RetryPeriod: time.Hour, // the test would appear stuck if retry does not happen immediately
 	}
 	w.Watch(ctx, func(ctx context.Context, config rpc.ConfigurationData) {
 		// Don't care
