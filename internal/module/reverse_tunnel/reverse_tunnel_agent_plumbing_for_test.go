@@ -54,11 +54,11 @@ func agentConstructComponents(t *testing.T, kasConn grpc.ClientConnInterface) (f
 func agentConstructInternalServer(log *zap.Logger) *grpc.Server {
 	return grpc.NewServer(
 		grpc.ChainStreamInterceptor(
-			grpctool.StreamServerCtxAugmentingInterceptor(grpctool.LoggerInjector(log)),
+			grpctool.StreamServerLoggerInterceptor(log),
 			grpc_validator.StreamServerInterceptor(),
 		),
 		grpc.ChainUnaryInterceptor(
-			grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.LoggerInjector(log)),
+			grpctool.UnaryServerLoggerInterceptor(log),
 			grpc_validator.UnaryServerInterceptor(),
 		),
 	)
