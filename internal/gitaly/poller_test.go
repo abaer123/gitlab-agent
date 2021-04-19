@@ -100,11 +100,11 @@ func TestPoller(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			mockCtrl := gomock.NewController(t)
+			ctrl := gomock.NewController(t)
 			r := repo()
 			infoRefsReq := &gitalypb.InfoRefsRequest{Repository: r}
-			httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(mockCtrl)
-			mockInfoRefsUploadPack(t, mockCtrl, httpClient, infoRefsReq, []byte(infoRefsData))
+			httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(ctrl)
+			mockInfoRefsUploadPack(t, ctrl, httpClient, infoRefsReq, []byte(infoRefsData))
 			p := Poller{
 				Client: httpClient,
 			}
@@ -118,11 +118,11 @@ func TestPoller(t *testing.T) {
 
 func TestPollerErrors(t *testing.T) {
 	t.Run("branch not found", func(t *testing.T) {
-		mockCtrl := gomock.NewController(t)
+		ctrl := gomock.NewController(t)
 		r := repo()
 		infoRefsReq := &gitalypb.InfoRefsRequest{Repository: r}
-		httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(mockCtrl)
-		mockInfoRefsUploadPack(t, mockCtrl, httpClient, infoRefsReq, []byte(infoRefsData))
+		httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(ctrl)
+		mockInfoRefsUploadPack(t, ctrl, httpClient, infoRefsReq, []byte(infoRefsData))
 		p := Poller{
 			Client: httpClient,
 		}
@@ -134,11 +134,11 @@ func TestPollerErrors(t *testing.T) {
 00000155` + revision1 + ` refs/heads/master` + "\x00" + `multi_ack thin-pack side-band side-band-64k ofs-delta shallow deepen-since deepen-not deepen-relative no-progress include-tag multi_ack_detailed allow-tip-sha1-in-want allow-reachable-sha1-in-want no-done symref=HEAD:refs/heads/master filter object-format=sha1 agent=git/2.28.0
 0044` + revision2 + ` refs/heads/` + branch + `
 0000`
-		mockCtrl := gomock.NewController(t)
+		ctrl := gomock.NewController(t)
 		r := repo()
 		infoRefsReq := &gitalypb.InfoRefsRequest{Repository: r}
-		httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(mockCtrl)
-		mockInfoRefsUploadPack(t, mockCtrl, httpClient, infoRefsReq, []byte(noHEAD))
+		httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(ctrl)
+		mockInfoRefsUploadPack(t, ctrl, httpClient, infoRefsReq, []byte(noHEAD))
 		p := Poller{
 			Client: httpClient,
 		}
@@ -152,11 +152,11 @@ func TestPollerErrors(t *testing.T) {
 00000155` + revision1 + ` refs/heads/bababa` + "\x00" + `multi_ack thin-pack side-band side-band-64k ofs-delta shallow deepen-since deepen-not deepen-relative no-progress include-tag multi_ack_detailed allow-tip-sha1-in-want allow-reachable-sha1-in-want no-done symref=HEAD:refs/heads/master filter object-format=sha1 agent=git/2.28.0
 0044` + revision2 + ` refs/heads/` + branch + `
 0000`
-		mockCtrl := gomock.NewController(t)
+		ctrl := gomock.NewController(t)
 		r := repo()
 		infoRefsReq := &gitalypb.InfoRefsRequest{Repository: r}
-		httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(mockCtrl)
-		mockInfoRefsUploadPack(t, mockCtrl, httpClient, infoRefsReq, []byte(noHEAD))
+		httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(ctrl)
+		mockInfoRefsUploadPack(t, ctrl, httpClient, infoRefsReq, []byte(noHEAD))
 		p := Poller{
 			Client: httpClient,
 		}
@@ -165,8 +165,8 @@ func TestPollerErrors(t *testing.T) {
 	})
 }
 
-func mockInfoRefsUploadPack(t *testing.T, mockCtrl *gomock.Controller, httpClient *mock_gitaly.MockSmartHTTPServiceClient, infoRefsReq *gitalypb.InfoRefsRequest, data []byte) {
-	infoRefsClient := mock_gitaly.NewMockSmartHTTPService_InfoRefsUploadPackClient(mockCtrl)
+func mockInfoRefsUploadPack(t *testing.T, ctrl *gomock.Controller, httpClient *mock_gitaly.MockSmartHTTPServiceClient, infoRefsReq *gitalypb.InfoRefsRequest, data []byte) {
+	infoRefsClient := mock_gitaly.NewMockSmartHTTPService_InfoRefsUploadPackClient(ctrl)
 	// Emulate streaming response
 	resp1 := &gitalypb.InfoRefsResponse{
 		Data: data[:1],

@@ -159,13 +159,13 @@ func TestRunHappyPathSyncCancellation(t *testing.T) {
 }
 
 func setupWorker(t *testing.T) (*gitopsWorker, *MockGitOpsEngine, *mock_rpc.MockObjectsToSynchronizeWatcherInterface) {
-	mockCtrl := gomock.NewController(t)
+	ctrl := gomock.NewController(t)
 	mockEngineCtrl := gomock.NewController(t)
 	// engine is used concurrently with other mocks. So use a separate mock controller to avoid data races because
 	// mock controllers are not thread safe.
 	engine := NewMockGitOpsEngine(mockEngineCtrl)
-	engineFactory := NewMockGitopsEngineFactory(mockCtrl)
-	watcher := mock_rpc.NewMockObjectsToSynchronizeWatcherInterface(mockCtrl)
+	engineFactory := NewMockGitopsEngineFactory(ctrl)
+	watcher := mock_rpc.NewMockObjectsToSynchronizeWatcherInterface(ctrl)
 	engineWasStopped := false
 	t.Cleanup(func() {
 		assert.True(t, engineWasStopped)

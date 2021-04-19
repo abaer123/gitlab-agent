@@ -52,10 +52,10 @@ var (
 )
 
 func TestGetObjectsToSynchronize_GetProjectInfo_Forbidden(t *testing.T) {
-	m, mockCtrl, _, _ := setupModuleBare(t, 1, func(w http.ResponseWriter, r *http.Request) {
+	m, ctrl, _, _ := setupModuleBare(t, 1, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 	})
-	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(mockCtrl)
+	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
 	server.EXPECT().
 		Context().
 		Return(mock_modserver.IncomingCtx(context.Background(), t, testhelpers.AgentkToken)).
@@ -66,10 +66,10 @@ func TestGetObjectsToSynchronize_GetProjectInfo_Forbidden(t *testing.T) {
 }
 
 func TestGetObjectsToSynchronize_GetProjectInfo_Unauthorized(t *testing.T) {
-	m, mockCtrl, _, _ := setupModuleBare(t, 1, func(w http.ResponseWriter, r *http.Request) {
+	m, ctrl, _, _ := setupModuleBare(t, 1, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 	})
-	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(mockCtrl)
+	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
 	server.EXPECT().
 		Context().
 		Return(mock_modserver.IncomingCtx(context.Background(), t, testhelpers.AgentkToken)).
@@ -80,12 +80,12 @@ func TestGetObjectsToSynchronize_GetProjectInfo_Unauthorized(t *testing.T) {
 }
 
 func TestGetObjectsToSynchronize_GetProjectInfo_InternalServerError(t *testing.T) {
-	m, mockCtrl, mockApi, _ := setupModuleBare(t, 1, func(w http.ResponseWriter, r *http.Request) {
+	m, ctrl, mockApi, _ := setupModuleBare(t, 1, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 	mockApi.EXPECT().
 		HandleProcessingError(gomock.Any(), gomock.Any(), "GetProjectInfo()", matcher.ErrorEq("error kind: 0; status: 500"))
-	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(mockCtrl)
+	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
 	server.EXPECT().
 		Context().
 		Return(mock_modserver.IncomingCtx(context.Background(), t, testhelpers.AgentkToken)).
@@ -95,7 +95,7 @@ func TestGetObjectsToSynchronize_GetProjectInfo_InternalServerError(t *testing.T
 }
 
 func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
-	ctx, cancel, a, mockCtrl, gitalyPool, _ := setupModule(t, 1)
+	ctx, cancel, a, ctrl, gitalyPool, _ := setupModule(t, 1)
 	a.syncCount.(*mock_usage_metrics.MockCounter).EXPECT().Inc()
 
 	objects := []runtime.Object{
@@ -123,7 +123,7 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 	}
 	objectsYAML := kube_testing.ObjsToYAML(t, objects...)
 	projInfo := projectInfo()
-	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(mockCtrl)
+	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
 	server.EXPECT().
 		Context().
 		Return(mock_modserver.IncomingCtx(ctx, t, testhelpers.AgentkToken)).
@@ -165,8 +165,8 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 				cancel() // stop streaming call after the first response has been sent
 			}),
 	)
-	p := mock_internalgitaly.NewMockPollerInterface(mockCtrl)
-	pf := mock_internalgitaly.NewMockPathFetcherInterface(mockCtrl)
+	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
+	pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
 			Poller(gomock.Any(), &projInfo.GitalyInfo).
@@ -212,14 +212,14 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 }
 
 func TestGetObjectsToSynchronize_ResumeConnection(t *testing.T) {
-	ctx, cancel, m, mockCtrl, gitalyPool, _ := setupModule(t, 1)
+	ctx, cancel, m, ctrl, gitalyPool, _ := setupModule(t, 1)
 	projInfo := projectInfo()
-	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(mockCtrl)
+	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
 	server.EXPECT().
 		Context().
 		Return(mock_modserver.IncomingCtx(ctx, t, testhelpers.AgentkToken)).
 		MinTimes(1)
-	p := mock_internalgitaly.NewMockPollerInterface(mockCtrl)
+	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 	gomock.InOrder(
 		gitalyPool.EXPECT().
 			Poller(gomock.Any(), &projInfo.GitalyInfo).
@@ -249,10 +249,10 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 	}
 	for _, gitalyErr := range gitalyErrs {
 		t.Run(gitalyErr.(*gitaly.Error).Code.String(), func(t *testing.T) { // nolint: errorlint
-			ctx, _, a, mockCtrl, gitalyPool, mockApi := setupModule(t, 1)
+			ctx, _, a, ctrl, gitalyPool, mockApi := setupModule(t, 1)
 
 			projInfo := projectInfo()
-			server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(mockCtrl)
+			server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
 			server.EXPECT().
 				Context().
 				Return(mock_modserver.IncomingCtx(ctx, t, testhelpers.AgentkToken)).
@@ -269,8 +269,8 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 				HandleProcessingError(gomock.Any(), gomock.Any(), "GitOps: failed to get objects to synchronize",
 					matcher.ErrorEq(fmt.Sprintf("manifest file: %v", gitalyErr)), // nolint: scopelint
 				)
-			p := mock_internalgitaly.NewMockPollerInterface(mockCtrl)
-			pf := mock_internalgitaly.NewMockPathFetcherInterface(mockCtrl)
+			p := mock_internalgitaly.NewMockPollerInterface(ctrl)
+			pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
 			gomock.InOrder(
 				gitalyPool.EXPECT().
 					Poller(gomock.Any(), &projInfo.GitalyInfo).
@@ -462,8 +462,8 @@ func TestObjectsToSynchronizeVisitor(t *testing.T) {
 	})
 	t.Run("blob", func(t *testing.T) {
 		data := []byte("data1")
-		mockCtrl := gomock.NewController(t)
-		server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(mockCtrl)
+		ctrl := gomock.NewController(t)
+		server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
 		server.EXPECT().
 			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
 				Message: &rpc.ObjectsToSynchronizeResponse_Object_{

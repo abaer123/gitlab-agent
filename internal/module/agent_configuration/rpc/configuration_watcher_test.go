@@ -29,9 +29,9 @@ var (
 func TestConfigurationWatcher(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	mockCtrl := gomock.NewController(t)
-	client := mock_rpc.NewMockAgentConfigurationClient(mockCtrl)
-	configStream := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient(mockCtrl)
+	ctrl := gomock.NewController(t)
+	client := mock_rpc.NewMockAgentConfigurationClient(ctrl)
+	configStream := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient(ctrl)
 	cfg1 := &agentcfg.AgentConfiguration{
 		Gitops: &agentcfg.GitopsCF{
 			ManifestProjects: []*agentcfg.ManifestProjectCF{
@@ -88,10 +88,10 @@ func TestConfigurationWatcher(t *testing.T) {
 func TestConfigurationWatcher_ResumeConnection(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	mockCtrl := gomock.NewController(t)
-	client := mock_rpc.NewMockAgentConfigurationClient(mockCtrl)
-	configStream1 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient(mockCtrl)
-	configStream2 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient(mockCtrl)
+	ctrl := gomock.NewController(t)
+	client := mock_rpc.NewMockAgentConfigurationClient(ctrl)
+	configStream1 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient(ctrl)
+	configStream2 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient(ctrl)
 	gomock.InOrder(
 		client.EXPECT().
 			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc.ConfigurationRequest{})).
@@ -130,10 +130,10 @@ func TestConfigurationWatcher_ResumeConnection(t *testing.T) {
 func TestConfigurationWatcher_ImmediateReconnectOnEOF(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	mockCtrl := gomock.NewController(t)
-	client := mock_rpc.NewMockAgentConfigurationClient(mockCtrl)
-	configStream1 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient(mockCtrl)
-	configStream2 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient(mockCtrl)
+	ctrl := gomock.NewController(t)
+	client := mock_rpc.NewMockAgentConfigurationClient(ctrl)
+	configStream1 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient(ctrl)
+	configStream2 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient(ctrl)
 	cfg1 := &agentcfg.AgentConfiguration{
 		Gitops: &agentcfg.GitopsCF{
 			ManifestProjects: []*agentcfg.ManifestProjectCF{

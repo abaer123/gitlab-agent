@@ -29,7 +29,7 @@ var (
 )
 
 func TestPathFetcher_HappyPath(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
+	ctrl := gomock.NewController(t)
 	r := repo()
 	treeEntriesReq := &gitalypb.GetTreeEntriesRequest{
 		Repository: r,
@@ -37,7 +37,7 @@ func TestPathFetcher_HappyPath(t *testing.T) {
 		Path:       []byte(repoPath),
 		Recursive:  false,
 	}
-	commitClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
+	commitClient := mock_gitaly.NewMockCommitServiceClient(ctrl)
 	expectedEntry1 := &gitalypb.TreeEntry{
 		Path:      []byte("manifest1.yaml"),
 		Type:      gitalypb.TreeEntry_BLOB,
@@ -55,20 +55,20 @@ func TestPathFetcher_HappyPath(t *testing.T) {
 		CommitOid: manifestRevision,
 	}
 	data2 := []byte("data2")
-	mockGetTreeEntries(t, mockCtrl, commitClient, treeEntriesReq, []*gitalypb.TreeEntry{expectedEntry1, treeEntry, expectedEntry2})
-	mockTreeEntry(t, mockCtrl, commitClient, data1, &gitalypb.TreeEntryRequest{
+	mockGetTreeEntries(t, ctrl, commitClient, treeEntriesReq, []*gitalypb.TreeEntry{expectedEntry1, treeEntry, expectedEntry2})
+	mockTreeEntry(t, ctrl, commitClient, data1, &gitalypb.TreeEntryRequest{
 		Repository: r,
 		Revision:   []byte(expectedEntry1.CommitOid),
 		Path:       expectedEntry1.Path,
 		MaxSize:    fileMaxSize,
 	})
-	mockTreeEntry(t, mockCtrl, commitClient, data2, &gitalypb.TreeEntryRequest{
+	mockTreeEntry(t, ctrl, commitClient, data2, &gitalypb.TreeEntryRequest{
 		Repository: r,
 		Revision:   []byte(expectedEntry2.CommitOid),
 		Path:       expectedEntry2.Path,
 		MaxSize:    fileMaxSize,
 	})
-	mockVisitor := mock_internalgitaly.NewMockFetchVisitor(mockCtrl)
+	mockVisitor := mock_internalgitaly.NewMockFetchVisitor(ctrl)
 	gomock.InOrder(
 		mockVisitor.EXPECT().
 			Entry(matcher.ProtoEq(t, expectedEntry1)).
@@ -93,10 +93,10 @@ func TestPathFetcher_HappyPath(t *testing.T) {
 }
 
 func TestPathFetcher_StreamFile_NotFoundMessage(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	commitClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
-	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(mockCtrl)
-	mockVisitor := mock_internalgitaly.NewMockFileVisitor(mockCtrl)
+	ctrl := gomock.NewController(t)
+	commitClient := mock_gitaly.NewMockCommitServiceClient(ctrl)
+	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(ctrl)
+	mockVisitor := mock_internalgitaly.NewMockFileVisitor(ctrl)
 	r := repo()
 	req := &gitalypb.TreeEntryRequest{
 		Repository: r,
@@ -124,10 +124,10 @@ func TestPathFetcher_StreamFile_NotFoundMessage(t *testing.T) {
 }
 
 func TestPathFetcher_StreamFile_NotFoundCode(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	commitClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
-	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(mockCtrl)
-	mockVisitor := mock_internalgitaly.NewMockFileVisitor(mockCtrl)
+	ctrl := gomock.NewController(t)
+	commitClient := mock_gitaly.NewMockCommitServiceClient(ctrl)
+	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(ctrl)
+	mockVisitor := mock_internalgitaly.NewMockFileVisitor(ctrl)
 	r := repo()
 	req := &gitalypb.TreeEntryRequest{
 		Repository: r,
@@ -151,10 +151,10 @@ func TestPathFetcher_StreamFile_NotFoundCode(t *testing.T) {
 }
 
 func TestPathFetcher_StreamFile_TooBig(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	commitClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
-	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(mockCtrl)
-	mockVisitor := mock_internalgitaly.NewMockFileVisitor(mockCtrl)
+	ctrl := gomock.NewController(t)
+	commitClient := mock_gitaly.NewMockCommitServiceClient(ctrl)
+	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(ctrl)
+	mockVisitor := mock_internalgitaly.NewMockFileVisitor(ctrl)
 	r := repo()
 	req := &gitalypb.TreeEntryRequest{
 		Repository: r,
@@ -178,10 +178,10 @@ func TestPathFetcher_StreamFile_TooBig(t *testing.T) {
 }
 
 func TestPathFetcher_StreamFile_InvalidType(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	commitClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
-	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(mockCtrl)
-	mockVisitor := mock_internalgitaly.NewMockFileVisitor(mockCtrl)
+	ctrl := gomock.NewController(t)
+	commitClient := mock_gitaly.NewMockCommitServiceClient(ctrl)
+	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(ctrl)
+	mockVisitor := mock_internalgitaly.NewMockFileVisitor(ctrl)
 	r := repo()
 	req := &gitalypb.TreeEntryRequest{
 		Repository: r,
@@ -214,8 +214,8 @@ func TestChunkingFetchVisitor_Entry(t *testing.T) {
 		Type:      gitalypb.TreeEntry_BLOB,
 		CommitOid: manifestRevision,
 	}
-	mockCtrl := gomock.NewController(t)
-	fv := mock_internalgitaly.NewMockFetchVisitor(mockCtrl)
+	ctrl := gomock.NewController(t)
+	fv := mock_internalgitaly.NewMockFetchVisitor(ctrl)
 	fv.EXPECT().
 		Entry(matcher.ProtoEq(t, entry)).
 		Return(true, int64(100), nil)
@@ -233,8 +233,8 @@ func TestChunkingFetchVisitor_StreamChunk(t *testing.T) {
 	t.Run("no chunking", func(t *testing.T) {
 		p := []byte{1, 2, 3}
 		data := []byte{4, 5, 6}
-		mockCtrl := gomock.NewController(t)
-		fv := mock_internalgitaly.NewMockFetchVisitor(mockCtrl)
+		ctrl := gomock.NewController(t)
+		fv := mock_internalgitaly.NewMockFetchVisitor(ctrl)
 		fv.EXPECT().
 			StreamChunk(p, data)
 		v := gitaly.ChunkingFetchVisitor{
@@ -248,8 +248,8 @@ func TestChunkingFetchVisitor_StreamChunk(t *testing.T) {
 	t.Run("chunking", func(t *testing.T) {
 		p := []byte{1, 2, 3}
 		data := []byte{4, 5, 6}
-		mockCtrl := gomock.NewController(t)
-		fv := mock_internalgitaly.NewMockFetchVisitor(mockCtrl)
+		ctrl := gomock.NewController(t)
+		fv := mock_internalgitaly.NewMockFetchVisitor(ctrl)
 		gomock.InOrder(
 			fv.EXPECT().
 				StreamChunk(p, data[:2]),
@@ -267,8 +267,8 @@ func TestChunkingFetchVisitor_StreamChunk(t *testing.T) {
 	t.Run("done", func(t *testing.T) {
 		p := []byte{1, 2, 3}
 		data := []byte{4, 5, 6}
-		mockCtrl := gomock.NewController(t)
-		fv := mock_internalgitaly.NewMockFetchVisitor(mockCtrl)
+		ctrl := gomock.NewController(t)
+		fv := mock_internalgitaly.NewMockFetchVisitor(ctrl)
 		fv.EXPECT().
 			StreamChunk(p, data[:2]).
 			Return(true, nil)
@@ -283,8 +283,8 @@ func TestChunkingFetchVisitor_StreamChunk(t *testing.T) {
 	t.Run("error", func(t *testing.T) {
 		p := []byte{1, 2, 3}
 		data := []byte{4, 5, 6}
-		mockCtrl := gomock.NewController(t)
-		fv := mock_internalgitaly.NewMockFetchVisitor(mockCtrl)
+		ctrl := gomock.NewController(t)
+		fv := mock_internalgitaly.NewMockFetchVisitor(ctrl)
 		fv.EXPECT().
 			StreamChunk(p, data[:2]).
 			Return(false, errors.New("boom!"))
@@ -298,8 +298,8 @@ func TestChunkingFetchVisitor_StreamChunk(t *testing.T) {
 	})
 }
 
-func mockTreeEntry(t *testing.T, mockCtrl *gomock.Controller, commitClient *mock_gitaly.MockCommitServiceClient, data []byte, req *gitalypb.TreeEntryRequest) {
-	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(mockCtrl)
+func mockTreeEntry(t *testing.T, ctrl *gomock.Controller, commitClient *mock_gitaly.MockCommitServiceClient, data []byte, req *gitalypb.TreeEntryRequest) {
+	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(ctrl)
 	// Emulate streaming response
 	resp1 := &gitalypb.TreeEntryResponse{
 		Type: gitalypb.TreeEntryResponse_BLOB, // only the first response has the type set!

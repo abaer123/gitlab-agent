@@ -32,10 +32,10 @@ func TestObjectsToSynchronizeWatcherResumeConnection(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	mockCtrl := gomock.NewController(t)
-	client := mock_rpc.NewMockGitopsClient(mockCtrl)
-	stream1 := mock_rpc.NewMockGitops_GetObjectsToSynchronizeClient(mockCtrl)
-	stream2 := mock_rpc.NewMockGitops_GetObjectsToSynchronizeClient(mockCtrl)
+	ctrl := gomock.NewController(t)
+	client := mock_rpc.NewMockGitopsClient(ctrl)
+	stream1 := mock_rpc.NewMockGitops_GetObjectsToSynchronizeClient(ctrl)
+	stream2 := mock_rpc.NewMockGitops_GetObjectsToSynchronizeClient(ctrl)
 	req := &rpc.ObjectsToSynchronizeRequest{
 		ProjectId: projectId,
 		Paths:     pathsCfg,
@@ -154,9 +154,9 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			mockCtrl := gomock.NewController(t)
-			client := mock_rpc.NewMockGitopsClient(mockCtrl)
-			stream1 := mock_rpc.NewMockGitops_GetObjectsToSynchronizeClient(mockCtrl)
+			ctrl := gomock.NewController(t)
+			client := mock_rpc.NewMockGitopsClient(ctrl)
+			stream1 := mock_rpc.NewMockGitops_GetObjectsToSynchronizeClient(ctrl)
 			req := &rpc.ObjectsToSynchronizeRequest{
 				ProjectId: projectId,
 				Paths: []*agentcfg.PathCF{

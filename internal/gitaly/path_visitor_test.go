@@ -21,7 +21,7 @@ const (
 )
 
 func TestPathVisitorHappyPath(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
+	ctrl := gomock.NewController(t)
 	r := repo()
 	treeEntriesReq := &gitalypb.GetTreeEntriesRequest{
 		Repository: r,
@@ -29,14 +29,14 @@ func TestPathVisitorHappyPath(t *testing.T) {
 		Path:       []byte(repoPath),
 		Recursive:  false,
 	}
-	commitClient := mock_gitaly.NewMockCommitServiceClient(mockCtrl)
+	commitClient := mock_gitaly.NewMockCommitServiceClient(ctrl)
 	expectedEntry := &gitalypb.TreeEntry{
 		Path:      []byte("manifest.yaml"),
 		Type:      gitalypb.TreeEntry_BLOB,
 		CommitOid: manifestRevision,
 	}
-	mockGetTreeEntries(t, mockCtrl, commitClient, treeEntriesReq, []*gitalypb.TreeEntry{expectedEntry})
-	mockVisitor := mock_internalgitaly.NewMockPathEntryVisitor(mockCtrl)
+	mockGetTreeEntries(t, ctrl, commitClient, treeEntriesReq, []*gitalypb.TreeEntry{expectedEntry})
+	mockVisitor := mock_internalgitaly.NewMockPathEntryVisitor(ctrl)
 	mockVisitor.EXPECT().
 		Entry(matcher.ProtoEq(t, expectedEntry))
 	v := gitaly.PathVisitor{
@@ -46,8 +46,8 @@ func TestPathVisitorHappyPath(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func mockGetTreeEntries(t *testing.T, mockCtrl *gomock.Controller, commitClient *mock_gitaly.MockCommitServiceClient, req *gitalypb.GetTreeEntriesRequest, entries []*gitalypb.TreeEntry) {
-	treeEntriesClient := mock_gitaly.NewMockCommitService_GetTreeEntriesClient(mockCtrl)
+func mockGetTreeEntries(t *testing.T, ctrl *gomock.Controller, commitClient *mock_gitaly.MockCommitServiceClient, req *gitalypb.GetTreeEntriesRequest, entries []*gitalypb.TreeEntry) {
+	treeEntriesClient := mock_gitaly.NewMockCommitService_GetTreeEntriesClient(ctrl)
 	gomock.InOrder(
 		commitClient.EXPECT().
 			GetTreeEntries(gomock.Any(), matcher.ProtoEq(t, req), gomock.Any()).
