@@ -90,10 +90,10 @@ func serverConstructComponents(t *testing.T) (func(context.Context) error, grpc.
 func serverConstructInternalServer(log *zap.Logger) *grpc.Server {
 	return grpc.NewServer(
 		grpc.ChainStreamInterceptor(
-			grpctool.StreamServerCtxAugmentingInterceptor(grpctool.LoggerInjector(log)),
+			grpctool.StreamServerLoggerInterceptor(log),
 		),
 		grpc.ChainUnaryInterceptor(
-			grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.LoggerInjector(log)),
+			grpctool.UnaryServerLoggerInterceptor(log),
 		),
 		// TODO Stop using the deprecated API once https://github.com/grpc/grpc-go/issues/3694 is resolved
 		grpc.CustomCodec(grpctool.RawCodec{}), // nolint: staticcheck
@@ -137,12 +137,12 @@ func serverConstructAgentServer(log *zap.Logger) *grpc.Server {
 	return grpc.NewServer(
 		grpc.ChainStreamInterceptor(
 			grpctool.StreamServerAgentMDInterceptor(),
-			grpctool.StreamServerCtxAugmentingInterceptor(grpctool.LoggerInjector(log)),
+			grpctool.StreamServerLoggerInterceptor(log),
 			grpc_validator.StreamServerInterceptor(),
 		),
 		grpc.ChainUnaryInterceptor(
 			grpctool.UnaryServerAgentMDInterceptor(),
-			grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.LoggerInjector(log)),
+			grpctool.UnaryServerLoggerInterceptor(log),
 			grpc_validator.UnaryServerInterceptor(),
 		),
 	)

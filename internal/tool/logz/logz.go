@@ -112,6 +112,14 @@ func KasUrl(kasUrl string) zap.Field {
 	return zap.String("kas_url", kasUrl)
 }
 
+func GrpcService(service string) zap.Field {
+	return zap.String("grpc_service", service)
+}
+
+func GrpcMethod(method string) zap.Field {
+	return zap.String("grpc_method", method)
+}
+
 // This should be in https://gitlab.com/gitlab-org/labkit/-/blob/master/mask/url.go
 func maskURL(s string) string {
 	u, err := url.Parse(s)

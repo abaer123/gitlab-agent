@@ -398,7 +398,7 @@ func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tr
 		grpc_prometheus.StreamServerInterceptor,                                                  // 1. measure all invocations
 		grpctool.StreamServerAgentMDInterceptor(),                                                // 2. ensure agent presents a token
 		grpccorrelation.StreamServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()), // 3. add correlation id
-		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)),            // 4. inject logger with correlation id
+		grpctool.StreamServerLoggerInterceptor(a.Log),                                            // 4. inject logger with correlation id
 		grpc_validator.StreamServerInterceptor(),
 		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
@@ -407,7 +407,7 @@ func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tr
 		grpc_prometheus.UnaryServerInterceptor,                                                  // 1. measure all invocations
 		grpctool.UnaryServerAgentMDInterceptor(),                                                // 2. ensure agent presents a token
 		grpccorrelation.UnaryServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()), // 3. add correlation id
-		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)),            // 4. inject logger with correlation id
+		grpctool.UnaryServerLoggerInterceptor(a.Log),                                            // 4. inject logger with correlation id
 		grpc_validator.UnaryServerInterceptor(),
 		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
@@ -471,19 +471,19 @@ func (a *ConfiguredApp) constructApiServer(interceptorsCtx context.Context, trac
 
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
-		grpc_prometheus.StreamServerInterceptor,                                       // 1. measure all invocations
-		grpccorrelation.StreamServerCorrelationInterceptor(),                          // 2. add correlation id
-		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)), // 3. inject logger with correlation id
-		jwtAuther.StreamServerInterceptor,                                             // 4. auth and maybe log
+		grpc_prometheus.StreamServerInterceptor,              // 1. measure all invocations
+		grpccorrelation.StreamServerCorrelationInterceptor(), // 2. add correlation id
+		grpctool.StreamServerLoggerInterceptor(a.Log),        // 3. inject logger with correlation id
+		jwtAuther.StreamServerInterceptor,                    // 4. auth and maybe log
 		grpc_validator.StreamServerInterceptor(),
 		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
 	}
 	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
-		grpc_prometheus.UnaryServerInterceptor,                                       // 1. measure all invocations
-		grpccorrelation.UnaryServerCorrelationInterceptor(),                          // 2. add correlation id
-		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)), // 3. inject logger with correlation id
-		jwtAuther.UnaryServerInterceptor,                                             // 4. auth and maybe log
+		grpc_prometheus.UnaryServerInterceptor,              // 1. measure all invocations
+		grpccorrelation.UnaryServerCorrelationInterceptor(), // 2. add correlation id
+		grpctool.UnaryServerLoggerInterceptor(a.Log),        // 3. inject logger with correlation id
+		jwtAuther.UnaryServerInterceptor,                    // 4. auth and maybe log
 		grpc_validator.UnaryServerInterceptor(),
 		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
@@ -535,19 +535,19 @@ func (a *ConfiguredApp) constructPrivateApiServer(interceptorsCtx context.Contex
 
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
-		grpc_prometheus.StreamServerInterceptor,                                       // 1. measure all invocations
-		grpccorrelation.StreamServerCorrelationInterceptor(),                          // 2. add correlation id
-		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)), // 3. inject logger with correlation id
-		jwtAuther.StreamServerInterceptor,                                             // 4. auth and maybe log
+		grpc_prometheus.StreamServerInterceptor,              // 1. measure all invocations
+		grpccorrelation.StreamServerCorrelationInterceptor(), // 2. add correlation id
+		grpctool.StreamServerLoggerInterceptor(a.Log),        // 3. inject logger with correlation id
+		jwtAuther.StreamServerInterceptor,                    // 4. auth and maybe log
 		grpc_validator.StreamServerInterceptor(),
 		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
 	}
 	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
-		grpc_prometheus.UnaryServerInterceptor,                                       // 1. measure all invocations
-		grpccorrelation.UnaryServerCorrelationInterceptor(),                          // 2. add correlation id
-		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)), // 3. inject logger with correlation id
-		jwtAuther.UnaryServerInterceptor,                                             // 4. auth and maybe log
+		grpc_prometheus.UnaryServerInterceptor,              // 1. measure all invocations
+		grpccorrelation.UnaryServerCorrelationInterceptor(), // 2. add correlation id
+		grpctool.UnaryServerLoggerInterceptor(a.Log),        // 3. inject logger with correlation id
+		jwtAuther.UnaryServerInterceptor,                    // 4. auth and maybe log
 		grpc_validator.UnaryServerInterceptor(),
 		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
@@ -586,14 +586,14 @@ func (a *ConfiguredApp) constructInternalServer(interceptorsCtx context.Context,
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	return grpc.NewServer(
 		grpc.ChainStreamInterceptor(
-			grpccorrelation.StreamServerCorrelationInterceptor(),                          // 1. add correlation id
-			grpctool.StreamServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)), // 2. inject logger with correlation id
+			grpccorrelation.StreamServerCorrelationInterceptor(), // 1. add correlation id
+			grpctool.StreamServerLoggerInterceptor(a.Log),        // 2. inject logger with correlation id
 			grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 			grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
 		),
 		grpc.ChainUnaryInterceptor(
-			grpccorrelation.UnaryServerCorrelationInterceptor(),                          // 1. add correlation id
-			grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)), // 2. inject logger with correlation id
+			grpccorrelation.UnaryServerCorrelationInterceptor(), // 1. add correlation id
+			grpctool.UnaryServerLoggerInterceptor(a.Log),        // 2. inject logger with correlation id
 			grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 			grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
 		),

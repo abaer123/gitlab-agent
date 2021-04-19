@@ -257,16 +257,16 @@ func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, err
 func (a *App) constructInternalServer(interceptorsCtx context.Context) *grpc.Server {
 	return grpc.NewServer(
 		grpc.ChainStreamInterceptor(
-			grpc_prometheus.StreamServerInterceptor,                                       // 1. measure all invocations
-			grpccorrelation.StreamServerCorrelationInterceptor(),                          // 2. add correlation id
-			grpctool.StreamServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)), // 3. inject logger with correlation id
+			grpc_prometheus.StreamServerInterceptor,              // 1. measure all invocations
+			grpccorrelation.StreamServerCorrelationInterceptor(), // 2. add correlation id
+			grpctool.StreamServerLoggerInterceptor(a.Log),        // 3. inject logger with correlation id
 			grpc_validator.StreamServerInterceptor(),
 			grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
 		),
 		grpc.ChainUnaryInterceptor(
-			grpc_prometheus.UnaryServerInterceptor,                                       // 1. measure all invocations
-			grpccorrelation.UnaryServerCorrelationInterceptor(),                          // 2. add correlation id
-			grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.LoggerInjector(a.Log)), // 3. inject logger with correlation id
+			grpc_prometheus.UnaryServerInterceptor,              // 1. measure all invocations
+			grpccorrelation.UnaryServerCorrelationInterceptor(), // 2. add correlation id
+			grpctool.UnaryServerLoggerInterceptor(a.Log),        // 3. inject logger with correlation id
 			grpc_validator.UnaryServerInterceptor(),
 			grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
 		),

@@ -420,20 +420,20 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 	log := zaptest.NewLogger(t)
 	internalServer := grpc.NewServer(
 		grpc.ChainStreamInterceptor(
-			grpctool.StreamServerCtxAugmentingInterceptor(grpctool.LoggerInjector(log)),
+			grpctool.StreamServerLoggerInterceptor(log),
 		),
 		grpc.ChainUnaryInterceptor(
-			grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.LoggerInjector(log)),
+			grpctool.UnaryServerLoggerInterceptor(log),
 		),
 		// TODO Stop using the deprecated API once https://github.com/grpc/grpc-go/issues/3694 is resolved
 		grpc.CustomCodec(grpctool.RawCodec{}), // nolint: staticcheck
 	)
 	privateApiServer := grpc.NewServer(
 		grpc.ChainStreamInterceptor(
-			grpctool.StreamServerCtxAugmentingInterceptor(grpctool.LoggerInjector(log)),
+			grpctool.StreamServerLoggerInterceptor(log),
 		),
 		grpc.ChainUnaryInterceptor(
-			grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.LoggerInjector(log)),
+			grpctool.UnaryServerLoggerInterceptor(log),
 		),
 		// TODO Stop using the deprecated API once https://github.com/grpc/grpc-go/issues/3694 is resolved
 		grpc.CustomCodec(grpctool.RawCodecWithProtoFallback{}), // nolint: staticcheck
