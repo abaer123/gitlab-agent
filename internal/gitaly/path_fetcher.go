@@ -35,6 +35,9 @@ type FileVisitor interface {
 type FetchVisitor interface {
 	Entry(*gitalypb.TreeEntry) (bool /* download? */, int64 /* max size */, error)
 	StreamChunk(path []byte, data []byte) (bool /* done? */, error)
+	// EntryDone is called after the entry has been fully streamed.
+	// It's not called for entries that are not streamed i.e. skipped.
+	EntryDone(*gitalypb.TreeEntry, error)
 }
 
 type PathFetcher struct {
@@ -56,6 +59,7 @@ func (f *PathFetcher) Visit(ctx context.Context, repo *gitalypb.Repository, revi
 		err = f.StreamFile(ctx, repo, []byte(entry.CommitOid), entry.Path, maxSize, fetcherFileVisitor(func(data []byte) (bool /* done? */, error) {
 			return visitor.StreamChunk(entry.Path, data)
 		}))
+		visitor.EntryDone(entry, err)
 		return false, err
 	}))
 }
@@ -128,6 +132,10 @@ func (f *PathFetcher) FetchFile(ctx context.Context, repo *gitalypb.Repository, 
 type ChunkingFetchVisitor struct {
 	MaxChunkSize int
 	Delegate     FetchVisitor
+}
+
+func (v ChunkingFetchVisitor) EntryDone(entry *gitalypb.TreeEntry, err error) {
+	v.Delegate.EntryDone(entry, err)
 }
 
 func (v ChunkingFetchVisitor) Entry(entry *gitalypb.TreeEntry) (bool /* download? */, int64 /* max size */, error) {

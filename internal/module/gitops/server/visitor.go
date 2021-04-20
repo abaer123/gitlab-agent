@@ -18,15 +18,16 @@ type objectsToSynchronizeVisitor struct {
 	remainingTotalFileSize int64
 	fileSizeLimit          int64
 	maxNumberOfFiles       uint32
-	numberOfFiles          uint32
+	filesVisited           uint32
+	filesSent              uint32
 	sendFailed             bool
 }
 
 func (v *objectsToSynchronizeVisitor) Entry(entry *gitalypb.TreeEntry) (bool /* download? */, int64 /* max size */, error) {
-	if v.numberOfFiles == v.maxNumberOfFiles {
+	if v.filesVisited == v.maxNumberOfFiles {
 		return false, 0, errz.NewUserErrorf("maximum number of manifest files limit reached: %d", v.maxNumberOfFiles)
 	}
-	v.numberOfFiles++
+	v.filesVisited++
 	filename := string(entry.Path)
 	if isHiddenDir(filename) {
 		return false, 0, nil
@@ -57,6 +58,13 @@ func (v *objectsToSynchronizeVisitor) StreamChunk(path []byte, data []byte) (boo
 		v.sendFailed = true
 	}
 	return false, err
+}
+
+func (v *objectsToSynchronizeVisitor) EntryDone(entry *gitalypb.TreeEntry, err error) {
+	if err != nil {
+		return
+	}
+	v.filesSent++
 }
 
 // isHiddenDir checks if a file is in a directory, which name starts with a dot.

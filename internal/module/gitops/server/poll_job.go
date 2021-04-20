@@ -81,7 +81,7 @@ func (j *pollJob) Attempt() (bool /*done*/, error) {
 	if err != nil {
 		return false, err // no wrap
 	}
-	numberOfFiles, err := j.sendObjectsToSynchronizeBody(j.req, j.server, log, &projectInfo.Repository, &projectInfo.GitalyInfo, info.CommitId)
+	filesVisited, filesSent, err := j.sendObjectsToSynchronizeBody(j.req, j.server, log, &projectInfo.Repository, &projectInfo.GitalyInfo, info.CommitId)
 	if err != nil {
 		return false, err // no wrap
 	}
@@ -89,7 +89,7 @@ func (j *pollJob) Attempt() (bool /*done*/, error) {
 	if err != nil {
 		return false, err // no wrap
 	}
-	log.Info("GitOps: fetched files", logz.NumberOfFiles(numberOfFiles))
+	log.Info("GitOps: fetched files", logz.NumberOfFilesVisited(filesVisited), logz.NumberOfFilesSent(filesSent))
 	j.syncCount.Inc()
 	return true, nil
 }
@@ -119,12 +119,19 @@ func (j *pollJob) sendObjectsToSynchronizeHeader(server rpc.Gitops_GetObjectsToS
 	return nil
 }
 
-func (j *pollJob) sendObjectsToSynchronizeBody(req *rpc.ObjectsToSynchronizeRequest, server rpc.Gitops_GetObjectsToSynchronizeServer, log *zap.Logger, repo *gitalypb.Repository, gitalyInfo *api.GitalyInfo, commitId string) (uint32, error) {
+func (j *pollJob) sendObjectsToSynchronizeBody(
+	req *rpc.ObjectsToSynchronizeRequest,
+	server rpc.Gitops_GetObjectsToSynchronizeServer,
+	log *zap.Logger,
+	repo *gitalypb.Repository,
+	gitalyInfo *api.GitalyInfo,
+	commitId string,
+) (uint32 /* files visited */, uint32 /* files sent */, error) {
 	ctx := server.Context()
 	pf, err := j.gitalyPool.PathFetcher(ctx, gitalyInfo)
 	if err != nil {
 		j.api.HandleProcessingError(ctx, log, "GitOps: PathFetcher", err)
-		return 0, status.Error(codes.Unavailable, "GitOps: PathFetcher")
+		return 0, 0, status.Error(codes.Unavailable, "GitOps: PathFetcher")
 	}
 	v := &objectsToSynchronizeVisitor{
 		server:                 server,
@@ -142,21 +149,21 @@ func (j *pollJob) sendObjectsToSynchronizeBody(req *rpc.ObjectsToSynchronizeRequ
 		err = pf.Visit(ctx, repo, []byte(commitId), repoPath, recursive, vChunk)
 		if err != nil {
 			if v.sendFailed {
-				return 0, j.api.HandleSendError(log, "GitOps: failed to send objects to synchronize", err)
+				return v.filesVisited, v.filesSent, j.api.HandleSendError(log, "GitOps: failed to send objects to synchronize", err)
 			}
 			switch gitaly.ErrorCodeFromError(err) { // nolint:exhaustive
 			case gitaly.NotFound, gitaly.FileTooBig, gitaly.UnexpectedTreeEntryType:
 				err = errz.NewUserErrorWithCause(err, "manifest file")
 				j.api.HandleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
 				// return the error to the client because it's a user error
-				return 0, status.Errorf(codes.FailedPrecondition, "GitOps: failed to get objects to synchronize: %v", err)
+				return v.filesVisited, v.filesSent, status.Errorf(codes.FailedPrecondition, "GitOps: failed to get objects to synchronize: %v", err)
 			default:
 				j.api.HandleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
-				return 0, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
+				return v.filesVisited, v.filesSent, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
 			}
 		}
 	}
-	return v.numberOfFiles, nil
+	return v.filesVisited, v.filesSent, nil
 }
 
 func (j *pollJob) sendObjectsToSynchronizeTrailer(server rpc.Gitops_GetObjectsToSynchronizeServer, log *zap.Logger) error {

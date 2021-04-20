@@ -5,13 +5,13 @@
 package mock_internalgitaly
 
 import (
-	context "context"
-	reflect "reflect"
+	"context"
+	"reflect"
 
-	gomock "github.com/golang/mock/gomock"
-	api "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
-	gitaly "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
-	gitalypb "gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
+	"github.com/golang/mock/gomock"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
+	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 )
 
 // MockPoolInterface is a mock of PoolInterface interface.
@@ -104,6 +104,18 @@ func (m *MockFetchVisitor) Entry(arg0 *gitalypb.TreeEntry) (bool, int64, error) 
 func (mr *MockFetchVisitorMockRecorder) Entry(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Entry", reflect.TypeOf((*MockFetchVisitor)(nil).Entry), arg0)
+}
+
+// EntryDone mocks base method.
+func (m *MockFetchVisitor) EntryDone(arg0 *gitalypb.TreeEntry, arg1 error) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "EntryDone", arg0, arg1)
+}
+
+// EntryDone indicates an expected call of EntryDone.
+func (mr *MockFetchVisitorMockRecorder) EntryDone(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EntryDone", reflect.TypeOf((*MockFetchVisitor)(nil).EntryDone), arg0, arg1)
 }
 
 // StreamChunk mocks base method.
