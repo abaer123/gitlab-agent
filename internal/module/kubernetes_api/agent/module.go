@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,12 +10,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/kubernetes_api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/kubernetes_api/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
-	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 const (
@@ -42,8 +37,8 @@ func newModule(api modagent.API, userAgent string, client httpClient, baseUrl *u
 	return &module{
 		api: api,
 		pipe: grpctool.NewInboundGrpcToOutboundHttp(
-			handleProcessingError,
-			handleSendError,
+			api.HandleProcessingError,
+			api.HandleSendError,
 			func(ctx context.Context, h *grpctool.HttpRequest_Header, body io.Reader) (*http.Response, error) {
 				u := *baseUrl
 				u.Path = h.Request.UrlPath
@@ -94,29 +89,4 @@ func (m *module) Name() string {
 
 func (m *module) MakeRequest(server rpc.KubernetesApi_MakeRequestServer) error {
 	return m.pipe.Pipe(server)
-}
-
-func handleSendError(log *zap.Logger, msg string, err error) error {
-	// The problem is almost certainly with the client's connection.
-	// Still log it on Debug.
-	if !grpctool.RequestCanceled(err) {
-		log.Debug(msg, zap.Error(err))
-	}
-	return status.Error(codes.Unavailable, "gRPC send failed")
-}
-
-func handleProcessingError(ctx context.Context, log *zap.Logger, msg string, err error) {
-	if grpctool.RequestCanceled(err) {
-		// An error caused by context signalling done
-		return
-	}
-	var ue *errz.UserError
-	isUserError := errors.As(err, &ue)
-	if isUserError {
-		// TODO Don't log it, send it somewhere the user can see it https://gitlab.com/gitlab-org/gitlab/-/issues/277323
-		// Log at Info for now.
-		log.Info(msg, zap.Error(err))
-	} else {
-		log.Error(msg, zap.Error(err))
-	}
 }

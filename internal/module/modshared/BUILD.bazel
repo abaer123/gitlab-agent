@@ -8,11 +8,16 @@ go_proto_generate(
 
 go_library(
     name = "modshared",
-    srcs = ["modshared.pb.go"],
+    srcs = [
+        "api.go",
+        "modshared.pb.go",
+    ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared",
     visibility = ["//:__subpackages__"],
     deps = [
+        "@com_gitlab_gitlab_org_labkit//errortracking",
         "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_golang_google_protobuf//runtime/protoimpl",
+        "@org_uber_go_zap//:zap",
     ],
 )

@@ -9,7 +9,6 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
-	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"k8s.io/cli-runtime/pkg/resource"
@@ -64,7 +63,7 @@ type GitLabResponse struct {
 
 // API provides the API for the module to use.
 type API interface {
-	errortracking.Tracker
+	modshared.API
 	MakeGitLabRequest(ctx context.Context, path string, opts ...GitLabRequestOption) (*GitLabResponse, error)
 	ToggleFeature(feature Feature, enabled bool)
 	SubscribeToFeatureStatus(feature Feature, cb SubscribeCb)
