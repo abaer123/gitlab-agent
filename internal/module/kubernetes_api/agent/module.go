@@ -34,11 +34,13 @@ type httpClient interface {
 
 type module struct {
 	rpc.UnimplementedKubernetesApiServer
+	api  modagent.API
 	pipe *grpctool.InboundGrpcToOutboundHttp
 }
 
-func newModule(userAgent string, client httpClient, baseUrl *url.URL) *module {
+func newModule(api modagent.API, userAgent string, client httpClient, baseUrl *url.URL) *module {
 	return &module{
+		api: api,
 		pipe: grpctool.NewInboundGrpcToOutboundHttp(
 			handleProcessingError,
 			handleSendError,
@@ -76,6 +78,9 @@ func newModule(userAgent string, client httpClient, baseUrl *url.URL) *module {
 }
 
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
+	// The tunnel feature is always required because CI for the agent's configuration project
+	// can always access the agent.
+	m.api.ToggleFeature(modagent.Tunnel, true)
 	return nil
 }
 

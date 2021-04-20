@@ -32,6 +32,10 @@ var (
 	}
 )
 
+type connectionInterface interface {
+	Run(context.Context)
+}
+
 type connection struct {
 	log                *zap.Logger
 	descriptor         *info.AgentDescriptor

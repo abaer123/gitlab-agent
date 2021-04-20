@@ -9,10 +9,12 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/test"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"golang.org/x/sync/errgroup"
 	statuspb "google.golang.org/genproto/googleapis/rpc/status"
@@ -267,7 +269,16 @@ func runTest(t *testing.T, ats test.TestingServer, f func(context.Context, *test
 
 	// Construct server and agent components
 	runServer, kasConn, serverInternalServerConn, serverApi, tunnelRegisterer := serverConstructComponents(t)
-	runAgent, agentInternalServer := agentConstructComponents(t, kasConn)
+
+	agentApi := mock_modagent.NewMockAPI(gomock.NewController(t))
+	var featureCb modagent.SubscribeCb
+	agentApi.EXPECT().
+		SubscribeToFeatureStatus(modagent.Tunnel, gomock.Any()).
+		Do(func(feature modagent.Feature, cb modagent.SubscribeCb) {
+			featureCb = cb
+		})
+
+	runAgent, agentInternalServer := agentConstructComponents(t, kasConn, agentApi)
 	agentInfo := testhelpers.AgentInfoObj()
 
 	serverApi.EXPECT().
@@ -285,6 +296,10 @@ func runTest(t *testing.T, ats test.TestingServer, f func(context.Context, *test
 	test.RegisterTestingServer(agentInternalServer, ats)
 
 	// Run all
+	g.Go(func() error {
+		featureCb(true) // enable the tunnel
+		return nil
+	})
 	g.Go(func() error {
 		return runServer(ctx)
 	})
@@ -315,7 +330,7 @@ func (s *serverTestingServer) ForwardStream(srv interface{}, server grpc.ServerS
 func registerTestingServer(s *grpc.Server, h *serverTestingServer) {
 	// ServiceDesc must match test.Testing_ServiceDesc
 	s.RegisterService(&grpc.ServiceDesc{
-		ServiceName: "gitlab.agent.grpctool.test.Testing",
+		ServiceName: test.Testing_ServiceDesc.ServiceName,
 		Streams: []grpc.StreamDesc{
 			{
 				StreamName:    "RequestResponse",
@@ -330,7 +345,7 @@ func registerTestingServer(s *grpc.Server, h *serverTestingServer) {
 				ClientStreams: true,
 			},
 		},
-		Metadata: "internal/tool/grpctool/test/test.proto",
+		Metadata: test.Testing_ServiceDesc.Metadata,
 	}, nil)
 }
 

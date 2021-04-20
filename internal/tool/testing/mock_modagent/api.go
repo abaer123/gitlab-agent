@@ -74,6 +74,30 @@ func (mr *MockAPIMockRecorder) MakeGitLabRequest(arg0, arg1 interface{}, arg2 ..
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MakeGitLabRequest", reflect.TypeOf((*MockAPI)(nil).MakeGitLabRequest), varargs...)
 }
 
+// SubscribeToFeatureStatus mocks base method.
+func (m *MockAPI) SubscribeToFeatureStatus(arg0 modagent.Feature, arg1 modagent.SubscribeCb) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SubscribeToFeatureStatus", arg0, arg1)
+}
+
+// SubscribeToFeatureStatus indicates an expected call of SubscribeToFeatureStatus.
+func (mr *MockAPIMockRecorder) SubscribeToFeatureStatus(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubscribeToFeatureStatus", reflect.TypeOf((*MockAPI)(nil).SubscribeToFeatureStatus), arg0, arg1)
+}
+
+// ToggleFeature mocks base method.
+func (m *MockAPI) ToggleFeature(arg0 modagent.Feature, arg1 bool) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ToggleFeature", arg0, arg1)
+}
+
+// ToggleFeature indicates an expected call of ToggleFeature.
+func (mr *MockAPIMockRecorder) ToggleFeature(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ToggleFeature", reflect.TypeOf((*MockAPI)(nil).ToggleFeature), arg0, arg1)
+}
+
 // MockFactory is a mock of Factory interface.
 type MockFactory struct {
 	ctrl     *gomock.Controller

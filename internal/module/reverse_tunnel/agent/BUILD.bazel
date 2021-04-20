@@ -30,7 +30,10 @@ go_library(
 
 go_custom_test(
     name = "agent_test",
-    srcs = ["connection_test.go"],
+    srcs = [
+        "connection_test.go",
+        "module_test.go",
+    ],
     embed = [":agent"],
     deps = [
         "//internal/module/modagent",
@@ -43,6 +46,7 @@ go_custom_test(
         "//internal/tool/testing/mock_rpc",
         "//internal/tool/testing/testhelpers",
         "@com_github_golang_mock//gomock",
+        "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",

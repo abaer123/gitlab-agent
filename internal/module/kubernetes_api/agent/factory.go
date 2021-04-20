@@ -35,7 +35,7 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 			return http.ErrUseLastResponse
 		},
 	}
-	m := newModule(userAgent, client, baseUrl)
+	m := newModule(config.Api, userAgent, client, baseUrl)
 	rpc.RegisterKubernetesApiServer(config.Server, m)
 	return m, nil
 }

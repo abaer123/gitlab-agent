@@ -26,9 +26,18 @@ const (
 
 // agentAPI is an implementation of modagent.API.
 type agentAPI struct {
-	ModuleName      string
-	Client          gitlab_access_rpc.GitlabAccessClient
-	ResponseVisitor *grpctool.StreamVisitor
+	moduleName      string
+	client          gitlab_access_rpc.GitlabAccessClient
+	responseVisitor *grpctool.StreamVisitor
+	featureTracker  *featureTracker
+}
+
+func (a *agentAPI) ToggleFeature(feature modagent.Feature, enabled bool) {
+	a.featureTracker.ToggleFeature(feature, a.moduleName, enabled)
+}
+
+func (a *agentAPI) SubscribeToFeatureStatus(feature modagent.Feature, cb modagent.SubscribeCb) {
+	a.featureTracker.Subscribe(feature, cb)
 }
 
 // Capture does nothing at the moment
@@ -38,7 +47,7 @@ func (a *agentAPI) Capture(err error, opts ...errortracking.CaptureOption) {
 func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...modagent.GitLabRequestOption) (*modagent.GitLabResponse, error) {
 	config := modagent.ApplyRequestOptions(opts)
 	ctx, cancel := context.WithCancel(ctx)
-	client, errReq := a.Client.MakeRequest(ctx)
+	client, errReq := a.client.MakeRequest(ctx)
 	if errReq != nil {
 		cancel()
 		if config.Body != nil {
@@ -61,7 +70,7 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 	// Read response
 	go func() {
 		responseSent := false
-		err := a.ResponseVisitor.Visit(client,
+		err := a.responseVisitor.Visit(client,
 			grpctool.WithCallback(headerFieldNumber, func(header *grpctool.HttpResponse_Header) error {
 				resp := &modagent.GitLabResponse{
 					Status:     header.Response.Status,
@@ -119,7 +128,7 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 func (a *agentAPI) makeRequest(client gitlab_access_rpc.GitlabAccess_MakeRequestClient, path string, config *modagent.GitLabRequestConfig) (retErr error) {
 	defer errz.SafeClose(config.Body, &retErr)
 	extra, err := anypb.New(&gitlab_access_rpc.HeaderExtra{
-		ModuleName: a.ModuleName,
+		ModuleName: a.moduleName,
 	})
 	if err != nil {
 		return err

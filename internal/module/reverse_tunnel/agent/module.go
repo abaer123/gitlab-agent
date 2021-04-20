@@ -2,44 +2,53 @@ package agent
 
 import (
 	"context"
-	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/info"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 type module struct {
-	log                *zap.Logger
-	server             *grpc.Server
-	client             rpc.ReverseTunnelClient
-	internalServerConn grpc.ClientConnInterface
-	streamVisitor      *grpctool.StreamVisitor
-	connectRetryPeriod time.Duration
-	numConnections     int
+	server            *grpc.Server
+	numConnections    int
+	featureChan       <-chan bool
+	connectionFactory func(*info.AgentDescriptor) connectionInterface // helps testing
 }
 
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
 	descriptor := m.agentDescriptor()
 	var wg wait.Group
 	defer wg.Wait()
-	for i := 0; i < m.numConnections; i++ {
-		conn := connection{
-			log:                m.log,
-			descriptor:         descriptor,
-			client:             m.client,
-			internalServerConn: m.internalServerConn,
-			streamVisitor:      m.streamVisitor,
-			connectRetryPeriod: m.connectRetryPeriod,
+	var (
+		nestedCtx    context.Context
+		nestedCancel context.CancelFunc
+	)
+	for {
+		select {
+		case <-ctx.Done():
+			return nil // nolint:govet
+		case enabled := <-m.featureChan:
+			if enabled {
+				if nestedCancel != nil { // already enabled
+					continue
+				}
+				nestedCtx, nestedCancel = context.WithCancel(ctx) // nolint:govet
+				for i := 0; i < m.numConnections; i++ {
+					conn := m.connectionFactory(descriptor)
+					wg.StartWithContext(nestedCtx, conn.Run)
+				}
+			} else {
+				if nestedCancel == nil { // already disabled
+					continue
+				}
+				nestedCancel()
+				nestedCancel = nil
+				nestedCtx = nil // nolint:ineffassign
+			}
 		}
-		wg.StartWithContext(ctx, conn.Run)
 	}
-	return nil
 }
 
 func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error {

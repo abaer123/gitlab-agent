@@ -12,12 +12,13 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	reverse_tunnel_agent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/agent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modagent"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc"
 )
 
-func agentConstructComponents(t *testing.T, kasConn grpc.ClientConnInterface) (func(context.Context) error, *grpc.Server /* internalServer */) {
+func agentConstructComponents(t *testing.T, kasConn grpc.ClientConnInterface, agentApi *mock_modagent.MockAPI) (func(context.Context) error, *grpc.Server) {
 	log := zaptest.NewLogger(t)
 	internalListener := grpctool.NewDialListener()
 	internalServer := agentConstructInternalServer(log)
@@ -30,6 +31,7 @@ func agentConstructComponents(t *testing.T, kasConn grpc.ClientConnInterface) (f
 	}
 	config := &modagent.Config{
 		Log:     log,
+		Api:     agentApi,
 		KasConn: kasConn,
 		Server:  internalServer,
 	}

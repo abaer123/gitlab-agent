@@ -5,14 +5,14 @@
 package mock_kubernetes_api
 
 import (
-	"context"
-	"reflect"
+	context "context"
+	reflect "reflect"
 
-	"github.com/golang/mock/gomock"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/kubernetes_api/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
+	gomock "github.com/golang/mock/gomock"
+	rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/kubernetes_api/rpc"
+	grpctool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
+	grpc "google.golang.org/grpc"
+	metadata "google.golang.org/grpc/metadata"
 )
 
 // MockKubernetesApiClient is a mock of KubernetesApiClient interface.
