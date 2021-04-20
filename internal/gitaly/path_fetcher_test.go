@@ -78,12 +78,16 @@ func TestPathFetcher_HappyPath(t *testing.T) {
 		mockVisitor.EXPECT().
 			StreamChunk(expectedEntry1.Path, data1[1:]),
 		mockVisitor.EXPECT().
+			EntryDone(matcher.ProtoEq(t, expectedEntry1), nil),
+		mockVisitor.EXPECT().
 			Entry(matcher.ProtoEq(t, expectedEntry2)).
 			Return(true, fileMaxSize, nil),
 		mockVisitor.EXPECT().
 			StreamChunk(expectedEntry2.Path, data2[:1]),
 		mockVisitor.EXPECT().
 			StreamChunk(expectedEntry2.Path, data2[1:]),
+		mockVisitor.EXPECT().
+			EntryDone(matcher.ProtoEq(t, expectedEntry2), nil),
 	)
 	v := gitaly.PathFetcher{
 		Client: commitClient,
