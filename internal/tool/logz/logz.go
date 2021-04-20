@@ -20,8 +20,10 @@ const (
 	AgentConfig = "agent_config"
 	// EngineResourceKey is GitOps Engine's kube.ResourceKey.
 	EngineResourceKey = "resource_key"
-	// EngineResourceKey is GitOps Engine's synchronization result message.
-	EngineSyncResult = "sync_result"
+	// EngineSyncResult is GitOps Engine's synchronization result message.
+	EngineSyncResult   = "sync_result"
+	AgentFeatureName   = "feature_name"
+	AgentFeatureStatus = "feature_status"
 )
 
 func NetAddressFromAddr(addr net.Addr) zap.Field {

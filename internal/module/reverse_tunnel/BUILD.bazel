@@ -52,6 +52,7 @@ go_custom_test(
         "//internal/tool/grpctool/test",
         "//internal/tool/prototool",
         "//internal/tool/testing/matcher",
+        "//internal/tool/testing/mock_modagent",
         "//internal/tool/testing/mock_modserver",
         "//internal/tool/testing/mock_reverse_tunnel_rpc",
         "//internal/tool/testing/mock_reverse_tunnel_tracker",

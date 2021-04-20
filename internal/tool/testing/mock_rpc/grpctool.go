@@ -5,12 +5,12 @@
 package mock_rpc
 
 import (
-	"context"
-	"reflect"
+	context "context"
+	reflect "reflect"
 
-	"github.com/golang/mock/gomock"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
-	"google.golang.org/grpc/metadata"
+	gomock "github.com/golang/mock/gomock"
+	grpctool "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
+	metadata "google.golang.org/grpc/metadata"
 )
 
 // MockInboundGrpcToOutboundHttpStream is a mock of InboundGrpcToOutboundHttpStream interface.

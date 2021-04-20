@@ -6,6 +6,7 @@ go_library(
     srcs = [
         "api.go",
         "app.go",
+        "feature_tracker.go",
         "logz.go",
         "module_runner.go",
     ],
@@ -54,7 +55,10 @@ go_library(
 
 go_custom_test(
     name = "agentkapp_test",
-    srcs = ["module_runner_test.go"],
+    srcs = [
+        "feature_tracker_test.go",
+        "module_runner_test.go",
+    ],
     embed = [":agentkapp"],
     deps = [
         "//internal/module/agent_configuration/rpc",

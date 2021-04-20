@@ -129,6 +129,8 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 	if err != nil {
 		return nil, err
 	}
+	fTracker := newFeatureTracker(a.Log)
+	accessClient := gitlab_access_rpc.NewGitlabAccessClient(kasConn)
 	factories := []modagent.Factory{
 		//  Should be the first to configure logging ASAP
 		&observability_agent.Factory{
@@ -150,9 +152,10 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 			Log:       a.Log.With(logz.ModuleName(moduleName)),
 			AgentMeta: a.AgentMeta,
 			Api: &agentAPI{
-				ModuleName:      moduleName,
-				Client:          gitlab_access_rpc.NewGitlabAccessClient(kasConn),
-				ResponseVisitor: sv,
+				moduleName:      moduleName,
+				client:          accessClient,
+				responseVisitor: sv,
+				featureTracker:  fTracker,
 			},
 			K8sClientGetter: a.K8sClientGetter,
 			KasConn:         kasConn,
