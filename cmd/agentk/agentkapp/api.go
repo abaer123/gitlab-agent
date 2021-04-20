@@ -12,6 +12,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"gitlab.com/gitlab-org/labkit/errortracking"
+	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -30,6 +33,36 @@ type agentAPI struct {
 	client          gitlab_access_rpc.GitlabAccessClient
 	responseVisitor *grpctool.StreamVisitor
 	featureTracker  *featureTracker
+}
+
+func (a *agentAPI) HandleProcessingError(ctx context.Context, log *zap.Logger, msg string, err error) {
+	if grpctool.RequestCanceled(err) {
+		// An error caused by context signalling done
+		return
+	}
+	var ue *errz.UserError
+	isUserError := errors.As(err, &ue)
+	if isUserError {
+		// TODO Don't log it, send it somewhere the user can see it https://gitlab.com/gitlab-org/gitlab/-/issues/277323
+		// Log at Info for now.
+		log.Info(msg, zap.Error(err))
+	} else {
+		a.logAndCapture(ctx, log, msg, err)
+	}
+}
+
+func (a *agentAPI) HandleSendError(log *zap.Logger, msg string, err error) error {
+	// The problem is almost certainly with the client's connection.
+	// Still log it on Debug.
+	if !grpctool.RequestCanceled(err) {
+		log.Debug(msg, zap.Error(err))
+	}
+	return status.Error(codes.Unavailable, "gRPC send failed")
+}
+
+func (a *agentAPI) logAndCapture(ctx context.Context, log *zap.Logger, msg string, err error) {
+	// don't add logz.CorrelationIdFromContext(ctx) here as it's been added to the logger already
+	log.Error(msg, zap.Error(err))
 }
 
 func (a *agentAPI) ToggleFeature(feature modagent.Feature, enabled bool) {

@@ -12,13 +12,9 @@ go_library(
         "//internal/module/kubernetes_api",
         "//internal/module/kubernetes_api/rpc",
         "//internal/module/modagent",
-        "//internal/tool/errz",
         "//internal/tool/grpctool",
         "//pkg/agentcfg",
         "@io_k8s_apimachinery//pkg/runtime/schema",
         "@io_k8s_client_go//rest",
-        "@org_golang_google_grpc//codes",
-        "@org_golang_google_grpc//status",
-        "@org_uber_go_zap//:zap",
     ],
 )

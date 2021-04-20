@@ -9,9 +9,9 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
-	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -67,7 +67,7 @@ type Config struct {
 
 // API provides the API for the module to use.
 type API interface {
-	errortracking.Tracker
+	modshared.API
 	// GetAgentInfo encapsulates error checking logic.
 	// The signature is not conventional on purpose - the caller is not supposed to inspect the error,
 	// but instead return it if the bool is true. If the bool is false, AgentInfo is non-nil.
@@ -75,12 +75,6 @@ type API interface {
 	// PollImmediateUntil should be used by the top-level polling, so that it can be gracefully interrupted
 	// by the server when necessary.
 	PollImmediateUntil(ctx context.Context, interval, maxConnectionAge time.Duration, condition ConditionFunc) error
-	// HandleProcessingError can be used to handle errors occurring while handling a gRPC API call.
-	// If err is a (or wraps a) errz.UserError, it might be handled specially.
-	HandleProcessingError(ctx context.Context, log *zap.Logger, msg string, err error)
-	// HandleSendError can be used to handle error produced by gRPC SendMsg() method.
-	// It returns an error, compatible with gRPC status package.
-	HandleSendError(log *zap.Logger, msg string, err error) error
 }
 
 type Factory interface {

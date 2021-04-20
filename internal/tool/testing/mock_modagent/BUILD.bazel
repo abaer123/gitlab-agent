@@ -13,5 +13,6 @@ go_library(
         "//pkg/agentcfg",
         "@com_github_golang_mock//gomock",
         "@com_gitlab_gitlab_org_labkit//errortracking",
+        "@org_uber_go_zap//:zap",
     ],
 )

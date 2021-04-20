@@ -12,6 +12,7 @@ import (
 	modagent "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	agentcfg "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	errortracking "gitlab.com/gitlab-org/labkit/errortracking"
+	zap "go.uber.org/zap"
 )
 
 // MockAPI is a mock of API interface.
@@ -52,6 +53,32 @@ func (mr *MockAPIMockRecorder) Capture(arg0 interface{}, arg1 ...interface{}) *g
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Capture", reflect.TypeOf((*MockAPI)(nil).Capture), varargs...)
+}
+
+// HandleProcessingError mocks base method.
+func (m *MockAPI) HandleProcessingError(arg0 context.Context, arg1 *zap.Logger, arg2 string, arg3 error) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "HandleProcessingError", arg0, arg1, arg2, arg3)
+}
+
+// HandleProcessingError indicates an expected call of HandleProcessingError.
+func (mr *MockAPIMockRecorder) HandleProcessingError(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleProcessingError", reflect.TypeOf((*MockAPI)(nil).HandleProcessingError), arg0, arg1, arg2, arg3)
+}
+
+// HandleSendError mocks base method.
+func (m *MockAPI) HandleSendError(arg0 *zap.Logger, arg1 string, arg2 error) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HandleSendError", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// HandleSendError indicates an expected call of HandleSendError.
+func (mr *MockAPIMockRecorder) HandleSendError(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleSendError", reflect.TypeOf((*MockAPI)(nil).HandleSendError), arg0, arg1, arg2)
 }
 
 // MakeGitLabRequest mocks base method.
