@@ -4,11 +4,12 @@ This document collects random bits of knowledge about the project which do not f
 
 - **Q**: Why is the build slow? Why does the build pull so many dependencies?
 
-  **A**: `agentk` uses [`gitops-engine`](https://github.com/argoproj/gitops-engine) to implement [GitOps](gitops.md). `gitops-engine` for better or worse [depends on `k8s.io/kubernetes`](https://github.com/argoproj/gitops-engine/issues/56) package, which is the whole Kubernetes repository. This is why the project has a lot of dependencies to download and hence is slow to build.
-
-- **Q**: Why does the build print so many `go: finding module` messages?
-
-  **A**: See the previous entry. Kubernetes uses some packages from Docker, which depend on the logrus library. `go` modules support does not like invalid case of imports that some packages use and barfs at it. This is annoying but harmless. It may be fixed in newer Kubernetes/Docker versions already.
+  **A**: `agentk` uses [`gitops-engine`](https://github.com/argoproj/gitops-engine) to implement [GitOps](gitops.md).
+         `gitops-engine` for better or worse
+         [depends on `k8s.io/kubernetes`](https://github.com/argoproj/gitops-engine/issues/56) package, which is the
+         whole Kubernetes repository. We also depend on Cilium, which is [quite big too](https://github.com/cilium/cilium/issues/15823).
+         This is why the project has a lot of dependencies to download and hence is slow
+         to build.
 
 - **Q**: Why `agentk` is written in Go?
 
