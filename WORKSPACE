@@ -125,8 +125,8 @@ go_repository(
     build_file_proto_mode = "disable_global",
     importpath = "k8s.io/kubernetes",
     replace = "k8s.io/kubernetes",
-    sum = "h1:oY1KI7d/2rHETR3xngvQ46vuC1cNPp7R/5vQAVd2vqs=",
-    version = "v1.20.5",
+    sum = "h1:LUUQgdFsKB+wVgKPUapmXjkvvJHSLN53CuQwre4c+mM=",
+    version = "v1.21.0",
 )
 
 # It's here to add build tags

@@ -67,6 +67,7 @@ update-repos:
 		-prune=true \
 		-build_file_proto_mode=disable_global \
 		-to_macro=build/repositories.bzl%go_repositories
+	go mod tidy
 
 .PHONY: update-bazel
 update-bazel: gazelle
