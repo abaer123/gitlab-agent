@@ -37,6 +37,7 @@ func TestValidation_Invalid(t *testing.T) {
 			ErrString: "invalid ResourceFilterCF.ApiGroups: value must contain at least 1 item(s)",
 			Invalid: &ResourceFilterCF{
 				ApiGroups: []string{}, // empty list is not ok
+				Kinds:     []string{"any"},
 			},
 		},
 		{

@@ -293,8 +293,8 @@ github.com/envoyproxy/go-control-plane v0.9.9-0.20201210154907-fd9021fe5dad/go.m
 github.com/envoyproxy/go-control-plane v0.9.9-0.20210217033140-668b12f5399d/go.mod h1:cXg6YxExXjJnVBQHBLXeUAgxn2UodCpnH306RInaBQk=
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
 github.com/envoyproxy/protoc-gen-validate v0.4.2-0.20210105193028-872b28c45782/go.mod h1:xL5IroIBOR+aTp0IZk48epGwBV3+LcuaosPL0pr0hE0=
-github.com/envoyproxy/protoc-gen-validate v0.5.1 h1:MkpAQXrYF26uVnlFruA05G0xmM5rfE0OZDZPGY/UABU=
-github.com/envoyproxy/protoc-gen-validate v0.5.1/go.mod h1:xL5IroIBOR+aTp0IZk48epGwBV3+LcuaosPL0pr0hE0=
+github.com/envoyproxy/protoc-gen-validate v0.6.0 h1:frdmK9OVubC7yO3C7DWPx0zrJWtTfEDcvAETaiMZYv4=
+github.com/envoyproxy/protoc-gen-validate v0.6.0/go.mod h1:txg5va2Qkip90uYoSKH+nkAAmXrb2j3iq4FLwdrCbXQ=
 github.com/etcd-io/bbolt v1.3.3/go.mod h1:ZF2nL25h33cCyBtcyWeZ2/I3HQOfTP+0PIEvHjkjCrw=
 github.com/euank/go-kmsg-parser v2.0.0+incompatible/go.mod h1:MhmAMZ8V4CYH4ybgdRwPr2TU5ThnS43puaKEMpja1uw=
 github.com/evanphx/json-patch v4.5.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=

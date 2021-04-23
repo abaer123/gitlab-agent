@@ -9,7 +9,7 @@ require (
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/cilium/cilium v1.9.6
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1.0.20200107205605-c66185887605
-	github.com/envoyproxy/protoc-gen-validate v0.5.1
+	github.com/envoyproxy/protoc-gen-validate v0.6.0
 	github.com/go-logr/zapr v0.4.0
 	github.com/go-redis/redis/v8 v8.8.2
 	github.com/go-redis/redismock/v8 v8.0.6

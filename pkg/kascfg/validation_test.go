@@ -189,6 +189,11 @@ func TestValidation_Invalid(t *testing.T) {
 			Name:      "zero RedisCF.DialTimeout",
 			ErrString: "invalid RedisCF.DialTimeout: value must be greater than 0s",
 			Invalid: &RedisCF{
+				RedisConfig: &RedisCF_Server{
+					Server: &RedisServerCF{
+						Address: "//path/to/socket.sock",
+					},
+				},
 				DialTimeout: durationpb.New(0),
 			},
 		},
@@ -196,6 +201,11 @@ func TestValidation_Invalid(t *testing.T) {
 			Name:      "negative RedisCF.DialTimeout",
 			ErrString: "invalid RedisCF.DialTimeout: value must be greater than 0s",
 			Invalid: &RedisCF{
+				RedisConfig: &RedisCF_Server{
+					Server: &RedisServerCF{
+						Address: "//path/to/socket.sock",
+					},
+				},
 				DialTimeout: durationpb.New(-1),
 			},
 		},
@@ -203,6 +213,11 @@ func TestValidation_Invalid(t *testing.T) {
 			Name:      "zero RedisCF.ReadTimeout",
 			ErrString: "invalid RedisCF.ReadTimeout: value must be greater than 0s",
 			Invalid: &RedisCF{
+				RedisConfig: &RedisCF_Server{
+					Server: &RedisServerCF{
+						Address: "//path/to/socket.sock",
+					},
+				},
 				ReadTimeout: durationpb.New(0),
 			},
 		},
@@ -210,6 +225,11 @@ func TestValidation_Invalid(t *testing.T) {
 			Name:      "negative RedisCF.ReadTimeout",
 			ErrString: "invalid RedisCF.ReadTimeout: value must be greater than 0s",
 			Invalid: &RedisCF{
+				RedisConfig: &RedisCF_Server{
+					Server: &RedisServerCF{
+						Address: "//path/to/socket.sock",
+					},
+				},
 				ReadTimeout: durationpb.New(-1),
 			},
 		},
@@ -217,6 +237,11 @@ func TestValidation_Invalid(t *testing.T) {
 			Name:      "zero RedisCF.WriteTimeout",
 			ErrString: "invalid RedisCF.WriteTimeout: value must be greater than 0s",
 			Invalid: &RedisCF{
+				RedisConfig: &RedisCF_Server{
+					Server: &RedisServerCF{
+						Address: "//path/to/socket.sock",
+					},
+				},
 				WriteTimeout: durationpb.New(0),
 			},
 		},
@@ -224,6 +249,11 @@ func TestValidation_Invalid(t *testing.T) {
 			Name:      "negative RedisCF.WriteTimeout",
 			ErrString: "invalid RedisCF.WriteTimeout: value must be greater than 0s",
 			Invalid: &RedisCF{
+				RedisConfig: &RedisCF_Server{
+					Server: &RedisServerCF{
+						Address: "//path/to/socket.sock",
+					},
+				},
 				WriteTimeout: durationpb.New(-1),
 			},
 		},
@@ -231,6 +261,11 @@ func TestValidation_Invalid(t *testing.T) {
 			Name:      "zero RedisCF.IdleTimeout",
 			ErrString: "invalid RedisCF.IdleTimeout: value must be greater than 0s",
 			Invalid: &RedisCF{
+				RedisConfig: &RedisCF_Server{
+					Server: &RedisServerCF{
+						Address: "//path/to/socket.sock",
+					},
+				},
 				IdleTimeout: durationpb.New(0),
 			},
 		},
@@ -238,6 +273,11 @@ func TestValidation_Invalid(t *testing.T) {
 			Name:      "negative RedisCF.IdleTimeout",
 			ErrString: "invalid RedisCF.IdleTimeout: value must be greater than 0s",
 			Invalid: &RedisCF{
+				RedisConfig: &RedisCF_Server{
+					Server: &RedisServerCF{
+						Address: "//path/to/socket.sock",
+					},
+				},
 				IdleTimeout: durationpb.New(-1),
 			},
 		},
@@ -281,7 +321,7 @@ func TestValidation_Invalid(t *testing.T) {
 		},
 		{
 			Name:      "empty GitLabCF.Address",
-			ErrString: "invalid GitLabCF.Address: value length must be at least 1 runes",
+			ErrString: "invalid GitLabCF.Address: value length must be at least 1 runes; invalid GitLabCF.Address: value must be absolute",
 			Invalid: &GitLabCF{
 				AuthenticationSecretFile: "/some/file",
 			},

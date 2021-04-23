@@ -157,8 +157,8 @@ go_repository(
     patches = [
         "@gitlab_k8s_agent//build:validate_dependency.patch",
     ],
-    sum = "h1:MkpAQXrYF26uVnlFruA05G0xmM5rfE0OZDZPGY/UABU=",
-    version = "v0.5.1",
+    sum = "h1:frdmK9OVubC7yO3C7DWPx0zrJWtTfEDcvAETaiMZYv4=",
+    version = "v0.6.0",
 )
 
 # Copied from rules_go to keep patches in place

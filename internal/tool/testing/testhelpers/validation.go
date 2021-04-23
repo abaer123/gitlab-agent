@@ -7,7 +7,7 @@ import (
 )
 
 type Validatable interface {
-	Validate() error
+	Validate(bool) error
 }
 
 type InvalidTestcase struct {
@@ -26,7 +26,7 @@ func AssertInvalid(t *testing.T, tests []InvalidTestcase) {
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) { // nolint: scopelint
 			t.Helper()
-			err := tc.Invalid.Validate()            // nolint: scopelint
+			err := tc.Invalid.Validate(true)        // nolint: scopelint
 			assert.EqualError(t, err, tc.ErrString) // nolint: scopelint
 		})
 	}
@@ -37,7 +37,7 @@ func AssertValid(t *testing.T, tests []ValidTestcase) {
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) { // nolint: scopelint
 			t.Helper()
-			assert.NoError(t, tc.Valid.Validate()) // nolint: scopelint
+			assert.NoError(t, tc.Valid.Validate(true)) // nolint: scopelint
 		})
 	}
 }
