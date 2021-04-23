@@ -15,7 +15,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // ensure the imports are used
@@ -30,26 +30,54 @@ var (
 	_ = time.Duration(0)
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
-	_ = ptypes.DynamicAny{}
+	_ = anypb.Any{}
 )
 
 // Validate checks the field values on HeaderExtra with the rules defined in
 // the proto definition for this message. If any rules are violated, an error
-// is returned.
-func (m *HeaderExtra) Validate() error {
+// is returned. When asked to return all errors, validation continues after
+// first violation, and the result is a list of violation errors wrapped in
+// HeaderExtraMultiError, or nil if none found. Otherwise, only the first
+// error is returned, if any.
+func (m *HeaderExtra) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	if utf8.RuneCountInString(m.GetModuleName()) < 1 {
-		return HeaderExtraValidationError{
+		err := HeaderExtraValidationError{
 			field:  "ModuleName",
 			reason: "value length must be at least 1 runes",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
+	if len(errors) > 0 {
+		return HeaderExtraMultiError(errors)
+	}
 	return nil
 }
+
+// HeaderExtraMultiError is an error wrapping multiple validation errors
+// returned by HeaderExtra.Validate(true) if the designated constraints aren't met.
+type HeaderExtraMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m HeaderExtraMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m HeaderExtraMultiError) AllErrors() []error { return m }
 
 // HeaderExtraValidationError is the validation error returned by
 // HeaderExtra.Validate if the designated constraints aren't met.

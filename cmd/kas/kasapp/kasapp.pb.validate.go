@@ -15,7 +15,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // ensure the imports are used
@@ -30,19 +30,44 @@ var (
 	_ = time.Duration(0)
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
-	_ = ptypes.DynamicAny{}
+	_ = anypb.Any{}
 )
 
 // Validate checks the field values on StartStreaming with the rules defined in
 // the proto definition for this message. If any rules are violated, an error
-// is returned.
-func (m *StartStreaming) Validate() error {
+// is returned. When asked to return all errors, validation continues after
+// first violation, and the result is a list of violation errors wrapped in
+// StartStreamingMultiError, or nil if none found. Otherwise, only the first
+// error is returned, if any.
+func (m *StartStreaming) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
+	if len(errors) > 0 {
+		return StartStreamingMultiError(errors)
+	}
 	return nil
 }
+
+// StartStreamingMultiError is an error wrapping multiple validation errors
+// returned by StartStreaming.Validate(true) if the designated constraints
+// aren't met.
+type StartStreamingMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m StartStreamingMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m StartStreamingMultiError) AllErrors() []error { return m }
 
 // StartStreamingValidationError is the validation error returned by
 // StartStreaming.Validate if the designated constraints aren't met.
@@ -100,84 +125,133 @@ var _ interface {
 
 // Validate checks the field values on GatewayKasResponse with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
-func (m *GatewayKasResponse) Validate() error {
+// violated, an error is returned. When asked to return all errors, validation
+// continues after first violation, and the result is a list of violation
+// errors wrapped in GatewayKasResponseMultiError, or nil if none found.
+// Otherwise, only the first error is returned, if any.
+func (m *GatewayKasResponse) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
+
+	var errors []error
 
 	switch m.Msg.(type) {
 
 	case *GatewayKasResponse_TunnelReady_:
 
-		if v, ok := interface{}(m.GetTunnelReady()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return GatewayKasResponseValidationError{
+		if v, ok := interface{}(m.GetTunnelReady()).(interface{ Validate(bool) error }); ok {
+			if err := v.Validate(all); err != nil {
+				err = GatewayKasResponseValidationError{
 					field:  "TunnelReady",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
 			}
 		}
 
 	case *GatewayKasResponse_Header_:
 
-		if v, ok := interface{}(m.GetHeader()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return GatewayKasResponseValidationError{
+		if v, ok := interface{}(m.GetHeader()).(interface{ Validate(bool) error }); ok {
+			if err := v.Validate(all); err != nil {
+				err = GatewayKasResponseValidationError{
 					field:  "Header",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
 			}
 		}
 
 	case *GatewayKasResponse_Message_:
 
-		if v, ok := interface{}(m.GetMessage()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return GatewayKasResponseValidationError{
+		if v, ok := interface{}(m.GetMessage()).(interface{ Validate(bool) error }); ok {
+			if err := v.Validate(all); err != nil {
+				err = GatewayKasResponseValidationError{
 					field:  "Message",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
 			}
 		}
 
 	case *GatewayKasResponse_Trailer_:
 
-		if v, ok := interface{}(m.GetTrailer()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return GatewayKasResponseValidationError{
+		if v, ok := interface{}(m.GetTrailer()).(interface{ Validate(bool) error }); ok {
+			if err := v.Validate(all); err != nil {
+				err = GatewayKasResponseValidationError{
 					field:  "Trailer",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
 			}
 		}
 
 	case *GatewayKasResponse_Error_:
 
-		if v, ok := interface{}(m.GetError()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return GatewayKasResponseValidationError{
+		if v, ok := interface{}(m.GetError()).(interface{ Validate(bool) error }); ok {
+			if err := v.Validate(all); err != nil {
+				err = GatewayKasResponseValidationError{
 					field:  "Error",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
 			}
 		}
 
 	default:
-		return GatewayKasResponseValidationError{
+		err := GatewayKasResponseValidationError{
 			field:  "Msg",
 			reason: "value is required",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 
 	}
 
+	if len(errors) > 0 {
+		return GatewayKasResponseMultiError(errors)
+	}
 	return nil
 }
+
+// GatewayKasResponseMultiError is an error wrapping multiple validation errors
+// returned by GatewayKasResponse.Validate(true) if the designated constraints
+// aren't met.
+type GatewayKasResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GatewayKasResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GatewayKasResponseMultiError) AllErrors() []error { return m }
 
 // GatewayKasResponseValidationError is the validation error returned by
 // GatewayKasResponse.Validate if the designated constraints aren't met.
@@ -237,14 +311,39 @@ var _ interface {
 
 // Validate checks the field values on GatewayKasResponse_TunnelReady with the
 // rules defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
-func (m *GatewayKasResponse_TunnelReady) Validate() error {
+// violated, an error is returned. When asked to return all errors, validation
+// continues after first violation, and the result is a list of violation
+// errors wrapped in GatewayKasResponse_TunnelReadyMultiError, or nil if none
+// found. Otherwise, only the first error is returned, if any.
+func (m *GatewayKasResponse_TunnelReady) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
+	if len(errors) > 0 {
+		return GatewayKasResponse_TunnelReadyMultiError(errors)
+	}
 	return nil
 }
+
+// GatewayKasResponse_TunnelReadyMultiError is an error wrapping multiple
+// validation errors returned by GatewayKasResponse_TunnelReady.Validate(true)
+// if the designated constraints aren't met.
+type GatewayKasResponse_TunnelReadyMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GatewayKasResponse_TunnelReadyMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GatewayKasResponse_TunnelReadyMultiError) AllErrors() []error { return m }
 
 // GatewayKasResponse_TunnelReadyValidationError is the validation error
 // returned by GatewayKasResponse_TunnelReady.Validate if the designated
@@ -305,31 +404,60 @@ var _ interface {
 
 // Validate checks the field values on GatewayKasResponse_Header with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
-func (m *GatewayKasResponse_Header) Validate() error {
+// violated, an error is returned. When asked to return all errors, validation
+// continues after first violation, and the result is a list of violation
+// errors wrapped in GatewayKasResponse_HeaderMultiError, or nil if none
+// found. Otherwise, only the first error is returned, if any.
+func (m *GatewayKasResponse_Header) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
+
+	var errors []error
 
 	for key, val := range m.GetMeta() {
 		_ = val
 
 		// no validation rules for Meta[key]
 
-		if v, ok := interface{}(val).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return GatewayKasResponse_HeaderValidationError{
+		if v, ok := interface{}(val).(interface{ Validate(bool) error }); ok {
+			if err := v.Validate(all); err != nil {
+				err = GatewayKasResponse_HeaderValidationError{
 					field:  fmt.Sprintf("Meta[%v]", key),
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
 			}
 		}
 
 	}
 
+	if len(errors) > 0 {
+		return GatewayKasResponse_HeaderMultiError(errors)
+	}
 	return nil
 }
+
+// GatewayKasResponse_HeaderMultiError is an error wrapping multiple validation
+// errors returned by GatewayKasResponse_Header.Validate(true) if the
+// designated constraints aren't met.
+type GatewayKasResponse_HeaderMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GatewayKasResponse_HeaderMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GatewayKasResponse_HeaderMultiError) AllErrors() []error { return m }
 
 // GatewayKasResponse_HeaderValidationError is the validation error returned by
 // GatewayKasResponse_Header.Validate if the designated constraints aren't met.
@@ -389,16 +517,41 @@ var _ interface {
 
 // Validate checks the field values on GatewayKasResponse_Message with the
 // rules defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
-func (m *GatewayKasResponse_Message) Validate() error {
+// violated, an error is returned. When asked to return all errors, validation
+// continues after first violation, and the result is a list of violation
+// errors wrapped in GatewayKasResponse_MessageMultiError, or nil if none
+// found. Otherwise, only the first error is returned, if any.
+func (m *GatewayKasResponse_Message) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	// no validation rules for Data
 
+	if len(errors) > 0 {
+		return GatewayKasResponse_MessageMultiError(errors)
+	}
 	return nil
 }
+
+// GatewayKasResponse_MessageMultiError is an error wrapping multiple
+// validation errors returned by GatewayKasResponse_Message.Validate(true) if
+// the designated constraints aren't met.
+type GatewayKasResponse_MessageMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GatewayKasResponse_MessageMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GatewayKasResponse_MessageMultiError) AllErrors() []error { return m }
 
 // GatewayKasResponse_MessageValidationError is the validation error returned
 // by GatewayKasResponse_Message.Validate if the designated constraints aren't met.
@@ -458,31 +611,60 @@ var _ interface {
 
 // Validate checks the field values on GatewayKasResponse_Trailer with the
 // rules defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
-func (m *GatewayKasResponse_Trailer) Validate() error {
+// violated, an error is returned. When asked to return all errors, validation
+// continues after first violation, and the result is a list of violation
+// errors wrapped in GatewayKasResponse_TrailerMultiError, or nil if none
+// found. Otherwise, only the first error is returned, if any.
+func (m *GatewayKasResponse_Trailer) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
+
+	var errors []error
 
 	for key, val := range m.GetMeta() {
 		_ = val
 
 		// no validation rules for Meta[key]
 
-		if v, ok := interface{}(val).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return GatewayKasResponse_TrailerValidationError{
+		if v, ok := interface{}(val).(interface{ Validate(bool) error }); ok {
+			if err := v.Validate(all); err != nil {
+				err = GatewayKasResponse_TrailerValidationError{
 					field:  fmt.Sprintf("Meta[%v]", key),
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
 			}
 		}
 
 	}
 
+	if len(errors) > 0 {
+		return GatewayKasResponse_TrailerMultiError(errors)
+	}
 	return nil
 }
+
+// GatewayKasResponse_TrailerMultiError is an error wrapping multiple
+// validation errors returned by GatewayKasResponse_Trailer.Validate(true) if
+// the designated constraints aren't met.
+type GatewayKasResponse_TrailerMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GatewayKasResponse_TrailerMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GatewayKasResponse_TrailerMultiError) AllErrors() []error { return m }
 
 // GatewayKasResponse_TrailerValidationError is the validation error returned
 // by GatewayKasResponse_Trailer.Validate if the designated constraints aren't met.
@@ -542,31 +724,64 @@ var _ interface {
 
 // Validate checks the field values on GatewayKasResponse_Error with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
-func (m *GatewayKasResponse_Error) Validate() error {
+// violated, an error is returned. When asked to return all errors, validation
+// continues after first violation, and the result is a list of violation
+// errors wrapped in GatewayKasResponse_ErrorMultiError, or nil if none found.
+// Otherwise, only the first error is returned, if any.
+func (m *GatewayKasResponse_Error) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	if m.GetStatus() == nil {
-		return GatewayKasResponse_ErrorValidationError{
+		err := GatewayKasResponse_ErrorValidationError{
 			field:  "Status",
 			reason: "value is required",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
-	if v, ok := interface{}(m.GetStatus()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return GatewayKasResponse_ErrorValidationError{
+	if v, ok := interface{}(m.GetStatus()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = GatewayKasResponse_ErrorValidationError{
 				field:  "Status",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
+	if len(errors) > 0 {
+		return GatewayKasResponse_ErrorMultiError(errors)
+	}
 	return nil
 }
+
+// GatewayKasResponse_ErrorMultiError is an error wrapping multiple validation
+// errors returned by GatewayKasResponse_Error.Validate(true) if the
+// designated constraints aren't met.
+type GatewayKasResponse_ErrorMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GatewayKasResponse_ErrorMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GatewayKasResponse_ErrorMultiError) AllErrors() []error { return m }
 
 // GatewayKasResponse_ErrorValidationError is the validation error returned by
 // GatewayKasResponse_Error.Validate if the designated constraints aren't met.

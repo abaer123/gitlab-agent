@@ -20,9 +20,9 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
-        "@com_github_golang_protobuf//ptypes",
         "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_golang_google_protobuf//runtime/protoimpl",
+        "@org_golang_google_protobuf//types/known/anypb",
     ],
 )
 

@@ -15,7 +15,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // ensure the imports are used
@@ -30,16 +30,21 @@ var (
 	_ = time.Duration(0)
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
-	_ = ptypes.DynamicAny{}
+	_ = anypb.Any{}
 )
 
 // Validate checks the field values on ListenAgentCF with the rules defined in
 // the proto definition for this message. If any rules are violated, an error
-// is returned.
-func (m *ListenAgentCF) Validate() error {
+// is returned. When asked to return all errors, validation continues after
+// first violation, and the result is a list of violation errors wrapped in
+// ListenAgentCFMultiError, or nil if none found. Otherwise, only the first
+// error is returned, if any.
+func (m *ListenAgentCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
+
+	var errors []error
 
 	// no validation rules for Network
 
@@ -54,28 +59,57 @@ func (m *ListenAgentCF) Validate() error {
 	// no validation rules for ConnectionsPerTokenPerMinute
 
 	if d := m.GetMaxConnectionAge(); d != nil {
-		dur, err := ptypes.Duration(d)
+		dur, err := d.AsDuration(), d.CheckValid()
 		if err != nil {
-			return ListenAgentCFValidationError{
+			err = ListenAgentCFValidationError{
 				field:  "MaxConnectionAge",
 				reason: "value is not a valid duration",
 				cause:  err,
 			}
-		}
-
-		gt := time.Duration(0*time.Second + 0*time.Nanosecond)
-
-		if dur <= gt {
-			return ListenAgentCFValidationError{
-				field:  "MaxConnectionAge",
-				reason: "value must be greater than 0s",
+			if !all {
+				return err
 			}
-		}
+			errors = append(errors, err)
+		} else {
 
+			gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur <= gt {
+				err := ListenAgentCFValidationError{
+					field:  "MaxConnectionAge",
+					reason: "value must be greater than 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
 	}
 
+	if len(errors) > 0 {
+		return ListenAgentCFMultiError(errors)
+	}
 	return nil
 }
+
+// ListenAgentCFMultiError is an error wrapping multiple validation errors
+// returned by ListenAgentCF.Validate(true) if the designated constraints
+// aren't met.
+type ListenAgentCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListenAgentCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListenAgentCFMultiError) AllErrors() []error { return m }
 
 // ListenAgentCFValidationError is the validation error returned by
 // ListenAgentCF.Validate if the designated constraints aren't met.
@@ -133,16 +167,41 @@ var _ interface {
 
 // Validate checks the field values on PrometheusCF with the rules defined in
 // the proto definition for this message. If any rules are violated, an error
-// is returned.
-func (m *PrometheusCF) Validate() error {
+// is returned. When asked to return all errors, validation continues after
+// first violation, and the result is a list of violation errors wrapped in
+// PrometheusCFMultiError, or nil if none found. Otherwise, only the first
+// error is returned, if any.
+func (m *PrometheusCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	// no validation rules for UrlPath
 
+	if len(errors) > 0 {
+		return PrometheusCFMultiError(errors)
+	}
 	return nil
 }
+
+// PrometheusCFMultiError is an error wrapping multiple validation errors
+// returned by PrometheusCF.Validate(true) if the designated constraints
+// aren't met.
+type PrometheusCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m PrometheusCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m PrometheusCFMultiError) AllErrors() []error { return m }
 
 // PrometheusCFValidationError is the validation error returned by
 // PrometheusCF.Validate if the designated constraints aren't met.
@@ -200,18 +259,43 @@ var _ interface {
 
 // Validate checks the field values on ObservabilityListenCF with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
-func (m *ObservabilityListenCF) Validate() error {
+// violated, an error is returned. When asked to return all errors, validation
+// continues after first violation, and the result is a list of violation
+// errors wrapped in ObservabilityListenCFMultiError, or nil if none found.
+// Otherwise, only the first error is returned, if any.
+func (m *ObservabilityListenCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
+
+	var errors []error
 
 	// no validation rules for Network
 
 	// no validation rules for Address
 
+	if len(errors) > 0 {
+		return ObservabilityListenCFMultiError(errors)
+	}
 	return nil
 }
+
+// ObservabilityListenCFMultiError is an error wrapping multiple validation
+// errors returned by ObservabilityListenCF.Validate(true) if the designated
+// constraints aren't met.
+type ObservabilityListenCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ObservabilityListenCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ObservabilityListenCFMultiError) AllErrors() []error { return m }
 
 // ObservabilityListenCFValidationError is the validation error returned by
 // ObservabilityListenCF.Validate if the designated constraints aren't met.
@@ -270,16 +354,41 @@ var _ interface {
 } = ObservabilityListenCFValidationError{}
 
 // Validate checks the field values on TracingCF with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is returned.
-func (m *TracingCF) Validate() error {
+// proto definition for this message. If any rules are violated, an error is
+// returned. When asked to return all errors, validation continues after first
+// violation, and the result is a list of violation errors wrapped in
+// TracingCFMultiError, or nil if none found. Otherwise, only the first error
+// is returned, if any.
+func (m *TracingCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	// no validation rules for ConnectionString
 
+	if len(errors) > 0 {
+		return TracingCFMultiError(errors)
+	}
 	return nil
 }
+
+// TracingCFMultiError is an error wrapping multiple validation errors returned
+// by TracingCF.Validate(true) if the designated constraints aren't met.
+type TracingCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m TracingCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m TracingCFMultiError) AllErrors() []error { return m }
 
 // TracingCFValidationError is the validation error returned by
 // TracingCF.Validate if the designated constraints aren't met.
@@ -336,16 +445,41 @@ var _ interface {
 } = TracingCFValidationError{}
 
 // Validate checks the field values on LoggingCF with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is returned.
-func (m *LoggingCF) Validate() error {
+// proto definition for this message. If any rules are violated, an error is
+// returned. When asked to return all errors, validation continues after first
+// violation, and the result is a list of violation errors wrapped in
+// LoggingCFMultiError, or nil if none found. Otherwise, only the first error
+// is returned, if any.
+func (m *LoggingCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	// no validation rules for Level
 
+	if len(errors) > 0 {
+		return LoggingCFMultiError(errors)
+	}
 	return nil
 }
+
+// LoggingCFMultiError is an error wrapping multiple validation errors returned
+// by LoggingCF.Validate(true) if the designated constraints aren't met.
+type LoggingCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m LoggingCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m LoggingCFMultiError) AllErrors() []error { return m }
 
 // LoggingCFValidationError is the validation error returned by
 // LoggingCF.Validate if the designated constraints aren't met.
@@ -402,53 +536,98 @@ var _ interface {
 } = LoggingCFValidationError{}
 
 // Validate checks the field values on GitLabCF with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is returned.
-func (m *GitLabCF) Validate() error {
+// proto definition for this message. If any rules are violated, an error is
+// returned. When asked to return all errors, validation continues after first
+// violation, and the result is a list of violation errors wrapped in
+// GitLabCFMultiError, or nil if none found. Otherwise, only the first error
+// is returned, if any.
+func (m *GitLabCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	if utf8.RuneCountInString(m.GetAddress()) < 1 {
-		return GitLabCFValidationError{
+		err := GitLabCFValidationError{
 			field:  "Address",
 			reason: "value length must be at least 1 runes",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
 	if uri, err := url.Parse(m.GetAddress()); err != nil {
-		return GitLabCFValidationError{
+		err = GitLabCFValidationError{
 			field:  "Address",
 			reason: "value must be a valid URI",
 			cause:  err,
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	} else if !uri.IsAbs() {
-		return GitLabCFValidationError{
+		err := GitLabCFValidationError{
 			field:  "Address",
 			reason: "value must be absolute",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
 	if utf8.RuneCountInString(m.GetAuthenticationSecretFile()) < 1 {
-		return GitLabCFValidationError{
+		err := GitLabCFValidationError{
 			field:  "AuthenticationSecretFile",
 			reason: "value length must be at least 1 runes",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
 	// no validation rules for CaCertificateFile
 
-	if v, ok := interface{}(m.GetApiRateLimit()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return GitLabCFValidationError{
+	if v, ok := interface{}(m.GetApiRateLimit()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = GitLabCFValidationError{
 				field:  "ApiRateLimit",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
+	if len(errors) > 0 {
+		return GitLabCFMultiError(errors)
+	}
 	return nil
 }
+
+// GitLabCFMultiError is an error wrapping multiple validation errors returned
+// by GitLabCF.Validate(true) if the designated constraints aren't met.
+type GitLabCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GitLabCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GitLabCFMultiError) AllErrors() []error { return m }
 
 // GitLabCFValidationError is the validation error returned by
 // GitLabCF.Validate if the designated constraints aren't met.
@@ -505,73 +684,106 @@ var _ interface {
 } = GitLabCFValidationError{}
 
 // Validate checks the field values on GitopsCF with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is returned.
-func (m *GitopsCF) Validate() error {
+// proto definition for this message. If any rules are violated, an error is
+// returned. When asked to return all errors, validation continues after first
+// violation, and the result is a list of violation errors wrapped in
+// GitopsCFMultiError, or nil if none found. Otherwise, only the first error
+// is returned, if any.
+func (m *GitopsCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	if d := m.GetPollPeriod(); d != nil {
-		dur, err := ptypes.Duration(d)
+		dur, err := d.AsDuration(), d.CheckValid()
 		if err != nil {
-			return GitopsCFValidationError{
+			err = GitopsCFValidationError{
 				field:  "PollPeriod",
 				reason: "value is not a valid duration",
 				cause:  err,
 			}
-		}
-
-		gt := time.Duration(0*time.Second + 0*time.Nanosecond)
-
-		if dur <= gt {
-			return GitopsCFValidationError{
-				field:  "PollPeriod",
-				reason: "value must be greater than 0s",
+			if !all {
+				return err
 			}
-		}
+			errors = append(errors, err)
+		} else {
 
+			gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur <= gt {
+				err := GitopsCFValidationError{
+					field:  "PollPeriod",
+					reason: "value must be greater than 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
 	}
 
 	if d := m.GetProjectInfoCacheTtl(); d != nil {
-		dur, err := ptypes.Duration(d)
+		dur, err := d.AsDuration(), d.CheckValid()
 		if err != nil {
-			return GitopsCFValidationError{
+			err = GitopsCFValidationError{
 				field:  "ProjectInfoCacheTtl",
 				reason: "value is not a valid duration",
 				cause:  err,
 			}
-		}
-
-		gte := time.Duration(0*time.Second + 0*time.Nanosecond)
-
-		if dur < gte {
-			return GitopsCFValidationError{
-				field:  "ProjectInfoCacheTtl",
-				reason: "value must be greater than or equal to 0s",
+			if !all {
+				return err
 			}
-		}
+			errors = append(errors, err)
+		} else {
 
+			gte := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur < gte {
+				err := GitopsCFValidationError{
+					field:  "ProjectInfoCacheTtl",
+					reason: "value must be greater than or equal to 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
 	}
 
 	if d := m.GetProjectInfoCacheErrorTtl(); d != nil {
-		dur, err := ptypes.Duration(d)
+		dur, err := d.AsDuration(), d.CheckValid()
 		if err != nil {
-			return GitopsCFValidationError{
+			err = GitopsCFValidationError{
 				field:  "ProjectInfoCacheErrorTtl",
 				reason: "value is not a valid duration",
 				cause:  err,
 			}
-		}
-
-		gt := time.Duration(0*time.Second + 0*time.Nanosecond)
-
-		if dur <= gt {
-			return GitopsCFValidationError{
-				field:  "ProjectInfoCacheErrorTtl",
-				reason: "value must be greater than 0s",
+			if !all {
+				return err
 			}
-		}
+			errors = append(errors, err)
+		} else {
 
+			gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur <= gt {
+				err := GitopsCFValidationError{
+					field:  "ProjectInfoCacheErrorTtl",
+					reason: "value must be greater than 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
 	}
 
 	// no validation rules for MaxManifestFileSize
@@ -582,8 +794,27 @@ func (m *GitopsCF) Validate() error {
 
 	// no validation rules for MaxNumberOfFiles
 
+	if len(errors) > 0 {
+		return GitopsCFMultiError(errors)
+	}
 	return nil
 }
+
+// GitopsCFMultiError is an error wrapping multiple validation errors returned
+// by GitopsCF.Validate(true) if the designated constraints aren't met.
+type GitopsCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GitopsCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GitopsCFMultiError) AllErrors() []error { return m }
 
 // GitopsCFValidationError is the validation error returned by
 // GitopsCF.Validate if the designated constraints aren't met.
@@ -640,18 +871,43 @@ var _ interface {
 } = GitopsCFValidationError{}
 
 // Validate checks the field values on SentryCF with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is returned.
-func (m *SentryCF) Validate() error {
+// proto definition for this message. If any rules are violated, an error is
+// returned. When asked to return all errors, validation continues after first
+// violation, and the result is a list of violation errors wrapped in
+// SentryCFMultiError, or nil if none found. Otherwise, only the first error
+// is returned, if any.
+func (m *SentryCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
+
+	var errors []error
 
 	// no validation rules for Dsn
 
 	// no validation rules for Environment
 
+	if len(errors) > 0 {
+		return SentryCFMultiError(errors)
+	}
 	return nil
 }
+
+// SentryCFMultiError is an error wrapping multiple validation errors returned
+// by SentryCF.Validate(true) if the designated constraints aren't met.
+type SentryCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m SentryCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m SentryCFMultiError) AllErrors() []error { return m }
 
 // SentryCFValidationError is the validation error returned by
 // SentryCF.Validate if the designated constraints aren't met.
@@ -709,11 +965,16 @@ var _ interface {
 
 // Validate checks the field values on ListenKubernetesApiCF with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
-func (m *ListenKubernetesApiCF) Validate() error {
+// violated, an error is returned. When asked to return all errors, validation
+// continues after first violation, and the result is a list of violation
+// errors wrapped in ListenKubernetesApiCFMultiError, or nil if none found.
+// Otherwise, only the first error is returned, if any.
+func (m *ListenKubernetesApiCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
+
+	var errors []error
 
 	// no validation rules for Network
 
@@ -723,8 +984,28 @@ func (m *ListenKubernetesApiCF) Validate() error {
 
 	// no validation rules for KeyFile
 
+	if len(errors) > 0 {
+		return ListenKubernetesApiCFMultiError(errors)
+	}
 	return nil
 }
+
+// ListenKubernetesApiCFMultiError is an error wrapping multiple validation
+// errors returned by ListenKubernetesApiCF.Validate(true) if the designated
+// constraints aren't met.
+type ListenKubernetesApiCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListenKubernetesApiCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListenKubernetesApiCFMultiError) AllErrors() []error { return m }
 
 // ListenKubernetesApiCFValidationError is the validation error returned by
 // ListenKubernetesApiCF.Validate if the designated constraints aren't met.
@@ -784,24 +1065,53 @@ var _ interface {
 
 // Validate checks the field values on KubernetesApiCF with the rules defined
 // in the proto definition for this message. If any rules are violated, an
-// error is returned.
-func (m *KubernetesApiCF) Validate() error {
+// error is returned. When asked to return all errors, validation continues
+// after first violation, and the result is a list of violation errors wrapped
+// in KubernetesApiCFMultiError, or nil if none found. Otherwise, only the
+// first error is returned, if any.
+func (m *KubernetesApiCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
-	if v, ok := interface{}(m.GetListen()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return KubernetesApiCFValidationError{
+	var errors []error
+
+	if v, ok := interface{}(m.GetListen()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = KubernetesApiCFValidationError{
 				field:  "Listen",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
+	if len(errors) > 0 {
+		return KubernetesApiCFMultiError(errors)
+	}
 	return nil
 }
+
+// KubernetesApiCFMultiError is an error wrapping multiple validation errors
+// returned by KubernetesApiCF.Validate(true) if the designated constraints
+// aren't met.
+type KubernetesApiCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m KubernetesApiCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m KubernetesApiCFMultiError) AllErrors() []error { return m }
 
 // KubernetesApiCFValidationError is the validation error returned by
 // KubernetesApiCF.Validate if the designated constraints aren't met.
@@ -858,126 +1168,197 @@ var _ interface {
 } = KubernetesApiCFValidationError{}
 
 // Validate checks the field values on AgentCF with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is returned.
-func (m *AgentCF) Validate() error {
+// proto definition for this message. If any rules are violated, an error is
+// returned. When asked to return all errors, validation continues after first
+// violation, and the result is a list of violation errors wrapped in
+// AgentCFMultiError, or nil if none found. Otherwise, only the first error is
+// returned, if any.
+func (m *AgentCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
-	if v, ok := interface{}(m.GetListen()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return AgentCFValidationError{
+	var errors []error
+
+	if v, ok := interface{}(m.GetListen()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = AgentCFValidationError{
 				field:  "Listen",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetConfiguration()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return AgentCFValidationError{
+	if v, ok := interface{}(m.GetConfiguration()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = AgentCFValidationError{
 				field:  "Configuration",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetGitops()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return AgentCFValidationError{
+	if v, ok := interface{}(m.GetGitops()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = AgentCFValidationError{
 				field:  "Gitops",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
 	if d := m.GetInfoCacheTtl(); d != nil {
-		dur, err := ptypes.Duration(d)
+		dur, err := d.AsDuration(), d.CheckValid()
 		if err != nil {
-			return AgentCFValidationError{
+			err = AgentCFValidationError{
 				field:  "InfoCacheTtl",
 				reason: "value is not a valid duration",
 				cause:  err,
 			}
-		}
-
-		gte := time.Duration(0*time.Second + 0*time.Nanosecond)
-
-		if dur < gte {
-			return AgentCFValidationError{
-				field:  "InfoCacheTtl",
-				reason: "value must be greater than or equal to 0s",
+			if !all {
+				return err
 			}
-		}
+			errors = append(errors, err)
+		} else {
 
+			gte := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur < gte {
+				err := AgentCFValidationError{
+					field:  "InfoCacheTtl",
+					reason: "value must be greater than or equal to 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
 	}
 
 	if d := m.GetInfoCacheErrorTtl(); d != nil {
-		dur, err := ptypes.Duration(d)
+		dur, err := d.AsDuration(), d.CheckValid()
 		if err != nil {
-			return AgentCFValidationError{
+			err = AgentCFValidationError{
 				field:  "InfoCacheErrorTtl",
 				reason: "value is not a valid duration",
 				cause:  err,
 			}
-		}
-
-		gt := time.Duration(0*time.Second + 0*time.Nanosecond)
-
-		if dur <= gt {
-			return AgentCFValidationError{
-				field:  "InfoCacheErrorTtl",
-				reason: "value must be greater than 0s",
+			if !all {
+				return err
 			}
-		}
+			errors = append(errors, err)
+		} else {
 
+			gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur <= gt {
+				err := AgentCFValidationError{
+					field:  "InfoCacheErrorTtl",
+					reason: "value must be greater than 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
 	}
 
-	if v, ok := interface{}(m.GetRedisConnInfoTtl()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return AgentCFValidationError{
+	if v, ok := interface{}(m.GetRedisConnInfoTtl()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = AgentCFValidationError{
 				field:  "RedisConnInfoTtl",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetRedisConnInfoRefresh()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return AgentCFValidationError{
+	if v, ok := interface{}(m.GetRedisConnInfoRefresh()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = AgentCFValidationError{
 				field:  "RedisConnInfoRefresh",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetRedisConnInfoGc()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return AgentCFValidationError{
+	if v, ok := interface{}(m.GetRedisConnInfoGc()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = AgentCFValidationError{
 				field:  "RedisConnInfoGc",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetKubernetesApi()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return AgentCFValidationError{
+	if v, ok := interface{}(m.GetKubernetesApi()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = AgentCFValidationError{
 				field:  "KubernetesApi",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
+	if len(errors) > 0 {
+		return AgentCFMultiError(errors)
+	}
 	return nil
 }
+
+// AgentCFMultiError is an error wrapping multiple validation errors returned
+// by AgentCF.Validate(true) if the designated constraints aren't met.
+type AgentCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AgentCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AgentCFMultiError) AllErrors() []error { return m }
 
 // AgentCFValidationError is the validation error returned by AgentCF.Validate
 // if the designated constraints aren't met.
@@ -1035,37 +1416,71 @@ var _ interface {
 
 // Validate checks the field values on AgentConfigurationCF with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
-func (m *AgentConfigurationCF) Validate() error {
+// violated, an error is returned. When asked to return all errors, validation
+// continues after first violation, and the result is a list of violation
+// errors wrapped in AgentConfigurationCFMultiError, or nil if none found.
+// Otherwise, only the first error is returned, if any.
+func (m *AgentConfigurationCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	if d := m.GetPollPeriod(); d != nil {
-		dur, err := ptypes.Duration(d)
+		dur, err := d.AsDuration(), d.CheckValid()
 		if err != nil {
-			return AgentConfigurationCFValidationError{
+			err = AgentConfigurationCFValidationError{
 				field:  "PollPeriod",
 				reason: "value is not a valid duration",
 				cause:  err,
 			}
-		}
-
-		gt := time.Duration(0*time.Second + 0*time.Nanosecond)
-
-		if dur <= gt {
-			return AgentConfigurationCFValidationError{
-				field:  "PollPeriod",
-				reason: "value must be greater than 0s",
+			if !all {
+				return err
 			}
-		}
+			errors = append(errors, err)
+		} else {
 
+			gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur <= gt {
+				err := AgentConfigurationCFValidationError{
+					field:  "PollPeriod",
+					reason: "value must be greater than 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
 	}
 
 	// no validation rules for MaxConfigurationFileSize
 
+	if len(errors) > 0 {
+		return AgentConfigurationCFMultiError(errors)
+	}
 	return nil
 }
+
+// AgentConfigurationCFMultiError is an error wrapping multiple validation
+// errors returned by AgentConfigurationCF.Validate(true) if the designated
+// constraints aren't met.
+type AgentConfigurationCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AgentConfigurationCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AgentConfigurationCFMultiError) AllErrors() []error { return m }
 
 // AgentConfigurationCFValidationError is the validation error returned by
 // AgentConfigurationCF.Validate if the designated constraints aren't met.
@@ -1125,11 +1540,16 @@ var _ interface {
 
 // Validate checks the field values on GoogleProfilerCF with the rules defined
 // in the proto definition for this message. If any rules are violated, an
-// error is returned.
-func (m *GoogleProfilerCF) Validate() error {
+// error is returned. When asked to return all errors, validation continues
+// after first violation, and the result is a list of violation errors wrapped
+// in GoogleProfilerCFMultiError, or nil if none found. Otherwise, only the
+// first error is returned, if any.
+func (m *GoogleProfilerCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
+
+	var errors []error
 
 	// no validation rules for Enabled
 
@@ -1137,8 +1557,28 @@ func (m *GoogleProfilerCF) Validate() error {
 
 	// no validation rules for CredentialsFile
 
+	if len(errors) > 0 {
+		return GoogleProfilerCFMultiError(errors)
+	}
 	return nil
 }
+
+// GoogleProfilerCFMultiError is an error wrapping multiple validation errors
+// returned by GoogleProfilerCF.Validate(true) if the designated constraints
+// aren't met.
+type GoogleProfilerCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GoogleProfilerCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GoogleProfilerCFMultiError) AllErrors() []error { return m }
 
 // GoogleProfilerCFValidationError is the validation error returned by
 // GoogleProfilerCF.Validate if the designated constraints aren't met.
@@ -1196,16 +1636,41 @@ var _ interface {
 
 // Validate checks the field values on LivenessProbeCF with the rules defined
 // in the proto definition for this message. If any rules are violated, an
-// error is returned.
-func (m *LivenessProbeCF) Validate() error {
+// error is returned. When asked to return all errors, validation continues
+// after first violation, and the result is a list of violation errors wrapped
+// in LivenessProbeCFMultiError, or nil if none found. Otherwise, only the
+// first error is returned, if any.
+func (m *LivenessProbeCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	// no validation rules for UrlPath
 
+	if len(errors) > 0 {
+		return LivenessProbeCFMultiError(errors)
+	}
 	return nil
 }
+
+// LivenessProbeCFMultiError is an error wrapping multiple validation errors
+// returned by LivenessProbeCF.Validate(true) if the designated constraints
+// aren't met.
+type LivenessProbeCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m LivenessProbeCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m LivenessProbeCFMultiError) AllErrors() []error { return m }
 
 // LivenessProbeCFValidationError is the validation error returned by
 // LivenessProbeCF.Validate if the designated constraints aren't met.
@@ -1263,16 +1728,41 @@ var _ interface {
 
 // Validate checks the field values on ReadinessProbeCF with the rules defined
 // in the proto definition for this message. If any rules are violated, an
-// error is returned.
-func (m *ReadinessProbeCF) Validate() error {
+// error is returned. When asked to return all errors, validation continues
+// after first violation, and the result is a list of violation errors wrapped
+// in ReadinessProbeCFMultiError, or nil if none found. Otherwise, only the
+// first error is returned, if any.
+func (m *ReadinessProbeCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	// no validation rules for UrlPath
 
+	if len(errors) > 0 {
+		return ReadinessProbeCFMultiError(errors)
+	}
 	return nil
 }
+
+// ReadinessProbeCFMultiError is an error wrapping multiple validation errors
+// returned by ReadinessProbeCF.Validate(true) if the designated constraints
+// aren't met.
+type ReadinessProbeCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ReadinessProbeCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ReadinessProbeCFMultiError) AllErrors() []error { return m }
 
 // ReadinessProbeCFValidationError is the validation error returned by
 // ReadinessProbeCF.Validate if the designated constraints aren't met.
@@ -1330,115 +1820,181 @@ var _ interface {
 
 // Validate checks the field values on ObservabilityCF with the rules defined
 // in the proto definition for this message. If any rules are violated, an
-// error is returned.
-func (m *ObservabilityCF) Validate() error {
+// error is returned. When asked to return all errors, validation continues
+// after first violation, and the result is a list of violation errors wrapped
+// in ObservabilityCFMultiError, or nil if none found. Otherwise, only the
+// first error is returned, if any.
+func (m *ObservabilityCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	if d := m.GetUsageReportingPeriod(); d != nil {
-		dur, err := ptypes.Duration(d)
+		dur, err := d.AsDuration(), d.CheckValid()
 		if err != nil {
-			return ObservabilityCFValidationError{
+			err = ObservabilityCFValidationError{
 				field:  "UsageReportingPeriod",
 				reason: "value is not a valid duration",
 				cause:  err,
 			}
-		}
-
-		gte := time.Duration(0*time.Second + 0*time.Nanosecond)
-
-		if dur < gte {
-			return ObservabilityCFValidationError{
-				field:  "UsageReportingPeriod",
-				reason: "value must be greater than or equal to 0s",
+			if !all {
+				return err
 			}
-		}
+			errors = append(errors, err)
+		} else {
 
+			gte := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur < gte {
+				err := ObservabilityCFValidationError{
+					field:  "UsageReportingPeriod",
+					reason: "value must be greater than or equal to 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
 	}
 
-	if v, ok := interface{}(m.GetListen()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ObservabilityCFValidationError{
+	if v, ok := interface{}(m.GetListen()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = ObservabilityCFValidationError{
 				field:  "Listen",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetPrometheus()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ObservabilityCFValidationError{
+	if v, ok := interface{}(m.GetPrometheus()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = ObservabilityCFValidationError{
 				field:  "Prometheus",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetTracing()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ObservabilityCFValidationError{
+	if v, ok := interface{}(m.GetTracing()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = ObservabilityCFValidationError{
 				field:  "Tracing",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetSentry()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ObservabilityCFValidationError{
+	if v, ok := interface{}(m.GetSentry()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = ObservabilityCFValidationError{
 				field:  "Sentry",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetLogging()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ObservabilityCFValidationError{
+	if v, ok := interface{}(m.GetLogging()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = ObservabilityCFValidationError{
 				field:  "Logging",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetGoogleProfiler()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ObservabilityCFValidationError{
+	if v, ok := interface{}(m.GetGoogleProfiler()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = ObservabilityCFValidationError{
 				field:  "GoogleProfiler",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetLivenessProbe()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ObservabilityCFValidationError{
+	if v, ok := interface{}(m.GetLivenessProbe()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = ObservabilityCFValidationError{
 				field:  "LivenessProbe",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetReadinessProbe()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ObservabilityCFValidationError{
+	if v, ok := interface{}(m.GetReadinessProbe()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = ObservabilityCFValidationError{
 				field:  "ReadinessProbe",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
+	if len(errors) > 0 {
+		return ObservabilityCFMultiError(errors)
+	}
 	return nil
 }
+
+// ObservabilityCFMultiError is an error wrapping multiple validation errors
+// returned by ObservabilityCF.Validate(true) if the designated constraints
+// aren't met.
+type ObservabilityCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ObservabilityCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ObservabilityCFMultiError) AllErrors() []error { return m }
 
 // ObservabilityCFValidationError is the validation error returned by
 // ObservabilityCF.Validate if the designated constraints aren't met.
@@ -1496,23 +2052,52 @@ var _ interface {
 
 // Validate checks the field values on TokenBucketRateLimitCF with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
-func (m *TokenBucketRateLimitCF) Validate() error {
+// violated, an error is returned. When asked to return all errors, validation
+// continues after first violation, and the result is a list of violation
+// errors wrapped in TokenBucketRateLimitCFMultiError, or nil if none found.
+// Otherwise, only the first error is returned, if any.
+func (m *TokenBucketRateLimitCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	if m.GetRefillRatePerSecond() < 0 {
-		return TokenBucketRateLimitCFValidationError{
+		err := TokenBucketRateLimitCFValidationError{
 			field:  "RefillRatePerSecond",
 			reason: "value must be greater than or equal to 0",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
 	// no validation rules for BucketSize
 
+	if len(errors) > 0 {
+		return TokenBucketRateLimitCFMultiError(errors)
+	}
 	return nil
 }
+
+// TokenBucketRateLimitCFMultiError is an error wrapping multiple validation
+// errors returned by TokenBucketRateLimitCF.Validate(true) if the designated
+// constraints aren't met.
+type TokenBucketRateLimitCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m TokenBucketRateLimitCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m TokenBucketRateLimitCFMultiError) AllErrors() []error { return m }
 
 // TokenBucketRateLimitCFValidationError is the validation error returned by
 // TokenBucketRateLimitCF.Validate if the designated constraints aren't met.
@@ -1571,34 +2156,67 @@ var _ interface {
 } = TokenBucketRateLimitCFValidationError{}
 
 // Validate checks the field values on GitalyCF with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is returned.
-func (m *GitalyCF) Validate() error {
+// proto definition for this message. If any rules are violated, an error is
+// returned. When asked to return all errors, validation continues after first
+// violation, and the result is a list of violation errors wrapped in
+// GitalyCFMultiError, or nil if none found. Otherwise, only the first error
+// is returned, if any.
+func (m *GitalyCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
-	if v, ok := interface{}(m.GetGlobalApiRateLimit()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return GitalyCFValidationError{
+	var errors []error
+
+	if v, ok := interface{}(m.GetGlobalApiRateLimit()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = GitalyCFValidationError{
 				field:  "GlobalApiRateLimit",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetPerServerApiRateLimit()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return GitalyCFValidationError{
+	if v, ok := interface{}(m.GetPerServerApiRateLimit()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = GitalyCFValidationError{
 				field:  "PerServerApiRateLimit",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
+	if len(errors) > 0 {
+		return GitalyCFMultiError(errors)
+	}
 	return nil
 }
+
+// GitalyCFMultiError is an error wrapping multiple validation errors returned
+// by GitalyCF.Validate(true) if the designated constraints aren't met.
+type GitalyCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GitalyCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GitalyCFMultiError) AllErrors() []error { return m }
 
 // GitalyCFValidationError is the validation error returned by
 // GitalyCF.Validate if the designated constraints aren't met.
@@ -1655,96 +2273,138 @@ var _ interface {
 } = GitalyCFValidationError{}
 
 // Validate checks the field values on RedisCF with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is returned.
-func (m *RedisCF) Validate() error {
+// proto definition for this message. If any rules are violated, an error is
+// returned. When asked to return all errors, validation continues after first
+// violation, and the result is a list of violation errors wrapped in
+// RedisCFMultiError, or nil if none found. Otherwise, only the first error is
+// returned, if any.
+func (m *RedisCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	// no validation rules for PoolSize
 
 	if d := m.GetDialTimeout(); d != nil {
-		dur, err := ptypes.Duration(d)
+		dur, err := d.AsDuration(), d.CheckValid()
 		if err != nil {
-			return RedisCFValidationError{
+			err = RedisCFValidationError{
 				field:  "DialTimeout",
 				reason: "value is not a valid duration",
 				cause:  err,
 			}
-		}
-
-		gt := time.Duration(0*time.Second + 0*time.Nanosecond)
-
-		if dur <= gt {
-			return RedisCFValidationError{
-				field:  "DialTimeout",
-				reason: "value must be greater than 0s",
+			if !all {
+				return err
 			}
-		}
+			errors = append(errors, err)
+		} else {
 
+			gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur <= gt {
+				err := RedisCFValidationError{
+					field:  "DialTimeout",
+					reason: "value must be greater than 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
 	}
 
 	if d := m.GetReadTimeout(); d != nil {
-		dur, err := ptypes.Duration(d)
+		dur, err := d.AsDuration(), d.CheckValid()
 		if err != nil {
-			return RedisCFValidationError{
+			err = RedisCFValidationError{
 				field:  "ReadTimeout",
 				reason: "value is not a valid duration",
 				cause:  err,
 			}
-		}
-
-		gt := time.Duration(0*time.Second + 0*time.Nanosecond)
-
-		if dur <= gt {
-			return RedisCFValidationError{
-				field:  "ReadTimeout",
-				reason: "value must be greater than 0s",
+			if !all {
+				return err
 			}
-		}
+			errors = append(errors, err)
+		} else {
 
+			gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur <= gt {
+				err := RedisCFValidationError{
+					field:  "ReadTimeout",
+					reason: "value must be greater than 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
 	}
 
 	if d := m.GetWriteTimeout(); d != nil {
-		dur, err := ptypes.Duration(d)
+		dur, err := d.AsDuration(), d.CheckValid()
 		if err != nil {
-			return RedisCFValidationError{
+			err = RedisCFValidationError{
 				field:  "WriteTimeout",
 				reason: "value is not a valid duration",
 				cause:  err,
 			}
-		}
-
-		gt := time.Duration(0*time.Second + 0*time.Nanosecond)
-
-		if dur <= gt {
-			return RedisCFValidationError{
-				field:  "WriteTimeout",
-				reason: "value must be greater than 0s",
+			if !all {
+				return err
 			}
-		}
+			errors = append(errors, err)
+		} else {
 
+			gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur <= gt {
+				err := RedisCFValidationError{
+					field:  "WriteTimeout",
+					reason: "value must be greater than 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
 	}
 
 	if d := m.GetIdleTimeout(); d != nil {
-		dur, err := ptypes.Duration(d)
+		dur, err := d.AsDuration(), d.CheckValid()
 		if err != nil {
-			return RedisCFValidationError{
+			err = RedisCFValidationError{
 				field:  "IdleTimeout",
 				reason: "value is not a valid duration",
 				cause:  err,
 			}
-		}
-
-		gt := time.Duration(0*time.Second + 0*time.Nanosecond)
-
-		if dur <= gt {
-			return RedisCFValidationError{
-				field:  "IdleTimeout",
-				reason: "value must be greater than 0s",
+			if !all {
+				return err
 			}
-		}
+			errors = append(errors, err)
+		} else {
 
+			gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur <= gt {
+				err := RedisCFValidationError{
+					field:  "IdleTimeout",
+					reason: "value must be greater than 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
 	}
 
 	// no validation rules for KeyPrefix
@@ -1754,19 +2414,27 @@ func (m *RedisCF) Validate() error {
 	// no validation rules for PasswordFile
 
 	if _, ok := _RedisCF_Network_InLookup[m.GetNetwork()]; !ok {
-		return RedisCFValidationError{
+		err := RedisCFValidationError{
 			field:  "Network",
 			reason: "value must be in list [ tcp unix]",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
-	if v, ok := interface{}(m.GetTls()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return RedisCFValidationError{
+	if v, ok := interface{}(m.GetTls()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = RedisCFValidationError{
 				field:  "Tls",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
@@ -1774,38 +2442,69 @@ func (m *RedisCF) Validate() error {
 
 	case *RedisCF_Server:
 
-		if v, ok := interface{}(m.GetServer()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return RedisCFValidationError{
+		if v, ok := interface{}(m.GetServer()).(interface{ Validate(bool) error }); ok {
+			if err := v.Validate(all); err != nil {
+				err = RedisCFValidationError{
 					field:  "Server",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
 			}
 		}
 
 	case *RedisCF_Sentinel:
 
-		if v, ok := interface{}(m.GetSentinel()).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return RedisCFValidationError{
+		if v, ok := interface{}(m.GetSentinel()).(interface{ Validate(bool) error }); ok {
+			if err := v.Validate(all); err != nil {
+				err = RedisCFValidationError{
 					field:  "Sentinel",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
 			}
 		}
 
 	default:
-		return RedisCFValidationError{
+		err := RedisCFValidationError{
 			field:  "RedisConfig",
 			reason: "value is required",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 
 	}
 
+	if len(errors) > 0 {
+		return RedisCFMultiError(errors)
+	}
 	return nil
 }
+
+// RedisCFMultiError is an error wrapping multiple validation errors returned
+// by RedisCF.Validate(true) if the designated constraints aren't met.
+type RedisCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m RedisCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m RedisCFMultiError) AllErrors() []error { return m }
 
 // RedisCFValidationError is the validation error returned by RedisCF.Validate
 // if the designated constraints aren't met.
@@ -1868,11 +2567,17 @@ var _RedisCF_Network_InLookup = map[string]struct{}{
 }
 
 // Validate checks the field values on RedisTLSCF with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is returned.
-func (m *RedisTLSCF) Validate() error {
+// proto definition for this message. If any rules are violated, an error is
+// returned. When asked to return all errors, validation continues after first
+// violation, and the result is a list of violation errors wrapped in
+// RedisTLSCFMultiError, or nil if none found. Otherwise, only the first error
+// is returned, if any.
+func (m *RedisTLSCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
+
+	var errors []error
 
 	// no validation rules for Enabled
 
@@ -1882,8 +2587,27 @@ func (m *RedisTLSCF) Validate() error {
 
 	// no validation rules for CaCertificateFile
 
+	if len(errors) > 0 {
+		return RedisTLSCFMultiError(errors)
+	}
 	return nil
 }
+
+// RedisTLSCFMultiError is an error wrapping multiple validation errors
+// returned by RedisTLSCF.Validate(true) if the designated constraints aren't met.
+type RedisTLSCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m RedisTLSCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m RedisTLSCFMultiError) AllErrors() []error { return m }
 
 // RedisTLSCFValidationError is the validation error returned by
 // RedisTLSCF.Validate if the designated constraints aren't met.
@@ -1941,21 +2665,50 @@ var _ interface {
 
 // Validate checks the field values on RedisServerCF with the rules defined in
 // the proto definition for this message. If any rules are violated, an error
-// is returned.
-func (m *RedisServerCF) Validate() error {
+// is returned. When asked to return all errors, validation continues after
+// first violation, and the result is a list of violation errors wrapped in
+// RedisServerCFMultiError, or nil if none found. Otherwise, only the first
+// error is returned, if any.
+func (m *RedisServerCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	if utf8.RuneCountInString(m.GetAddress()) < 1 {
-		return RedisServerCFValidationError{
+		err := RedisServerCFValidationError{
 			field:  "Address",
 			reason: "value length must be at least 1 runes",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
+	if len(errors) > 0 {
+		return RedisServerCFMultiError(errors)
+	}
 	return nil
 }
+
+// RedisServerCFMultiError is an error wrapping multiple validation errors
+// returned by RedisServerCF.Validate(true) if the designated constraints
+// aren't met.
+type RedisServerCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m RedisServerCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m RedisServerCFMultiError) AllErrors() []error { return m }
 
 // RedisServerCFValidationError is the validation error returned by
 // RedisServerCF.Validate if the designated constraints aren't met.
@@ -2013,30 +2766,63 @@ var _ interface {
 
 // Validate checks the field values on RedisSentinelCF with the rules defined
 // in the proto definition for this message. If any rules are violated, an
-// error is returned.
-func (m *RedisSentinelCF) Validate() error {
+// error is returned. When asked to return all errors, validation continues
+// after first violation, and the result is a list of violation errors wrapped
+// in RedisSentinelCFMultiError, or nil if none found. Otherwise, only the
+// first error is returned, if any.
+func (m *RedisSentinelCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	if utf8.RuneCountInString(m.GetMasterName()) < 1 {
-		return RedisSentinelCFValidationError{
+		err := RedisSentinelCFValidationError{
 			field:  "MasterName",
 			reason: "value length must be at least 1 runes",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
 	if len(m.GetAddresses()) < 1 {
-		return RedisSentinelCFValidationError{
+		err := RedisSentinelCFValidationError{
 			field:  "Addresses",
 			reason: "value must contain at least 1 item(s)",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
 	// no validation rules for SentinelPasswordFile
 
+	if len(errors) > 0 {
+		return RedisSentinelCFMultiError(errors)
+	}
 	return nil
 }
+
+// RedisSentinelCFMultiError is an error wrapping multiple validation errors
+// returned by RedisSentinelCF.Validate(true) if the designated constraints
+// aren't met.
+type RedisSentinelCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m RedisSentinelCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m RedisSentinelCFMultiError) AllErrors() []error { return m }
 
 // RedisSentinelCFValidationError is the validation error returned by
 // RedisSentinelCF.Validate if the designated constraints aren't met.
@@ -2094,21 +2880,30 @@ var _ interface {
 
 // Validate checks the field values on ListenApiCF with the rules defined in
 // the proto definition for this message. If any rules are violated, an error
-// is returned.
-func (m *ListenApiCF) Validate() error {
+// is returned. When asked to return all errors, validation continues after
+// first violation, and the result is a list of violation errors wrapped in
+// ListenApiCFMultiError, or nil if none found. Otherwise, only the first
+// error is returned, if any.
+func (m *ListenApiCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
+
+	var errors []error
 
 	// no validation rules for Network
 
 	// no validation rules for Address
 
 	if utf8.RuneCountInString(m.GetAuthenticationSecretFile()) < 1 {
-		return ListenApiCFValidationError{
+		err := ListenApiCFValidationError{
 			field:  "AuthenticationSecretFile",
 			reason: "value length must be at least 1 runes",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
 	// no validation rules for CertificateFile
@@ -2116,28 +2911,56 @@ func (m *ListenApiCF) Validate() error {
 	// no validation rules for KeyFile
 
 	if d := m.GetMaxConnectionAge(); d != nil {
-		dur, err := ptypes.Duration(d)
+		dur, err := d.AsDuration(), d.CheckValid()
 		if err != nil {
-			return ListenApiCFValidationError{
+			err = ListenApiCFValidationError{
 				field:  "MaxConnectionAge",
 				reason: "value is not a valid duration",
 				cause:  err,
 			}
-		}
-
-		gt := time.Duration(0*time.Second + 0*time.Nanosecond)
-
-		if dur <= gt {
-			return ListenApiCFValidationError{
-				field:  "MaxConnectionAge",
-				reason: "value must be greater than 0s",
+			if !all {
+				return err
 			}
-		}
+			errors = append(errors, err)
+		} else {
 
+			gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+			if dur <= gt {
+				err := ListenApiCFValidationError{
+					field:  "MaxConnectionAge",
+					reason: "value must be greater than 0s",
+				}
+				if !all {
+					return err
+				}
+				errors = append(errors, err)
+			}
+
+		}
 	}
 
+	if len(errors) > 0 {
+		return ListenApiCFMultiError(errors)
+	}
 	return nil
 }
+
+// ListenApiCFMultiError is an error wrapping multiple validation errors
+// returned by ListenApiCF.Validate(true) if the designated constraints aren't met.
+type ListenApiCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListenApiCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListenApiCFMultiError) AllErrors() []error { return m }
 
 // ListenApiCFValidationError is the validation error returned by
 // ListenApiCF.Validate if the designated constraints aren't met.
@@ -2194,24 +3017,53 @@ var _ interface {
 } = ListenApiCFValidationError{}
 
 // Validate checks the field values on ApiCF with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is returned.
-func (m *ApiCF) Validate() error {
+// proto definition for this message. If any rules are violated, an error is
+// returned. When asked to return all errors, validation continues after first
+// violation, and the result is a list of violation errors wrapped in
+// ApiCFMultiError, or nil if none found. Otherwise, only the first error is
+// returned, if any.
+func (m *ApiCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
-	if v, ok := interface{}(m.GetListen()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ApiCFValidationError{
+	var errors []error
+
+	if v, ok := interface{}(m.GetListen()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = ApiCFValidationError{
 				field:  "Listen",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
+	if len(errors) > 0 {
+		return ApiCFMultiError(errors)
+	}
 	return nil
 }
+
+// ApiCFMultiError is an error wrapping multiple validation errors returned by
+// ApiCF.Validate(true) if the designated constraints aren't met.
+type ApiCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ApiCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ApiCFMultiError) AllErrors() []error { return m }
 
 // ApiCFValidationError is the validation error returned by ApiCF.Validate if
 // the designated constraints aren't met.
@@ -2269,24 +3121,53 @@ var _ interface {
 
 // Validate checks the field values on PrivateApiCF with the rules defined in
 // the proto definition for this message. If any rules are violated, an error
-// is returned.
-func (m *PrivateApiCF) Validate() error {
+// is returned. When asked to return all errors, validation continues after
+// first violation, and the result is a list of violation errors wrapped in
+// PrivateApiCFMultiError, or nil if none found. Otherwise, only the first
+// error is returned, if any.
+func (m *PrivateApiCF) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
-	if v, ok := interface{}(m.GetListen()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return PrivateApiCFValidationError{
+	var errors []error
+
+	if v, ok := interface{}(m.GetListen()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = PrivateApiCFValidationError{
 				field:  "Listen",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
+	if len(errors) > 0 {
+		return PrivateApiCFMultiError(errors)
+	}
 	return nil
 }
+
+// PrivateApiCFMultiError is an error wrapping multiple validation errors
+// returned by PrivateApiCF.Validate(true) if the designated constraints
+// aren't met.
+type PrivateApiCFMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m PrivateApiCFMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m PrivateApiCFMultiError) AllErrors() []error { return m }
 
 // PrivateApiCFValidationError is the validation error returned by
 // PrivateApiCF.Validate if the designated constraints aren't met.
@@ -2344,91 +3225,148 @@ var _ interface {
 
 // Validate checks the field values on ConfigurationFile with the rules defined
 // in the proto definition for this message. If any rules are violated, an
-// error is returned.
-func (m *ConfigurationFile) Validate() error {
+// error is returned. When asked to return all errors, validation continues
+// after first violation, and the result is a list of violation errors wrapped
+// in ConfigurationFileMultiError, or nil if none found. Otherwise, only the
+// first error is returned, if any.
+func (m *ConfigurationFile) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	if m.GetGitlab() == nil {
-		return ConfigurationFileValidationError{
+		err := ConfigurationFileValidationError{
 			field:  "Gitlab",
 			reason: "value is required",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
-	if v, ok := interface{}(m.GetGitlab()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ConfigurationFileValidationError{
+	if v, ok := interface{}(m.GetGitlab()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = ConfigurationFileValidationError{
 				field:  "Gitlab",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetAgent()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ConfigurationFileValidationError{
+	if v, ok := interface{}(m.GetAgent()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = ConfigurationFileValidationError{
 				field:  "Agent",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetObservability()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ConfigurationFileValidationError{
+	if v, ok := interface{}(m.GetObservability()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = ConfigurationFileValidationError{
 				field:  "Observability",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetGitaly()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ConfigurationFileValidationError{
+	if v, ok := interface{}(m.GetGitaly()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = ConfigurationFileValidationError{
 				field:  "Gitaly",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetRedis()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ConfigurationFileValidationError{
+	if v, ok := interface{}(m.GetRedis()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = ConfigurationFileValidationError{
 				field:  "Redis",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetApi()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ConfigurationFileValidationError{
+	if v, ok := interface{}(m.GetApi()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = ConfigurationFileValidationError{
 				field:  "Api",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetPrivateApi()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ConfigurationFileValidationError{
+	if v, ok := interface{}(m.GetPrivateApi()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = ConfigurationFileValidationError{
 				field:  "PrivateApi",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
+	if len(errors) > 0 {
+		return ConfigurationFileMultiError(errors)
+	}
 	return nil
 }
+
+// ConfigurationFileMultiError is an error wrapping multiple validation errors
+// returned by ConfigurationFile.Validate(true) if the designated constraints
+// aren't met.
+type ConfigurationFileMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ConfigurationFileMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ConfigurationFileMultiError) AllErrors() []error { return m }
 
 // ConfigurationFileValidationError is the validation error returned by
 // ConfigurationFile.Validate if the designated constraints aren't met.
