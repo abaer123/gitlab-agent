@@ -3,36 +3,21 @@ package info
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 )
 
-type validatable interface {
-	Validate() error
-}
-
 func TestValidation_Invalid(t *testing.T) {
-	tests := []struct {
-		name      string
-		errString string
-		invalid   validatable
-	}{
+	tests := []testhelpers.InvalidTestcase{
 		{
-			name:      "empty Service.Name",
-			errString: "invalid Service.Name: value length must be at least 1 runes",
-			invalid:   &Service{},
+			Name:      "empty Service.Name",
+			ErrString: "invalid Service.Name: value length must be at least 1 runes",
+			Invalid:   &Service{},
 		},
 		{
-			name:      "empty Method.Name",
-			errString: "invalid Method.Name: value length must be at least 1 runes",
-			invalid:   &Method{},
+			Name:      "empty Method.Name",
+			ErrString: "invalid Method.Name: value length must be at least 1 runes",
+			Invalid:   &Method{},
 		},
 	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) { // nolint: scopelint
-			err := tc.invalid.Validate() // nolint: scopelint
-			require.Error(t, err)
-			assert.EqualError(t, err, tc.errString) // nolint: scopelint
-		})
-	}
+	testhelpers.AssertInvalid(t, tests)
 }

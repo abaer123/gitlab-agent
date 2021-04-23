@@ -15,7 +15,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // ensure the imports are used
@@ -30,31 +30,60 @@ var (
 	_ = time.Duration(0)
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
-	_ = ptypes.DynamicAny{}
+	_ = anypb.Any{}
 )
 
 // Validate checks the field values on ConfigurationRequest with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
-func (m *ConfigurationRequest) Validate() error {
+// violated, an error is returned. When asked to return all errors, validation
+// continues after first violation, and the result is a list of violation
+// errors wrapped in ConfigurationRequestMultiError, or nil if none found.
+// Otherwise, only the first error is returned, if any.
+func (m *ConfigurationRequest) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	// no validation rules for CommitId
 
-	if v, ok := interface{}(m.GetAgentMeta()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ConfigurationRequestValidationError{
+	if v, ok := interface{}(m.GetAgentMeta()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = ConfigurationRequestValidationError{
 				field:  "AgentMeta",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
+	if len(errors) > 0 {
+		return ConfigurationRequestMultiError(errors)
+	}
 	return nil
 }
+
+// ConfigurationRequestMultiError is an error wrapping multiple validation
+// errors returned by ConfigurationRequest.Validate(true) if the designated
+// constraints aren't met.
+type ConfigurationRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ConfigurationRequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ConfigurationRequestMultiError) AllErrors() []error { return m }
 
 // ConfigurationRequestValidationError is the validation error returned by
 // ConfigurationRequest.Validate if the designated constraints aren't met.
@@ -114,31 +143,64 @@ var _ interface {
 
 // Validate checks the field values on ConfigurationResponse with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
-func (m *ConfigurationResponse) Validate() error {
+// violated, an error is returned. When asked to return all errors, validation
+// continues after first violation, and the result is a list of violation
+// errors wrapped in ConfigurationResponseMultiError, or nil if none found.
+// Otherwise, only the first error is returned, if any.
+func (m *ConfigurationResponse) Validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
-	if v, ok := interface{}(m.GetConfiguration()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ConfigurationResponseValidationError{
+	var errors []error
+
+	if v, ok := interface{}(m.GetConfiguration()).(interface{ Validate(bool) error }); ok {
+		if err := v.Validate(all); err != nil {
+			err = ConfigurationResponseValidationError{
 				field:  "Configuration",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
 		}
 	}
 
 	if utf8.RuneCountInString(m.GetCommitId()) < 1 {
-		return ConfigurationResponseValidationError{
+		err := ConfigurationResponseValidationError{
 			field:  "CommitId",
 			reason: "value length must be at least 1 runes",
 		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
+	if len(errors) > 0 {
+		return ConfigurationResponseMultiError(errors)
+	}
 	return nil
 }
+
+// ConfigurationResponseMultiError is an error wrapping multiple validation
+// errors returned by ConfigurationResponse.Validate(true) if the designated
+// constraints aren't met.
+type ConfigurationResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ConfigurationResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ConfigurationResponseMultiError) AllErrors() []error { return m }
 
 // ConfigurationResponseValidationError is the validation error returned by
 // ConfigurationResponse.Validate if the designated constraints aren't met.

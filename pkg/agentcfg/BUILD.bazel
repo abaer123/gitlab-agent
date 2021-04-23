@@ -20,9 +20,9 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
-        "@com_github_golang_protobuf//ptypes",
         "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_golang_google_protobuf//runtime/protoimpl",
+        "@org_golang_google_protobuf//types/known/anypb",
     ],
 )
 
@@ -34,6 +34,7 @@ go_custom_test(
     ],
     embed = [":agentcfg"],
     deps = [
+        "//internal/tool/testing/testhelpers",
         "@com_github_google_go_cmp//cmp",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
