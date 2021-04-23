@@ -39,6 +39,7 @@ go_custom_test(
     embed = [":kascfg"],
     deps = [
         "//cmd/kas/kasapp",
+        "//internal/tool/testing/testhelpers",
         "@com_github_google_go_cmp//cmp",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",

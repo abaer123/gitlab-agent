@@ -30,8 +30,5 @@ go_custom_test(
     name = "info_test",
     srcs = ["validation_test.go"],
     embed = [":info"],
-    deps = [
-        "@com_github_stretchr_testify//assert",
-        "@com_github_stretchr_testify//require",
-    ],
+    deps = ["//internal/tool/testing/testhelpers"],
 )

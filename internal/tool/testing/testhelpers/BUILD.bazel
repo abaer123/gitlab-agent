@@ -2,7 +2,10 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "testhelpers",
-    srcs = ["testing_helpers.go"],
+    srcs = [
+        "testing_helpers.go",
+        "validation.go",
+    ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers",
     visibility = ["//:__subpackages__"],
     deps = [
