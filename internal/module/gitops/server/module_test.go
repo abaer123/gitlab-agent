@@ -493,106 +493,67 @@ func TestGlobToGitaly(t *testing.T) {
 		glob              string
 		expectedRepoPath  []byte
 		expectedRecursive bool
-		expectedGlob      string
 	}{
+		{
+			name:              "full file name",
+			glob:              "simple-path/manifest.yaml",
+			expectedRepoPath:  []byte("simple-path"),
+			expectedRecursive: false,
+		},
 		{
 			name:              "empty",
 			glob:              "",
 			expectedRepoPath:  []byte{'.'},
 			expectedRecursive: false,
-			expectedGlob:      "",
-		},
-		{
-			name:              "root",
-			glob:              "/",
-			expectedRepoPath:  []byte{'.'},
-			expectedRecursive: false,
-			expectedGlob:      "",
 		},
 		{
 			name:              "simple file1",
 			glob:              "*.yaml",
 			expectedRepoPath:  []byte{'.'},
 			expectedRecursive: false,
-			expectedGlob:      "*.yaml",
-		},
-		{
-			name:              "simple file2",
-			glob:              "/*.yaml",
-			expectedRepoPath:  []byte{'.'},
-			expectedRecursive: false,
-			expectedGlob:      "*.yaml",
 		},
 		{
 			name:              "files in directory1",
 			glob:              "bla/*.yaml",
 			expectedRepoPath:  []byte("bla"),
 			expectedRecursive: false,
-			expectedGlob:      "*.yaml",
-		},
-		{
-			name:              "files in directory2",
-			glob:              "/bla/*.yaml",
-			expectedRepoPath:  []byte("bla"),
-			expectedRecursive: false,
-			expectedGlob:      "*.yaml",
 		},
 		{
 			name:              "recursive files in directory1",
 			glob:              "bla/**/*.yaml",
 			expectedRepoPath:  []byte("bla"),
 			expectedRecursive: true,
-			expectedGlob:      "**/*.yaml",
-		},
-		{
-			name:              "recursive files in directory2",
-			glob:              "/bla/**/*.yaml",
-			expectedRepoPath:  []byte("bla"),
-			expectedRecursive: true,
-			expectedGlob:      "**/*.yaml",
 		},
 		{
 			name:              "all files1",
 			glob:              "**/*.yaml",
 			expectedRepoPath:  []byte{'.'},
 			expectedRecursive: true,
-			expectedGlob:      "**/*.yaml",
-		},
-		{
-			name:              "all files2",
-			glob:              "/**/*.yaml",
-			expectedRepoPath:  []byte{'.'},
-			expectedRecursive: true,
-			expectedGlob:      "**/*.yaml",
 		},
 		{
 			name:              "group1",
-			glob:              "/[a-z]*/*.yaml",
+			glob:              "[a-z]*/*.yaml",
 			expectedRepoPath:  []byte{'.'},
 			expectedRecursive: true,
-			expectedGlob:      "[a-z]*/*.yaml",
 		},
 		{
 			name:              "group2",
-			glob:              "/?bla/*.yaml",
+			glob:              "?bla/*.yaml",
 			expectedRepoPath:  []byte{'.'},
 			expectedRecursive: true,
-			expectedGlob:      "?bla/*.yaml",
 		},
 		{
 			name:              "group3",
-			glob:              "/bla/?aaa/*.yaml",
+			glob:              "bla/?aaa/*.yaml",
 			expectedRepoPath:  []byte("bla"),
 			expectedRecursive: true,
-			expectedGlob:      "?aaa/*.yaml",
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) { // nolint: scopelint
-			gotRepoPath, gotRecursive, gotGlob := globToGitaly(tc.glob) // nolint: scopelint
-			assert.Equal(t, tc.expectedRepoPath, gotRepoPath)           // nolint: scopelint
-			assert.Equal(t, tc.expectedRecursive, gotRecursive)         // nolint: scopelint
-			assert.Equal(t, tc.expectedGlob, gotGlob)                   // nolint: scopelint
+			gotRepoPath, gotRecursive := globToGitaly(tc.glob)  // nolint: scopelint
+			assert.Equal(t, tc.expectedRepoPath, gotRepoPath)   // nolint: scopelint
+			assert.Equal(t, tc.expectedRecursive, gotRecursive) // nolint: scopelint
 		})
 	}
 }
