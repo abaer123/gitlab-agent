@@ -117,6 +117,15 @@ http_file(
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 
+# Workaround https://github.com/bazelbuild/rules_docker/issues/1814
+go_repository(
+    name = "com_github_google_go_containerregistry",
+    build_file_proto_mode = "disable_global",
+    importpath = "github.com/google/go-containerregistry",
+    sum = "h1:fZm+V2pYnvb8NMPM1YOsyxr31XKfpHTun5oVTRnG8qc=",
+    version = "v0.1.4",
+)
+
 # Workaround for https://github.com/argoproj/gitops-engine/issues/56
 go_repository(
     name = "io_k8s_kubernetes",
