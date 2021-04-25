@@ -28,7 +28,6 @@ go_library(
         "//internal/tool/metric",
         "//internal/tool/prototool",
         "//pkg/kascfg",
-        "@com_github_bmatcuk_doublestar_v2//:doublestar",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",
         "@org_golang_google_grpc//codes",

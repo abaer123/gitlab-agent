@@ -5,6 +5,7 @@ go_library(
     name = "gitaly",
     srcs = [
         "error.go",
+        "fetch_visitors.go",
         "path_fetcher.go",
         "path_visitor.go",
         "poller.go",
@@ -16,6 +17,7 @@ go_library(
     deps = [
         "//internal/api",
         "//internal/gitaly/pktline",
+        "@com_github_bmatcuk_doublestar_v2//:doublestar",
         "@com_github_golang_protobuf//proto",
         "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",
         "@org_golang_google_grpc//:grpc",
@@ -28,6 +30,7 @@ go_custom_test(
     name = "gitaly_test",
     srcs = [
         "error_test.go",
+        "fetch_visitors_test.go",
         "path_fetcher_test.go",
         "path_visitor_test.go",
         "poller_test.go",

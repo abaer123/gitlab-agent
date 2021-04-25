@@ -134,37 +134,42 @@ func (j *pollJob) sendObjectsToSynchronizeBody(
 		return 0, 0, status.Error(codes.Unavailable, "GitOps: PathFetcher")
 	}
 	v := &objectsToSynchronizeVisitor{
-		server:                 server,
-		remainingTotalFileSize: j.maxTotalManifestFileSize,
-		fileSizeLimit:          j.maxManifestFileSize,
-		maxNumberOfFiles:       j.maxNumberOfFiles,
+		server:        server,
+		fileSizeLimit: j.maxManifestFileSize,
 	}
-	vChunk := gitaly.ChunkingFetchVisitor{
-		MaxChunkSize: gitOpsManifestMaxChunkSize,
-		Delegate:     v,
-	}
+	var delegate gitaly.FetchVisitor = v
+	delegate = gitaly.NewChunkingFetchVisitor(delegate, gitOpsManifestMaxChunkSize)
+	delegate = gitaly.NewTotalSizeLimitingFetchVisitor(delegate, j.maxTotalManifestFileSize)
+	delegate = gitaly.NewHiddenDirFilteringFetchVisitor(delegate)
+	vGlob := gitaly.NewGlobFilteringFetchVisitor(delegate, "")
+	vCounting := gitaly.NewEntryCountLimitingFetchVisitor(vGlob, j.maxNumberOfFiles)
 	for _, p := range req.Paths {
 		globNoSlash := strings.TrimPrefix(p.Glob, "/") // original glob without the leading slash
 		repoPath, recursive := globToGitaly(globNoSlash)
-		v.glob = globNoSlash // set new glob for each path
-		err = pf.Visit(ctx, repo, []byte(commitId), repoPath, recursive, vChunk)
+		vGlob.Glob = globNoSlash // set new glob for each path
+		err = pf.Visit(ctx, repo, []byte(commitId), repoPath, recursive, vCounting)
 		if err != nil {
 			if v.sendFailed {
-				return v.filesVisited, v.filesSent, j.api.HandleSendError(log, "GitOps: failed to send objects to synchronize", err)
+				return vCounting.FilesVisited, vCounting.FilesSent, j.api.HandleSendError(log, "GitOps: failed to send objects to synchronize", err)
 			}
-			switch gitaly.ErrorCodeFromError(err) { // nolint:exhaustive
-			case gitaly.NotFound, gitaly.FileTooBig, gitaly.UnexpectedTreeEntryType:
-				err = errz.NewUserErrorWithCause(err, "manifest file")
-				j.api.HandleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
-				// return the error to the client because it's a user error
-				return v.filesVisited, v.filesSent, status.Errorf(codes.FailedPrecondition, "GitOps: failed to get objects to synchronize: %v", err)
-			default:
-				j.api.HandleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
-				return v.filesVisited, v.filesSent, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
+			_, isGlobErr := err.(*gitaly.GlobMatchFailedError)     // nolint: errorlint
+			_, isMaxFileErr := err.(*gitaly.MaxNumberOfFilesError) // nolint: errorlint
+			if isGlobErr || isMaxFileErr {
+				err = errz.NewUserErrorWithCause(err, "") // wrap in UserError
+			} else {
+				switch gitaly.ErrorCodeFromError(err) { // nolint:exhaustive
+				case gitaly.NotFound, gitaly.FileTooBig, gitaly.UnexpectedTreeEntryType:
+					err = errz.NewUserErrorWithCause(err, "manifest file")
+					j.api.HandleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
+					// return the error to the client because it's a user error
+					return vCounting.FilesVisited, vCounting.FilesSent, status.Errorf(codes.FailedPrecondition, "GitOps: failed to get objects to synchronize: %v", err)
+				}
 			}
+			j.api.HandleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
+			return vCounting.FilesVisited, vCounting.FilesSent, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
 		}
 	}
-	return v.filesVisited, v.filesSent, nil
+	return vCounting.FilesVisited, vCounting.FilesSent, nil
 }
 
 func (j *pollJob) sendObjectsToSynchronizeTrailer(server rpc.Gitops_GetObjectsToSynchronizeServer, log *zap.Logger) error {
