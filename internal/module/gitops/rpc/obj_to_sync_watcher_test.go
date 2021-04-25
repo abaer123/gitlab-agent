@@ -94,7 +94,7 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 		eof    bool
 	}{
 		{
-			name: "empty stream",
+			name: "empty stream", // Not invalid, but should not call callback
 			eof:  true,
 		},
 		{

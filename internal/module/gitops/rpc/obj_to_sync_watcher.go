@@ -69,13 +69,19 @@ func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToS
 			}
 			return
 		}
+		if !v.nonEmptyStream {
+			// Server closed the stream without sending us anything.
+			// It's fine, will just reopen the connection.
+			return
+		}
 		callback(ctx, v.objs)
 		lastProcessedCommitId = v.objs.CommitId
 	})
 }
 
 type objectsToSynchronizeVisitor struct {
-	objs ObjectsToSynchronizeData
+	objs           ObjectsToSynchronizeData
+	nonEmptyStream bool
 }
 
 func (v *objectsToSynchronizeVisitor) OnHeader(header *ObjectsToSynchronizeResponse_Header) error {
@@ -99,6 +105,6 @@ func (v *objectsToSynchronizeVisitor) OnObject(object *ObjectsToSynchronizeRespo
 }
 
 func (v *objectsToSynchronizeVisitor) OnTrailer(trailer *ObjectsToSynchronizeResponse_Trailer) error {
-	// Nothing to do at the moment
+	v.nonEmptyStream = true
 	return nil
 }
