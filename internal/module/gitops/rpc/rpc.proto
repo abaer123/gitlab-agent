@@ -49,6 +49,7 @@ message ObjectsToSynchronizeResponse {
   oneof message {
 
     option (grpctool.automata.first_allowed_field) = 1;
+    option (grpctool.automata.first_allowed_field) = -1; // EOF means there is nothing to do
     option (validate.required) = true;
 
     Header header = 1 [(grpctool.automata.next_allowed_field) = 2, (grpctool.automata.next_allowed_field) = 3];
