@@ -49,7 +49,6 @@ func (m *module) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 		return err // no wrap
 	}
 	p := pollJob{
-		ctx:                         ctx,
 		log:                         log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(req.ProjectId)),
 		api:                         m.api,
 		gitalyPool:                  m.gitalyPool,

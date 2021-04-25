@@ -33,7 +33,6 @@ var (
 )
 
 type pollJob struct {
-	ctx                         context.Context
 	log                         *zap.Logger
 	api                         modserver.API
 	gitalyPool                  gitaly.PoolInterface
@@ -50,22 +49,23 @@ type pollJob struct {
 }
 
 func (j *pollJob) Attempt() (bool /*done*/, error) {
+	ctx := j.server.Context()
 	// This call is made on each poll because:
 	// - it checks that the agent's token is still valid
 	// - repository location in Gitaly might have changed
-	projectInfo, err, retErr := j.getProjectInfo(j.ctx, j.log, j.agentToken, j.req.ProjectId)
+	projectInfo, err, retErr := j.getProjectInfo(ctx, j.log, j.agentToken, j.req.ProjectId)
 	if retErr {
 		return false, err
 	}
 	revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
-	p, err := j.gitalyPool.Poller(j.ctx, &projectInfo.GitalyInfo)
+	p, err := j.gitalyPool.Poller(ctx, &projectInfo.GitalyInfo)
 	if err != nil {
-		j.api.HandleProcessingError(j.ctx, j.log, "GitOps: Poller", err)
+		j.api.HandleProcessingError(ctx, j.log, "GitOps: Poller", err)
 		return false, nil // don't want to close the response stream, so report no error
 	}
-	info, err := p.Poll(j.ctx, &projectInfo.Repository, j.req.CommitId, revision)
+	info, err := p.Poll(ctx, &projectInfo.Repository, j.req.CommitId, revision)
 	if err != nil {
-		j.api.HandleProcessingError(j.ctx, j.log, "GitOps: repository poll failed", err)
+		j.api.HandleProcessingError(ctx, j.log, "GitOps: repository poll failed", err)
 		return false, nil // don't want to close the response stream, so report no error
 	}
 
@@ -77,15 +77,15 @@ func (j *pollJob) Attempt() (bool /*done*/, error) {
 	}
 	log := j.log.With(logz.CommitId(info.CommitId))
 	log.Info("GitOps: new commit")
-	err = j.sendObjectsToSynchronizeHeader(j.server, log, info.CommitId)
+	err = j.sendObjectsToSynchronizeHeader(log, info.CommitId)
 	if err != nil {
 		return false, err // no wrap
 	}
-	filesVisited, filesSent, err := j.sendObjectsToSynchronizeBody(j.req, j.server, log, &projectInfo.Repository, &projectInfo.GitalyInfo, info.CommitId)
+	filesVisited, filesSent, err := j.sendObjectsToSynchronizeBody(log, j.req, &projectInfo.Repository, &projectInfo.GitalyInfo, info.CommitId)
 	if err != nil {
 		return false, err // no wrap
 	}
-	err = j.sendObjectsToSynchronizeTrailer(j.server, log)
+	err = j.sendObjectsToSynchronizeTrailer(log)
 	if err != nil {
 		return false, err // no wrap
 	}
@@ -105,8 +105,8 @@ func (j *pollJob) trackPollInterval() {
 	j.lastPoll = now
 }
 
-func (j *pollJob) sendObjectsToSynchronizeHeader(server rpc.Gitops_GetObjectsToSynchronizeServer, log *zap.Logger, commitId string) error {
-	err := server.Send(&rpc.ObjectsToSynchronizeResponse{
+func (j *pollJob) sendObjectsToSynchronizeHeader(log *zap.Logger, commitId string) error {
+	err := j.server.Send(&rpc.ObjectsToSynchronizeResponse{
 		Message: &rpc.ObjectsToSynchronizeResponse_Header_{
 			Header: &rpc.ObjectsToSynchronizeResponse_Header{
 				CommitId: commitId,
@@ -120,21 +120,20 @@ func (j *pollJob) sendObjectsToSynchronizeHeader(server rpc.Gitops_GetObjectsToS
 }
 
 func (j *pollJob) sendObjectsToSynchronizeBody(
-	req *rpc.ObjectsToSynchronizeRequest,
-	server rpc.Gitops_GetObjectsToSynchronizeServer,
 	log *zap.Logger,
+	req *rpc.ObjectsToSynchronizeRequest,
 	repo *gitalypb.Repository,
 	gitalyInfo *api.GitalyInfo,
 	commitId string,
 ) (uint32 /* files visited */, uint32 /* files sent */, error) {
-	ctx := server.Context()
+	ctx := j.server.Context()
 	pf, err := j.gitalyPool.PathFetcher(ctx, gitalyInfo)
 	if err != nil {
 		j.api.HandleProcessingError(ctx, log, "GitOps: PathFetcher", err)
 		return 0, 0, status.Error(codes.Unavailable, "GitOps: PathFetcher")
 	}
 	v := &objectsToSynchronizeVisitor{
-		server:        server,
+		server:        j.server,
 		fileSizeLimit: j.maxManifestFileSize,
 	}
 	var delegate gitaly.FetchVisitor = v
@@ -172,8 +171,8 @@ func (j *pollJob) sendObjectsToSynchronizeBody(
 	return vCounting.FilesVisited, vCounting.FilesSent, nil
 }
 
-func (j *pollJob) sendObjectsToSynchronizeTrailer(server rpc.Gitops_GetObjectsToSynchronizeServer, log *zap.Logger) error {
-	err := server.Send(&rpc.ObjectsToSynchronizeResponse{
+func (j *pollJob) sendObjectsToSynchronizeTrailer(log *zap.Logger) error {
+	err := j.server.Send(&rpc.ObjectsToSynchronizeResponse{
 		Message: &rpc.ObjectsToSynchronizeResponse_Trailer_{
 			Trailer: &rpc.ObjectsToSynchronizeResponse_Trailer{},
 		},
