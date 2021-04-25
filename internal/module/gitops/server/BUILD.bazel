@@ -41,7 +41,9 @@ go_custom_test(
     name = "server_test",
     srcs = [
         "module_test.go",
+        "poll_job_test.go",
         "project_info_client_test.go",
+        "visitor_test.go",
     ],
     embed = [":server"],
     deps = [

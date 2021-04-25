@@ -52,7 +52,7 @@ var (
 )
 
 func TestGetObjectsToSynchronize_GetProjectInfo_Forbidden(t *testing.T) {
-	m, ctrl, _, _ := setupModuleBare(t, 1, func(w http.ResponseWriter, r *http.Request) {
+	m, ctrl, _, _ := setupModuleBare(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 	})
 	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
@@ -66,7 +66,7 @@ func TestGetObjectsToSynchronize_GetProjectInfo_Forbidden(t *testing.T) {
 }
 
 func TestGetObjectsToSynchronize_GetProjectInfo_Unauthorized(t *testing.T) {
-	m, ctrl, _, _ := setupModuleBare(t, 1, func(w http.ResponseWriter, r *http.Request) {
+	m, ctrl, _, _ := setupModuleBare(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 	})
 	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
@@ -80,7 +80,7 @@ func TestGetObjectsToSynchronize_GetProjectInfo_Unauthorized(t *testing.T) {
 }
 
 func TestGetObjectsToSynchronize_GetProjectInfo_InternalServerError(t *testing.T) {
-	m, ctrl, mockApi, _ := setupModuleBare(t, 1, func(w http.ResponseWriter, r *http.Request) {
+	m, ctrl, mockApi, _ := setupModuleBare(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	})
 	mockApi.EXPECT().
@@ -95,33 +95,10 @@ func TestGetObjectsToSynchronize_GetProjectInfo_InternalServerError(t *testing.T
 }
 
 func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
-	ctx, cancel, a, ctrl, gitalyPool, _ := setupModule(t, 1)
+	ctx, cancel, a, ctrl, gitalyPool, _ := setupModule(t)
 	a.syncCount.(*mock_usage_metrics.MockCounter).EXPECT().Inc()
 
-	objects := []runtime.Object{
-		&corev1.ConfigMap{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "ConfigMap",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "map1",
-			},
-			Data: map[string]string{
-				"key": "value",
-			},
-		},
-		&corev1.Namespace{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Namespace",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "ns1",
-			},
-		},
-	}
-	objectsYAML := kube_testing.ObjsToYAML(t, objects...)
+	objs := objectsYAML(t)
 	projInfo := projectInfo()
 	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
 	server.EXPECT().
@@ -142,7 +119,7 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 				Message: &rpc.ObjectsToSynchronizeResponse_Object_{
 					Object: &rpc.ObjectsToSynchronizeResponse_Object{
 						Source: "manifest.yaml",
-						Data:   objectsYAML[:1],
+						Data:   objs[:1],
 					},
 				},
 			})),
@@ -151,7 +128,7 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 				Message: &rpc.ObjectsToSynchronizeResponse_Object_{
 					Object: &rpc.ObjectsToSynchronizeResponse_Object{
 						Source: "manifest.yaml",
-						Data:   objectsYAML[1:],
+						Data:   objs[1:],
 					},
 				},
 			})),
@@ -192,10 +169,10 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 				assert.EqualValues(t, defaultGitopsMaxManifestFileSize, maxSize)
 				assert.True(t, download)
 
-				done, err := visitor.StreamChunk([]byte("manifest.yaml"), objectsYAML[:1])
+				done, err := visitor.StreamChunk([]byte("manifest.yaml"), objs[:1])
 				require.NoError(t, err)
 				assert.False(t, done)
-				done, err = visitor.StreamChunk([]byte("manifest.yaml"), objectsYAML[1:])
+				done, err = visitor.StreamChunk([]byte("manifest.yaml"), objs[1:])
 				require.NoError(t, err)
 				assert.False(t, done)
 			}),
@@ -211,8 +188,90 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
+	ctx, cancel, a, ctrl, gitalyPool, _ := setupModule(t)
+	a.syncCount.(*mock_usage_metrics.MockCounter).EXPECT().Inc()
+
+	objs := objectsYAML(t)
+	projInfo := projectInfo()
+	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
+	server.EXPECT().
+		Context().
+		Return(mock_modserver.IncomingCtx(ctx, t, testhelpers.AgentkToken)).
+		MinTimes(1)
+	gomock.InOrder(
+		server.EXPECT().
+			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
+				Message: &rpc.ObjectsToSynchronizeResponse_Header_{
+					Header: &rpc.ObjectsToSynchronizeResponse_Header{
+						CommitId: revision,
+					},
+				},
+			})),
+		server.EXPECT().
+			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
+				Message: &rpc.ObjectsToSynchronizeResponse_Object_{
+					Object: &rpc.ObjectsToSynchronizeResponse_Object{
+						Source: "path/manifest.yaml",
+						Data:   objs,
+					},
+				},
+			})),
+		server.EXPECT().
+			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
+				Message: &rpc.ObjectsToSynchronizeResponse_Trailer_{
+					Trailer: &rpc.ObjectsToSynchronizeResponse_Trailer{},
+				},
+			})).
+			Do(func(resp *rpc.ObjectsToSynchronizeResponse) {
+				cancel() // stop streaming call after the first response has been sent
+			}),
+	)
+	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
+	pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
+	gomock.InOrder(
+		gitalyPool.EXPECT().
+			Poller(gomock.Any(), &projInfo.GitalyInfo).
+			Return(p, nil),
+		p.EXPECT().
+			Poll(gomock.Any(), &projInfo.Repository, "", gitaly.DefaultBranch).
+			Return(&gitaly.PollInfo{
+				UpdateAvailable: true,
+				CommitId:        revision,
+			}, nil),
+		gitalyPool.EXPECT().
+			PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
+			Return(pf, nil),
+		pf.EXPECT().
+			Visit(gomock.Any(), &projInfo.Repository, []byte(revision), []byte("path"), false, gomock.Any()).
+			Do(func(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, recursive bool, visitor gitaly.FetchVisitor) {
+				download, maxSize, err := visitor.Entry(&gitalypb.TreeEntry{
+					Path:      []byte("path/manifest.yaml"),
+					Type:      gitalypb.TreeEntry_BLOB,
+					CommitOid: manifestRevision,
+				})
+				require.NoError(t, err)
+				assert.EqualValues(t, defaultGitopsMaxManifestFileSize, maxSize)
+				assert.True(t, download)
+
+				done, err := visitor.StreamChunk([]byte("path/manifest.yaml"), objs)
+				require.NoError(t, err)
+				assert.False(t, done)
+			}),
+	)
+	err := a.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{
+		ProjectId: projectId,
+		Paths: []*agentcfg.PathCF{
+			{
+				Glob: "/path/*.yaml",
+			},
+		},
+	}, server)
+	require.NoError(t, err)
+}
+
 func TestGetObjectsToSynchronize_ResumeConnection(t *testing.T) {
-	ctx, cancel, m, ctrl, gitalyPool, _ := setupModule(t, 1)
+	ctx, cancel, m, ctrl, gitalyPool, _ := setupModule(t)
 	projInfo := projectInfo()
 	server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
 	server.EXPECT().
@@ -249,7 +308,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 	}
 	for _, gitalyErr := range gitalyErrs {
 		t.Run(gitalyErr.(*gitaly.Error).Code.String(), func(t *testing.T) { // nolint: errorlint
-			ctx, _, a, ctrl, gitalyPool, mockApi := setupModule(t, 1)
+			ctx, _, a, ctrl, gitalyPool, mockApi := setupModule(t)
 
 			projInfo := projectInfo()
 			server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
@@ -301,302 +360,6 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 	}
 }
 
-func TestObjectsToSynchronizeVisitor(t *testing.T) {
-	tests := []struct {
-		name             string
-		path             string
-		glob             string
-		expectedDownload bool
-		expectedMaxSize  int64
-		expectedErr      string
-	}{
-		{
-			name:             "YAML file",
-			path:             "manifest1.yaml",
-			glob:             defaultGitOpsManifestPathGlob,
-			expectedDownload: true,
-			expectedMaxSize:  defaultGitopsMaxManifestFileSize,
-		},
-		{
-			name:             "YML file",
-			path:             "manifest1.yml",
-			glob:             defaultGitOpsManifestPathGlob,
-			expectedDownload: true,
-			expectedMaxSize:  defaultGitopsMaxManifestFileSize,
-		},
-		{
-			name:             "JSON file",
-			path:             "manifest1.json",
-			glob:             defaultGitOpsManifestPathGlob,
-			expectedDownload: true,
-			expectedMaxSize:  defaultGitopsMaxManifestFileSize,
-		},
-		{
-			name:             "nested YAML file",
-			path:             "dir/manifest1.yaml",
-			glob:             defaultGitOpsManifestPathGlob,
-			expectedDownload: true,
-			expectedMaxSize:  defaultGitopsMaxManifestFileSize,
-		},
-		{
-			name:             "nested YML file",
-			path:             "dir/manifest1.yml",
-			glob:             defaultGitOpsManifestPathGlob,
-			expectedDownload: true,
-			expectedMaxSize:  defaultGitopsMaxManifestFileSize,
-		},
-		{
-			name:             "nested JSON file",
-			path:             "dir/manifest1.json",
-			glob:             defaultGitOpsManifestPathGlob,
-			expectedDownload: true,
-			expectedMaxSize:  defaultGitopsMaxManifestFileSize,
-		},
-		{
-			name:             "TXT file",
-			path:             "manifest1.txt",
-			glob:             defaultGitOpsManifestPathGlob,
-			expectedDownload: false,
-		},
-		{
-			name:             "nested TXT file",
-			path:             "dir/manifest1.txt",
-			glob:             defaultGitOpsManifestPathGlob,
-			expectedDownload: false,
-		},
-		{
-			name:             "hidden directory",
-			path:             ".dir/manifest1.yaml",
-			glob:             defaultGitOpsManifestPathGlob,
-			expectedDownload: false,
-		},
-		{
-			name:             "hidden nested directory",
-			path:             "dir1/.dir2/manifest1.yaml",
-			glob:             defaultGitOpsManifestPathGlob,
-			expectedDownload: false,
-		},
-		{
-			name:             "invalid glob",
-			path:             "dir1/manifest1.yaml",
-			glob:             "**.yaml", // yes, this does not match "dir/file" names. See https://github.com/bmatcuk/doublestar/issues/48
-			expectedDownload: false,
-		},
-		{
-			name:             "no match",
-			path:             "dir1/manifest1.yaml",
-			glob:             "dir2/*.yml",
-			expectedDownload: false,
-		},
-		{
-			name:             "weird glob",
-			path:             "manifest1.yaml",
-			glob:             "**.yaml",
-			expectedDownload: true,
-			expectedMaxSize:  defaultGitopsMaxManifestFileSize,
-		},
-		{
-			name:             "all files 1",
-			path:             "manifest1.yaml",
-			glob:             "**",
-			expectedDownload: true,
-			expectedMaxSize:  defaultGitopsMaxManifestFileSize,
-		},
-		{
-			name:             "all files 2",
-			path:             "dir1/manifest1.yaml",
-			glob:             "**",
-			expectedDownload: true,
-			expectedMaxSize:  defaultGitopsMaxManifestFileSize,
-		},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			v := objectsToSynchronizeVisitor{
-				glob:                   tc.glob, // nolint: scopelint
-				remainingTotalFileSize: defaultGitopsMaxTotalManifestFileSize,
-				fileSizeLimit:          defaultGitopsMaxManifestFileSize,
-				maxNumberOfFiles:       defaultGitopsMaxNumberOfFiles,
-			}
-			download, maxSize, err := v.Entry(&gitalypb.TreeEntry{
-				Path: []byte(tc.path), // nolint: scopelint
-			})
-			if tc.expectedErr == "" { // nolint: scopelint
-				assert.Equal(t, tc.expectedDownload, download) // nolint: scopelint
-				if tc.expectedDownload {                       // nolint: scopelint
-					assert.Equal(t, tc.expectedMaxSize, maxSize) // nolint: scopelint
-				}
-			} else {
-				assert.EqualError(t, err, tc.expectedErr) // nolint: scopelint
-			}
-		})
-	}
-	t.Run("too many files", func(t *testing.T) {
-		v := objectsToSynchronizeVisitor{
-			glob:                   defaultGitOpsManifestPathGlob,
-			remainingTotalFileSize: defaultGitopsMaxTotalManifestFileSize,
-			fileSizeLimit:          defaultGitopsMaxManifestFileSize,
-			maxNumberOfFiles:       1,
-		}
-		download, maxSize, err := v.Entry(&gitalypb.TreeEntry{
-			Path: []byte("manifest1.yaml"),
-		})
-		require.NoError(t, err)
-		assert.EqualValues(t, defaultGitopsMaxManifestFileSize, maxSize)
-		assert.True(t, download)
-
-		_, _, err = v.Entry(&gitalypb.TreeEntry{
-			Path: []byte("manifest2.yaml"),
-		})
-		assert.EqualError(t, err, "maximum number of manifest files limit reached: 1")
-	})
-	t.Run("unexpected underflow", func(t *testing.T) {
-		v := objectsToSynchronizeVisitor{
-			glob:                   defaultGitOpsManifestPathGlob,
-			remainingTotalFileSize: 1,
-			fileSizeLimit:          defaultGitopsMaxManifestFileSize,
-			maxNumberOfFiles:       defaultGitopsMaxNumberOfFiles,
-		}
-		_, err := v.StreamChunk([]byte("manifest2.yaml"), []byte("data1"))
-		assert.EqualError(t, err, "rpc error: code = Internal desc = unexpected negative remaining total file size")
-	})
-	t.Run("blob", func(t *testing.T) {
-		data := []byte("data1")
-		ctrl := gomock.NewController(t)
-		server := mock_rpc.NewMockGitops_GetObjectsToSynchronizeServer(ctrl)
-		server.EXPECT().
-			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
-				Message: &rpc.ObjectsToSynchronizeResponse_Object_{
-					Object: &rpc.ObjectsToSynchronizeResponse_Object{
-						Source: "manifest2.yaml",
-						Data:   data,
-					},
-				},
-			}))
-		v := objectsToSynchronizeVisitor{
-			server:                 server,
-			glob:                   defaultGitOpsManifestPathGlob,
-			remainingTotalFileSize: defaultGitopsMaxTotalManifestFileSize,
-			fileSizeLimit:          defaultGitopsMaxManifestFileSize,
-			maxNumberOfFiles:       defaultGitopsMaxNumberOfFiles,
-		}
-		done, err := v.StreamChunk([]byte("manifest2.yaml"), data)
-		require.NoError(t, err)
-		assert.False(t, done)
-		assert.EqualValues(t, defaultGitopsMaxTotalManifestFileSize-len(data), v.remainingTotalFileSize)
-	})
-}
-
-func TestGlobToGitaly(t *testing.T) {
-	tests := []struct {
-		name              string
-		glob              string
-		expectedRepoPath  []byte
-		expectedRecursive bool
-		expectedGlob      string
-	}{
-		{
-			name:              "empty",
-			glob:              "",
-			expectedRepoPath:  []byte{'.'},
-			expectedRecursive: false,
-			expectedGlob:      "",
-		},
-		{
-			name:              "root",
-			glob:              "/",
-			expectedRepoPath:  []byte{'.'},
-			expectedRecursive: false,
-			expectedGlob:      "",
-		},
-		{
-			name:              "simple file1",
-			glob:              "*.yaml",
-			expectedRepoPath:  []byte{'.'},
-			expectedRecursive: false,
-			expectedGlob:      "*.yaml",
-		},
-		{
-			name:              "simple file2",
-			glob:              "/*.yaml",
-			expectedRepoPath:  []byte{'.'},
-			expectedRecursive: false,
-			expectedGlob:      "*.yaml",
-		},
-		{
-			name:              "files in directory1",
-			glob:              "bla/*.yaml",
-			expectedRepoPath:  []byte("bla"),
-			expectedRecursive: false,
-			expectedGlob:      "*.yaml",
-		},
-		{
-			name:              "files in directory2",
-			glob:              "/bla/*.yaml",
-			expectedRepoPath:  []byte("bla"),
-			expectedRecursive: false,
-			expectedGlob:      "*.yaml",
-		},
-		{
-			name:              "recursive files in directory1",
-			glob:              "bla/**/*.yaml",
-			expectedRepoPath:  []byte("bla"),
-			expectedRecursive: true,
-			expectedGlob:      "**/*.yaml",
-		},
-		{
-			name:              "recursive files in directory2",
-			glob:              "/bla/**/*.yaml",
-			expectedRepoPath:  []byte("bla"),
-			expectedRecursive: true,
-			expectedGlob:      "**/*.yaml",
-		},
-		{
-			name:              "all files1",
-			glob:              "**/*.yaml",
-			expectedRepoPath:  []byte{'.'},
-			expectedRecursive: true,
-			expectedGlob:      "**/*.yaml",
-		},
-		{
-			name:              "all files2",
-			glob:              "/**/*.yaml",
-			expectedRepoPath:  []byte{'.'},
-			expectedRecursive: true,
-			expectedGlob:      "**/*.yaml",
-		},
-		{
-			name:              "group1",
-			glob:              "/[a-z]*/*.yaml",
-			expectedRepoPath:  []byte{'.'},
-			expectedRecursive: true,
-			expectedGlob:      "[a-z]*/*.yaml",
-		},
-		{
-			name:              "group2",
-			glob:              "/?bla/*.yaml",
-			expectedRepoPath:  []byte{'.'},
-			expectedRecursive: true,
-			expectedGlob:      "?bla/*.yaml",
-		},
-		{
-			name:              "group3",
-			glob:              "/bla/?aaa/*.yaml",
-			expectedRepoPath:  []byte("bla"),
-			expectedRecursive: true,
-			expectedGlob:      "?aaa/*.yaml",
-		},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) { // nolint: scopelint
-			gotRepoPath, gotRecursive, gotGlob := globToGitaly(tc.glob) // nolint: scopelint
-			assert.Equal(t, tc.expectedRepoPath, gotRepoPath)           // nolint: scopelint
-			assert.Equal(t, tc.expectedRecursive, gotRecursive)         // nolint: scopelint
-			assert.Equal(t, tc.expectedGlob, gotGlob)                   // nolint: scopelint
-		})
-	}
-}
-
 func projectInfoRest() *projectInfoResponse {
 	return &projectInfoResponse{
 		ProjectId: 234,
@@ -625,11 +388,11 @@ func projectInfo() *api.ProjectInfo {
 	}
 }
 
-func setupModule(t *testing.T, pollTimes int) (context.Context, context.CancelFunc, *module, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_modserver.MockAPI) {
+func setupModule(t *testing.T) (context.Context, context.CancelFunc, *module, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_modserver.MockAPI) {
 	ctx, correlationId := testhelpers.CtxWithCorrelation(t)
 	ctx, cancel := context.WithCancel(ctx)
 	t.Cleanup(cancel)
-	m, ctrl, mockApi, gitalyPool := setupModuleBare(t, pollTimes, func(w http.ResponseWriter, r *http.Request) {
+	m, ctrl, mockApi, gitalyPool := setupModuleBare(t, func(w http.ResponseWriter, r *http.Request) {
 		testhelpers.AssertGetJsonRequestIsCorrect(t, r, correlationId)
 		assert.Equal(t, projectId, r.URL.Query().Get(projectIdQueryParam))
 		testhelpers.RespondWithJSON(t, w, projectInfoRest())
@@ -638,11 +401,11 @@ func setupModule(t *testing.T, pollTimes int) (context.Context, context.CancelFu
 	return ctx, cancel, m, ctrl, gitalyPool, mockApi
 }
 
-func setupModuleBare(t *testing.T, pollTimes int, handler func(http.ResponseWriter, *http.Request)) (*module, *gomock.Controller, *mock_modserver.MockAPI, *mock_internalgitaly.MockPoolInterface) {
+func setupModuleBare(t *testing.T, handler func(http.ResponseWriter, *http.Request)) (*module, *gomock.Controller, *mock_modserver.MockAPI, *mock_internalgitaly.MockPoolInterface) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 	gitalyPool := mock_internalgitaly.NewMockPoolInterface(ctrl)
-	mockApi := mock_modserver.NewMockAPIWithMockPoller(ctrl, pollTimes)
+	mockApi := mock_modserver.NewMockAPIWithMockPoller(ctrl, 1)
 	agentInfo := testhelpers.AgentInfoObj()
 	mockApi.EXPECT().
 		GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken, false).
@@ -670,4 +433,31 @@ func setupModuleBare(t *testing.T, pollTimes int, handler func(http.ResponseWrit
 	})
 	require.NoError(t, err)
 	return m.(*module), ctrl, mockApi, gitalyPool
+}
+
+func objectsYAML(t *testing.T) []byte {
+	objects := []runtime.Object{
+		&corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "map1",
+			},
+			Data: map[string]string{
+				"key": "value",
+			},
+		},
+		&corev1.Namespace{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Namespace",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "ns1",
+			},
+		},
+	}
+	return kube_testing.ObjsToYAML(t, objects...)
 }

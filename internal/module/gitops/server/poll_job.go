@@ -29,7 +29,7 @@ var (
 	// globPrefix captures glob prefix that does not contain any special characters, recognized by doublestar.Match.
 	// See https://github.com/bmatcuk/doublestar#about and
 	// https://pkg.go.dev/github.com/bmatcuk/doublestar/v2#Match for globbing rules.
-	globPrefix = regexp.MustCompile(`^/?([^\\*?[\]{}]+)/(.*)$`)
+	globPrefix = regexp.MustCompile(`^([^\\*?[\]{}]+)/(.*)$`)
 )
 
 type pollJob struct {
@@ -144,8 +144,9 @@ func (j *pollJob) sendObjectsToSynchronizeBody(
 		Delegate:     v,
 	}
 	for _, p := range req.Paths {
-		repoPath, recursive, glob := globToGitaly(p.Glob)
-		v.glob = glob // set new glob for each path
+		globNoSlash := strings.TrimPrefix(p.Glob, "/") // original glob without the leading slash
+		repoPath, recursive := globToGitaly(globNoSlash)
+		v.glob = globNoSlash // set new glob for each path
 		err = pf.Visit(ctx, repo, []byte(commitId), repoPath, recursive, vChunk)
 		if err != nil {
 			if v.sendFailed {
@@ -196,17 +197,17 @@ func (j *pollJob) getProjectInfo(ctx context.Context, log *zap.Logger, agentToke
 	return nil, err, true
 }
 
-func globToGitaly(glob string) ([]byte /* repoPath */, bool /* recursive */, string /* glob */) {
+// globToGitaly accepts a glob without a leading slash!
+func globToGitaly(glob string) ([]byte /* repoPath */, bool /* recursive */) {
 	var repoPath []byte
 	matches := globPrefix.FindStringSubmatch(glob)
 	if matches == nil {
 		repoPath = []byte{'.'}
-		glob = strings.TrimPrefix(glob, "/") // remove at most one slash to match regex
 	} else {
 		repoPath = []byte(matches[1])
 		glob = matches[2]
 	}
 	recursive := strings.ContainsAny(glob, "[/") || // cannot determine if recursive or not because character class may contain ranges, etc
 		strings.Contains(glob, "**") // contains directory match
-	return repoPath, recursive, glob
+	return repoPath, recursive
 }
