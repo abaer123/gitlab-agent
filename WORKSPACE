@@ -26,9 +26,9 @@ http_archive(
 
 http_archive(
     name = "io_bazel_rules_docker",
-    sha256 = "95d39fd84ff4474babaf190450ee034d958202043e366b9fc38f438c9e6c3334",
-    strip_prefix = "rules_docker-0.16.0",
-    urls = ["https://github.com/bazelbuild/rules_docker/releases/download/v0.16.0/rules_docker-v0.16.0.tar.gz"],
+    sha256 = "54d978734b7cbdcaa5cc4eece4ca4053d8b49972ae04a9fdb0ef05cfe812e524",
+    strip_prefix = "rules_docker-0adf8b2ff23e8d7a14562be0f5707cd4dbb32998",
+    urls = ["https://github.com/bazelbuild/rules_docker/archive/0adf8b2ff23e8d7a14562be0f5707cd4dbb32998.tar.gz"],
 )
 
 http_archive(
@@ -116,15 +116,6 @@ http_file(
 
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
-
-# Workaround https://github.com/bazelbuild/rules_docker/issues/1814
-go_repository(
-    name = "com_github_google_go_containerregistry",
-    build_file_proto_mode = "disable_global",
-    importpath = "github.com/google/go-containerregistry",
-    sum = "h1:fZm+V2pYnvb8NMPM1YOsyxr31XKfpHTun5oVTRnG8qc=",
-    version = "v0.1.4",
-)
 
 # Workaround for https://github.com/argoproj/gitops-engine/issues/56
 go_repository(

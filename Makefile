@@ -82,7 +82,7 @@ test: fmt update-bazel
 
 .PHONY: test-ci
 test-ci:
-	bazel test -- //... //cmd:push-latest_bundle
+	bazel test -- //... //cmd:push-latest
 
 .PHONY: quick-test
 quick-test:
