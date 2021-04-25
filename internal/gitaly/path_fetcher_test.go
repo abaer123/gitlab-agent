@@ -2,12 +2,10 @@ package gitaly_test
 
 import (
 	"context"
-	"errors"
 	"io"
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
@@ -24,7 +22,6 @@ const (
 
 var (
 	_ gitaly.FileVisitor          = &gitaly.AccumulatingFileVisitor{}
-	_ gitaly.FetchVisitor         = gitaly.ChunkingFetchVisitor{}
 	_ gitaly.PathFetcherInterface = &gitaly.PathFetcher{}
 )
 
@@ -210,96 +207,6 @@ func TestPathFetcher_StreamFile_InvalidType(t *testing.T) {
 	}
 	err := v.StreamFile(context.Background(), r, []byte(revision), []byte(repoPath), fileMaxSize, mockVisitor)
 	require.EqualError(t, err, "UnexpectedTreeEntryType: TreeEntry.Recv: file is not a usual file: dir")
-}
-
-func TestChunkingFetchVisitor_Entry(t *testing.T) {
-	entry := &gitalypb.TreeEntry{
-		Path:      []byte("manifest2.yaml"),
-		Type:      gitalypb.TreeEntry_BLOB,
-		CommitOid: manifestRevision,
-	}
-	ctrl := gomock.NewController(t)
-	fv := mock_internalgitaly.NewMockFetchVisitor(ctrl)
-	fv.EXPECT().
-		Entry(matcher.ProtoEq(t, entry)).
-		Return(true, int64(100), nil)
-	v := gitaly.ChunkingFetchVisitor{
-		MaxChunkSize: 10,
-		Delegate:     fv,
-	}
-	download, maxSize, err := v.Entry(entry)
-	assert.True(t, download)
-	assert.EqualValues(t, 100, maxSize)
-	assert.NoError(t, err)
-}
-
-func TestChunkingFetchVisitor_StreamChunk(t *testing.T) {
-	t.Run("no chunking", func(t *testing.T) {
-		p := []byte{1, 2, 3}
-		data := []byte{4, 5, 6}
-		ctrl := gomock.NewController(t)
-		fv := mock_internalgitaly.NewMockFetchVisitor(ctrl)
-		fv.EXPECT().
-			StreamChunk(p, data)
-		v := gitaly.ChunkingFetchVisitor{
-			MaxChunkSize: 10,
-			Delegate:     fv,
-		}
-		done, err := v.StreamChunk(p, data)
-		assert.False(t, done)
-		assert.NoError(t, err)
-	})
-	t.Run("chunking", func(t *testing.T) {
-		p := []byte{1, 2, 3}
-		data := []byte{4, 5, 6}
-		ctrl := gomock.NewController(t)
-		fv := mock_internalgitaly.NewMockFetchVisitor(ctrl)
-		gomock.InOrder(
-			fv.EXPECT().
-				StreamChunk(p, data[:2]),
-			fv.EXPECT().
-				StreamChunk(p, data[2:]),
-		)
-		v := gitaly.ChunkingFetchVisitor{
-			MaxChunkSize: 2,
-			Delegate:     fv,
-		}
-		done, err := v.StreamChunk(p, data)
-		assert.False(t, done)
-		assert.NoError(t, err)
-	})
-	t.Run("done", func(t *testing.T) {
-		p := []byte{1, 2, 3}
-		data := []byte{4, 5, 6}
-		ctrl := gomock.NewController(t)
-		fv := mock_internalgitaly.NewMockFetchVisitor(ctrl)
-		fv.EXPECT().
-			StreamChunk(p, data[:2]).
-			Return(true, nil)
-		v := gitaly.ChunkingFetchVisitor{
-			MaxChunkSize: 2,
-			Delegate:     fv,
-		}
-		done, err := v.StreamChunk(p, data)
-		assert.True(t, done)
-		assert.NoError(t, err)
-	})
-	t.Run("error", func(t *testing.T) {
-		p := []byte{1, 2, 3}
-		data := []byte{4, 5, 6}
-		ctrl := gomock.NewController(t)
-		fv := mock_internalgitaly.NewMockFetchVisitor(ctrl)
-		fv.EXPECT().
-			StreamChunk(p, data[:2]).
-			Return(false, errors.New("boom!"))
-		v := gitaly.ChunkingFetchVisitor{
-			MaxChunkSize: 2,
-			Delegate:     fv,
-		}
-		done, err := v.StreamChunk(p, data)
-		assert.False(t, done)
-		assert.EqualError(t, err, "boom!")
-	})
 }
 
 func mockTreeEntry(t *testing.T, ctrl *gomock.Controller, commitClient *mock_gitaly.MockCommitServiceClient, data []byte, req *gitalypb.TreeEntryRequest) {

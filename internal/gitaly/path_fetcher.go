@@ -129,34 +129,6 @@ func (f *PathFetcher) FetchFile(ctx context.Context, repo *gitalypb.Repository, 
 	return v.Data, nil
 }
 
-type ChunkingFetchVisitor struct {
-	MaxChunkSize int
-	Delegate     FetchVisitor
-}
-
-func (v ChunkingFetchVisitor) EntryDone(entry *gitalypb.TreeEntry, err error) {
-	v.Delegate.EntryDone(entry, err)
-}
-
-func (v ChunkingFetchVisitor) Entry(entry *gitalypb.TreeEntry) (bool /* download? */, int64 /* max size */, error) {
-	return v.Delegate.Entry(entry)
-}
-
-func (v ChunkingFetchVisitor) StreamChunk(path []byte, data []byte) (bool /* done? */, error) {
-	for {
-		bytesToSend := minInt(len(data), v.MaxChunkSize)
-		done, err := v.Delegate.StreamChunk(path, data[:bytesToSend])
-		if err != nil || done {
-			return done, err
-		}
-		data = data[bytesToSend:]
-		if len(data) == 0 {
-			break
-		}
-	}
-	return false, nil
-}
-
 type fetcherPathEntryVisitor func(*gitalypb.TreeEntry) (bool /* done? */, error)
 
 func (v fetcherPathEntryVisitor) Entry(entry *gitalypb.TreeEntry) (bool /* done? */, error) {
@@ -176,12 +148,4 @@ type AccumulatingFileVisitor struct {
 func (a *AccumulatingFileVisitor) Chunk(data []byte) (bool /* done? */, error) {
 	a.Data = append(a.Data, data...)
 	return false, nil
-}
-
-func minInt(a, b int) int {
-	if a < b {
-		return a
-	}
-
-	return b
 }
