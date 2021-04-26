@@ -23,8 +23,10 @@ var (
 	_ gitaly.FetchVisitor = &gitaly.TotalSizeLimitingFetchVisitor{}
 	_ gitaly.FetchVisitor = gitaly.HiddenDirFilteringFetchVisitor{}
 	_ gitaly.FetchVisitor = gitaly.GlobFilteringFetchVisitor{}
+	_ gitaly.FetchVisitor = gitaly.DuplicatePathDetectingVisitor{}
 	_ error               = &gitaly.GlobMatchFailedError{}
 	_ error               = &gitaly.MaxNumberOfFilesError{}
+	_ error               = &gitaly.DuplicatePathFoundError{}
 )
 
 func TestChunkingFetchVisitor_Entry(t *testing.T) {
@@ -302,6 +304,19 @@ func TestGlobFilteringFetchVisitor(t *testing.T) {
 			assert.Equal(t, tc.expectedDownload, download) // nolint: scopelint
 		})
 	}
+}
+
+func TestDuplicatePathDetectingVisitor(t *testing.T) {
+	entry, fv := delegate(t)
+
+	v := gitaly.NewDuplicateFileDetectingVisitor(fv)
+	download, maxSize, err := v.Entry(entry)
+	require.NoError(t, err)
+	assert.EqualValues(t, 100, maxSize)
+	assert.True(t, download)
+
+	_, _, err = v.Entry(entry)
+	require.EqualError(t, err, "path visited more than once: manifest.yaml")
 }
 
 func delegate(t *testing.T) (*gitalypb.TreeEntry, *mock_internalgitaly.MockFetchVisitor) {

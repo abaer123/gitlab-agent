@@ -139,6 +139,7 @@ func (j *pollJob) sendObjectsToSynchronizeBody(
 	var delegate gitaly.FetchVisitor = v
 	delegate = gitaly.NewChunkingFetchVisitor(delegate, gitOpsManifestMaxChunkSize)
 	delegate = gitaly.NewTotalSizeLimitingFetchVisitor(delegate, j.maxTotalManifestFileSize)
+	delegate = gitaly.NewDuplicateFileDetectingVisitor(delegate)
 	delegate = gitaly.NewHiddenDirFilteringFetchVisitor(delegate)
 	vGlob := gitaly.NewGlobFilteringFetchVisitor(delegate, "")
 	vCounting := gitaly.NewEntryCountLimitingFetchVisitor(vGlob, j.maxNumberOfFiles)
@@ -151,18 +152,11 @@ func (j *pollJob) sendObjectsToSynchronizeBody(
 			if v.sendFailed {
 				return vCounting.FilesVisited, vCounting.FilesSent, j.api.HandleSendError(log, "GitOps: failed to send objects to synchronize", err)
 			}
-			_, isGlobErr := err.(*gitaly.GlobMatchFailedError)     // nolint: errorlint
-			_, isMaxFileErr := err.(*gitaly.MaxNumberOfFilesError) // nolint: errorlint
-			if isGlobErr || isMaxFileErr {
-				err = errz.NewUserErrorWithCause(err, "") // wrap in UserError
-			} else {
-				switch gitaly.ErrorCodeFromError(err) { // nolint:exhaustive
-				case gitaly.NotFound, gitaly.FileTooBig, gitaly.UnexpectedTreeEntryType:
-					err = errz.NewUserErrorWithCause(err, "manifest file")
-					j.api.HandleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
-					// return the error to the client because it's a user error
-					return vCounting.FilesVisited, vCounting.FilesSent, status.Errorf(codes.FailedPrecondition, "GitOps: failed to get objects to synchronize: %v", err)
-				}
+			if isUserError(err) {
+				err = errz.NewUserErrorWithCause(err, "manifest file")
+				j.api.HandleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
+				// return the error to the client because it's a user error
+				return vCounting.FilesVisited, vCounting.FilesSent, status.Errorf(codes.FailedPrecondition, "GitOps: failed to get objects to synchronize: %v", err)
 			}
 			j.api.HandleProcessingError(ctx, log, "GitOps: failed to get objects to synchronize", err)
 			return vCounting.FilesVisited, vCounting.FilesSent, status.Error(codes.Unavailable, "GitOps: failed to get objects to synchronize")
@@ -199,6 +193,18 @@ func (j *pollJob) getProjectInfo(ctx context.Context, log *zap.Logger, agentToke
 		err = nil // don't want to close the response stream, so report no error
 	}
 	return nil, err, true
+}
+
+func isUserError(err error) bool {
+	switch err.(type) { // nolint:errorlint
+	case *gitaly.GlobMatchFailedError, *gitaly.MaxNumberOfFilesError, *gitaly.DuplicatePathFoundError:
+		return true
+	}
+	switch gitaly.ErrorCodeFromError(err) { // nolint:exhaustive
+	case gitaly.NotFound, gitaly.FileTooBig, gitaly.UnexpectedTreeEntryType:
+		return true
+	}
+	return false
 }
 
 // globToGitaly accepts a glob without a leading slash!
