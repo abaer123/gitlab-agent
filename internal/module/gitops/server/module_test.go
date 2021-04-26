@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
@@ -301,13 +302,37 @@ func TestGetObjectsToSynchronize_ResumeConnection(t *testing.T) {
 }
 
 func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
-	gitalyErrs := []error{
-		gitaly.NewNotFoundError("Bla", "some/file"),
-		gitaly.NewFileTooBigError(nil, "Bla", "some/file"),
-		gitaly.NewUnexpectedTreeEntryTypeError("Bla", "some/file"),
+	pathFetcherErrs := []struct {
+		errMsg string
+		err    error
+	}{
+		{
+			errMsg: "manifest file: FileNotFound: Bla: file/directory/ref not found: some/file",
+			err:    gitaly.NewNotFoundError("Bla", "some/file"),
+		},
+		{
+			errMsg: "manifest file: FileTooBig: Bla: file is too big: some/file",
+			err:    gitaly.NewFileTooBigError(nil, "Bla", "some/file"),
+		},
+		{
+			errMsg: "manifest file: UnexpectedTreeEntryType: Bla: file is not a usual file: some/file",
+			err:    gitaly.NewUnexpectedTreeEntryTypeError("Bla", "some/file"),
+		},
+		{
+			errMsg: "manifest file: path visited more than once: bla",
+			err:    &gitaly.DuplicatePathFoundError{Path: "bla"},
+		},
+		{
+			errMsg: "manifest file: glob *.yaml match failed: bad glob",
+			err:    &gitaly.GlobMatchFailedError{Cause: errors.New("bad glob"), Glob: "*.yaml"},
+		},
+		{
+			errMsg: "manifest file: maximum number of files limit reached: 10",
+			err:    &gitaly.MaxNumberOfFilesError{MaxNumberOfFiles: 10},
+		},
 	}
-	for _, gitalyErr := range gitalyErrs {
-		t.Run(gitalyErr.(*gitaly.Error).Code.String(), func(t *testing.T) { // nolint: errorlint
+	for _, tc := range pathFetcherErrs {
+		t.Run(tc.errMsg, func(t *testing.T) { // nolint: errorlint
 			ctx, _, a, ctrl, gitalyPool, mockApi := setupModule(t)
 
 			projInfo := projectInfo()
@@ -326,7 +351,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 				}))
 			mockApi.EXPECT().
 				HandleProcessingError(gomock.Any(), gomock.Any(), "GitOps: failed to get objects to synchronize",
-					matcher.ErrorEq(fmt.Sprintf("manifest file: %v", gitalyErr)), // nolint: scopelint
+					matcher.ErrorEq(tc.errMsg), // nolint: scopelint
 				)
 			p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 			pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
@@ -345,7 +370,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 					Return(pf, nil),
 				pf.EXPECT().
 					Visit(gomock.Any(), &projInfo.Repository, []byte(revision), []byte("."), true, gomock.Any()).
-					Return(gitalyErr), // nolint: scopelint
+					Return(tc.err), // nolint: scopelint
 			)
 			err := a.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{
 				ProjectId: projectId,
@@ -355,7 +380,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 					},
 				},
 			}, server)
-			assert.EqualError(t, err, fmt.Sprintf("rpc error: code = FailedPrecondition desc = GitOps: failed to get objects to synchronize: manifest file: %v", gitalyErr)) // nolint: scopelint
+			assert.EqualError(t, err, fmt.Sprintf("rpc error: code = FailedPrecondition desc = GitOps: failed to get objects to synchronize: %s", tc.errMsg)) // nolint: scopelint
 		})
 	}
 }
@@ -402,7 +427,6 @@ func setupModule(t *testing.T) (context.Context, context.CancelFunc, *module, *g
 }
 
 func setupModuleBare(t *testing.T, handler func(http.ResponseWriter, *http.Request)) (*module, *gomock.Controller, *mock_modserver.MockAPI, *mock_internalgitaly.MockPoolInterface) {
-	t.Parallel()
 	ctrl := gomock.NewController(t)
 	gitalyPool := mock_internalgitaly.NewMockPoolInterface(ctrl)
 	mockApi := mock_modserver.NewMockAPIWithMockPoller(ctrl, 1)

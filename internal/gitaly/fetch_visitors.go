@@ -190,6 +190,39 @@ func (v GlobFilteringFetchVisitor) Entry(entry *gitalypb.TreeEntry) (bool /* dow
 	return v.delegate.Entry(entry)
 }
 
+type DuplicatePathFoundError struct {
+	Path string
+}
+
+func (e *DuplicatePathFoundError) Error() string {
+	return fmt.Sprintf("path visited more than once: %s", e.Path)
+}
+
+type DuplicatePathDetectingVisitor struct {
+	delegatingFetchVisitor
+	visited map[string]struct{}
+}
+
+func NewDuplicateFileDetectingVisitor(delegate FetchVisitor) DuplicatePathDetectingVisitor {
+	return DuplicatePathDetectingVisitor{
+		delegatingFetchVisitor: delegatingFetchVisitor{
+			delegate: delegate,
+		},
+		visited: map[string]struct{}{},
+	}
+}
+
+func (v DuplicatePathDetectingVisitor) Entry(entry *gitalypb.TreeEntry) (bool /* download? */, int64 /* max size */, error) {
+	p := string(entry.Path)
+	if _, visited := v.visited[p]; visited {
+		return false, 0, &DuplicatePathFoundError{
+			Path: p,
+		}
+	}
+	v.visited[p] = struct{}{}
+	return v.delegate.Entry(entry)
+}
+
 // isHiddenDir checks if a file is in a directory, which name starts with a dot.
 func isHiddenDir(filename string) bool {
 	dir := path.Dir(filename)
