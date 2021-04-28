@@ -8,12 +8,18 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 	"google.golang.org/grpc"
 )
 
 const (
 	defaultNumConnections = 10
-	connectRetryPeriod    = 10 * time.Second
+
+	connectionInitBackoff   = 10 * time.Second
+	connectionMaxBackoff    = 5 * time.Minute
+	connectionResetDuration = 10 * time.Minute
+	connectionBackoffFactor = 2.0
+	connectionJitter        = 1.0
 )
 
 type Factory struct {
@@ -46,7 +52,13 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 				client:             client,
 				internalServerConn: f.InternalServerConn,
 				streamVisitor:      sv,
-				connectRetryPeriod: connectRetryPeriod,
+				backoff: retry.NewExponentialBackoffFactory(
+					connectionInitBackoff,
+					connectionMaxBackoff,
+					connectionResetDuration,
+					connectionBackoffFactor,
+					connectionJitter,
+				),
 			}
 		},
 	}, nil

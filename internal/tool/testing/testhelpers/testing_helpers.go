@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/dgrijalva/jwt-go/v4"
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"gitlab.com/gitlab-org/labkit/correlation"
 )
@@ -144,4 +146,8 @@ func RecvMsg(value interface{}) func(interface{}) {
 // value must of the same type as target.
 func SetValue(target, value interface{}) {
 	reflect.ValueOf(target).Elem().Set(reflect.ValueOf(value).Elem())
+}
+
+func NewBackoff() retry.BackoffManagerFactory {
+	return retry.NewExponentialBackoffFactory(time.Minute, time.Minute, time.Minute, 2, 1)
 }

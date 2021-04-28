@@ -23,6 +23,7 @@ go_library(
         "//internal/tool/logz",
         "//internal/tool/mathz",
         "//internal/tool/prototool",
+        "//internal/tool/retry",
         "//pkg/agentcfg",
         "//pkg/kascfg",
         "@io_k8s_sigs_yaml//:yaml",

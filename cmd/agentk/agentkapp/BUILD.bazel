@@ -28,6 +28,7 @@ go_library(
         "//internal/tool/grpctool",
         "//internal/tool/logz",
         "//internal/tool/prototool",
+        "//internal/tool/retry",
         "//internal/tool/tlstool",
         "//internal/tool/wstunnel",
         "//pkg/agentcfg",

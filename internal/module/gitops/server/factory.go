@@ -9,9 +9,16 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/metric"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 )
 
 const (
+	getObjectsToSynchronizeInitBackoff   = 10 * time.Second
+	getObjectsToSynchronizeMaxBackoff    = 5 * time.Minute
+	getObjectsToSynchronizeResetDuration = 10 * time.Minute
+	getObjectsToSynchronizeBackoffFactor = 2.0
+	getObjectsToSynchronizeJitter        = 1.0
+
 	gitopsSyncCountKnownMetric = "gitops_sync_count"
 )
 
@@ -45,13 +52,20 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 			ProjectInfoCache:         cache.New(minDuration(projectInfoCacheTtl, projectInfoCacheErrorTtl)),
 		},
 		syncCount:                   config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
-		pollPeriod:                  gitops.PollPeriod.AsDuration(),
-		maxConnectionAge:            config.Config.Agent.Listen.MaxConnectionAge.AsDuration(),
-		maxManifestFileSize:         int64(gitops.MaxManifestFileSize),
-		maxTotalManifestFileSize:    int64(gitops.MaxTotalManifestFileSize),
-		maxNumberOfPaths:            gitops.MaxNumberOfPaths,
-		maxNumberOfFiles:            gitops.MaxNumberOfFiles,
 		gitOpsPollIntervalHistogram: gitOpsPollIntervalHistogram,
+		getObjectsBackoff: retry.NewExponentialBackoffFactory(
+			getObjectsToSynchronizeInitBackoff,
+			getObjectsToSynchronizeMaxBackoff,
+			getObjectsToSynchronizeResetDuration,
+			getObjectsToSynchronizeBackoffFactor,
+			getObjectsToSynchronizeJitter,
+		),
+		pollPeriod:               gitops.PollPeriod.AsDuration(),
+		maxConnectionAge:         config.Config.Agent.Listen.MaxConnectionAge.AsDuration(),
+		maxManifestFileSize:      int64(gitops.MaxManifestFileSize),
+		maxTotalManifestFileSize: int64(gitops.MaxTotalManifestFileSize),
+		maxNumberOfPaths:         gitops.MaxNumberOfPaths,
+		maxNumberOfFiles:         gitops.MaxNumberOfFiles,
 	}
 	rpc.RegisterGitopsServer(config.AgentServer, m)
 	return m, nil

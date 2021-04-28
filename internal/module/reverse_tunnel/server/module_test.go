@@ -39,8 +39,8 @@ func TestConnectAllowsValidToken(t *testing.T) {
 			Context().
 			Return(ctx),
 		mockApi.EXPECT().
-			GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken, false).
-			Return(agentInfo, nil, false),
+			GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken).
+			Return(agentInfo, nil),
 		h.EXPECT().
 			HandleTunnel(gomock.Any(), agentInfo, connectServer),
 	)
@@ -58,8 +58,8 @@ func TestConnectRejectsInvalidToken(t *testing.T) {
 			Context().
 			Return(ctx),
 		mockApi.EXPECT().
-			GetAgentInfo(gomock.Any(), gomock.Any(), gomock.Any(), false).
-			Return(nil, errors.New("expected err"), true),
+			GetAgentInfo(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(nil, errors.New("expected err")),
 	)
 	err := m.Connect(connectServer)
 	assert.EqualError(t, err, "expected err")

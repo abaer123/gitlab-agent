@@ -11,9 +11,10 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	api "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
-	modserver "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
+	retry "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 	errortracking "gitlab.com/gitlab-org/labkit/errortracking"
 	zap "go.uber.org/zap"
+	wait "k8s.io/apimachinery/pkg/util/wait"
 )
 
 // MockAPI is a mock of API interface.
@@ -57,19 +58,18 @@ func (mr *MockAPIMockRecorder) Capture(arg0 interface{}, arg1 ...interface{}) *g
 }
 
 // GetAgentInfo mocks base method.
-func (m *MockAPI) GetAgentInfo(arg0 context.Context, arg1 *zap.Logger, arg2 api.AgentToken, arg3 bool) (*api.AgentInfo, error, bool) {
+func (m *MockAPI) GetAgentInfo(arg0 context.Context, arg1 *zap.Logger, arg2 api.AgentToken) (*api.AgentInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAgentInfo", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "GetAgentInfo", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*api.AgentInfo)
 	ret1, _ := ret[1].(error)
-	ret2, _ := ret[2].(bool)
-	return ret0, ret1, ret2
+	return ret0, ret1
 }
 
 // GetAgentInfo indicates an expected call of GetAgentInfo.
-func (mr *MockAPIMockRecorder) GetAgentInfo(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) GetAgentInfo(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAgentInfo", reflect.TypeOf((*MockAPI)(nil).GetAgentInfo), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAgentInfo", reflect.TypeOf((*MockAPI)(nil).GetAgentInfo), arg0, arg1, arg2)
 }
 
 // HandleProcessingError mocks base method.
@@ -98,16 +98,16 @@ func (mr *MockAPIMockRecorder) HandleSendError(arg0, arg1, arg2 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleSendError", reflect.TypeOf((*MockAPI)(nil).HandleSendError), arg0, arg1, arg2)
 }
 
-// PollImmediateUntil mocks base method.
-func (m *MockAPI) PollImmediateUntil(arg0 context.Context, arg1, arg2 time.Duration, arg3 modserver.ConditionFunc) error {
+// PollWithBackoff mocks base method.
+func (m *MockAPI) PollWithBackoff(arg0 context.Context, arg1 wait.BackoffManager, arg2 bool, arg3, arg4 time.Duration, arg5 retry.PollWithBackoffFunc) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PollImmediateUntil", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "PollWithBackoff", arg0, arg1, arg2, arg3, arg4, arg5)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// PollImmediateUntil indicates an expected call of PollImmediateUntil.
-func (mr *MockAPIMockRecorder) PollImmediateUntil(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+// PollWithBackoff indicates an expected call of PollWithBackoff.
+func (mr *MockAPIMockRecorder) PollWithBackoff(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PollImmediateUntil", reflect.TypeOf((*MockAPI)(nil).PollImmediateUntil), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PollWithBackoff", reflect.TypeOf((*MockAPI)(nil).PollWithBackoff), arg0, arg1, arg2, arg3, arg4, arg5)
 }

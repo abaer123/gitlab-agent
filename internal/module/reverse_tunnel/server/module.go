@@ -37,8 +37,8 @@ func (m *module) Connect(server rpc.ReverseTunnel_ConnectServer) error {
 	log := grpctool.LoggerFromContext(ctx)
 	ageCtx, cancel := context.WithTimeout(ctx, mathz.DurationWithJitter(m.maxConnectionAge, maxConnectionAgeJitterPercent))
 	defer cancel()
-	agentInfo, err, retErr := m.api.GetAgentInfo(ageCtx, log, agentToken, false)
-	if retErr {
+	agentInfo, err := m.api.GetAgentInfo(ageCtx, log, agentToken)
+	if err != nil {
 		return err // no wrap
 	}
 	return m.tunnelHandler.HandleTunnel(ageCtx, agentInfo, server)

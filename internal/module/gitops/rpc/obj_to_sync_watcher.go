@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"context"
-	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
@@ -36,26 +35,26 @@ type ObjectsToSynchronizeWatcherInterface interface {
 type ObjectsToSynchronizeWatcher struct {
 	Log          *zap.Logger
 	GitopsClient GitopsClient
-	RetryPeriod  time.Duration
+	Backoff      retry.BackoffManagerFactory
 }
 
 func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToSynchronizeRequest, callback ObjectsToSynchronizeCallback) {
-	lastProcessedCommitId := req.CommitId
 	sv, err := grpctool.NewStreamVisitor(&ObjectsToSynchronizeResponse{})
 	if err != nil {
 		// Coding error, must never happen
 		panic(err)
 	}
-	retry.JitterUntil(ctx, o.RetryPeriod, func(ctx context.Context) {
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel() // ensure streaming call is canceled
+	lastProcessedCommitId := req.CommitId
+	_ = retry.PollWithBackoff(ctx, o.Backoff(), true, 0 /* we never use Continue, so doesn't matter */, func() (error, retry.AttemptResult) {
+		ctx, cancel := context.WithCancel(ctx) // nolint:govet
+		defer cancel()                         // ensure streaming call is canceled
 		req.CommitId = lastProcessedCommitId
 		res, err := o.GitopsClient.GetObjectsToSynchronize(ctx, req)
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
 				o.Log.Error("GetObjectsToSynchronize failed", zap.Error(err))
 			}
-			return
+			return nil, retry.Backoff
 		}
 		v := objectsToSynchronizeVisitor{}
 		err = sv.Visit(res,
@@ -67,15 +66,16 @@ func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToS
 			if !grpctool.RequestCanceled(err) {
 				o.Log.Error("GetObjectsToSynchronize.Recv failed", zap.Error(err))
 			}
-			return
+			return nil, retry.Backoff
 		}
 		if !v.nonEmptyStream {
 			// Server closed the stream without sending us anything.
 			// It's fine, will just reopen the connection.
-			return
+			return nil, retry.ContinueImmediately
 		}
 		callback(ctx, v.objs)
 		lastProcessedCommitId = v.objs.CommitId
+		return nil, retry.ContinueImmediately
 	})
 }
 

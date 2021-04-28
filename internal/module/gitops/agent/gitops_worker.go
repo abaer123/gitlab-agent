@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"time"
 
 	"github.com/argoproj/gitops-engine/pkg/cache"
 	"github.com/argoproj/gitops-engine/pkg/engine"
@@ -15,10 +14,6 @@ import (
 	"go.uber.org/zap"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/rest"
-)
-
-const (
-	engineRunRetryPeriod = 10 * time.Second
 )
 
 type GitopsEngineFactory interface {
@@ -34,8 +29,9 @@ type GitopsWorker interface {
 }
 
 type gitopsWorker struct {
-	objWatcher    rpc.ObjectsToSynchronizeWatcherInterface
-	engineFactory GitopsEngineFactory
+	objWatcher           rpc.ObjectsToSynchronizeWatcherInterface
+	engineFactory        GitopsEngineFactory
+	engineBackoffFactory retry.BackoffManagerFactory
 	synchronizerConfig
 }
 
@@ -57,14 +53,14 @@ func (d *gitopsWorker) Run(ctx context.Context) {
 		},
 	)
 	var stopEngine engine.StopFunc
-	err := retry.PollImmediateUntil(ctx, engineRunRetryPeriod, func() (bool /*done*/, error) {
+	err := retry.PollWithBackoff(ctx, d.engineBackoffFactory(), true, 0, func() (error, retry.AttemptResult) {
 		var err error
 		stopEngine, err = eng.Run()
 		if err != nil {
 			d.log.Warn("engine.Run() failed", zap.Error(err))
-			return false, nil // nil error to keep polling
+			return nil, retry.Backoff
 		}
-		return true, nil
+		return nil, retry.Done
 	})
 	if err != nil {
 		// context is done
@@ -105,11 +101,12 @@ func (f *defaultGitopsEngineFactory) New(engineOpts []engine.Option, cacheOpts [
 }
 
 type defaultGitopsWorkerFactory struct {
-	log                                *zap.Logger
-	engineFactory                      GitopsEngineFactory
-	k8sClientGetter                    resource.RESTClientGetter
-	getObjectsToSynchronizeRetryPeriod time.Duration
-	gitopsClient                       rpc.GitopsClient
+	log                  *zap.Logger
+	engineFactory        GitopsEngineFactory
+	k8sClientGetter      resource.RESTClientGetter
+	gitopsClient         rpc.GitopsClient
+	watchBackoffFactory  retry.BackoffManagerFactory
+	engineBackoffFactory retry.BackoffManagerFactory
 }
 
 func (m *defaultGitopsWorkerFactory) New(project *agentcfg.ManifestProjectCF) GitopsWorker {
@@ -118,9 +115,10 @@ func (m *defaultGitopsWorkerFactory) New(project *agentcfg.ManifestProjectCF) Gi
 		objWatcher: &rpc.ObjectsToSynchronizeWatcher{
 			Log:          l,
 			GitopsClient: m.gitopsClient,
-			RetryPeriod:  m.getObjectsToSynchronizeRetryPeriod,
+			Backoff:      m.watchBackoffFactory,
 		},
-		engineFactory: m.engineFactory,
+		engineFactory:        m.engineFactory,
+		engineBackoffFactory: m.engineBackoffFactory,
 		synchronizerConfig: synchronizerConfig{
 			log:             l,
 			project:         project,

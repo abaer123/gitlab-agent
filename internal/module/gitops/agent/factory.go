@@ -7,10 +7,24 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
+)
+
+const (
+	getObjectsToSynchronizeInitBackoff   = 10 * time.Second
+	getObjectsToSynchronizeMaxBackoff    = 5 * time.Minute
+	getObjectsToSynchronizeResetDuration = 10 * time.Minute
+	getObjectsToSynchronizeBackoffFactor = 2.0
+	getObjectsToSynchronizeJitter        = 1.0
+
+	engineInitBackoff   = 10 * time.Second
+	engineMaxBackoff    = time.Minute
+	engineResetDuration = time.Minute
+	engineBackoffFactor = 2.0
+	engineJitter        = 1.0
 )
 
 type Factory struct {
-	GetObjectsToSynchronizeRetryPeriod time.Duration
 }
 
 func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
@@ -25,9 +39,22 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 			engineFactory: &defaultGitopsEngineFactory{
 				kubeClientConfig: restConfig,
 			},
-			k8sClientGetter:                    config.K8sClientGetter,
-			getObjectsToSynchronizeRetryPeriod: f.GetObjectsToSynchronizeRetryPeriod,
-			gitopsClient:                       rpc.NewGitopsClient(config.KasConn),
+			k8sClientGetter: config.K8sClientGetter,
+			watchBackoffFactory: retry.NewExponentialBackoffFactory(
+				getObjectsToSynchronizeInitBackoff,
+				getObjectsToSynchronizeMaxBackoff,
+				getObjectsToSynchronizeResetDuration,
+				getObjectsToSynchronizeBackoffFactor,
+				getObjectsToSynchronizeJitter,
+			),
+			engineBackoffFactory: retry.NewExponentialBackoffFactory(
+				engineInitBackoff,
+				engineMaxBackoff,
+				engineResetDuration,
+				engineBackoffFactor,
+				engineJitter,
+			),
+			gitopsClient: rpc.NewGitopsClient(config.KasConn),
 		},
 	}, nil
 }

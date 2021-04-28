@@ -282,8 +282,8 @@ func runTest(t *testing.T, ats test.TestingServer, f func(context.Context, *test
 	agentInfo := testhelpers.AgentInfoObj()
 
 	serverApi.EXPECT().
-		GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken, false).
-		Return(agentInfo, nil, false).
+		GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken).
+		Return(agentInfo, nil).
 		MinTimes(1)
 
 	tunnelRegisterer.EXPECT().

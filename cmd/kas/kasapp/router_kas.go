@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
@@ -22,9 +21,6 @@ import (
 )
 
 const (
-	routeAttemptPeriod      = 3 * time.Second
-	getTunnelsAttemptPeriod = 1 * time.Second
-
 	tunnelReadyFieldNumber protoreflect.FieldNumber = 1
 	headerFieldNumber      protoreflect.FieldNumber = 2
 	messageFieldNumber     protoreflect.FieldNumber = 3
@@ -55,7 +51,7 @@ func (r *router) RouteToCorrectKasHandler(srv interface{}, stream grpc.ServerStr
 // routeToCorrectKas
 // must return a gRPC status-compatible error.
 func (r *router) routeToCorrectKas(log *zap.Logger, agentId int64, stream grpc.ServerStream) error {
-	err := retry.PollImmediateUntil(stream.Context(), routeAttemptPeriod, r.attemptToRoute(log, agentId, stream))
+	err := retry.PollImmediateUntil(stream.Context(), r.routeAttemptInterval, r.attemptToRoute(log, agentId, stream))
 	if errors.Is(err, retry.ErrWaitTimeout) {
 		return status.Error(codes.Unavailable, "Unavailable")
 	}
@@ -68,7 +64,7 @@ func (r *router) attemptToRoute(log *zap.Logger, agentId int64, stream grpc.Serv
 	ctx := stream.Context()
 	return func() (bool /* done */, error) {
 		var tunnels []*tracker.TunnelInfo
-		err := retry.PollImmediateUntil(ctx, getTunnelsAttemptPeriod, r.attemptToGetTunnels(ctx, log, agentId, &tunnels))
+		err := retry.PollWithBackoff(ctx, r.backoff(), true, r.getTunnelsAttemptInterval, r.attemptToGetTunnels(ctx, log, agentId, &tunnels))
 		if err != nil {
 			return false, err
 		}
@@ -103,17 +99,17 @@ func (r *router) attemptToRoute(log *zap.Logger, agentId int64, stream grpc.Serv
 
 // attemptToGetTunnels
 // must return a gRPC status-compatible error or retry.ErrWaitTimeout.
-func (r *router) attemptToGetTunnels(ctx context.Context, log *zap.Logger, agentId int64, infosTarget *[]*tracker.TunnelInfo) retry.ConditionFunc {
-	return func() (bool /* done */, error) {
+func (r *router) attemptToGetTunnels(ctx context.Context, log *zap.Logger, agentId int64, infosTarget *[]*tracker.TunnelInfo) retry.PollWithBackoffFunc {
+	return func() (error, retry.AttemptResult) {
 		var infos tunnelInfoCollector
 		err := r.tunnelQuerier.GetTunnelsByAgentId(ctx, agentId, infos.Collect)
 		if err != nil {
 			// TODO error tracking
 			log.Error("GetTunnelsByAgentId()", zap.Error(err))
-			return false, nil // don't return an error, keep trying
+			return nil, retry.Backoff
 		}
 		*infosTarget = infos
-		return true, nil
+		return nil, retry.Done
 	}
 }
 

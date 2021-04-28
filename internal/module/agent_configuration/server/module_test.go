@@ -174,11 +174,12 @@ func setupModule(t *testing.T) (*module, *api.AgentInfo, *gomock.Controller, *mo
 	gitalyPool := mock_internalgitaly.NewMockPoolInterface(ctrl)
 	agentTracker := mock_agent_tracker.NewMockTracker(ctrl)
 	m := &module{
-		api:                          mockApi,
-		agentRegisterer:              agentTracker,
-		gitaly:                       gitalyPool,
-		maxConfigurationFileSize:     maxConfigurationFileSize,
-		agentConfigurationPollPeriod: 10 * time.Minute,
+		api:                        mockApi,
+		agentRegisterer:            agentTracker,
+		gitaly:                     gitalyPool,
+		getConfigurationBackoff:    testhelpers.NewBackoff(),
+		getConfigurationPollPeriod: 10 * time.Minute,
+		maxConfigurationFileSize:   maxConfigurationFileSize,
 	}
 	agentInfo := testhelpers.AgentInfoObj()
 	connMatcher := matcher.ProtoEq(t, &agent_tracker.ConnectedAgentInfo{
@@ -188,8 +189,8 @@ func setupModule(t *testing.T) (*module, *api.AgentInfo, *gomock.Controller, *mo
 	}, protocmp.IgnoreFields(&agent_tracker.ConnectedAgentInfo{}, "connected_at", "connection_id"))
 	gomock.InOrder(
 		mockApi.EXPECT().
-			GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken, true).
-			Return(agentInfo, nil, false),
+			GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken).
+			Return(agentInfo, nil),
 		agentTracker.EXPECT().
 			RegisterConnection(gomock.Any(), connMatcher),
 	)

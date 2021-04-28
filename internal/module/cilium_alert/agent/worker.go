@@ -30,18 +30,19 @@ import (
 )
 
 const (
-	getFlowsRetryPeriod   = 10 * time.Second
-	informerResyncPeriod  = 30 * time.Minute
 	informerNotifierIndex = "InformerNotifierIdx"
 	gitLabProjectLabel    = "app.gitlab.com/proj"
 )
 
 type worker struct {
-	log            *zap.Logger
-	api            modagent.API
-	ciliumClient   versioned.Interface
-	observerClient observer.ObserverClient
-	projectId      int64
+	log                  *zap.Logger
+	api                  modagent.API
+	ciliumClient         versioned.Interface
+	observerClient       observer.ObserverClient
+	backoff              retry.BackoffManagerFactory
+	getFlowsPollInterval time.Duration
+	informerResyncPeriod time.Duration
+	projectId            int64
 }
 
 func cnpIndexFunc(obj interface{}) ([]string, error) {
@@ -72,7 +73,7 @@ func (w *worker) Run(ctx context.Context) {
 	ciliumEndpointInformer := informers_v2.NewFilteredCiliumNetworkPolicyInformer(
 		w.ciliumClient,
 		metav1.NamespaceNone,
-		informerResyncPeriod,
+		w.informerResyncPeriod,
 		cache.Indexers{informerNotifierIndex: cnpIndexFunc},
 		func(listOptions *metav1.ListOptions) { listOptions.LabelSelector = labelSelector },
 	)
@@ -85,8 +86,8 @@ func (w *worker) Run(ctx context.Context) {
 		return
 	}
 
-	retry.JitterUntil(ctx, getFlowsRetryPeriod, func(ctx context.Context) {
-		ctx, cancel := context.WithCancel(ctx)
+	_ = retry.PollWithBackoff(ctx, w.backoff(), true, w.getFlowsPollInterval, func() (error, retry.AttemptResult) {
+		ctx, cancel := context.WithCancel(ctx) // nolint:govet
 		defer cancel()
 		flc, err := w.observerClient.GetFlows(ctx, &observer.GetFlowsRequest{
 			Follow: true,
@@ -109,25 +110,25 @@ func (w *worker) Run(ctx context.Context) {
 			if !grpctool.RequestCanceled(err) {
 				w.log.Error("Failed to get flows from Hubble relay", zap.Error(err))
 			}
-			return
+			return nil, retry.Backoff
 		}
 		for {
 			resp, err := flc.Recv()
 			if err != nil {
 				if errors.Is(err, io.EOF) {
-					return
+					return nil, retry.Continue
 				}
 				if !grpctool.RequestCanceled(err) {
 					w.log.Error("GetFlows.Recv() failed", zap.Error(err))
 				}
-				return
+				return nil, retry.Backoff
 			}
 			switch value := resp.ResponseTypes.(type) {
 			case *observer.GetFlowsResponse_Flow:
 				err = w.processFlow(ctx, value.Flow, ciliumEndpointInformer)
 				if err != nil {
 					w.log.Error("Flow processing failed", zap.Error(err))
-					return
+					return nil, retry.Backoff
 				}
 			}
 		}

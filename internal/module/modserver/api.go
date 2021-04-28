@@ -11,6 +11,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -69,12 +70,17 @@ type Config struct {
 type API interface {
 	modshared.API
 	// GetAgentInfo encapsulates error checking logic.
-	// The signature is not conventional on purpose - the caller is not supposed to inspect the error,
-	// but instead return it if the bool is true. If the bool is false, AgentInfo is non-nil.
-	GetAgentInfo(ctx context.Context, log *zap.Logger, agentToken api.AgentToken, noErrorOnUnknownError bool) (*api.AgentInfo, error, bool /* return the error? */)
-	// PollImmediateUntil should be used by the top-level polling, so that it can be gracefully interrupted
+	GetAgentInfo(ctx context.Context, log *zap.Logger, agentToken api.AgentToken) (*api.AgentInfo, error)
+	// PollWithBackoff runs f every duration given by BackoffManager.
+	//
+	// PollWithBackoff should be used by the top-level polling, so that it can be gracefully interrupted
 	// by the server when necessary.
-	PollImmediateUntil(ctx context.Context, interval, maxConnectionAge time.Duration, condition ConditionFunc) error
+	// If sliding is true, the period is computed after f runs. If it is false then
+	// period includes the runtime for f.
+	// It returns when:
+	// - context signals done. nil is returned in this case.
+	// - f returns Done. error from f is returned in this case.
+	PollWithBackoff(ctx context.Context, backoff retry.BackoffManager, sliding bool, maxConnectionAge, interval time.Duration, f retry.PollWithBackoffFunc) error
 }
 
 type Factory interface {
@@ -91,10 +97,6 @@ type Module interface {
 	// Name returns module's name.
 	Name() string
 }
-
-// ConditionFunc returns true if the condition is satisfied, or an error
-// if the loop should be aborted.
-type ConditionFunc func() (done bool, err error)
 
 func RoutingMetadata(agentId int64) metadata.MD {
 	return metadata.MD{

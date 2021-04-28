@@ -15,6 +15,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
@@ -48,50 +49,53 @@ type pollJob struct {
 	maxNumberOfFiles            uint32
 }
 
-func (j *pollJob) Attempt() (bool /*done*/, error) {
+func (j *pollJob) Attempt() (error, retry.AttemptResult) {
 	ctx := j.server.Context()
 	// This call is made on each poll because:
 	// - it checks that the agent's token is still valid
 	// - repository location in Gitaly might have changed
-	projectInfo, err, retErr := j.getProjectInfo(ctx, j.log, j.agentToken, j.req.ProjectId)
-	if retErr {
-		return false, err
+	projectInfo, err := j.getProjectInfo(ctx, j.log, j.agentToken, j.req.ProjectId)
+	if err != nil {
+		return err, retry.Done // no wrap
+	}
+	if projectInfo == nil { // retriable error
+		return nil, retry.Backoff
 	}
 	revision := gitaly.DefaultBranch // TODO support user-specified branches/tags
 	p, err := j.gitalyPool.Poller(ctx, &projectInfo.GitalyInfo)
 	if err != nil {
 		j.api.HandleProcessingError(ctx, j.log, "GitOps: Poller", err)
-		return false, nil // don't want to close the response stream, so report no error
+		return nil, retry.Backoff
 	}
 	info, err := p.Poll(ctx, &projectInfo.Repository, j.req.CommitId, revision)
 	if err != nil {
 		j.api.HandleProcessingError(ctx, j.log, "GitOps: repository poll failed", err)
-		return false, nil // don't want to close the response stream, so report no error
+		return nil, retry.Backoff
 	}
 
 	j.trackPollInterval()
 
 	if !info.UpdateAvailable {
 		j.log.Debug("GitOps: no updates", logz.CommitId(j.req.CommitId))
-		return false, nil
+		return nil, retry.Continue
 	}
 	log := j.log.With(logz.CommitId(info.CommitId))
 	log.Info("GitOps: new commit")
 	err = j.sendObjectsToSynchronizeHeader(log, info.CommitId)
 	if err != nil {
-		return false, err // no wrap
+		return err, retry.Done // no wrap
 	}
 	filesVisited, filesSent, err := j.sendObjectsToSynchronizeBody(log, j.req, &projectInfo.Repository, &projectInfo.GitalyInfo, info.CommitId)
 	if err != nil {
-		return false, err // no wrap
+		return err, retry.Done // no wrap
 	}
 	err = j.sendObjectsToSynchronizeTrailer(log)
 	if err != nil {
-		return false, err // no wrap
+		return err, retry.Done // no wrap
 	}
 	log.Info("GitOps: fetched files", logz.NumberOfFilesVisited(filesVisited), logz.NumberOfFilesSent(filesSent))
 	j.syncCount.Inc()
-	return true, nil
+	return nil, retry.Done
 }
 
 func (j *pollJob) trackPollInterval() {
@@ -177,11 +181,12 @@ func (j *pollJob) sendObjectsToSynchronizeTrailer(log *zap.Logger) error {
 	return nil
 }
 
-func (j *pollJob) getProjectInfo(ctx context.Context, log *zap.Logger, agentToken api.AgentToken, projectId string) (*api.ProjectInfo, error, bool /* return the error? */) {
+// getProjectInfo returns nil for both error and ProjectInfo if there was a retriable error.
+func (j *pollJob) getProjectInfo(ctx context.Context, log *zap.Logger, agentToken api.AgentToken, projectId string) (*api.ProjectInfo, error) {
 	projectInfo, err := j.projectInfoClient.GetProjectInfo(ctx, agentToken, projectId)
 	switch {
 	case err == nil:
-		return projectInfo, nil, false
+		return projectInfo, nil
 	case errz.ContextDone(err):
 		err = status.Error(codes.Unavailable, "unavailable")
 	case gitlab.IsForbidden(err):
@@ -190,9 +195,9 @@ func (j *pollJob) getProjectInfo(ctx context.Context, log *zap.Logger, agentToke
 		err = status.Error(codes.Unauthenticated, "unauthenticated")
 	default:
 		j.api.HandleProcessingError(ctx, log, "GetProjectInfo()", err)
-		err = nil // don't want to close the response stream, so report no error
+		err = nil // no error and no project info
 	}
-	return nil, err, true
+	return nil, err
 }
 
 func isUserError(err error) bool {
