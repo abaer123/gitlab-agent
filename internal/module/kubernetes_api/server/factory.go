@@ -12,6 +12,10 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/tlstool"
 )
 
+const (
+	k8sApiRequestCountKnownMetric = "k8s_api_proxy_request_count"
+)
+
 type Factory struct {
 }
 
@@ -52,6 +56,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 			kubernetesApiClient: rpc.NewKubernetesApiClient(config.AgentConn),
 			gitLabClient:        config.GitLabClient,
 			streamVisitor:       sv,
+			requestCount:        config.UsageTracker.RegisterCounter(k8sApiRequestCountKnownMetric),
 			serverName:          fmt.Sprintf("%s/%s/%s", config.KasName, config.Version, config.CommitId),
 		},
 		listener: listener,
