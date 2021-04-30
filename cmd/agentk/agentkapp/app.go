@@ -29,6 +29,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/tlstool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/wstunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
@@ -46,9 +47,6 @@ import (
 )
 
 const (
-	defaultRefreshConfigurationRetryPeriod    = 10 * time.Second
-	defaultGetObjectsToSynchronizeRetryPeriod = 10 * time.Second
-
 	defaultLoggingLevel agentcfg.LoggingLevelEnum = 0 // whatever is 0 is the default value
 
 	defaultMaxMessageSize = 10 * 1024 * 1024
@@ -56,6 +54,12 @@ const (
 
 	envVarPodNamespace = "POD_NAMESPACE"
 	envVarPodName      = "POD_NAME"
+
+	getConfigurationInitBackoff   = 10 * time.Second
+	getConfigurationMaxBackoff    = 5 * time.Minute
+	getConfigurationResetDuration = 10 * time.Minute
+	getConfigurationBackoffFactor = 2.0
+	getConfigurationJitter        = 1.0
 )
 
 type App struct {
@@ -102,12 +106,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	if err != nil {
 		return err
 	}
-	runner := newModuleRunner(a.Log, modules, &rpc.ConfigurationWatcher{
-		Log:         a.Log,
-		AgentMeta:   a.AgentMeta,
-		Client:      rpc.NewAgentConfigurationClient(kasConn),
-		RetryPeriod: defaultRefreshConfigurationRetryPeriod,
-	})
+	runner := a.newModuleRunner(modules, kasConn)
 
 	// Start things up. Stages are shut down in reverse order.
 	return cmd.RunStages(ctx,
@@ -124,6 +123,21 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	)
 }
 
+func (a *App) newModuleRunner(modules []modagent.Module, kasConn *grpc.ClientConn) *moduleRunner {
+	return newModuleRunner(a.Log, modules, &rpc.ConfigurationWatcher{
+		Log:       a.Log,
+		AgentMeta: a.AgentMeta,
+		Client:    rpc.NewAgentConfigurationClient(kasConn),
+		Backoff: retry.NewExponentialBackoffFactory(
+			getConfigurationInitBackoff,
+			getConfigurationMaxBackoff,
+			getConfigurationResetDuration,
+			getConfigurationBackoffFactor,
+			getConfigurationJitter,
+		),
+	})
+}
+
 func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalServerConn grpc.ClientConnInterface) ([]modagent.Module, error) {
 	sv, err := grpctool.NewStreamVisitor(&grpctool.HttpResponse{})
 	if err != nil {
@@ -136,9 +150,7 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 		&observability_agent.Factory{
 			LogLevel: a.LogLevel,
 		},
-		&gitops_agent.Factory{
-			GetObjectsToSynchronizeRetryPeriod: defaultGetObjectsToSynchronizeRetryPeriod,
-		},
+		&gitops_agent.Factory{},
 		&cilium_agent.Factory{},
 		&reverse_tunnel_agent.Factory{
 			InternalServerConn: internalServerConn,

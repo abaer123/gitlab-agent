@@ -5,13 +5,13 @@
 package mock_internalgitaly
 
 import (
-	"context"
-	"reflect"
+	context "context"
+	reflect "reflect"
 
-	"github.com/golang/mock/gomock"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
-	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
+	gomock "github.com/golang/mock/gomock"
+	api "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+	gitaly "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly"
+	gitalypb "gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 )
 
 // MockPoolInterface is a mock of PoolInterface interface.

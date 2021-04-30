@@ -13,6 +13,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -24,6 +25,7 @@ type module struct {
 	projectInfoClient           *projectInfoClient
 	syncCount                   usage_metrics.Counter
 	gitOpsPollIntervalHistogram prometheus.Histogram
+	getObjectsBackoff           retry.BackoffManagerFactory
 	pollPeriod                  time.Duration
 	maxConnectionAge            time.Duration
 	maxManifestFileSize         int64
@@ -40,8 +42,9 @@ func (m *module) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 	ctx := server.Context()
 	agentToken := api.AgentTokenFromContext(ctx)
 	log := grpctool.LoggerFromContext(ctx)
-	agentInfo, err, retErr := m.api.GetAgentInfo(ctx, log, agentToken, false)
-	if retErr {
+	backoff := m.getObjectsBackoff()
+	agentInfo, err := m.api.GetAgentInfo(ctx, log, agentToken)
+	if err != nil {
 		return err // no wrap
 	}
 	err = m.validateGetObjectsToSynchronizeRequest(req)
@@ -62,7 +65,7 @@ func (m *module) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 		maxTotalManifestFileSize:    m.maxTotalManifestFileSize,
 		maxNumberOfFiles:            m.maxNumberOfFiles,
 	}
-	return m.api.PollImmediateUntil(ctx, m.pollPeriod, m.maxConnectionAge, p.Attempt)
+	return m.api.PollWithBackoff(ctx, backoff, true, m.maxConnectionAge, m.pollPeriod, p.Attempt)
 }
 
 func (m *module) Name() string {

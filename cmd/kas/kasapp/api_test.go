@@ -28,8 +28,7 @@ func TestGetAgentInfoFailures_Forbidden(t *testing.T) {
 	ctx, log, errTracker, apiObj := setupApi(t, http.StatusForbidden)
 	errTracker.EXPECT().
 		Capture(matcher.ErrorEq("GetAgentInfo(): error kind: 1; status: 403"), gomock.Any())
-	info, err, retErr := apiObj.GetAgentInfo(ctx, log, testhelpers.AgentkToken, false)
-	require.True(t, retErr)
+	info, err := apiObj.GetAgentInfo(ctx, log, testhelpers.AgentkToken)
 	assert.Equal(t, codes.PermissionDenied, status.Code(err))
 	assert.Nil(t, info)
 }
@@ -38,8 +37,7 @@ func TestGetAgentInfoFailures_Unauthorized(t *testing.T) {
 	ctx, log, errTracker, apiObj := setupApi(t, http.StatusUnauthorized)
 	errTracker.EXPECT().
 		Capture(matcher.ErrorEq("GetAgentInfo(): error kind: 2; status: 401"), gomock.Any())
-	info, err, retErr := apiObj.GetAgentInfo(ctx, log, testhelpers.AgentkToken, false)
-	require.True(t, retErr)
+	info, err := apiObj.GetAgentInfo(ctx, log, testhelpers.AgentkToken)
 	assert.Equal(t, codes.Unauthenticated, status.Code(err))
 	assert.Nil(t, info)
 }
@@ -48,8 +46,7 @@ func TestGetAgentInfoFailures_InternalServerError(t *testing.T) {
 	ctx, log, errTracker, apiObj := setupApi(t, http.StatusInternalServerError)
 	errTracker.EXPECT().
 		Capture(matcher.ErrorEq("GetAgentInfo(): error kind: 0; status: 500"), gomock.Any())
-	info, err, retErr := apiObj.GetAgentInfo(ctx, log, testhelpers.AgentkToken, false)
-	require.True(t, retErr)
+	info, err := apiObj.GetAgentInfo(ctx, log, testhelpers.AgentkToken)
 	assert.Equal(t, codes.Unavailable, status.Code(err))
 	assert.Nil(t, info)
 }
@@ -86,8 +83,7 @@ func TestGetAgentInfo(t *testing.T) {
 		AgentInfoCacheTtl:      0, // no cache!
 		AgentInfoCacheErrorTtl: 0,
 	})
-	agentInfo, err, retErr := apiObj.GetAgentInfo(ctx, l, testhelpers.AgentkToken, false)
-	require.False(t, retErr)
+	agentInfo, err := apiObj.GetAgentInfo(ctx, l, testhelpers.AgentkToken)
 	require.NoError(t, err)
 
 	assert.Equal(t, response.ProjectId, agentInfo.ProjectId)

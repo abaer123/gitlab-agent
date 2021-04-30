@@ -2,11 +2,13 @@ package agent
 
 import (
 	"context"
+	"time"
 
 	"github.com/cilium/cilium/api/v1/observer"
 	"github.com/cilium/cilium/pkg/k8s/client/clientset/versioned"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/cilium_alert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -15,9 +17,12 @@ import (
 )
 
 type module struct {
-	log          *zap.Logger
-	api          modagent.API
-	ciliumClient versioned.Interface
+	log                  *zap.Logger
+	api                  modagent.API
+	ciliumClient         versioned.Interface
+	backoff              retry.BackoffManagerFactory
+	getFlowsPollInterval time.Duration
+	informerResyncPeriod time.Duration
 }
 
 func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguration) error {
@@ -67,11 +72,14 @@ func (m *module) applyNewConfiguration(ctx context.Context, holder *workerHolder
 	}
 	ctx, newHolder.cancel = context.WithCancel(ctx)
 	w := &worker{
-		log:            m.log,
-		api:            m.api,
-		ciliumClient:   m.ciliumClient,
-		observerClient: observer.NewObserverClient(clientConn),
-		projectId:      config.ProjectId,
+		log:                  m.log,
+		api:                  m.api,
+		ciliumClient:         m.ciliumClient,
+		observerClient:       observer.NewObserverClient(clientConn),
+		backoff:              m.backoff,
+		getFlowsPollInterval: m.getFlowsPollInterval,
+		informerResyncPeriod: m.informerResyncPeriod,
+		projectId:            config.ProjectId,
 	}
 	newHolder.wg.StartWithContext(ctx, w.Run)
 	return newHolder

@@ -12,11 +12,12 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",
-        "//internal/module/modserver",
         "//internal/tool/grpctool",
+        "//internal/tool/retry",
         "@com_github_golang_mock//gomock",
         "@com_github_stretchr_testify//require",
         "@com_gitlab_gitlab_org_labkit//errortracking",
+        "@io_k8s_apimachinery//pkg/util/wait",
         "@org_golang_google_grpc//metadata",
         "@org_uber_go_zap//:zap",
         "@org_uber_go_zap//zaptest",

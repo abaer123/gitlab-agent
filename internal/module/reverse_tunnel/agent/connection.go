@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc"
@@ -42,29 +41,20 @@ type connection struct {
 	client             rpc.ReverseTunnelClient
 	internalServerConn grpc.ClientConnInterface
 	streamVisitor      *grpctool.StreamVisitor
-	connectRetryPeriod time.Duration
+	backoff            retry.BackoffManagerFactory
 }
 
 func (c *connection) Run(ctx context.Context) {
-	retry.JitterUntil(ctx, c.connectRetryPeriod, c.attemptLoop)
-}
-
-func (c *connection) attemptLoop(ctx context.Context) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
+	_ = retry.PollWithBackoff(ctx, c.backoff(), true, 0 /* unused */, func() (error, retry.AttemptResult) {
 		err := c.attempt(ctx)
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
 				c.log.Error("Reverse tunnel", zap.Error(err))
 			}
-			return
+			return nil, retry.Backoff
 		}
-		// successfully handled a connection, re-establish it immediately
-	}
+		return nil, retry.ContinueImmediately // successfully handled a connection, re-establish it immediately
+	})
 }
 
 func (c *connection) attempt(ctx context.Context) error {

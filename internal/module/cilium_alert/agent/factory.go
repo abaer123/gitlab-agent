@@ -2,10 +2,23 @@ package agent
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cilium/cilium/pkg/k8s/client/clientset/versioned"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/cilium_alert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
+)
+
+const (
+	getFlowsPollInterval = 10 * time.Second
+	informerResyncPeriod = 30 * time.Minute
+
+	pollingInitBackoff   = 10 * time.Second
+	pollingMaxBackoff    = 5 * time.Minute
+	pollingResetDuration = 10 * time.Minute
+	pollingBackoffFactor = 2.0
+	pollingJitter        = 1.0
 )
 
 type Factory struct {
@@ -24,6 +37,15 @@ func (f *Factory) New(cfg *modagent.Config) (modagent.Module, error) {
 		log:          cfg.Log,
 		api:          cfg.Api,
 		ciliumClient: ciliumClient,
+		backoff: retry.NewExponentialBackoffFactory(
+			pollingInitBackoff,
+			pollingMaxBackoff,
+			pollingResetDuration,
+			pollingBackoffFactor,
+			pollingJitter,
+		),
+		getFlowsPollInterval: getFlowsPollInterval,
+		informerResyncPeriod: informerResyncPeriod,
 	}, nil
 }
 

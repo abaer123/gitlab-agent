@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
@@ -80,7 +81,7 @@ func TestObjectsToSynchronizeWatcherResumeConnection(t *testing.T) {
 	w := rpc.ObjectsToSynchronizeWatcher{
 		Log:          zaptest.NewLogger(t),
 		GitopsClient: client,
-		RetryPeriod:  10 * time.Millisecond,
+		Backoff:      retry.NewExponentialBackoffFactory(10*time.Millisecond, time.Minute, time.Minute, 2, 1),
 	}
 	w.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
 		// Don't care
@@ -200,7 +201,7 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 			w := rpc.ObjectsToSynchronizeWatcher{
 				Log:          zaptest.NewLogger(t),
 				GitopsClient: client,
-				RetryPeriod:  10 * time.Millisecond,
+				Backoff:      retry.NewExponentialBackoffFactory(10*time.Millisecond, time.Minute, time.Minute, 2, 1),
 			}
 			w.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
 				// Must not be called

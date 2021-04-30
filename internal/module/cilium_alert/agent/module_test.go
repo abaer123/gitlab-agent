@@ -11,6 +11,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -71,6 +72,7 @@ func setupModule(t *testing.T, errorEntryCount *int32) *module {
 		log:          log,
 		api:          mock_modagent.NewMockAPI(gomock.NewController(t)),
 		ciliumClient: cilium_fake.NewSimpleClientset(),
+		backoff:      testhelpers.NewBackoff(),
 	}
 	return m
 }

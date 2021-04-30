@@ -2,15 +2,28 @@ package kasapp
 
 import (
 	"strconv"
+	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+)
+
+const (
+	routeAttemptInterval      = 3 * time.Second
+	getTunnelsAttemptInterval = 1 * time.Second
+
+	routingInitBackoff   = 1 * time.Second
+	routingMaxBackoff    = 10 * time.Second
+	routingResetDuration = 10 * time.Second
+	routingBackoffFactor = 2.0
+	routingJitter        = 1.0
 )
 
 type kasRouter interface {
@@ -34,13 +47,16 @@ type router struct {
 	kasPool       KasPool
 	tunnelQuerier tracker.Querier
 	tunnelFinder  reverse_tunnel.TunnelFinder
+	backoff       retry.BackoffManagerFactory
 	// internalServer is the internal gRPC server for use inside of kas.
 	// Request handlers can obtain the per-request logger using grpctool.LoggerFromContext(requestContext).
 	internalServer grpc.ServiceRegistrar
 	// privateApiServer is the gRPC server that other kas instances can talk to.
 	// Request handlers can obtain the per-request logger using grpctool.LoggerFromContext(requestContext).
-	privateApiServer  grpc.ServiceRegistrar
-	gatewayKasVisitor *grpctool.StreamVisitor
+	privateApiServer          grpc.ServiceRegistrar
+	gatewayKasVisitor         *grpctool.StreamVisitor
+	routeAttemptInterval      time.Duration
+	getTunnelsAttemptInterval time.Duration
 }
 
 func (r *router) RegisterAgentApi(desc *grpc.ServiceDesc) {

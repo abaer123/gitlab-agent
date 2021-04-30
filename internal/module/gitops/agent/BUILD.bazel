@@ -57,6 +57,7 @@ go_custom_test(
         "//internal/tool/testing/kube_testing",
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_rpc",
+        "//internal/tool/testing/testhelpers",
         "//pkg/agentcfg",
         "@com_github_argoproj_gitops_engine//pkg/cache",
         "@com_github_argoproj_gitops_engine//pkg/engine",

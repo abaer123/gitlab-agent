@@ -432,8 +432,8 @@ func setupModuleBare(t *testing.T, handler func(http.ResponseWriter, *http.Reque
 	mockApi := mock_modserver.NewMockAPIWithMockPoller(ctrl, 1)
 	agentInfo := testhelpers.AgentInfoObj()
 	mockApi.EXPECT().
-		GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken, false).
-		Return(agentInfo, nil, false)
+		GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken).
+		Return(agentInfo, nil)
 	usageTracker := mock_usage_metrics.NewMockUsageTrackerInterface(ctrl)
 	usageTracker.EXPECT().
 		RegisterCounter(gitopsSyncCountKnownMetric).

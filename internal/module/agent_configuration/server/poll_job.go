@@ -14,6 +14,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
@@ -41,13 +42,13 @@ type pollJob struct {
 	connectionRegistered     bool
 }
 
-func (j *pollJob) Attempt() (bool /*done*/, error) {
+func (j *pollJob) Attempt() (error, retry.AttemptResult) {
 	// This call is made on each poll because:
 	// - it checks that the agent's token is still valid
 	// - repository location in Gitaly might have changed
-	agentInfo, err, retErr := j.api.GetAgentInfo(j.ctx, j.log, j.agentToken, true) // don't want to close the response stream, so report no error
-	if retErr {
-		return false, err
+	agentInfo, err := j.api.GetAgentInfo(j.ctx, j.log, j.agentToken)
+	if err != nil {
+		return err, retry.Done
 	}
 	if !j.connectionRegistered { // only register once
 		j.connectedAgentInfo.AgentId = agentInfo.Id
@@ -59,16 +60,16 @@ func (j *pollJob) Attempt() (bool /*done*/, error) {
 	p, err := j.gitaly.Poller(j.ctx, &agentInfo.GitalyInfo)
 	if err != nil {
 		j.api.HandleProcessingError(j.ctx, log, "Config: Poller", err)
-		return false, nil // don't want to close the response stream, so report no error
+		return nil, retry.Backoff
 	}
 	info, err := p.Poll(j.ctx, &agentInfo.Repository, j.lastProcessedCommitId, gitaly.DefaultBranch)
 	if err != nil {
 		j.api.HandleProcessingError(j.ctx, log, "Config: repository poll failed", err)
-		return false, nil // don't want to close the response stream, so report no error
+		return nil, retry.Backoff
 	}
 	if !info.UpdateAvailable {
 		log.Debug("Config: no updates", logz.CommitId(j.lastProcessedCommitId))
-		return false, nil // don't want to close the response stream, so report no error
+		return nil, retry.Continue
 	}
 	log.Info("Config: new commit", logz.CommitId(info.CommitId))
 	config, err := j.fetchConfiguration(j.ctx, agentInfo, info.CommitId)
@@ -77,19 +78,19 @@ func (j *pollJob) Attempt() (bool /*done*/, error) {
 		var ue *errz.UserError
 		if errors.As(err, &ue) {
 			// return the error to the client because it's a user error
-			return false, status.Errorf(codes.FailedPrecondition, "Config: %v", err)
+			return status.Errorf(codes.FailedPrecondition, "Config: %v", err), retry.Done
 		}
-		return false, nil // don't want to close the response stream, so report no error
+		return nil, retry.Backoff
 	}
 	err = j.server.Send(&rpc.ConfigurationResponse{
 		Configuration: config,
 		CommitId:      info.CommitId,
 	})
 	if err != nil {
-		return false, j.api.HandleSendError(log, "Config: failed to send config", err)
+		return j.api.HandleSendError(log, "Config: failed to send config", err), retry.Done
 	}
 	j.lastProcessedCommitId = info.CommitId
-	return false, nil
+	return nil, retry.Continue
 }
 
 func (j *pollJob) Cleanup() {

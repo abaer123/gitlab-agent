@@ -8,7 +8,6 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
@@ -49,11 +48,11 @@ func (a *serverAPI) Capture(err error, opts ...errortracking.CaptureOption) {
 	a.cfg.ErrorTracker.Capture(err, opts...)
 }
 
-func (a *serverAPI) GetAgentInfo(ctx context.Context, log *zap.Logger, agentToken api.AgentToken, noErrorOnUnknownError bool) (*api.AgentInfo, error, bool) {
+func (a *serverAPI) GetAgentInfo(ctx context.Context, log *zap.Logger, agentToken api.AgentToken) (*api.AgentInfo, error) {
 	agentInfo, err := a.getAgentInfoCached(ctx, agentToken)
 	switch {
 	case err == nil:
-		return agentInfo, nil, false
+		return agentInfo, nil
 	case errz.ContextDone(err):
 		err = status.Error(codes.Unavailable, "unavailable")
 	case gitlab.IsForbidden(err):
@@ -64,20 +63,16 @@ func (a *serverAPI) GetAgentInfo(ctx context.Context, log *zap.Logger, agentToke
 		err = status.Error(codes.Unauthenticated, "unauthenticated")
 	default:
 		a.logAndCapture(ctx, log, "GetAgentInfo()", err)
-		if noErrorOnUnknownError {
-			err = nil
-		} else {
-			err = status.Error(codes.Unavailable, "unavailable")
-		}
+		err = status.Error(codes.Unavailable, "unavailable")
 	}
-	return nil, err, true
+	return nil, err
 }
 
-func (a *serverAPI) PollImmediateUntil(ctx context.Context, interval, maxConnectionAge time.Duration, condition modserver.ConditionFunc) error {
-	// this context must only be used here, not inside of condition() - connection should be closed only when idle.
+func (a *serverAPI) PollWithBackoff(ctx context.Context, backoff retry.BackoffManager, sliding bool, maxConnectionAge, interval time.Duration, f retry.PollWithBackoffFunc) error {
+	// this context must only be used here, not inside of f() - connection should be closed only when idle.
 	ageCtx, cancel := context.WithTimeout(ctx, mathz.DurationWithJitter(maxConnectionAge, maxConnectionAgeJitterPercent))
 	defer cancel()
-	err := retry.PollImmediateUntil(ageCtx, interval, retry.ConditionFunc(condition))
+	err := retry.PollWithBackoff(ageCtx, backoff, sliding, interval, f)
 	if errors.Is(err, retry.ErrWaitTimeout) {
 		return nil // all good, ctx is done
 	}

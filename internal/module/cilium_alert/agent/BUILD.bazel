@@ -50,6 +50,7 @@ go_custom_test(
         "//internal/module/modagent",
         "//internal/tool/testing/kube_testing",
         "//internal/tool/testing/mock_modagent",
+        "//internal/tool/testing/testhelpers",
         "//pkg/agentcfg",
         "@com_github_cilium_cilium//api/v1/flow",
         "@com_github_cilium_cilium//api/v1/observer",

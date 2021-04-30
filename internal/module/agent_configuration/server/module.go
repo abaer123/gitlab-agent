@@ -12,17 +12,19 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/mathz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type module struct {
 	rpc.UnimplementedAgentConfigurationServer
-	api                          modserver.API
-	gitaly                       gitaly.PoolInterface
-	agentRegisterer              agent_tracker.Registerer
-	maxConfigurationFileSize     int64
-	agentConfigurationPollPeriod time.Duration
-	maxConnectionAge             time.Duration
+	api                        modserver.API
+	gitaly                     gitaly.PoolInterface
+	agentRegisterer            agent_tracker.Registerer
+	maxConfigurationFileSize   int64
+	getConfigurationBackoff    retry.BackoffManagerFactory
+	getConfigurationPollPeriod time.Duration
+	maxConnectionAge           time.Duration
 }
 
 func (m *module) Run(ctx context.Context) error {
@@ -52,5 +54,5 @@ func (m *module) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 		},
 	}
 	defer p.Cleanup()
-	return m.api.PollImmediateUntil(ctx, m.agentConfigurationPollPeriod, m.maxConnectionAge, p.Attempt)
+	return m.api.PollWithBackoff(ctx, m.getConfigurationBackoff(), true, m.maxConnectionAge, m.getConfigurationPollPeriod, p.Attempt)
 }

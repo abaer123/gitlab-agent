@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
@@ -12,6 +11,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -66,9 +66,9 @@ func TestConfigurationWatcher(t *testing.T) {
 			}),
 	)
 	w := rpc.ConfigurationWatcher{
-		Log:         zaptest.NewLogger(t),
-		Client:      client,
-		RetryPeriod: time.Minute,
+		Log:     zaptest.NewLogger(t),
+		Client:  client,
+		Backoff: testhelpers.NewBackoff(),
 	}
 	iter := 0
 	w.Watch(ctx, func(ctx context.Context, config rpc.ConfigurationData) {
@@ -118,9 +118,9 @@ func TestConfigurationWatcher_ResumeConnection(t *testing.T) {
 			}),
 	)
 	w := rpc.ConfigurationWatcher{
-		Log:         zaptest.NewLogger(t),
-		Client:      client,
-		RetryPeriod: time.Minute,
+		Log:     zaptest.NewLogger(t),
+		Client:  client,
+		Backoff: testhelpers.NewBackoff(),
 	}
 	w.Watch(ctx, func(ctx context.Context, config rpc.ConfigurationData) {
 		// Don't care
@@ -169,9 +169,9 @@ func TestConfigurationWatcher_ImmediateReconnectOnEOF(t *testing.T) {
 			}),
 	)
 	w := rpc.ConfigurationWatcher{
-		Log:         zaptest.NewLogger(t),
-		Client:      client,
-		RetryPeriod: time.Hour, // the test would appear stuck if retry does not happen immediately
+		Log:     zaptest.NewLogger(t),
+		Client:  client,
+		Backoff: testhelpers.NewBackoff(),
 	}
 	w.Watch(ctx, func(ctx context.Context, config rpc.ConfigurationData) {
 		// Don't care

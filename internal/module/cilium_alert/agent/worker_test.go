@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -117,6 +118,7 @@ func setupTest(t *testing.T, cv2 versioned.Interface) (*worker, *MockObserverCli
 		api:            mAPI,
 		ciliumClient:   cv2,
 		observerClient: obsClient,
+		backoff:        testhelpers.NewBackoff(),
 		projectId:      21,
 	}
 	return worker, obsClient, flwClient, mAPI

@@ -13,6 +13,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
 	corev1 "k8s.io/api/core/v1"
@@ -181,8 +182,9 @@ func setupWorker(t *testing.T) (*gitopsWorker, *MockGitOpsEngine, *mock_rpc.Mock
 			}, nil),
 	)
 	w := &gitopsWorker{
-		objWatcher:    watcher,
-		engineFactory: engineFactory,
+		objWatcher:           watcher,
+		engineFactory:        engineFactory,
+		engineBackoffFactory: testhelpers.NewBackoff(),
 		synchronizerConfig: synchronizerConfig{
 			log: zaptest.NewLogger(t),
 			project: &agentcfg.ManifestProjectCF{

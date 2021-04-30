@@ -43,6 +43,7 @@ go_custom_test(
     srcs = ["obj_to_sync_watcher_test.go"],
     deps = [
         ":rpc",
+        "//internal/tool/retry",
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_rpc",
         "//internal/tool/testing/testhelpers",

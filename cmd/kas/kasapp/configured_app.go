@@ -43,6 +43,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/redistool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/tlstool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/tracing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/wstunnel"
@@ -314,11 +315,20 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, tun
 				),
 			},
 		},
-		tunnelQuerier:     tunnelQuerier,
-		tunnelFinder:      tunnelFinder,
-		internalServer:    internalServer,
-		privateApiServer:  privateApiServer,
-		gatewayKasVisitor: gatewayKasVisitor,
+		tunnelQuerier: tunnelQuerier,
+		tunnelFinder:  tunnelFinder,
+		backoff: retry.NewExponentialBackoffFactory(
+			routingInitBackoff,
+			routingMaxBackoff,
+			routingResetDuration,
+			routingBackoffFactor,
+			routingJitter,
+		),
+		internalServer:            internalServer,
+		privateApiServer:          privateApiServer,
+		gatewayKasVisitor:         gatewayKasVisitor,
+		routeAttemptInterval:      routeAttemptInterval,
+		getTunnelsAttemptInterval: getTunnelsAttemptInterval,
 	}, nil
 }
 
