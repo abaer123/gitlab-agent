@@ -321,7 +321,7 @@ func TestValidation_Invalid(t *testing.T) {
 		},
 		{
 			Name:      "empty GitLabCF.Address",
-			ErrString: "invalid GitLabCF.Address: value length must be at least 1 runes; invalid GitLabCF.Address: value must be absolute",
+			ErrString: "invalid GitLabCF.Address: value length must be at least 1 runes",
 			Invalid: &GitLabCF{
 				AuthenticationSecretFile: "/some/file",
 			},

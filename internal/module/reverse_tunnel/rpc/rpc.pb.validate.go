@@ -34,64 +34,31 @@ var (
 )
 
 // Validate checks the field values on Descriptor with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is
-// returned. When asked to return all errors, validation continues after first
-// violation, and the result is a list of violation errors wrapped in
-// DescriptorMultiError, or nil if none found. Otherwise, only the first error
-// is returned, if any.
-func (m *Descriptor) Validate(all bool) error {
+// proto definition for this message. If any rules are violated, an error is returned.
+func (m *Descriptor) Validate() error {
 	if m == nil {
 		return nil
 	}
 
-	var errors []error
-
 	if m.GetAgentDescriptor() == nil {
-		err := DescriptorValidationError{
+		return DescriptorValidationError{
 			field:  "AgentDescriptor",
 			reason: "value is required",
 		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
 	}
 
-	if v, ok := interface{}(m.GetAgentDescriptor()).(interface{ Validate(bool) error }); ok {
-		if err := v.Validate(all); err != nil {
-			err = DescriptorValidationError{
+	if v, ok := interface{}(m.GetAgentDescriptor()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return DescriptorValidationError{
 				field:  "AgentDescriptor",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
 		}
 	}
 
-	if len(errors) > 0 {
-		return DescriptorMultiError(errors)
-	}
 	return nil
 }
-
-// DescriptorMultiError is an error wrapping multiple validation errors
-// returned by Descriptor.Validate(true) if the designated constraints aren't met.
-type DescriptorMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m DescriptorMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m DescriptorMultiError) AllErrors() []error { return m }
 
 // DescriptorValidationError is the validation error returned by
 // Descriptor.Validate if the designated constraints aren't met.
@@ -148,60 +115,31 @@ var _ interface {
 } = DescriptorValidationError{}
 
 // Validate checks the field values on Header with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is
-// returned. When asked to return all errors, validation continues after first
-// violation, and the result is a list of violation errors wrapped in
-// HeaderMultiError, or nil if none found. Otherwise, only the first error is
-// returned, if any.
-func (m *Header) Validate(all bool) error {
+// proto definition for this message. If any rules are violated, an error is returned.
+func (m *Header) Validate() error {
 	if m == nil {
 		return nil
 	}
-
-	var errors []error
 
 	for key, val := range m.GetMeta() {
 		_ = val
 
 		// no validation rules for Meta[key]
 
-		if v, ok := interface{}(val).(interface{ Validate(bool) error }); ok {
-			if err := v.Validate(all); err != nil {
-				err = HeaderValidationError{
+		if v, ok := interface{}(val).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return HeaderValidationError{
 					field:  fmt.Sprintf("Meta[%v]", key),
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
-				if !all {
-					return err
-				}
-				errors = append(errors, err)
 			}
 		}
 
 	}
 
-	if len(errors) > 0 {
-		return HeaderMultiError(errors)
-	}
 	return nil
 }
-
-// HeaderMultiError is an error wrapping multiple validation errors returned by
-// Header.Validate(true) if the designated constraints aren't met.
-type HeaderMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m HeaderMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m HeaderMultiError) AllErrors() []error { return m }
 
 // HeaderValidationError is the validation error returned by Header.Validate if
 // the designated constraints aren't met.
@@ -258,41 +196,16 @@ var _ interface {
 } = HeaderValidationError{}
 
 // Validate checks the field values on Message with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is
-// returned. When asked to return all errors, validation continues after first
-// violation, and the result is a list of violation errors wrapped in
-// MessageMultiError, or nil if none found. Otherwise, only the first error is
-// returned, if any.
-func (m *Message) Validate(all bool) error {
+// proto definition for this message. If any rules are violated, an error is returned.
+func (m *Message) Validate() error {
 	if m == nil {
 		return nil
 	}
 
-	var errors []error
-
 	// no validation rules for Data
 
-	if len(errors) > 0 {
-		return MessageMultiError(errors)
-	}
 	return nil
 }
-
-// MessageMultiError is an error wrapping multiple validation errors returned
-// by Message.Validate(true) if the designated constraints aren't met.
-type MessageMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m MessageMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m MessageMultiError) AllErrors() []error { return m }
 
 // MessageValidationError is the validation error returned by Message.Validate
 // if the designated constraints aren't met.
@@ -349,60 +262,31 @@ var _ interface {
 } = MessageValidationError{}
 
 // Validate checks the field values on Trailer with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is
-// returned. When asked to return all errors, validation continues after first
-// violation, and the result is a list of violation errors wrapped in
-// TrailerMultiError, or nil if none found. Otherwise, only the first error is
-// returned, if any.
-func (m *Trailer) Validate(all bool) error {
+// proto definition for this message. If any rules are violated, an error is returned.
+func (m *Trailer) Validate() error {
 	if m == nil {
 		return nil
 	}
-
-	var errors []error
 
 	for key, val := range m.GetMeta() {
 		_ = val
 
 		// no validation rules for Meta[key]
 
-		if v, ok := interface{}(val).(interface{ Validate(bool) error }); ok {
-			if err := v.Validate(all); err != nil {
-				err = TrailerValidationError{
+		if v, ok := interface{}(val).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return TrailerValidationError{
 					field:  fmt.Sprintf("Meta[%v]", key),
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
-				if !all {
-					return err
-				}
-				errors = append(errors, err)
 			}
 		}
 
 	}
 
-	if len(errors) > 0 {
-		return TrailerMultiError(errors)
-	}
 	return nil
 }
-
-// TrailerMultiError is an error wrapping multiple validation errors returned
-// by Trailer.Validate(true) if the designated constraints aren't met.
-type TrailerMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m TrailerMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m TrailerMultiError) AllErrors() []error { return m }
 
 // TrailerValidationError is the validation error returned by Trailer.Validate
 // if the designated constraints aren't met.
@@ -459,64 +343,31 @@ var _ interface {
 } = TrailerValidationError{}
 
 // Validate checks the field values on Error with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is
-// returned. When asked to return all errors, validation continues after first
-// violation, and the result is a list of violation errors wrapped in
-// ErrorMultiError, or nil if none found. Otherwise, only the first error is
-// returned, if any.
-func (m *Error) Validate(all bool) error {
+// proto definition for this message. If any rules are violated, an error is returned.
+func (m *Error) Validate() error {
 	if m == nil {
 		return nil
 	}
 
-	var errors []error
-
 	if m.GetStatus() == nil {
-		err := ErrorValidationError{
+		return ErrorValidationError{
 			field:  "Status",
 			reason: "value is required",
 		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
 	}
 
-	if v, ok := interface{}(m.GetStatus()).(interface{ Validate(bool) error }); ok {
-		if err := v.Validate(all); err != nil {
-			err = ErrorValidationError{
+	if v, ok := interface{}(m.GetStatus()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ErrorValidationError{
 				field:  "Status",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
 		}
 	}
 
-	if len(errors) > 0 {
-		return ErrorMultiError(errors)
-	}
 	return nil
 }
-
-// ErrorMultiError is an error wrapping multiple validation errors returned by
-// Error.Validate(true) if the designated constraints aren't met.
-type ErrorMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m ErrorMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m ErrorMultiError) AllErrors() []error { return m }
 
 // ErrorValidationError is the validation error returned by Error.Validate if
 // the designated constraints aren't met.
@@ -574,133 +425,84 @@ var _ interface {
 
 // Validate checks the field values on ConnectRequest with the rules defined in
 // the proto definition for this message. If any rules are violated, an error
-// is returned. When asked to return all errors, validation continues after
-// first violation, and the result is a list of violation errors wrapped in
-// ConnectRequestMultiError, or nil if none found. Otherwise, only the first
-// error is returned, if any.
-func (m *ConnectRequest) Validate(all bool) error {
+// is returned.
+func (m *ConnectRequest) Validate() error {
 	if m == nil {
 		return nil
 	}
-
-	var errors []error
 
 	switch m.Msg.(type) {
 
 	case *ConnectRequest_Descriptor_:
 
-		if v, ok := interface{}(m.GetDescriptor_()).(interface{ Validate(bool) error }); ok {
-			if err := v.Validate(all); err != nil {
-				err = ConnectRequestValidationError{
+		if v, ok := interface{}(m.GetDescriptor_()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ConnectRequestValidationError{
 					field:  "Descriptor_",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
-				if !all {
-					return err
-				}
-				errors = append(errors, err)
 			}
 		}
 
 	case *ConnectRequest_Header:
 
-		if v, ok := interface{}(m.GetHeader()).(interface{ Validate(bool) error }); ok {
-			if err := v.Validate(all); err != nil {
-				err = ConnectRequestValidationError{
+		if v, ok := interface{}(m.GetHeader()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ConnectRequestValidationError{
 					field:  "Header",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
-				if !all {
-					return err
-				}
-				errors = append(errors, err)
 			}
 		}
 
 	case *ConnectRequest_Message:
 
-		if v, ok := interface{}(m.GetMessage()).(interface{ Validate(bool) error }); ok {
-			if err := v.Validate(all); err != nil {
-				err = ConnectRequestValidationError{
+		if v, ok := interface{}(m.GetMessage()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ConnectRequestValidationError{
 					field:  "Message",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
-				if !all {
-					return err
-				}
-				errors = append(errors, err)
 			}
 		}
 
 	case *ConnectRequest_Trailer:
 
-		if v, ok := interface{}(m.GetTrailer()).(interface{ Validate(bool) error }); ok {
-			if err := v.Validate(all); err != nil {
-				err = ConnectRequestValidationError{
+		if v, ok := interface{}(m.GetTrailer()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ConnectRequestValidationError{
 					field:  "Trailer",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
-				if !all {
-					return err
-				}
-				errors = append(errors, err)
 			}
 		}
 
 	case *ConnectRequest_Error:
 
-		if v, ok := interface{}(m.GetError()).(interface{ Validate(bool) error }); ok {
-			if err := v.Validate(all); err != nil {
-				err = ConnectRequestValidationError{
+		if v, ok := interface{}(m.GetError()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ConnectRequestValidationError{
 					field:  "Error",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
-				if !all {
-					return err
-				}
-				errors = append(errors, err)
 			}
 		}
 
 	default:
-		err := ConnectRequestValidationError{
+		return ConnectRequestValidationError{
 			field:  "Msg",
 			reason: "value is required",
 		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
 
 	}
 
-	if len(errors) > 0 {
-		return ConnectRequestMultiError(errors)
-	}
 	return nil
 }
-
-// ConnectRequestMultiError is an error wrapping multiple validation errors
-// returned by ConnectRequest.Validate(true) if the designated constraints
-// aren't met.
-type ConnectRequestMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m ConnectRequestMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m ConnectRequestMultiError) AllErrors() []error { return m }
 
 // ConnectRequestValidationError is the validation error returned by
 // ConnectRequest.Validate if the designated constraints aren't met.
@@ -758,16 +560,11 @@ var _ interface {
 
 // Validate checks the field values on RequestInfo with the rules defined in
 // the proto definition for this message. If any rules are violated, an error
-// is returned. When asked to return all errors, validation continues after
-// first violation, and the result is a list of violation errors wrapped in
-// RequestInfoMultiError, or nil if none found. Otherwise, only the first
-// error is returned, if any.
-func (m *RequestInfo) Validate(all bool) error {
+// is returned.
+func (m *RequestInfo) Validate() error {
 	if m == nil {
 		return nil
 	}
-
-	var errors []error
 
 	// no validation rules for MethodName
 
@@ -776,43 +573,20 @@ func (m *RequestInfo) Validate(all bool) error {
 
 		// no validation rules for Meta[key]
 
-		if v, ok := interface{}(val).(interface{ Validate(bool) error }); ok {
-			if err := v.Validate(all); err != nil {
-				err = RequestInfoValidationError{
+		if v, ok := interface{}(val).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return RequestInfoValidationError{
 					field:  fmt.Sprintf("Meta[%v]", key),
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
-				if !all {
-					return err
-				}
-				errors = append(errors, err)
 			}
 		}
 
 	}
 
-	if len(errors) > 0 {
-		return RequestInfoMultiError(errors)
-	}
 	return nil
 }
-
-// RequestInfoMultiError is an error wrapping multiple validation errors
-// returned by RequestInfo.Validate(true) if the designated constraints aren't met.
-type RequestInfoMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m RequestInfoMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m RequestInfoMultiError) AllErrors() []error { return m }
 
 // RequestInfoValidationError is the validation error returned by
 // RequestInfo.Validate if the designated constraints aren't met.
@@ -869,39 +643,14 @@ var _ interface {
 } = RequestInfoValidationError{}
 
 // Validate checks the field values on CloseSend with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is
-// returned. When asked to return all errors, validation continues after first
-// violation, and the result is a list of violation errors wrapped in
-// CloseSendMultiError, or nil if none found. Otherwise, only the first error
-// is returned, if any.
-func (m *CloseSend) Validate(all bool) error {
+// proto definition for this message. If any rules are violated, an error is returned.
+func (m *CloseSend) Validate() error {
 	if m == nil {
 		return nil
 	}
 
-	var errors []error
-
-	if len(errors) > 0 {
-		return CloseSendMultiError(errors)
-	}
 	return nil
 }
-
-// CloseSendMultiError is an error wrapping multiple validation errors returned
-// by CloseSend.Validate(true) if the designated constraints aren't met.
-type CloseSendMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m CloseSendMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m CloseSendMultiError) AllErrors() []error { return m }
 
 // CloseSendValidationError is the validation error returned by
 // CloseSend.Validate if the designated constraints aren't met.
@@ -959,101 +708,60 @@ var _ interface {
 
 // Validate checks the field values on ConnectResponse with the rules defined
 // in the proto definition for this message. If any rules are violated, an
-// error is returned. When asked to return all errors, validation continues
-// after first violation, and the result is a list of violation errors wrapped
-// in ConnectResponseMultiError, or nil if none found. Otherwise, only the
-// first error is returned, if any.
-func (m *ConnectResponse) Validate(all bool) error {
+// error is returned.
+func (m *ConnectResponse) Validate() error {
 	if m == nil {
 		return nil
 	}
-
-	var errors []error
 
 	switch m.Msg.(type) {
 
 	case *ConnectResponse_RequestInfo:
 
-		if v, ok := interface{}(m.GetRequestInfo()).(interface{ Validate(bool) error }); ok {
-			if err := v.Validate(all); err != nil {
-				err = ConnectResponseValidationError{
+		if v, ok := interface{}(m.GetRequestInfo()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ConnectResponseValidationError{
 					field:  "RequestInfo",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
-				if !all {
-					return err
-				}
-				errors = append(errors, err)
 			}
 		}
 
 	case *ConnectResponse_Message:
 
-		if v, ok := interface{}(m.GetMessage()).(interface{ Validate(bool) error }); ok {
-			if err := v.Validate(all); err != nil {
-				err = ConnectResponseValidationError{
+		if v, ok := interface{}(m.GetMessage()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ConnectResponseValidationError{
 					field:  "Message",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
-				if !all {
-					return err
-				}
-				errors = append(errors, err)
 			}
 		}
 
 	case *ConnectResponse_CloseSend:
 
-		if v, ok := interface{}(m.GetCloseSend()).(interface{ Validate(bool) error }); ok {
-			if err := v.Validate(all); err != nil {
-				err = ConnectResponseValidationError{
+		if v, ok := interface{}(m.GetCloseSend()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ConnectResponseValidationError{
 					field:  "CloseSend",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
-				if !all {
-					return err
-				}
-				errors = append(errors, err)
 			}
 		}
 
 	default:
-		err := ConnectResponseValidationError{
+		return ConnectResponseValidationError{
 			field:  "Msg",
 			reason: "value is required",
 		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
 
 	}
 
-	if len(errors) > 0 {
-		return ConnectResponseMultiError(errors)
-	}
 	return nil
 }
-
-// ConnectResponseMultiError is an error wrapping multiple validation errors
-// returned by ConnectResponse.Validate(true) if the designated constraints
-// aren't met.
-type ConnectResponseMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m ConnectResponseMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m ConnectResponseMultiError) AllErrors() []error { return m }
 
 // ConnectResponseValidationError is the validation error returned by
 // ConnectResponse.Validate if the designated constraints aren't met.
