@@ -35,77 +35,40 @@ var (
 
 // Validate checks the field values on ResourceFilterCF with the rules defined
 // in the proto definition for this message. If any rules are violated, an
-// error is returned. When asked to return all errors, validation continues
-// after first violation, and the result is a list of violation errors wrapped
-// in ResourceFilterCFMultiError, or nil if none found. Otherwise, only the
-// first error is returned, if any.
-func (m *ResourceFilterCF) Validate(all bool) error {
+// error is returned.
+func (m *ResourceFilterCF) Validate() error {
 	if m == nil {
 		return nil
 	}
 
-	var errors []error
-
 	if len(m.GetApiGroups()) < 1 {
-		err := ResourceFilterCFValidationError{
+		return ResourceFilterCFValidationError{
 			field:  "ApiGroups",
 			reason: "value must contain at least 1 item(s)",
 		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
 	}
 
 	if len(m.GetKinds()) < 1 {
-		err := ResourceFilterCFValidationError{
+		return ResourceFilterCFValidationError{
 			field:  "Kinds",
 			reason: "value must contain at least 1 item(s)",
 		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
 	}
 
 	for idx, item := range m.GetKinds() {
 		_, _ = idx, item
 
 		if utf8.RuneCountInString(item) < 1 {
-			err := ResourceFilterCFValidationError{
+			return ResourceFilterCFValidationError{
 				field:  fmt.Sprintf("Kinds[%v]", idx),
 				reason: "value length must be at least 1 runes",
 			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
 		}
 
 	}
 
-	if len(errors) > 0 {
-		return ResourceFilterCFMultiError(errors)
-	}
 	return nil
 }
-
-// ResourceFilterCFMultiError is an error wrapping multiple validation errors
-// returned by ResourceFilterCF.Validate(true) if the designated constraints
-// aren't met.
-type ResourceFilterCFMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m ResourceFilterCFMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m ResourceFilterCFMultiError) AllErrors() []error { return m }
 
 // ResourceFilterCFValidationError is the validation error returned by
 // ResourceFilterCF.Validate if the designated constraints aren't met.
@@ -162,50 +125,21 @@ var _ interface {
 } = ResourceFilterCFValidationError{}
 
 // Validate checks the field values on PathCF with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is
-// returned. When asked to return all errors, validation continues after first
-// violation, and the result is a list of violation errors wrapped in
-// PathCFMultiError, or nil if none found. Otherwise, only the first error is
-// returned, if any.
-func (m *PathCF) Validate(all bool) error {
+// proto definition for this message. If any rules are violated, an error is returned.
+func (m *PathCF) Validate() error {
 	if m == nil {
 		return nil
 	}
 
-	var errors []error
-
 	if utf8.RuneCountInString(m.GetGlob()) < 1 {
-		err := PathCFValidationError{
+		return PathCFValidationError{
 			field:  "Glob",
 			reason: "value length must be at least 1 runes",
 		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
 	}
 
-	if len(errors) > 0 {
-		return PathCFMultiError(errors)
-	}
 	return nil
 }
-
-// PathCFMultiError is an error wrapping multiple validation errors returned by
-// PathCF.Validate(true) if the designated constraints aren't met.
-type PathCFMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m PathCFMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m PathCFMultiError) AllErrors() []error { return m }
 
 // PathCFValidationError is the validation error returned by PathCF.Validate if
 // the designated constraints aren't met.
@@ -263,42 +197,29 @@ var _ interface {
 
 // Validate checks the field values on ManifestProjectCF with the rules defined
 // in the proto definition for this message. If any rules are violated, an
-// error is returned. When asked to return all errors, validation continues
-// after first violation, and the result is a list of violation errors wrapped
-// in ManifestProjectCFMultiError, or nil if none found. Otherwise, only the
-// first error is returned, if any.
-func (m *ManifestProjectCF) Validate(all bool) error {
+// error is returned.
+func (m *ManifestProjectCF) Validate() error {
 	if m == nil {
 		return nil
 	}
 
-	var errors []error
-
 	if utf8.RuneCountInString(m.GetId()) < 1 {
-		err := ManifestProjectCFValidationError{
+		return ManifestProjectCFValidationError{
 			field:  "Id",
 			reason: "value length must be at least 1 runes",
 		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
 	}
 
 	for idx, item := range m.GetResourceInclusions() {
 		_, _ = idx, item
 
-		if v, ok := interface{}(item).(interface{ Validate(bool) error }); ok {
-			if err := v.Validate(all); err != nil {
-				err = ManifestProjectCFValidationError{
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ManifestProjectCFValidationError{
 					field:  fmt.Sprintf("ResourceInclusions[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
-				if !all {
-					return err
-				}
-				errors = append(errors, err)
 			}
 		}
 
@@ -307,17 +228,13 @@ func (m *ManifestProjectCF) Validate(all bool) error {
 	for idx, item := range m.GetResourceExclusions() {
 		_, _ = idx, item
 
-		if v, ok := interface{}(item).(interface{ Validate(bool) error }); ok {
-			if err := v.Validate(all); err != nil {
-				err = ManifestProjectCFValidationError{
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ManifestProjectCFValidationError{
 					field:  fmt.Sprintf("ResourceExclusions[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
-				if !all {
-					return err
-				}
-				errors = append(errors, err)
 			}
 		}
 
@@ -328,44 +245,20 @@ func (m *ManifestProjectCF) Validate(all bool) error {
 	for idx, item := range m.GetPaths() {
 		_, _ = idx, item
 
-		if v, ok := interface{}(item).(interface{ Validate(bool) error }); ok {
-			if err := v.Validate(all); err != nil {
-				err = ManifestProjectCFValidationError{
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ManifestProjectCFValidationError{
 					field:  fmt.Sprintf("Paths[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
-				if !all {
-					return err
-				}
-				errors = append(errors, err)
 			}
 		}
 
 	}
 
-	if len(errors) > 0 {
-		return ManifestProjectCFMultiError(errors)
-	}
 	return nil
 }
-
-// ManifestProjectCFMultiError is an error wrapping multiple validation errors
-// returned by ManifestProjectCF.Validate(true) if the designated constraints
-// aren't met.
-type ManifestProjectCFMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m ManifestProjectCFMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m ManifestProjectCFMultiError) AllErrors() []error { return m }
 
 // ManifestProjectCFValidationError is the validation error returned by
 // ManifestProjectCF.Validate if the designated constraints aren't met.
@@ -424,58 +317,29 @@ var _ interface {
 } = ManifestProjectCFValidationError{}
 
 // Validate checks the field values on GitopsCF with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is
-// returned. When asked to return all errors, validation continues after first
-// violation, and the result is a list of violation errors wrapped in
-// GitopsCFMultiError, or nil if none found. Otherwise, only the first error
-// is returned, if any.
-func (m *GitopsCF) Validate(all bool) error {
+// proto definition for this message. If any rules are violated, an error is returned.
+func (m *GitopsCF) Validate() error {
 	if m == nil {
 		return nil
 	}
 
-	var errors []error
-
 	for idx, item := range m.GetManifestProjects() {
 		_, _ = idx, item
 
-		if v, ok := interface{}(item).(interface{ Validate(bool) error }); ok {
-			if err := v.Validate(all); err != nil {
-				err = GitopsCFValidationError{
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return GitopsCFValidationError{
 					field:  fmt.Sprintf("ManifestProjects[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
-				if !all {
-					return err
-				}
-				errors = append(errors, err)
 			}
 		}
 
 	}
 
-	if len(errors) > 0 {
-		return GitopsCFMultiError(errors)
-	}
 	return nil
 }
-
-// GitopsCFMultiError is an error wrapping multiple validation errors returned
-// by GitopsCF.Validate(true) if the designated constraints aren't met.
-type GitopsCFMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m GitopsCFMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m GitopsCFMultiError) AllErrors() []error { return m }
 
 // GitopsCFValidationError is the validation error returned by
 // GitopsCF.Validate if the designated constraints aren't met.
@@ -533,53 +397,24 @@ var _ interface {
 
 // Validate checks the field values on ObservabilityCF with the rules defined
 // in the proto definition for this message. If any rules are violated, an
-// error is returned. When asked to return all errors, validation continues
-// after first violation, and the result is a list of violation errors wrapped
-// in ObservabilityCFMultiError, or nil if none found. Otherwise, only the
-// first error is returned, if any.
-func (m *ObservabilityCF) Validate(all bool) error {
+// error is returned.
+func (m *ObservabilityCF) Validate() error {
 	if m == nil {
 		return nil
 	}
 
-	var errors []error
-
-	if v, ok := interface{}(m.GetLogging()).(interface{ Validate(bool) error }); ok {
-		if err := v.Validate(all); err != nil {
-			err = ObservabilityCFValidationError{
+	if v, ok := interface{}(m.GetLogging()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ObservabilityCFValidationError{
 				field:  "Logging",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
 		}
 	}
 
-	if len(errors) > 0 {
-		return ObservabilityCFMultiError(errors)
-	}
 	return nil
 }
-
-// ObservabilityCFMultiError is an error wrapping multiple validation errors
-// returned by ObservabilityCF.Validate(true) if the designated constraints
-// aren't met.
-type ObservabilityCFMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m ObservabilityCFMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m ObservabilityCFMultiError) AllErrors() []error { return m }
 
 // ObservabilityCFValidationError is the validation error returned by
 // ObservabilityCF.Validate if the designated constraints aren't met.
@@ -636,41 +471,16 @@ var _ interface {
 } = ObservabilityCFValidationError{}
 
 // Validate checks the field values on LoggingCF with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is
-// returned. When asked to return all errors, validation continues after first
-// violation, and the result is a list of violation errors wrapped in
-// LoggingCFMultiError, or nil if none found. Otherwise, only the first error
-// is returned, if any.
-func (m *LoggingCF) Validate(all bool) error {
+// proto definition for this message. If any rules are violated, an error is returned.
+func (m *LoggingCF) Validate() error {
 	if m == nil {
 		return nil
 	}
 
-	var errors []error
-
 	// no validation rules for Level
 
-	if len(errors) > 0 {
-		return LoggingCFMultiError(errors)
-	}
 	return nil
 }
-
-// LoggingCFMultiError is an error wrapping multiple validation errors returned
-// by LoggingCF.Validate(true) if the designated constraints aren't met.
-type LoggingCFMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m LoggingCFMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m LoggingCFMultiError) AllErrors() []error { return m }
 
 // LoggingCFValidationError is the validation error returned by
 // LoggingCF.Validate if the designated constraints aren't met.
@@ -727,50 +537,21 @@ var _ interface {
 } = LoggingCFValidationError{}
 
 // Validate checks the field values on CiliumCF with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is
-// returned. When asked to return all errors, validation continues after first
-// violation, and the result is a list of violation errors wrapped in
-// CiliumCFMultiError, or nil if none found. Otherwise, only the first error
-// is returned, if any.
-func (m *CiliumCF) Validate(all bool) error {
+// proto definition for this message. If any rules are violated, an error is returned.
+func (m *CiliumCF) Validate() error {
 	if m == nil {
 		return nil
 	}
 
-	var errors []error
-
 	if utf8.RuneCountInString(m.GetHubbleRelayAddress()) < 1 {
-		err := CiliumCFValidationError{
+		return CiliumCFValidationError{
 			field:  "HubbleRelayAddress",
 			reason: "value length must be at least 1 runes",
 		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
 	}
 
-	if len(errors) > 0 {
-		return CiliumCFMultiError(errors)
-	}
 	return nil
 }
-
-// CiliumCFMultiError is an error wrapping multiple validation errors returned
-// by CiliumCF.Validate(true) if the designated constraints aren't met.
-type CiliumCFMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m CiliumCFMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m CiliumCFMultiError) AllErrors() []error { return m }
 
 // CiliumCFValidationError is the validation error returned by
 // CiliumCF.Validate if the designated constraints aren't met.
@@ -828,81 +609,44 @@ var _ interface {
 
 // Validate checks the field values on ConfigurationFile with the rules defined
 // in the proto definition for this message. If any rules are violated, an
-// error is returned. When asked to return all errors, validation continues
-// after first violation, and the result is a list of violation errors wrapped
-// in ConfigurationFileMultiError, or nil if none found. Otherwise, only the
-// first error is returned, if any.
-func (m *ConfigurationFile) Validate(all bool) error {
+// error is returned.
+func (m *ConfigurationFile) Validate() error {
 	if m == nil {
 		return nil
 	}
 
-	var errors []error
-
-	if v, ok := interface{}(m.GetGitops()).(interface{ Validate(bool) error }); ok {
-		if err := v.Validate(all); err != nil {
-			err = ConfigurationFileValidationError{
+	if v, ok := interface{}(m.GetGitops()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ConfigurationFileValidationError{
 				field:  "Gitops",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetObservability()).(interface{ Validate(bool) error }); ok {
-		if err := v.Validate(all); err != nil {
-			err = ConfigurationFileValidationError{
+	if v, ok := interface{}(m.GetObservability()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ConfigurationFileValidationError{
 				field:  "Observability",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetCilium()).(interface{ Validate(bool) error }); ok {
-		if err := v.Validate(all); err != nil {
-			err = ConfigurationFileValidationError{
+	if v, ok := interface{}(m.GetCilium()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ConfigurationFileValidationError{
 				field:  "Cilium",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
 		}
 	}
 
-	if len(errors) > 0 {
-		return ConfigurationFileMultiError(errors)
-	}
 	return nil
 }
-
-// ConfigurationFileMultiError is an error wrapping multiple validation errors
-// returned by ConfigurationFile.Validate(true) if the designated constraints
-// aren't met.
-type ConfigurationFileMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m ConfigurationFileMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m ConfigurationFileMultiError) AllErrors() []error { return m }
 
 // ConfigurationFileValidationError is the validation error returned by
 // ConfigurationFile.Validate if the designated constraints aren't met.
@@ -962,56 +706,39 @@ var _ interface {
 
 // Validate checks the field values on AgentConfiguration with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned. When asked to return all errors, validation
-// continues after first violation, and the result is a list of violation
-// errors wrapped in AgentConfigurationMultiError, or nil if none found.
-// Otherwise, only the first error is returned, if any.
-func (m *AgentConfiguration) Validate(all bool) error {
+// violated, an error is returned.
+func (m *AgentConfiguration) Validate() error {
 	if m == nil {
 		return nil
 	}
 
-	var errors []error
-
-	if v, ok := interface{}(m.GetGitops()).(interface{ Validate(bool) error }); ok {
-		if err := v.Validate(all); err != nil {
-			err = AgentConfigurationValidationError{
+	if v, ok := interface{}(m.GetGitops()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return AgentConfigurationValidationError{
 				field:  "Gitops",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetObservability()).(interface{ Validate(bool) error }); ok {
-		if err := v.Validate(all); err != nil {
-			err = AgentConfigurationValidationError{
+	if v, ok := interface{}(m.GetObservability()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return AgentConfigurationValidationError{
 				field:  "Observability",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
 		}
 	}
 
-	if v, ok := interface{}(m.GetCilium()).(interface{ Validate(bool) error }); ok {
-		if err := v.Validate(all); err != nil {
-			err = AgentConfigurationValidationError{
+	if v, ok := interface{}(m.GetCilium()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return AgentConfigurationValidationError{
 				field:  "Cilium",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
-			if !all {
-				return err
-			}
-			errors = append(errors, err)
 		}
 	}
 
@@ -1019,28 +746,8 @@ func (m *AgentConfiguration) Validate(all bool) error {
 
 	// no validation rules for ProjectId
 
-	if len(errors) > 0 {
-		return AgentConfigurationMultiError(errors)
-	}
 	return nil
 }
-
-// AgentConfigurationMultiError is an error wrapping multiple validation errors
-// returned by AgentConfiguration.Validate(true) if the designated constraints
-// aren't met.
-type AgentConfigurationMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m AgentConfigurationMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m AgentConfigurationMultiError) AllErrors() []error { return m }
 
 // AgentConfigurationValidationError is the validation error returned by
 // AgentConfiguration.Validate if the designated constraints aren't met.

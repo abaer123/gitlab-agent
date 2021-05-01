@@ -35,16 +35,11 @@ var (
 
 // Validate checks the field values on GetConnectedAgentsRequest with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned. When asked to return all errors, validation
-// continues after first violation, and the result is a list of violation
-// errors wrapped in GetConnectedAgentsRequestMultiError, or nil if none
-// found. Otherwise, only the first error is returned, if any.
-func (m *GetConnectedAgentsRequest) Validate(all bool) error {
+// violated, an error is returned.
+func (m *GetConnectedAgentsRequest) Validate() error {
 	if m == nil {
 		return nil
 	}
-
-	var errors []error
 
 	switch m.Request.(type) {
 
@@ -55,39 +50,15 @@ func (m *GetConnectedAgentsRequest) Validate(all bool) error {
 		// no validation rules for AgentId
 
 	default:
-		err := GetConnectedAgentsRequestValidationError{
+		return GetConnectedAgentsRequestValidationError{
 			field:  "Request",
 			reason: "value is required",
 		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
 
 	}
 
-	if len(errors) > 0 {
-		return GetConnectedAgentsRequestMultiError(errors)
-	}
 	return nil
 }
-
-// GetConnectedAgentsRequestMultiError is an error wrapping multiple validation
-// errors returned by GetConnectedAgentsRequest.Validate(true) if the
-// designated constraints aren't met.
-type GetConnectedAgentsRequestMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m GetConnectedAgentsRequestMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m GetConnectedAgentsRequestMultiError) AllErrors() []error { return m }
 
 // GetConnectedAgentsRequestValidationError is the validation error returned by
 // GetConnectedAgentsRequest.Validate if the designated constraints aren't met.
@@ -147,58 +118,29 @@ var _ interface {
 
 // Validate checks the field values on GetConnectedAgentsResponse with the
 // rules defined in the proto definition for this message. If any rules are
-// violated, an error is returned. When asked to return all errors, validation
-// continues after first violation, and the result is a list of violation
-// errors wrapped in GetConnectedAgentsResponseMultiError, or nil if none
-// found. Otherwise, only the first error is returned, if any.
-func (m *GetConnectedAgentsResponse) Validate(all bool) error {
+// violated, an error is returned.
+func (m *GetConnectedAgentsResponse) Validate() error {
 	if m == nil {
 		return nil
 	}
 
-	var errors []error
-
 	for idx, item := range m.GetAgents() {
 		_, _ = idx, item
 
-		if v, ok := interface{}(item).(interface{ Validate(bool) error }); ok {
-			if err := v.Validate(all); err != nil {
-				err = GetConnectedAgentsResponseValidationError{
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return GetConnectedAgentsResponseValidationError{
 					field:  fmt.Sprintf("Agents[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
-				if !all {
-					return err
-				}
-				errors = append(errors, err)
 			}
 		}
 
 	}
 
-	if len(errors) > 0 {
-		return GetConnectedAgentsResponseMultiError(errors)
-	}
 	return nil
 }
-
-// GetConnectedAgentsResponseMultiError is an error wrapping multiple
-// validation errors returned by GetConnectedAgentsResponse.Validate(true) if
-// the designated constraints aren't met.
-type GetConnectedAgentsResponseMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m GetConnectedAgentsResponseMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m GetConnectedAgentsResponseMultiError) AllErrors() []error { return m }
 
 // GetConnectedAgentsResponseValidationError is the validation error returned
 // by GetConnectedAgentsResponse.Validate if the designated constraints aren't met.

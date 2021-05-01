@@ -34,50 +34,21 @@ var (
 )
 
 // Validate checks the field values on Method with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is
-// returned. When asked to return all errors, validation continues after first
-// violation, and the result is a list of violation errors wrapped in
-// MethodMultiError, or nil if none found. Otherwise, only the first error is
-// returned, if any.
-func (m *Method) Validate(all bool) error {
+// proto definition for this message. If any rules are violated, an error is returned.
+func (m *Method) Validate() error {
 	if m == nil {
 		return nil
 	}
 
-	var errors []error
-
 	if utf8.RuneCountInString(m.GetName()) < 1 {
-		err := MethodValidationError{
+		return MethodValidationError{
 			field:  "Name",
 			reason: "value length must be at least 1 runes",
 		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
 	}
 
-	if len(errors) > 0 {
-		return MethodMultiError(errors)
-	}
 	return nil
 }
-
-// MethodMultiError is an error wrapping multiple validation errors returned by
-// Method.Validate(true) if the designated constraints aren't met.
-type MethodMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m MethodMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m MethodMultiError) AllErrors() []error { return m }
 
 // MethodValidationError is the validation error returned by Method.Validate if
 // the designated constraints aren't met.
@@ -134,69 +105,36 @@ var _ interface {
 } = MethodValidationError{}
 
 // Validate checks the field values on Service with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is
-// returned. When asked to return all errors, validation continues after first
-// violation, and the result is a list of violation errors wrapped in
-// ServiceMultiError, or nil if none found. Otherwise, only the first error is
-// returned, if any.
-func (m *Service) Validate(all bool) error {
+// proto definition for this message. If any rules are violated, an error is returned.
+func (m *Service) Validate() error {
 	if m == nil {
 		return nil
 	}
 
-	var errors []error
-
 	if utf8.RuneCountInString(m.GetName()) < 1 {
-		err := ServiceValidationError{
+		return ServiceValidationError{
 			field:  "Name",
 			reason: "value length must be at least 1 runes",
 		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
 	}
 
 	for idx, item := range m.GetMethods() {
 		_, _ = idx, item
 
-		if v, ok := interface{}(item).(interface{ Validate(bool) error }); ok {
-			if err := v.Validate(all); err != nil {
-				err = ServiceValidationError{
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ServiceValidationError{
 					field:  fmt.Sprintf("Methods[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
-				if !all {
-					return err
-				}
-				errors = append(errors, err)
 			}
 		}
 
 	}
 
-	if len(errors) > 0 {
-		return ServiceMultiError(errors)
-	}
 	return nil
 }
-
-// ServiceMultiError is an error wrapping multiple validation errors returned
-// by Service.Validate(true) if the designated constraints aren't met.
-type ServiceMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m ServiceMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m ServiceMultiError) AllErrors() []error { return m }
 
 // ServiceValidationError is the validation error returned by Service.Validate
 // if the designated constraints aren't met.
@@ -254,58 +192,29 @@ var _ interface {
 
 // Validate checks the field values on AgentDescriptor with the rules defined
 // in the proto definition for this message. If any rules are violated, an
-// error is returned. When asked to return all errors, validation continues
-// after first violation, and the result is a list of violation errors wrapped
-// in AgentDescriptorMultiError, or nil if none found. Otherwise, only the
-// first error is returned, if any.
-func (m *AgentDescriptor) Validate(all bool) error {
+// error is returned.
+func (m *AgentDescriptor) Validate() error {
 	if m == nil {
 		return nil
 	}
 
-	var errors []error
-
 	for idx, item := range m.GetServices() {
 		_, _ = idx, item
 
-		if v, ok := interface{}(item).(interface{ Validate(bool) error }); ok {
-			if err := v.Validate(all); err != nil {
-				err = AgentDescriptorValidationError{
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return AgentDescriptorValidationError{
 					field:  fmt.Sprintf("Services[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
-				if !all {
-					return err
-				}
-				errors = append(errors, err)
 			}
 		}
 
 	}
 
-	if len(errors) > 0 {
-		return AgentDescriptorMultiError(errors)
-	}
 	return nil
 }
-
-// AgentDescriptorMultiError is an error wrapping multiple validation errors
-// returned by AgentDescriptor.Validate(true) if the designated constraints
-// aren't met.
-type AgentDescriptorMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m AgentDescriptorMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m AgentDescriptorMultiError) AllErrors() []error { return m }
 
 // AgentDescriptorValidationError is the validation error returned by
 // AgentDescriptor.Validate if the designated constraints aren't met.

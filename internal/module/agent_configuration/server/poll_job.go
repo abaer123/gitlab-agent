@@ -122,7 +122,7 @@ func (j *pollJob) fetchConfiguration(ctx context.Context, agentInfo *api.AgentIn
 	if err != nil {
 		return nil, errz.NewUserErrorWithCause(err, "failed to parse agent configuration")
 	}
-	err = configFile.Validate(true)
+	err = configFile.Validate()
 	if err != nil {
 		return nil, errz.NewUserErrorWithCause(err, "invalid agent configuration")
 	}

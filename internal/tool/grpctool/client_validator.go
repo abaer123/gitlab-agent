@@ -30,7 +30,7 @@ func StreamClientValidatingInterceptor(parentCtx context.Context, desc *grpc.Str
 }
 
 type validatable interface {
-	Validate(bool) error
+	Validate() error
 }
 
 type recvWrapper struct {
@@ -46,7 +46,7 @@ func (w recvWrapper) RecvMsg(m interface{}) error {
 
 func maybeValidate(msg interface{}) error {
 	if v, ok := msg.(validatable); ok {
-		if err := v.Validate(true); err != nil {
+		if err := v.Validate(); err != nil {
 			return status.Errorf(codes.InvalidArgument, fmt.Sprintf("invalid server response: %v", err))
 		}
 	}
