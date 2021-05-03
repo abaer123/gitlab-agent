@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	cloud.google.com/go v0.81.0
-	github.com/argoproj/gitops-engine v0.3.1-0.20210421213457-46d149614018
+	github.com/argoproj/gitops-engine v0.3.1-0.20210503031607-3f38eee773eb
 	github.com/ash2k/stager v0.2.1
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/cilium/cilium v1.9.6
