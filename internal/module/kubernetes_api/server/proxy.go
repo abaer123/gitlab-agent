@@ -14,6 +14,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/kubernetes_api/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
@@ -101,6 +102,7 @@ type kubernetesApiProxy struct {
 	kubernetesApiClient rpc.KubernetesApiClient
 	gitLabClient        gitlab.ClientInterface
 	streamVisitor       *grpctool.StreamVisitor
+	requestCount        usage_metrics.Counter
 	serverName          string
 }
 
@@ -151,6 +153,8 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
+
+	p.requestCount.Inc() // Count only authenticated and authorized requests
 
 	headerWritten, errF := p.pipeStreams(ctx, log, w, r, agentId)
 	if errF != nil {
