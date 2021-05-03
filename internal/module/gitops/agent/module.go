@@ -91,7 +91,7 @@ func (m *module) configureWorkers(workers map[workerKey]*gitopsWorkerHolder, pro
 			continue
 		}
 		if _, ok := newSetOfProjects[key]; ok {
-			return fmt.Errorf("duplicate project id/paths configuration: %s", project.Id)
+			return fmt.Errorf("duplicate project configuration: %s", project.Id)
 		}
 		newSetOfProjects[key] = struct{}{}
 		workerHolder := workers[key]

@@ -89,8 +89,8 @@ def go_repositories():
         name = "com_github_argoproj_gitops_engine",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/argoproj/gitops-engine",
-        sum = "h1:psw/PJmot4+EYcogA5p58vZwamg/t8/UYJH/C43MuUw=",
-        version = "v0.3.1-0.20210421213457-46d149614018",
+        sum = "h1:eVwQMYOpAI9kkYjqxfFMj4trEwbNXzXUgZXy4eaLRMs=",
+        version = "v0.3.1-0.20210503031607-3f38eee773eb",
     )
     go_repository(
         name = "com_github_armon_circbuf",
