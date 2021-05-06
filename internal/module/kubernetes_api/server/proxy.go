@@ -38,7 +38,8 @@ const (
 	hostHeader                      = "Host"
 	authorizationHeaderBearerPrefix = "Bearer " // must end with a space
 	jobInfoApiPath                  = "/api/v4/job/allowed_agents"
-	agentIdJobTokenSeparator        = ":"
+	tokenSeparator                  = ":"
+	tokenTypeCi                     = "ci"
 
 	headerFieldNumber  protoreflect.FieldNumber = 1
 	dataFieldNumber    protoreflect.FieldNumber = 2
@@ -329,16 +330,26 @@ func getAgentIdAndJobTokenFromHeader(header string) (int64, string, error) {
 		// "missing" space in message - it's in the authorizationHeaderBearerPrefix constant already
 		return 0, "", fmt.Errorf("%s header: expecting %stoken", authorizationHeader, authorizationHeaderBearerPrefix)
 	}
-	agentIdAndToken := header[len(authorizationHeaderBearerPrefix):]
-	parts := strings.SplitN(agentIdAndToken, agentIdJobTokenSeparator, 2)
-	if len(parts) != 2 {
+	tokenValue := header[len(authorizationHeaderBearerPrefix):]
+	tokenValueParts := strings.SplitN(tokenValue, tokenSeparator, 2)
+	if len(tokenValueParts) != 2 {
 		return 0, "", fmt.Errorf("%s header: invalid value", authorizationHeader)
 	}
-	agentId, err := strconv.ParseInt(parts[0], 10, 64)
+	switch tokenValueParts[0] {
+	case tokenTypeCi:
+	default:
+		return 0, "", fmt.Errorf("%s header: unknown token type", authorizationHeader)
+	}
+	agentIdAndToken := tokenValueParts[1]
+	agentIdAndTokenParts := strings.SplitN(agentIdAndToken, tokenSeparator, 2)
+	if len(agentIdAndTokenParts) != 2 {
+		return 0, "", fmt.Errorf("%s header: invalid value", authorizationHeader)
+	}
+	agentId, err := strconv.ParseInt(agentIdAndTokenParts[0], 10, 64)
 	if err != nil {
 		return 0, "", fmt.Errorf("%s header: failed to parse: %v", authorizationHeader, err)
 	}
-	token := parts[1]
+	token := agentIdAndTokenParts[1]
 	if token == "" {
 		return 0, "", fmt.Errorf("%s header: empty token", authorizationHeader)
 	}

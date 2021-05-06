@@ -65,11 +65,15 @@ func TestProxy_JobTokenErrors(t *testing.T) {
 		},
 		{
 			name: "invalid agent id",
-			auth: []string{"Bearer asdf:as"},
+			auth: []string{"Bearer ci:asdf:as"},
 		},
 		{
 			name: "empty token",
-			auth: []string{"Bearer 1:"},
+			auth: []string{"Bearer ci:1:"},
+		},
+		{
+			name: "unknown token type",
+			auth: []string{"Bearer blabla:1:asd"},
 		},
 	}
 	for _, tc := range tests {
@@ -126,7 +130,7 @@ func TestProxy_ServerError(t *testing.T) {
 
 func TestProxy_ForbiddenAgentId(t *testing.T) {
 	_, _, client, req, _ := setupProxy(t)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %d:%s", 15 /* disallowed id */, jobToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s:%d:%s", tokenTypeCi, 15 /* disallowed id */, jobToken))
 	resp, err := client.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -395,7 +399,7 @@ func setupProxyWithHandler(t *testing.T, handler func(http.ResponseWriter, *http
 		strings.NewReader(requestPayload),
 	)
 	require.NoError(t, err)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %d:%s", testhelpers.AgentId, jobToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s:%d:%s", tokenTypeCi, testhelpers.AgentId, jobToken))
 	return mockApi, k8sClient, client, req, requestCount
 }
 
