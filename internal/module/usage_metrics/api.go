@@ -40,7 +40,9 @@ type UsageTrackerRegisterer interface {
 }
 
 type UsageTrackerCollector interface {
-	CloneUsageData() (*UsageData, bool /* all zeroes */)
+	// CloneUsageData returns collected usage data.
+	// Only non-zero counters are returned.
+	CloneUsageData() *UsageData
 	Subtract(data *UsageData)
 }
 
@@ -68,17 +70,18 @@ func (u *UsageTracker) RegisterCounter(name string) Counter {
 	return c
 }
 
-func (u *UsageTracker) CloneUsageData() (*UsageData, bool /* all zeroes */) {
-	allZeroes := true
+func (u *UsageTracker) CloneUsageData() *UsageData {
 	c := make(map[string]int64, len(u.counters))
 	for name, counterItem := range u.counters {
 		n := counterItem.get()
+		if n == 0 {
+			continue
+		}
 		c[name] = n
-		allZeroes = allZeroes && n == 0
 	}
 	return &UsageData{
 		Counters: c,
-	}, allZeroes
+	}
 }
 
 func (u *UsageTracker) Subtract(data *UsageData) {
