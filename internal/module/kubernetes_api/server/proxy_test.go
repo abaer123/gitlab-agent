@@ -78,7 +78,7 @@ func TestProxy_JobTokenErrors(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			_, _, client, req, _ := setupProxyWithHandler(t, func(w http.ResponseWriter, r *http.Request) {
+			_, _, client, req, _ := setupProxyWithHandler(t, "", func(w http.ResponseWriter, r *http.Request) {
 				t.Fail() // unexpected invocation
 			})
 			req.Header.Del("Authorization")
@@ -94,7 +94,7 @@ func TestProxy_JobTokenErrors(t *testing.T) {
 }
 
 func TestProxy_UnknownJobToken(t *testing.T) {
-	_, _, client, req, _ := setupProxyWithHandler(t, func(w http.ResponseWriter, r *http.Request) {
+	_, _, client, req, _ := setupProxyWithHandler(t, "", func(w http.ResponseWriter, r *http.Request) {
 		assertToken(t, r)
 		w.WriteHeader(http.StatusUnauthorized) // pretend the token is invalid
 	})
@@ -105,7 +105,7 @@ func TestProxy_UnknownJobToken(t *testing.T) {
 }
 
 func TestProxy_ForbiddenJobToken(t *testing.T) {
-	_, _, client, req, _ := setupProxyWithHandler(t, func(w http.ResponseWriter, r *http.Request) {
+	_, _, client, req, _ := setupProxyWithHandler(t, "", func(w http.ResponseWriter, r *http.Request) {
 		assertToken(t, r)
 		w.WriteHeader(http.StatusForbidden) // pretend the token is forbidden
 	})
@@ -116,7 +116,7 @@ func TestProxy_ForbiddenJobToken(t *testing.T) {
 }
 
 func TestProxy_ServerError(t *testing.T) {
-	api, _, client, req, _ := setupProxyWithHandler(t, func(w http.ResponseWriter, r *http.Request) {
+	api, _, client, req, _ := setupProxyWithHandler(t, "", func(w http.ResponseWriter, r *http.Request) {
 		assertToken(t, r)
 		w.WriteHeader(http.StatusBadGateway) // pretend there is some weird error
 	})
@@ -128,6 +128,15 @@ func TestProxy_ServerError(t *testing.T) {
 	assert.EqualValues(t, http.StatusInternalServerError, resp.StatusCode)
 }
 
+func TestProxy_NoExpectedUrlPathPrefix(t *testing.T) {
+	_, _, client, req, _ := setupProxyWithHandler(t, "/bla", defaultGitLabHandler(t))
+	req.URL.Path = requestPath
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.EqualValues(t, http.StatusBadRequest, resp.StatusCode)
+}
+
 func TestProxy_ForbiddenAgentId(t *testing.T) {
 	_, _, client, req, _ := setupProxy(t)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s:%d:%s", tokenTypeCi, 15 /* disallowed id */, jobToken))
@@ -137,8 +146,16 @@ func TestProxy_ForbiddenAgentId(t *testing.T) {
 	assert.EqualValues(t, http.StatusForbidden, resp.StatusCode)
 }
 
-func TestProxy_HappyPath(t *testing.T) {
-	_, k8sClient, client, req, requestCount := setupProxy(t)
+func TestProxy_HappyPathWithoutUrlPrefix(t *testing.T) {
+	testProxyHappyPath(t, "")
+}
+
+func TestProxy_HappyPathWithUrlPrefix(t *testing.T) {
+	testProxyHappyPath(t, "/bla")
+}
+
+func testProxyHappyPath(t *testing.T, urlPathPrefix string) {
+	_, k8sClient, client, req, requestCount := setupProxyWithHandler(t, urlPathPrefix, defaultGitLabHandler(t))
 	requestCount.EXPECT().Inc()
 	mrClient := mock_kubernetes_api.NewMockKubernetesApi_MakeRequestClient(gomock.NewController(t))
 	mrCall := k8sClient.EXPECT().
@@ -338,7 +355,11 @@ func assertToken(t *testing.T, r *http.Request) bool {
 }
 
 func setupProxy(t *testing.T) (*mock_modserver.MockAPI, *mock_kubernetes_api.MockKubernetesApiClient, *http.Client, *http.Request, *mock_usage_metrics.MockCounter) {
-	return setupProxyWithHandler(t, func(w http.ResponseWriter, r *http.Request) {
+	return setupProxyWithHandler(t, "", defaultGitLabHandler(t))
+}
+
+func defaultGitLabHandler(t *testing.T) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		if !assertToken(t, r) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -354,10 +375,10 @@ func setupProxy(t *testing.T) (*mock_modserver.MockAPI, *mock_kubernetes_api.Moc
 			Project:  project{},
 			User:     user{},
 		})
-	})
+	}
 }
 
-func setupProxyWithHandler(t *testing.T, handler func(http.ResponseWriter, *http.Request)) (*mock_modserver.MockAPI, *mock_kubernetes_api.MockKubernetesApiClient, *http.Client, *http.Request, *mock_usage_metrics.MockCounter) {
+func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http.ResponseWriter, *http.Request)) (*mock_modserver.MockAPI, *mock_kubernetes_api.MockKubernetesApiClient, *http.Client, *http.Request, *mock_usage_metrics.MockCounter) {
 	sv, err := grpctool.NewStreamVisitor(&grpctool.HttpResponse{})
 	require.NoError(t, err)
 	ctrl := gomock.NewController(t)
@@ -373,6 +394,7 @@ func setupProxyWithHandler(t *testing.T, handler func(http.ResponseWriter, *http
 		streamVisitor:       sv,
 		requestCount:        requestCount,
 		serverName:          "sv1",
+		urlPathPrefix:       urlPathPrefix,
 	}
 	listener := grpctool.NewDialListener()
 	var wg wait.Group
@@ -395,7 +417,7 @@ func setupProxyWithHandler(t *testing.T, handler func(http.ResponseWriter, *http
 	req, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
-		"http://any_host_will_do.local"+requestPath+"?"+url.QueryEscape(queryParamName)+"="+url.QueryEscape(queryParamValue),
+		"http://any_host_will_do.local"+urlPathPrefix+requestPath+"?"+url.QueryEscape(queryParamName)+"="+url.QueryEscape(queryParamValue),
 		strings.NewReader(requestPayload),
 	)
 	require.NoError(t, err)

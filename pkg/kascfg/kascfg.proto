@@ -132,6 +132,9 @@ message ListenKubernetesApiCF {
 message KubernetesApiCF {
   // HTTP listener configuration for Kubernetes API connections.
   ListenKubernetesApiCF listen = 1 [json_name = "listen"];
+  // URL path prefix to remove from the incoming request URL.
+  // Should be `/` if no prefix trimming is needed.
+  string url_path_prefix = 2 [json_name = "url_path_prefix"];
 }
 
 message AgentCF {

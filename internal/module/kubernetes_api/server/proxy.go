@@ -105,6 +105,7 @@ type kubernetesApiProxy struct {
 	streamVisitor       *grpctool.StreamVisitor
 	requestCount        usage_metrics.Counter
 	serverName          string
+	urlPathPrefix       string
 }
 
 func (p *kubernetesApiProxy) Run(ctx context.Context, listener net.Listener) error {
@@ -150,9 +151,19 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 
 	aa := findAllowedAgent(agentId, jInfo)
 	if aa == nil {
-		log.Debug("Forbidden: agentId is not allowed")
 		w.WriteHeader(http.StatusForbidden)
+		log.Debug("Forbidden: agentId is not allowed")
 		return
+	}
+
+	if !strings.HasPrefix(r.URL.Path, p.urlPathPrefix) {
+		w.WriteHeader(http.StatusBadRequest)
+		log.Debug("Bad request: URL does not start with expected prefix", logz.UrlPath(r.URL.Path), logz.UrlPathPrefix(p.urlPathPrefix))
+		return
+	}
+	r.URL.Path = r.URL.Path[len(p.urlPathPrefix):]
+	if r.URL.Path == "" {
+		r.URL.Path = "/"
 	}
 
 	p.requestCount.Inc() // Count only authenticated and authorized requests

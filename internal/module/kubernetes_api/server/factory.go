@@ -20,14 +20,15 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
-	if config.Config.Agent.KubernetesApi == nil {
+	k8sApi := config.Config.Agent.KubernetesApi
+	if k8sApi == nil {
 		return nopModule{}, nil
 	}
 	sv, err := grpctool.NewStreamVisitor(&grpctool.HttpResponse{})
 	if err != nil {
 		return nil, err
 	}
-	listenCfg := config.Config.Agent.KubernetesApi.Listen
+	listenCfg := k8sApi.Listen
 	certFile := listenCfg.CertificateFile
 	keyFile := listenCfg.KeyFile
 	var listener func() (net.Listener, error)
@@ -58,6 +59,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 			streamVisitor:       sv,
 			requestCount:        config.UsageTracker.RegisterCounter(k8sApiRequestCountKnownMetric),
 			serverName:          fmt.Sprintf("%s/%s/%s", config.KasName, config.Version, config.CommitId),
+			urlPathPrefix:       k8sApi.UrlPathPrefix,
 		},
 		listener: listener,
 	}
