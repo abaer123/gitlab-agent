@@ -182,17 +182,27 @@ func (p *kubernetesApiProxy) pipeStreams(ctx context.Context, log *zap.Logger, w
 	}
 	// Pipe client -> remote
 	g.Go(func() error {
-		return p.pipeClientToRemote(ctx, log, mkClient, r)
+		errFuncRet := p.pipeClientToRemote(ctx, log, mkClient, r)
+		if errFuncRet != nil {
+			return errFuncRet
+		}
+		return nil
 	})
 	// Pipe remote -> client
 	headerWritten := false
 	g.Go(func() error {
 		var errFuncRet errFunc
 		headerWritten, errFuncRet = p.pipeRemoteToClient(ctx, log, w, mkClient)
-		return errFuncRet
+		if errFuncRet != nil {
+			return errFuncRet
+		}
+		return nil
 	})
-	err = g.Wait()                      // don't inline as headerWritten must be read after Wait() returned
-	return headerWritten, err.(errFunc) // nolint: errorlint
+	err = g.Wait() // don't inline as headerWritten must be read after Wait() returned
+	if err != nil {
+		return headerWritten, err.(errFunc) // nolint: errorlint
+	}
+	return false, nil
 }
 
 func (p *kubernetesApiProxy) pipeRemoteToClient(ctx context.Context, log *zap.Logger, w http.ResponseWriter, mkClient rpc.KubernetesApi_MakeRequestClient) (bool /* headerWritten */, errFunc) {
