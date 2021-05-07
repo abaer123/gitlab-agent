@@ -35,12 +35,11 @@ func (m *MockUsageTrackerInterface) EXPECT() *MockUsageTrackerInterfaceMockRecor
 }
 
 // CloneUsageData mocks base method.
-func (m *MockUsageTrackerInterface) CloneUsageData() (*usage_metrics.UsageData, bool) {
+func (m *MockUsageTrackerInterface) CloneUsageData() *usage_metrics.UsageData {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CloneUsageData")
 	ret0, _ := ret[0].(*usage_metrics.UsageData)
-	ret1, _ := ret[1].(bool)
-	return ret0, ret1
+	return ret0
 }
 
 // CloneUsageData indicates an expected call of CloneUsageData.

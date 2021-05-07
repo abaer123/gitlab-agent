@@ -44,14 +44,14 @@ func TestSendUsage(t *testing.T) {
 	gomock.InOrder(
 		tracker.EXPECT().
 			CloneUsageData().
-			Return(ud, false),
+			Return(ud),
 		tracker.EXPECT().
 			Subtract(ud),
 		tracker.EXPECT().
 			CloneUsageData().
-			DoAndReturn(func() (*usage_metrics.UsageData, bool) {
+			DoAndReturn(func() *usage_metrics.UsageData {
 				cancel()
-				return &usage_metrics.UsageData{}, true
+				return &usage_metrics.UsageData{}
 			}),
 	)
 	require.NoError(t, m.Run(ctx))
@@ -86,19 +86,19 @@ func TestSendUsageFailureAndRetry(t *testing.T) {
 	gomock.InOrder(
 		tracker.EXPECT().
 			CloneUsageData().
-			Return(ud1, false),
+			Return(ud1),
 		mockApi.EXPECT().
 			HandleProcessingError(gomock.Any(), gomock.Any(), "Failed to send usage data", matcher.ErrorEq("error kind: 0; status: 500")),
 		tracker.EXPECT().
 			CloneUsageData().
-			Return(ud2, false),
+			Return(ud2),
 		tracker.EXPECT().
 			Subtract(ud2),
 		tracker.EXPECT().
 			CloneUsageData().
-			DoAndReturn(func() (*usage_metrics.UsageData, bool) {
+			DoAndReturn(func() *usage_metrics.UsageData {
 				cancel()
-				return &usage_metrics.UsageData{}, true
+				return &usage_metrics.UsageData{}
 			}),
 	)
 	require.NoError(t, m.Run(ctx))
@@ -121,11 +121,12 @@ func TestSendUsageHttp(t *testing.T) {
 	gomock.InOrder(
 		tracker.EXPECT().
 			CloneUsageData().
-			Return(ud, false),
+			Return(ud),
 		tracker.EXPECT().
-			Subtract(ud).Do(func(ud *usage_metrics.UsageData) {
-			cancel()
-		}),
+			Subtract(ud).
+			Do(func(ud *usage_metrics.UsageData) {
+				cancel()
+			}),
 	)
 	require.NoError(t, m.Run(ctx))
 }

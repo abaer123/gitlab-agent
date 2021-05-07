@@ -16,26 +16,19 @@ func TestUsageTracker(t *testing.T) {
 	c := u.RegisterCounter("x")
 	require.Contains(t, u.counters, "x")
 
-	ud, allZeroes := u.CloneUsageData()
-	expected := map[string]int64{
-		"x": 0,
-	}
+	ud := u.CloneUsageData()
+	expected := map[string]int64{}
 	require.Equal(t, expected, ud.Counters)
-	require.True(t, allZeroes)
 
 	c.Inc()
-	ud, allZeroes = u.CloneUsageData()
+	ud = u.CloneUsageData()
 	expected = map[string]int64{
 		"x": 1,
 	}
 	require.Equal(t, expected, ud.Counters)
-	require.False(t, allZeroes)
 
 	u.Subtract(ud)
-	ud, allZeroes = u.CloneUsageData()
-	expected = map[string]int64{
-		"x": 0,
-	}
+	ud = u.CloneUsageData()
+	expected = map[string]int64{}
 	require.Equal(t, expected, ud.Counters)
-	require.True(t, allZeroes)
 }

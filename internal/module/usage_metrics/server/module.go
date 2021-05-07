@@ -45,8 +45,8 @@ func (m *module) Run(ctx context.Context) error {
 }
 
 func (m *module) sendUsageInternal(ctx context.Context) error {
-	usageData, allZeroes := m.usageTracker.CloneUsageData()
-	if allZeroes {
+	usageData := m.usageTracker.CloneUsageData()
+	if len(usageData.Counters) == 0 {
 		// No new counts
 		return nil
 	}
