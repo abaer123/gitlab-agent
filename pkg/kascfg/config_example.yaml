@@ -34,6 +34,7 @@ agent:
       address: 0.0.0.0:8154
       # certificate_file: /server-cert.pem
       # key_file: /server-key.pem
+    #url_path_prefix:
   info_cache_ttl: "300s"
   info_cache_error_ttl: "60s"
   redis_conn_info_ttl: "300s"

@@ -800,6 +800,8 @@ func (m *KubernetesApiCF) Validate() error {
 		}
 	}
 
+	// no validation rules for UrlPathPrefix
+
 	return nil
 }
 

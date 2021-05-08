@@ -117,6 +117,14 @@ func KasUrl(kasUrl string) zap.Field {
 	return zap.String("kas_url", kasUrl)
 }
 
+func UrlPathPrefix(urlPrefix string) zap.Field {
+	return zap.String("url_path_prefix", urlPrefix)
+}
+
+func UrlPath(url string) zap.Field {
+	return zap.String("url_path", url)
+}
+
 func GrpcService(service string) zap.Field {
 	return zap.String("grpc_service", service)
 }
