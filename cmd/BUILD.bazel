@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("cmd.bzl", "push_bundle")
 
-prefix = "registry.gitlab.com/{STABLE_CONTAINER_REPOSITORY_PATH}/"
+prefix = "{STABLE_CI_REGISTRY}/{STABLE_CONTAINER_REPOSITORY_PATH}/"
 
 TAG = {
     prefix + "agentk:{STABLE_BUILD_GIT_TAG}": "//cmd/agentk:container",
