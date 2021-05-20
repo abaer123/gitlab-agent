@@ -74,7 +74,7 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			numEngines := numUniqueProjects(t, tc.configs) // nolint: scopelint
+			numEngines := numUniqueProjects(tc.configs) // nolint: scopelint
 			m, ctrl, factory := setupModule(t)
 			var wg wait.Group
 			defer wg.Wait()
@@ -111,6 +111,52 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 	}
 }
 
+func TestIgnoresInvalidConfiguration(t *testing.T) {
+	tests := []struct {
+		name   string
+		config *agentcfg.AgentConfiguration
+	}{
+		{
+			name: "duplicate project ids",
+			config: &agentcfg.AgentConfiguration{
+				Gitops: &agentcfg.GitopsCF{
+					ManifestProjects: []*agentcfg.ManifestProjectCF{
+						{
+							Id: "project1",
+						},
+						{
+							Id: "project1",
+							Paths: []*agentcfg.PathCF{
+								{
+									Glob: "*.yaml",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m, _, _ := setupModule(t)
+			var wg wait.Group
+			defer wg.Wait()
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			cfg := make(chan *agentcfg.AgentConfiguration)
+			wg.Start(func() {
+				err := m.Run(ctx, cfg)
+				assert.NoError(t, err)
+			})
+			require.NoError(t, m.DefaultAndValidateConfiguration(tc.config)) // nolint: scopelint
+			cfg <- tc.config                                                 // nolint: scopelint
+			close(cfg)
+			wg.Wait()
+		})
+	}
+}
+
 func setupModule(t *testing.T) (*module, *gomock.Controller, *MockGitopsWorkerFactory) {
 	ctrl := gomock.NewController(t)
 	workerFactory := NewMockGitopsWorkerFactory(ctrl)
@@ -121,21 +167,19 @@ func setupModule(t *testing.T) (*module, *gomock.Controller, *MockGitopsWorkerFa
 	return m, ctrl, workerFactory
 }
 
-func numUniqueProjects(t *testing.T, cfgs []*agentcfg.AgentConfiguration) int {
+func numUniqueProjects(cfgs []*agentcfg.AgentConfiguration) int {
 	num := 0
-	projects := make(map[workerKey]*agentcfg.ManifestProjectCF)
+	projects := make(map[string]*agentcfg.ManifestProjectCF)
 	for _, config := range cfgs {
 		for _, proj := range config.GetGitops().GetManifestProjects() {
-			key, err := keyForProject(proj)
-			require.NoError(t, err)
-			old, ok := projects[key]
+			old, ok := projects[proj.Id]
 			if ok {
 				if !proto.Equal(old, proj) {
-					projects[key] = proj
+					projects[proj.Id] = proj
 					num++
 				}
 			} else {
-				projects[key] = proj
+				projects[proj.Id] = proj
 				num++
 			}
 		}
@@ -156,40 +200,6 @@ func testConfigurations() []*agentcfg.AgentConfiguration {
 				ManifestProjects: []*agentcfg.ManifestProjectCF{
 					{
 						Id: project1,
-					},
-				},
-			},
-		},
-		{
-			Gitops: &agentcfg.GitopsCF{
-				ManifestProjects: []*agentcfg.ManifestProjectCF{
-					{
-						Id: project1,
-					},
-					{
-						Id: project1,
-						Paths: []*agentcfg.PathCF{
-							{
-								Glob: "*.yaml",
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			Gitops: &agentcfg.GitopsCF{
-				ManifestProjects: []*agentcfg.ManifestProjectCF{
-					{
-						Id: project1,
-					},
-					{
-						Id: project1,
-						Paths: []*agentcfg.PathCF{
-							{
-								Glob: "bla/*.yaml",
-							},
-						},
 					},
 				},
 			},
