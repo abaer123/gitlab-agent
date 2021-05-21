@@ -95,8 +95,7 @@ func serverConstructInternalServer(log *zap.Logger) *grpc.Server {
 		grpc.ChainUnaryInterceptor(
 			grpctool.UnaryServerLoggerInterceptor(log),
 		),
-		// TODO Stop using the deprecated API once https://github.com/grpc/grpc-go/issues/3694 is resolved
-		grpc.CustomCodec(grpctool.RawCodec{}), // nolint: staticcheck
+		grpc.ForceServerCodec(grpctool.RawCodec{}),
 	)
 }
 

@@ -428,8 +428,7 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 		grpc.ChainUnaryInterceptor(
 			grpctool.UnaryServerLoggerInterceptor(log),
 		),
-		// TODO Stop using the deprecated API once https://github.com/grpc/grpc-go/issues/3694 is resolved
-		grpc.CustomCodec(grpctool.RawCodec{}), // nolint: staticcheck
+		grpc.ForceServerCodec(grpctool.RawCodec{}),
 	)
 	privateApiServer := grpc.NewServer(
 		grpc.ChainStreamInterceptor(
@@ -438,8 +437,7 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 		grpc.ChainUnaryInterceptor(
 			grpctool.UnaryServerLoggerInterceptor(log),
 		),
-		// TODO Stop using the deprecated API once https://github.com/grpc/grpc-go/issues/3694 is resolved
-		grpc.CustomCodec(grpctool.RawCodecWithProtoFallback{}), // nolint: staticcheck
+		grpc.ForceServerCodec(grpctool.RawCodecWithProtoFallback{}),
 	)
 	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
 	require.NoError(t, err)
