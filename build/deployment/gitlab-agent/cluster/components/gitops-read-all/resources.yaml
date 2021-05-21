@@ -1,4 +1,4 @@
-# This is not great but we cannot do better at the moment. See https://github.com/argoproj/gitops-engine/issues/98
+# You are encouraged to create more restricted role, tailored to your GitOps needs.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:

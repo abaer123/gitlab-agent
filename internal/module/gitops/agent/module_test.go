@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/protobuf/proto"
@@ -35,7 +36,7 @@ func TestStartsWorkersAccordingToConfiguration(t *testing.T) {
 			worker := NewMockGitopsWorker(ctrl)
 			for i := 0; i < expectedNumberOfWorkers; i++ {
 				factory.EXPECT().
-					New(matcher.ProtoEq(t, projects[i])).
+					New(testhelpers.AgentId, matcher.ProtoEq(t, projects[i])).
 					Return(worker)
 			}
 			worker.EXPECT().
@@ -74,7 +75,7 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			numEngines := numUniqueProjects(tc.configs) // nolint: scopelint
+			numProjects := numUniqueProjects(tc.configs) // nolint: scopelint
 			m, ctrl, factory := setupModule(t)
 			var wg wait.Group
 			defer wg.Wait()
@@ -86,16 +87,16 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 				Run(gomock.Any()).
 				Do(func(ctx context.Context) {
 					currentValue := atomic.AddInt64(&runCalled, 1)
-					if currentValue == int64(numEngines) {
+					if currentValue == int64(numProjects) {
 						cancel()
 					}
 					<-ctx.Done()
 				}).
-				Times(numEngines)
+				Times(numProjects)
 			factory.EXPECT().
-				New(gomock.Any()).
+				New(testhelpers.AgentId, gomock.Any()).
 				Return(worker).
-				Times(numEngines)
+				Times(numProjects)
 			cfg := make(chan *agentcfg.AgentConfiguration)
 			wg.Start(func() {
 				err := m.Run(ctx, cfg)
@@ -194,7 +195,9 @@ func testConfigurations() []*agentcfg.AgentConfiguration {
 		project3 = "bla3/project3"
 	)
 	return []*agentcfg.AgentConfiguration{
-		{},
+		{
+			AgentId: testhelpers.AgentId,
+		},
 		{
 			Gitops: &agentcfg.GitopsCF{
 				ManifestProjects: []*agentcfg.ManifestProjectCF{
@@ -203,20 +206,21 @@ func testConfigurations() []*agentcfg.AgentConfiguration {
 					},
 				},
 			},
+			AgentId: testhelpers.AgentId,
 		},
 		{
 			Gitops: &agentcfg.GitopsCF{
 				ManifestProjects: []*agentcfg.ManifestProjectCF{
 					{
-						Id:                 project1,
-						ResourceInclusions: defaultResourceExclusions, // update config
-						ResourceExclusions: defaultResourceExclusions, // update config
+						Id:               project1,
+						DefaultNamespace: "abc", // update config
 					},
 					{
 						Id: project2,
 					},
 				},
 			},
+			AgentId: testhelpers.AgentId,
 		},
 		{
 			Gitops: &agentcfg.GitopsCF{
@@ -225,12 +229,12 @@ func testConfigurations() []*agentcfg.AgentConfiguration {
 						Id: project3,
 					},
 					{
-						Id:                 project2,
-						ResourceInclusions: defaultResourceExclusions, // update config
-						ResourceExclusions: defaultResourceExclusions, // update config
+						Id:               project2,
+						DefaultNamespace: "abc", // update config
 					},
 				},
 			},
+			AgentId: testhelpers.AgentId,
 		},
 	}
 }

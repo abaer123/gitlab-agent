@@ -11,7 +11,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"k8s.io/cli-runtime/pkg/resource"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 // Feature describes a particular feature that can be enabled or disabled by a module.
@@ -43,7 +43,7 @@ type Config struct {
 	AgentMeta *modshared.AgentMeta
 	Api       API
 	// K8sClientGetter provides means to interact with the Kubernetes cluster agentk is running in.
-	K8sClientGetter resource.RESTClientGetter
+	K8sClientGetter genericclioptions.RESTClientGetter
 	// KasConn is the gRPC connection to gitlab-kas.
 	KasConn grpc.ClientConnInterface
 	// Server is a gRPC server that can be used to expose API endpoints to gitlab-kas and/or GitLab.

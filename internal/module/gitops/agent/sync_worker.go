@@ -1,32 +1,37 @@
 package agent
 
 import (
+	"bytes"
 	"context"
+	"os"
 
-	"github.com/argoproj/gitops-engine/pkg/cache"
-	"github.com/argoproj/gitops-engine/pkg/engine"
-	"github.com/argoproj/gitops-engine/pkg/sync"
-	"github.com/go-logr/zapr"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"sigs.k8s.io/cli-utils/cmd/printers"
+	"sigs.k8s.io/cli-utils/pkg/apply"
+	"sigs.k8s.io/cli-utils/pkg/common"
+	"sigs.k8s.io/cli-utils/pkg/inventory"
 )
 
 type syncJob struct {
 	ctx      context.Context
 	commitId string
+	invInfo  inventory.InventoryInfo
 	objects  []*unstructured.Unstructured
+	opts     apply.Options
 }
 
 type syncWorker struct {
-	synchronizerConfig
-	engine engine.GitOpsEngine
+	log     *zap.Logger
+	applier Applier
 }
 
-func newSyncWorker(config synchronizerConfig, engine engine.GitOpsEngine) *syncWorker {
+func newSyncWorker(log *zap.Logger, applier Applier) *syncWorker {
 	return &syncWorker{
-		synchronizerConfig: config,
-		engine:             engine,
+		log:     log,
+		applier: applier,
 	}
 }
 
@@ -44,23 +49,13 @@ func (s *syncWorker) run(jobs <-chan syncJob) {
 }
 
 func (s *syncWorker) synchronize(job syncJob) error {
-	result, err := s.engine.Sync(
-		job.ctx,
-		job.objects,
-		s.isManaged,
-		job.commitId,
-		s.project.DefaultNamespace,
-		sync.WithLogr(zapr.NewLogger(s.log)),
-	)
-	if err != nil {
-		return err // don't wrap
-	}
-	for _, res := range result {
-		s.log.Info("Synced", engineResourceKey(res.ResourceKey), engineSyncResult(res.Message))
-	}
-	return nil
-}
-
-func (s *syncWorker) isManaged(r *cache.Resource) bool {
-	return r.Info.(*resourceInfo).gcMark == "managed" // TODO
+	events := s.applier.Run(job.ctx, job.invInfo, job.objects, job.opts)
+	//The printer will print updates from the channel. It will block
+	//until the channel is closed.
+	printer := printers.GetPrinter(printers.JSONPrinter, genericclioptions.IOStreams{
+		In:     &bytes.Buffer{}, // nothing to read
+		Out:    os.Stderr,
+		ErrOut: os.Stderr,
+	})
+	return printer.Print(events, common.DryRunNone)
 }
