@@ -571,8 +571,7 @@ func (a *ConfiguredApp) constructPrivateApiServer(interceptorsCtx context.Contex
 			PermitWithoutStream: true,
 		}),
 		grpc.KeepaliveParams(keepaliveParams(listenCfg.MaxConnectionAge.AsDuration())),
-		// TODO Stop using the deprecated API once https://github.com/grpc/grpc-go/issues/3694 is resolved
-		grpc.CustomCodec(grpctool.RawCodecWithProtoFallback{}), // nolint: staticcheck
+		grpc.ForceServerCodec(grpctool.RawCodecWithProtoFallback{}),
 	}
 
 	certFile := listenCfg.CertificateFile
@@ -607,8 +606,7 @@ func (a *ConfiguredApp) constructInternalServer(interceptorsCtx context.Context,
 			grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 			grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
 		),
-		// TODO Stop using the deprecated API once https://github.com/grpc/grpc-go/issues/3694 is resolved
-		grpc.CustomCodec(grpctool.RawCodec{}), // nolint: staticcheck
+		grpc.ForceServerCodec(grpctool.RawCodec{}),
 	)
 }
 
