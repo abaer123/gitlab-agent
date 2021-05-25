@@ -1,20 +1,19 @@
-# `kas` request routing
+# Routing `kas` requests in the Kubernetes Agent
 
 This document describes how `kas` routes requests to concrete `agentk` instances.
+GitLab must talk to GitLab Kubernetes Agent Server (`kas`) to:
 
-## Problem statement
+- Get information about connected agents. [Read more](https://gitlab.com/gitlab-org/gitlab/-/issues/249560).
+- Interact with agents. [Read more](https://gitlab.com/gitlab-org/gitlab/-/issues/230571).
+- Interact with Kubernetes clusters. [Read more](https://gitlab.com/gitlab-org/gitlab/-/issues/240918).
 
-For an architecture overview please see [architecture.md](architecture.md).
+Each agent connects to an instance of `kas` and keeps an open connection. When
+GitLab must talk to a particular agent, a `kas` instance connected to this agent must
+be found, and the request routed to it.
 
-GitLab needs to be able to talk to GitLab Kubernetes Agent Server (`kas`) to:
+## System design
 
-- get information about connected agents. E.g.: https://gitlab.com/gitlab-org/gitlab/-/issues/249560
-- interact with agents. E.g.: https://gitlab.com/gitlab-org/gitlab/-/issues/230571
-- interact with Kubernetes clusters. E.g.: https://gitlab.com/gitlab-org/gitlab/-/issues/240918
-
-Each agent connects to an instance of `kas` and keeps an open connection. When GitLab needs to talk to a particular agent, a `kas` instance, that this agent is connected to, needs to be found and the request needs to be routed to it.
-
-## Proposed system design
+For an architecture overview please see [architecture.md](../doc/architecture.md).
 
 ```mermaid
 flowchart LR
@@ -51,150 +50,209 @@ flowchart LR
   agentk3p1 -- "gRPC" --> kas2
 ```
 
-For the above architecture, here is how GitLab would make a request to `agentk1p1`, say, to get the list of Pods.
+For this architecture, this diagram shows a request to `agentk 3, Pod1` for the list of pods:
 
 ```mermaid
 sequenceDiagram
-  GitLab->>+kas1: Get list of running Pods from agentk with agent_id=3
-  Note right of kas1: kas1 checks if it has an agent connected with agent_id=3. It does not. Queries Redis
-  kas1->>+Redis: Get list of connected agents with agent_id=3
-  Redis-->-kas1: List of connected agents with agent_id=3
-  Note right of kas1: kas1 picks a specific agentk instance it wants to address and talks to the corresponding kas instance, specifying which agentk instance to route the request to.
-  kas1->>+kas2: Get the list of running Pods from agentk 3, Pod1
-  kas2->>+agentk3p1: Get list of Pods
-  agentk3p1->>-kas2: Get list of Pods
-  kas2-->>-kas1: List of running Pods from agentk 3, Pod1
-  kas1-->>-GitLab: List of running Pods from agentk with agent_id=3
+  GitLab->>+kas1: Get list of running<br />Pods from agentk<br />with agent_id=3
+  Note right of kas1: kas1 checks for<br />agent connected with agent_id=3.<br />It does not.<br />Queries Redis
+  kas1->>+Redis: Get list of connected agents<br />with agent_id=3
+  Redis-->-kas1: List of connected agents<br />with agent_id=3
+  Note right of kas1: kas1 picks a specific agentk instance<br />to address and talks to<br />the corresponding kas instance,<br />specifying which agentk instance<br />to route the request to.
+  kas1->>+kas2: Get the list of running Pods<br />from agentk 3, Pod1
+  kas2->>+agentk 3 Pod1: Get list of Pods
+  agentk 3 Pod1->>-kas2: Get list of Pods
+  kas2-->>-kas1: List of running Pods<br />from agentk 3, Pod1
+  kas1-->>-GitLab: List of running Pods<br />from agentk with agent_id=3
 ```
 
-Each `kas` instance keeps track of agents connected to it in Redis. For each agent it stores a serialized protobuf object with information about the agent. When an agent disconnects, `kas` removes all corresponding information from Redis. For both events `kas` publishes a notification to a [pub-sub channel](https://redis.io/topics/pubsub) in Redis.
+Each `kas` instance tracks the agents connected to it in Redis. For each agent, it
+stores a serialized protobuf object with information about the agent. When an agent
+disconnects, `kas` removes all corresponding information from Redis. For both events,
+`kas` publishes a notification to a Redis [pub-sub channel](https://redis.io/topics/pubsub).
 
-Each agent, while logically a single entity, can have multiple replicas (multiple `Pod`s) in a cluster. `kas` needs to accommodate for that and record per-replica (essentially per-connection) information. Each connection is given a unique identified that is used together with agent id to identify a particular `agentk` instance.
+Each agent, while logically a single entity, can have multiple replicas (multiple pods)
+in a cluster. `kas` accommodates that and records per-replica (generally per-connection)
+information. Each open `GetConfiguration()` streaming request is given
+a unique identifier which, combined with agent ID, identifies an `agentk` instance.
 
-gRPC can keep more than one tcp connection open for a single target host. When we say "connection" above, we mean an open `GetConfiguration()` streaming request, not a tcp connection. `agentk` only ever has at most one `GetConfiguration()` streaming request running and that is what `kas` cares about, it does not "see" idle tcp connections as that is handled by the gRPC framework.
+gRPC can keep multiple TCP connections open for a single target host. `agentk` only
+runs one `GetConfiguration()` streaming request. `kas` uses that connection, and
+doesn't see idle TCP connections because they are handled by the gRPC framework.
 
-Each `kas` instance puts information about itself into Redis so that other `kas` instances can discover and access it.
+Each `kas` instance provides information to Redis, so other `kas` instances can discover and access it.
 
-Each bit of information stored in Redis has an [expiration time](https://redis.io/commands/expire) set, so it expires eventually if the `kas` instance that is responsible for it crashes, etc. To prevent information from expiring too soon, `kas` periodically writes the same information into Redis, updating the expiration time. `kas` cleans up all the information it has put into Redis before it terminates.
+Information is stored in Redis with an [expiration time](https://redis.io/commands/expire),
+to expire information for `kas` instances that become unavailable. To prevent
+information from expiring too quickly, `kas` periodically updates the expiration time
+for valid entries. Before terminating, `kas` cleans up the information it adds into Redis.
 
-When `kas` needs to atomically update multiple data structures in Redis, it uses [transactions](https://redis.io/topics/transactions) to ensure data consistency. Grouped data items must have the same expiration time.
+When `kas` must atomically update multiple data structures in Redis, it uses
+[transactions](https://redis.io/topics/transactions) to ensure data consistency.
+Grouped data items must have the same expiration time.
 
-In addition to the existing `agentk` -> `kas` gRPC endpoint, `kas` exposes two new separate gRPC endpoints for GitLab and for `kas` -> `kas` requests. Each endpoint is a separate network listener. This makes it easier to control network access to endpoints and in general allows to have separate configuration for each endpoint.
+In addition to the existing `agentk -> kas` gRPC endpoint, `kas` exposes two new,
+separate gRPC endpoints for GitLab and for `kas -> kas` requests. Each endpoint
+is a separate network listener, making it easier to control network access to endpoints
+and allowing separate configuration for each endpoint.
 
-### GitLab -> `kas` endpoint (external endpoint)
+Databases, like PostgreSQL, aren't used because the data is transient, with no need
+to reliably persist it.
 
-GitLab authenticates with `kas` using JWT. It uses the same shared secret as for the `kas` -> GitLab communication. JWT issuer should be `gitlab` and audience should be `gitlab-kas`.
+### `GitLab : kas` external endpoint
 
-When accessed via this endpoint `kas` plays the role of request router.
+GitLab authenticates with `kas` using JWT and the same shared secret used by the
+`kas -> GitLab` communication. The JWT issuer should be `gitlab` and the audience
+should be `gitlab-kas`.
 
-If a request from GitLab comes but there is no agent connected that can handle it, `kas` blocks and waits for a suitable agent to connect to it or to another `kas` instance. It stops waiting when the client disconnects or when some long timeout happens (i.e. client decides how much time it wants to wait). `kas` is notified of new agent connections via a pub-sub channel to avoid frequent polling. When a suitable agent connects, `kas` routes request to it.
+When accessed through this endpoint, `kas` plays the role of request router.
 
-### `kas` -> `kas` endpoint (internal endpoint)
+If a request from GitLab comes but no connected agent can handle it, `kas` blocks
+and waits for a suitable agent to connect to it or to another `kas` instance. It
+stops waiting when the client disconnects, or when some long timeout happens, such
+as client timeout. `kas` is notified of new agent connections through a
+[pub-sub channel](https://redis.io/topics/pubsub) to avoid frequent polling.
+When a suitable agent connects, `kas` routes the request to it.
 
-This endpoint is an implementation detail, an internal API, and should not be used by any other system. It's protected by JWT using a secret, shared among all `kas` instances. No other system must have access to this secret.
+### `kas : kas` private endpoint
 
-When accessed via this endpoint, `kas` gets the information about the `agentk` it is supposed to send the request to from the request itself. It does not do any discovery, it only does what it's told to do. This prevents any request cycles. Retrying and re-routing requests and all other routing decisions is the responsibility of the `kas` that got the request on the external endpoint, not the `kas` that got it on the internal one. That way there is a single central component (per request) that has the power to decide on how exactly a particular request is routed i.e. this decision is not "distributed" across several `kas` instances.
+This endpoint is an implementation detail, a private API, and should not be used
+by any other system. It's protected by JWT using a secret, shared among all `kas`
+instances. No other system must have access to this secret.
+
+When accessed through this endpoint, `kas` uses the request itself to determine
+which `agentk` to send the request to. It prevents request cycles by only following
+the instructions in the request, rather than doing discovery. It's the responsibility
+of the `kas` receiving the request from the _external_ endpoint to retry and re-route
+requests. This method ensures a single central component for each request can determine
+how a request is routed, rather than distributing the decision across several `kas` instances.
+
+### `kas` to `kas` to `agentk` routing
+
+This section explains how the `kas`-> `kas` -> `agentk` gRPC request routing is implemented.
+
+For a video overview of how some of the blocks map to code, see
+[GitLab Kubernetes Agent reverse gRPC tunnel architecture and code overview
+](https://www.youtube.com/watch?v=9pnQF76hyZc).
+
+#### High level schema
+
+Server side in this example:
+
+1. `Server module A` exposes its API to get the `Pod` list on the `Public API gRPC server`.
+1. When the public gRPC server receives the request, it determines the agent ID.
+1. The public gRPC server calls the proxying code and forwards the request to a suitable `kas` instance.
+1. The `kas` instance that has a suitable `agentk` proxies the request to that agent.
+
+Agent side:
+
+1. The `Agent module A` exposes the same API on the `Internal gRPC server` on the agent side.
+1. When the internal gRPC server receives the request, it handles it (retrieves and returns the `Pod` list).
+
+This schema describes how reverse tunneling is handled fully transparently
+for both server and agent modules, so new features can be added easily:
+
+```mermaid
+graph TB
+    subgraph Routing kas
+        server-api-grpc-server{{Public API gRPC server}}
+        server-module-a[/Server module A/]
+    end
+    subgraph Gateway kas
+        server-private-grpc-server{{Private gRPC server}}
+        server-module-a[/Server module A/]
+    end
+    subgraph agentk
+        agent-internal-grpc-server{{Internal gRPC server}}
+        agent-module-a[/Agent module A/]
+    end
+
+    agent-internal-grpc-server -- request --> agent-module-a
+
+    server-module-a-. expose API on .-> server-api-grpc-server
+
+    server-api-grpc-server -- proxy request --> server-private-grpc-server
+    server-private-grpc-server -- proxy request --> agent-internal-grpc-server
+    client -- request --> server-api-grpc-server
+```
+
+#### Implementation schema
+
+##### `kas` startup
+
+1. `Server module A` sets up routing on the `Internal gRPC server` and on the `Private gRPC server`
+   using `modserver.Config.RegisterAgentApi()`.
+1. `Server module A` sets up request handler on the `Public API gRPC server`.
+1. For each incoming tunnel connection `kas` calls `HandleTunnel()`. The method registers the tunnel and blocks,
+   waiting for a request to proxy through the tunnel.
+
+##### `agentk` startup
+
+1. `Agent module A` sets up request handler on the `Internal gRPC server`.
+1. Establish tunnels to `kas`.
+
+##### Request handling
+
+1. Request handler on the `Public API gRPC server`:
+
+  1. Receives the request and determines the agent ID from it.
+  1. Performs authentication and authorization as necessary.
+  1. Makes a request to the `Internal gRPC server` and handles the response as if talking to an `agentk`.
+
+1. Request handler on the `Internal gRPC server`:
+
+  1. Receives the request from the `Public API gRPC server`.
+  1. Gets agent ID from the request's metadata.
+  1. Calls `GetTunnelsByAgentId()` to perform a Redis lookup to find a `kas` instance that has a connection from a suitable `agentk`.
+  1. Once a found, the request is forwarded to that `kas` instance's `Private gRPC server`.
+
+1. Request handler on the `Private gRPC server`:
+
+  1. Blocks on `FindTunnel()` method of the `Connection registry`, waiting for a matching tunnel to proxy the
+     connection through.
+  1. `ForwardStream()` is called on the matching tunnel with the server-side interface of the incoming
+     connection to proxy it through the tunnel.
+
+```mermaid
+graph TB
+    subgraph Routing kas
+        server-api-grpc-server{{Public API gRPC server}}
+        server-internal-grpc-server{{Internal gRPC server}}
+        routing-server-module-a[/Server module A/]
+    end
+    subgraph Gateway kas
+        server-tunnel-module[/Server tunnel module/]
+        connection-registry[Connection registry]
+        server-private-grpc-server{{Private gRPC server}}
+        gateway-server-module-a[/Server module A/]
+    end
+    subgraph agentk
+        agent-internal-grpc-server{{Internal gRPC server}}
+        agent-tunnel-module[/Agent tunnel module/]
+        agent-module-a[/Agent module A/]
+    end
+
+    routing-server-module-a-. expose API on .-> server-api-grpc-server
+    routing-server-module-a-. setup routing on .-> server-internal-grpc-server
+    server-api-grpc-server -- make agent request --> server-internal-grpc-server
+    server-internal-grpc-server -- route request using Redis lookup --> server-private-grpc-server
+
+    gateway-server-module-a-. setup routing on .-> server-private-grpc-server
+    server-tunnel-module -- "HandleTunnel()" --> connection-registry
+    server-private-grpc-server -- "ForwardStream()" --> connection-registry
+
+    agent-tunnel-module -- "establish tunnel, receive request" --> server-tunnel-module
+    agent-tunnel-module -- make request --> agent-internal-grpc-server
+
+    agent-module-a-. expose API on  .-> agent-internal-grpc-server
+    agent-internal-grpc-server -- request --> agent-module-a
+
+    client -- request --> server-api-grpc-server
+```
 
 ### API definitions
 
-```proto
-syntax = "proto3";
-
-import "google/protobuf/timestamp.proto";
-
-message KasAddress {
-    string ip = 1;
-    uint32 port = 2;
-}
-
-message ConnectedAgentInfo {
-    // Agent id.
-    int64 id = 1;
-    // Identifies a particular agentk->kas connection. Randomly generated when agent connects.
-    int64 connection_id = 2;
-    string version = 3;
-    string commit = 4;
-    // Pod namespace.
-    string pod_namespace = 5;
-    // Pod name.
-    string pod_name = 6;
-    // When the connection was established.
-    google.protobuf.Timestamp connected_at = 7;
-    KasAddress kas_address = 8;
-    // What else do we need?
-}
-
-message KasInstanceInfo {
-    string version = 1;
-    string commit = 2;
-    KasAddress address = 3;
-    // What else do we need?
-}
-
-message ConnectedAgentsForProjectRequest {
-    int64 project_id = 1;
-}
-
-message ConnectedAgentsForProjectResponse {
-    // There may 0 or more agents with the same id, depending on the number of running Pods.
-    repeated ConnectedAgentInfo agents = 1;
-}
-
-message ConnectedAgentsByIdRequest {
-    int64 agent_id = 1;
-}
-
-message ConnectedAgentsByIdResponse {
-    repeated ConnectedAgentInfo agents = 1;
-}
-
-// API for use by GitLab.
-service KasApi {
-    // Connected agents for a particular configuration project.
-    rpc ConnectedAgentsForProject (ConnectedAgentsForProjectRequest) returns (ConnectedAgentsForProjectResponse) {
-    }
-    // Connected agents for a particular agent id.
-    rpc ConnectedAgentsById (ConnectedAgentsByIdRequest) returns (ConnectedAgentsByIdResponse) {
-    }
-}
-
-message Pod {
-    string namespace = 1;
-    string name = 2;
-}
-
-message GetPodsRequest {
-    int64 agent_id = 1;
-    int64 connection_id = 2;
-}
-
-message GetPodsResponse {
-    repeated Pod pods = 1;
-}
-
-// Internal API for use by kas for kas -> kas calls.
-service KasInternal {
-    // Depends on the need, but here is the call from the example above.
-    rpc GetPods (GetPodsRequest) returns (GetPodsResponse) {
-    }
-}
-```
-
-### FAQ
-
-- **Q**: Why not use a database like PostgreSQL?
-
-  **A**: Because all the data is transient and there is no need to reliably persist it.
-
-## Alternatives considered
-
-### Use Redis to pass data between `kas` instances
-
-Might be ok for request-response rpcs but not clear how to do streaming, which we need for large requests/responses and for streaming requests/responses (e.g. exposing raw HTTP Kubernetes API, HTTP Prometheus API, [exposing user services](https://gitlab.com/gitlab-org/gitlab/-/issues/240918)).
-
-Questions:
-
-- Stream control
-    - How to implement backpressure.
-    - How to propagate errors back to sender. tcp has RST, with Redis we only have timeouts to break connections. Emulate RST by setting a key or via pub/sub?
-    - The above feels like implementing the mechanisms and semantics tcp provides on top of Redis.
+- [`agent_tracker/agent_tracker.proto`](../internal/module/agent_tracker/agent_tracker.proto)
+- [`agent_tracker/rpc/rpc.proto`](../internal/module/agent_tracker/rpc/rpc.proto)
+- [`reverse_tunnel/rpc/rpc.proto`](../internal/module/reverse_tunnel/rpc/rpc.proto)
+- [`cmd/kas/kasapp/kasapp.proto`](../cmd/kas/kasapp/kasapp.proto)
