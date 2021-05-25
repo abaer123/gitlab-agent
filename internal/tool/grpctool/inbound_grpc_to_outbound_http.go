@@ -30,27 +30,30 @@ type InboundGrpcToOutboundHttpStream interface {
 	grpc.ServerStream
 }
 
-type HandleProcessingError func(ctx context.Context, log *zap.Logger, msg string, err error)
-type HandleSendError func(log *zap.Logger, msg string, err error) error
+// API is a reduced version on modshared.API.
+// It's here to avoid the dependency.
+type API interface {
+	HandleProcessingError(ctx context.Context, log *zap.Logger, msg string, err error)
+	HandleSendError(log *zap.Logger, msg string, err error) error
+}
+
 type HttpDo func(ctx context.Context, header *HttpRequest_Header, body io.Reader) (*http.Response, error)
 
 type InboundGrpcToOutboundHttp struct {
-	streamVisitor         *StreamVisitor
-	handleProcessingError HandleProcessingError
-	handleSendError       HandleSendError
-	httpDo                HttpDo
+	streamVisitor *StreamVisitor
+	api           API
+	httpDo        HttpDo
 }
 
-func NewInboundGrpcToOutboundHttp(handleProcessingError HandleProcessingError, handleSendError HandleSendError, httpDo HttpDo) *InboundGrpcToOutboundHttp {
+func NewInboundGrpcToOutboundHttp(api API, httpDo HttpDo) *InboundGrpcToOutboundHttp {
 	sv, err := NewStreamVisitor(&HttpRequest{})
 	if err != nil {
 		panic(err) // this will never panic as long as the proto file is correct
 	}
 	return &InboundGrpcToOutboundHttp{
-		streamVisitor:         sv,
-		handleProcessingError: handleProcessingError,
-		handleSendError:       handleSendError,
-		httpDo:                httpDo,
+		streamVisitor: sv,
+		api:           api,
+		httpDo:        httpDo,
 	}
 }
 
@@ -93,7 +96,7 @@ func (x *InboundGrpcToOutboundHttp) Pipe(server InboundGrpcToOutboundHttpStream)
 	case IsStatusError(err):
 		// A gRPC status already
 	default:
-		x.handleProcessingError(ctx, log, "gRPC -> HTTP", err)
+		x.api.HandleProcessingError(ctx, log, "gRPC -> HTTP", err)
 		err = status.Error(codes.Unavailable, "unavailable")
 	}
 	return err
@@ -136,7 +139,7 @@ func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(log *zap.Logger, server grp
 			},
 		})
 		if err != nil {
-			return x.handleSendError(log, "Failed to send HTTP header", err)
+			return x.api.HandleSendError(log, "Failed to send HTTP header", err)
 		}
 
 		buffer := make([]byte, maxDataChunkSize)
@@ -155,7 +158,7 @@ func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(log *zap.Logger, server grp
 					},
 				})
 				if sendErr != nil {
-					return x.handleSendError(log, "Failed to send HTTP data", sendErr)
+					return x.api.HandleSendError(log, "Failed to send HTTP data", sendErr)
 				}
 			}
 		}
@@ -171,7 +174,7 @@ func (x *InboundGrpcToOutboundHttp) pipeHttpIntoGrpc(log *zap.Logger, server grp
 		},
 	})
 	if err != nil {
-		return x.handleSendError(log, "Failed to send HTTP trailer", err)
+		return x.api.HandleSendError(log, "Failed to send HTTP trailer", err)
 	}
 	return nil
 }
