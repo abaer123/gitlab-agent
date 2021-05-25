@@ -86,6 +86,7 @@ func (w *worker) Run(ctx context.Context) {
 		return
 	}
 
+	since := timestamppb.Now()
 	_ = retry.PollWithBackoff(ctx, w.backoff(), true, w.getFlowsPollInterval, func() (error, retry.AttemptResult) {
 		ctx, cancel := context.WithCancel(ctx) // nolint:govet
 		defer cancel()
@@ -104,7 +105,7 @@ func (w *worker) Run(ctx context.Context) {
 					},
 				},
 			},
-			Since: timestamppb.Now(),
+			Since: since,
 		})
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
@@ -123,12 +124,14 @@ func (w *worker) Run(ctx context.Context) {
 				}
 				return nil, retry.Backoff
 			}
+			// Remember when we got an event last time to resume from this timestamp
+			since = timestamppb.Now()
 			switch value := resp.ResponseTypes.(type) {
 			case *observer.GetFlowsResponse_Flow:
 				err = w.processFlow(ctx, value.Flow, ciliumEndpointInformer)
 				if err != nil {
 					w.log.Error("Flow processing failed", zap.Error(err))
-					return nil, retry.Backoff
+					// continue consuming response messages
 				}
 			}
 		}
