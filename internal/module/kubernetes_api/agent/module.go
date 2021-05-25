@@ -37,8 +37,7 @@ func newModule(api modagent.API, userAgent string, client httpClient, baseUrl *u
 	return &module{
 		api: api,
 		pipe: grpctool.NewInboundGrpcToOutboundHttp(
-			api.HandleProcessingError,
-			api.HandleSendError,
+			api,
 			func(ctx context.Context, h *grpctool.HttpRequest_Header, body io.Reader) (*http.Response, error) {
 				u := *baseUrl
 				u.Path = h.Request.UrlPath

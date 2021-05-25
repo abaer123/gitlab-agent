@@ -26,8 +26,7 @@ type module struct {
 func newModule(serverApi modserver.API, gitLabClient gitlab.ClientInterface) *module {
 	return &module{
 		pipe: grpctool.NewInboundGrpcToOutboundHttp(
-			serverApi.HandleProcessingError,
-			serverApi.HandleSendError,
+			serverApi,
 			func(ctx context.Context, header *grpctool.HttpRequest_Header, body io.Reader) (*http.Response, error) {
 				var extra rpc.HeaderExtra
 				err := header.Extra.UnmarshalTo(&extra)

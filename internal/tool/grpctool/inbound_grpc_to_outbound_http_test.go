@@ -18,7 +18,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
-	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -37,6 +36,7 @@ func TestInboundGrpcToOutboundHttpStream_HappyPath(t *testing.T) {
 		Context().
 		Return(ctx).
 		MinTimes(1)
+	mockApi := mock_modserver.NewMockAPI(ctrl)
 	sendHeader := &grpctool.HttpRequest_Header{
 		Request: &prototool.HttpRequest{
 			Method: "BOOM",
@@ -112,7 +112,7 @@ func TestInboundGrpcToOutboundHttpStream_HappyPath(t *testing.T) {
 			},
 		},
 	)...)
-	p := grpctool.NewInboundGrpcToOutboundHttp(failOnProcessingError(t), failOnSendError(t), func(ctx context.Context, header *grpctool.HttpRequest_Header, body io.Reader) (*http.Response, error) {
+	p := grpctool.NewInboundGrpcToOutboundHttp(mockApi, func(ctx context.Context, header *grpctool.HttpRequest_Header, body io.Reader) (*http.Response, error) {
 		assert.Empty(t, cmp.Diff(header, sendHeader, protocmp.Transform()))
 		data, err := ioutil.ReadAll(body)
 		if !assert.NoError(t, err) {
@@ -130,19 +130,6 @@ func TestInboundGrpcToOutboundHttpStream_HappyPath(t *testing.T) {
 	})
 	err := p.Pipe(server)
 	require.NoError(t, err)
-}
-
-func failOnSendError(t *testing.T) func(log *zap.Logger, msg string, err error) error {
-	return func(log *zap.Logger, msg string, err error) error {
-		t.Fail()
-		return nil
-	}
-}
-
-func failOnProcessingError(t *testing.T) func(ctx context.Context, log *zap.Logger, msg string, err error) {
-	return func(ctx context.Context, log *zap.Logger, msg string, err error) {
-		t.Fail()
-	}
 }
 
 func mockRecvStream(server *mock_rpc.MockInboundGrpcToOutboundHttpStream, eof bool, msgs ...proto.Message) []*gomock.Call {
