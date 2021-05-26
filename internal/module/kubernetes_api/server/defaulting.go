@@ -1,6 +1,8 @@
 package server
 
 import (
+	"strings"
+
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
 )
@@ -18,4 +20,7 @@ func ApplyDefaults(config *kascfg.ConfigurationFile) {
 	}
 	prototool.NotNil(&o.Listen)
 	prototool.String(&o.Listen.Address, defaultKubernetesApiListenAddress)
+	if !strings.HasSuffix(o.UrlPathPrefix, "/") {
+		o.UrlPathPrefix = o.UrlPathPrefix + "/"
+	}
 }
