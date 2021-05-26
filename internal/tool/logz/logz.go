@@ -17,11 +17,7 @@ import (
 // - because they are not generally useful.
 // Field names are here to make it possible to see all field names that are in use.
 const (
-	AgentConfig = "agent_config"
-	// EngineResourceKey is GitOps Engine's kube.ResourceKey.
-	EngineResourceKey = "resource_key"
-	// EngineSyncResult is GitOps Engine's synchronization result message.
-	EngineSyncResult   = "sync_result"
+	AgentConfig        = "agent_config"
 	AgentFeatureName   = "feature_name"
 	AgentFeatureStatus = "feature_status"
 )

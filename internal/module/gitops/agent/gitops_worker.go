@@ -3,61 +3,50 @@ package agent
 import (
 	"context"
 
-	"github.com/argoproj/gitops-engine/pkg/cache"
-	"github.com/argoproj/gitops-engine/pkg/engine"
 	"github.com/ash2k/stager"
-	"github.com/go-logr/zapr"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
-	"k8s.io/cli-runtime/pkg/resource"
-	"k8s.io/client-go/rest"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/kubectl/pkg/cmd/util"
+	"sigs.k8s.io/cli-utils/pkg/apply"
+	"sigs.k8s.io/cli-utils/pkg/apply/event"
+	"sigs.k8s.io/cli-utils/pkg/inventory"
+	"sigs.k8s.io/cli-utils/pkg/provider"
 )
 
-type GitopsEngineFactory interface {
-	New(engineOpts []engine.Option, cacheOpts []cache.UpdateSettingsFunc) engine.GitOpsEngine
+type Applier interface {
+	Initialize() error
+	Run(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event
+}
+
+type ApplierFactory interface {
+	New() Applier
 }
 
 type GitopsWorkerFactory interface {
-	New(project *agentcfg.ManifestProjectCF) GitopsWorker
+	New(int64, *agentcfg.ManifestProjectCF) GitopsWorker
 }
 
 type GitopsWorker interface {
-	Run(ctx context.Context)
+	Run(context.Context)
 }
 
-type gitopsWorker struct {
-	objWatcher           rpc.ObjectsToSynchronizeWatcherInterface
-	engineFactory        GitopsEngineFactory
-	engineBackoffFactory retry.BackoffManagerFactory
+type defaultGitopsWorker struct {
+	objWatcher     rpc.ObjectsToSynchronizeWatcherInterface
+	applierFactory ApplierFactory
+	applierBackoff retry.BackoffManagerFactory
 	synchronizerConfig
 }
 
-func (d *gitopsWorker) Run(ctx context.Context) {
-	l := zapr.NewLogger(d.log)
-	eng := d.engineFactory.New(
-		[]engine.Option{
-			engine.WithLogr(l),
-		},
-		[]cache.UpdateSettingsFunc{
-			cache.SetPopulateResourceInfoHandler(populateResourceInfoHandler),
-			cache.SetSettings(cache.Settings{
-				ResourcesFilter: resourcesFilter{
-					resourceInclusions: d.project.ResourceInclusions,
-					resourceExclusions: d.project.ResourceExclusions,
-				},
-			}),
-			cache.SetLogr(l),
-		},
-	)
-	var stopEngine engine.StopFunc
-	err := retry.PollWithBackoff(ctx, d.engineBackoffFactory(), true, 0, func() (error, retry.AttemptResult) {
-		var err error
-		stopEngine, err = eng.Run()
+func (w *defaultGitopsWorker) Run(ctx context.Context) {
+	applier := w.applierFactory.New()
+	err := retry.PollWithBackoff(ctx, w.applierBackoff(), true, 0, func() (error, retry.AttemptResult) {
+		err := applier.Initialize()
 		if err != nil {
-			d.log.Warn("engine.Run() failed", zap.Error(err))
+			w.log.Error("Applier.Initialize() failed", zap.Error(err))
 			return nil, retry.Backoff
 		}
 		return nil, retry.Done
@@ -66,8 +55,7 @@ func (d *gitopsWorker) Run(ctx context.Context) {
 		// context is done
 		return
 	}
-	defer stopEngine()
-	s := newSynchronizer(d.synchronizerConfig, eng)
+	s := newSynchronizer(w.synchronizerConfig, applier)
 	st := stager.New()
 	stage := st.NextStage()
 	stage.Go(func(ctx context.Context) error {
@@ -77,10 +65,10 @@ func (d *gitopsWorker) Run(ctx context.Context) {
 	stage = st.NextStage()
 	stage.Go(func(ctx context.Context) error {
 		req := &rpc.ObjectsToSynchronizeRequest{
-			ProjectId: d.project.Id,
-			Paths:     d.project.Paths,
+			ProjectId: w.project.Id,
+			Paths:     w.project.Paths,
 		}
-		d.objWatcher.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
+		w.objWatcher.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
 			s.setDesiredState(ctx, data)
 		})
 		return nil
@@ -88,41 +76,38 @@ func (d *gitopsWorker) Run(ctx context.Context) {
 	_ = st.Run(ctx) // no errors possible
 }
 
-type defaultGitopsEngineFactory struct {
-	kubeClientConfig *rest.Config
+type defaultApplierFactory struct {
+	provider provider.Provider
 }
 
-func (f *defaultGitopsEngineFactory) New(engineOpts []engine.Option, cacheOpts []cache.UpdateSettingsFunc) engine.GitOpsEngine {
-	return engine.NewEngine(
-		f.kubeClientConfig,
-		cache.NewClusterCache(f.kubeClientConfig, cacheOpts...),
-		engineOpts...,
-	)
+func (f *defaultApplierFactory) New() Applier {
+	return apply.NewApplier(f.provider)
 }
 
 type defaultGitopsWorkerFactory struct {
-	log                  *zap.Logger
-	engineFactory        GitopsEngineFactory
-	k8sClientGetter      resource.RESTClientGetter
-	gitopsClient         rpc.GitopsClient
-	watchBackoffFactory  retry.BackoffManagerFactory
-	engineBackoffFactory retry.BackoffManagerFactory
+	log                   *zap.Logger
+	applierFactory        ApplierFactory
+	k8sUtilFactory        util.Factory
+	gitopsClient          rpc.GitopsClient
+	watchBackoffFactory   retry.BackoffManagerFactory
+	applierBackoffFactory retry.BackoffManagerFactory
 }
 
-func (m *defaultGitopsWorkerFactory) New(project *agentcfg.ManifestProjectCF) GitopsWorker {
-	l := m.log.With(logz.ProjectId(project.Id))
-	return &gitopsWorker{
+func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.ManifestProjectCF) GitopsWorker {
+	l := f.log.With(logz.ProjectId(project.Id))
+	return &defaultGitopsWorker{
 		objWatcher: &rpc.ObjectsToSynchronizeWatcher{
 			Log:          l,
-			GitopsClient: m.gitopsClient,
-			Backoff:      m.watchBackoffFactory,
+			GitopsClient: f.gitopsClient,
+			Backoff:      f.watchBackoffFactory,
 		},
-		engineFactory:        m.engineFactory,
-		engineBackoffFactory: m.engineBackoffFactory,
+		applierFactory: f.applierFactory,
+		applierBackoff: f.applierBackoffFactory,
 		synchronizerConfig: synchronizerConfig{
-			log:             l,
-			project:         project,
-			k8sClientGetter: m.k8sClientGetter,
+			log:            l,
+			agentId:        agentId,
+			project:        project,
+			k8sUtilFactory: f.k8sUtilFactory,
 		},
 	}
 }

@@ -28,7 +28,7 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 	workers := make(map[string]*gitopsWorkerHolder) // project id -> worker holder instance
 	defer stopAllWorkers(workers)
 	for config := range cfg {
-		err := m.configureWorkers(workers, config.Gitops.ManifestProjects)
+		err := m.configureWorkers(workers, config.AgentId, config.Gitops.ManifestProjects)
 		if err != nil {
 			m.log.Error("Failed to apply manifest projects configuration", zap.Error(err))
 			continue
@@ -60,10 +60,10 @@ func (m *module) Name() string {
 	return gitops.ModuleName
 }
 
-func (m *module) startNewWorker(workers map[string]*gitopsWorkerHolder, project *agentcfg.ManifestProjectCF) {
+func (m *module) startNewWorker(workers map[string]*gitopsWorkerHolder, agentId int64, project *agentcfg.ManifestProjectCF) {
 	l := m.log.With(logz.ProjectId(project.Id))
 	l.Info("Starting synchronization worker")
-	worker := m.workerFactory.New(project)
+	worker := m.workerFactory.New(agentId, project)
 	ctx, cancel := context.WithCancel(context.Background())
 	workerHolder := &gitopsWorkerHolder{
 		worker:  worker,
@@ -74,7 +74,7 @@ func (m *module) startNewWorker(workers map[string]*gitopsWorkerHolder, project 
 	workers[project.Id] = workerHolder
 }
 
-func (m *module) configureWorkers(workers map[string]*gitopsWorkerHolder, projects []*agentcfg.ManifestProjectCF) error {
+func (m *module) configureWorkers(workers map[string]*gitopsWorkerHolder, agentId int64, projects []*agentcfg.ManifestProjectCF) error {
 	newSetOfProjects := make(map[string]struct{}, len(projects))
 	var projectsToStartWorkersFor []*agentcfg.ManifestProjectCF
 	var workersToStop []*gitopsWorkerHolder
@@ -122,7 +122,7 @@ func (m *module) configureWorkers(workers map[string]*gitopsWorkerHolder, projec
 
 	// Start new workers for new projects or because of updated configuration.
 	for _, project := range projectsToStartWorkersFor {
-		m.startNewWorker(workers, project)
+		m.startNewWorker(workers, agentId, project)
 	}
 	return nil
 }

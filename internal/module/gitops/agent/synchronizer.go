@@ -3,42 +3,42 @@ package agent
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"hash/fnv"
+	"time"
 
-	"github.com/argoproj/gitops-engine/pkg/engine"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
 	"go.uber.org/zap"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/resource"
-)
-
-const (
-	managedObjectAnnotationName = "k8s-agent.gitlab.com/managed-object"
+	"k8s.io/kubectl/pkg/cmd/util"
+	"sigs.k8s.io/cli-utils/pkg/apply"
+	"sigs.k8s.io/cli-utils/pkg/common"
+	"sigs.k8s.io/cli-utils/pkg/inventory"
 )
 
 // synchronizerConfig holds configuration for a synchronizer.
 type synchronizerConfig struct {
-	log             *zap.Logger
-	project         *agentcfg.ManifestProjectCF
-	k8sClientGetter resource.RESTClientGetter
-}
-
-type resourceInfo struct {
-	gcMark string
+	log            *zap.Logger
+	agentId        int64
+	project        *agentcfg.ManifestProjectCF
+	k8sUtilFactory util.Factory
 }
 
 type synchronizer struct {
 	synchronizerConfig
-	engine       engine.GitOpsEngine
+	applier      Applier
 	desiredState chan rpc.ObjectsToSynchronizeData
 }
 
-func newSynchronizer(config synchronizerConfig, engine engine.GitOpsEngine) *synchronizer {
+func newSynchronizer(config synchronizerConfig, applier Applier) *synchronizer {
 	return &synchronizer{
 		synchronizerConfig: config,
-		engine:             engine,
+		applier:            applier,
 		desiredState:       make(chan rpc.ObjectsToSynchronizeData),
 	}
 }
@@ -54,7 +54,7 @@ func (s *synchronizer) setDesiredState(ctx context.Context, state rpc.ObjectsToS
 
 func (s *synchronizer) run(ctx context.Context) {
 	jobs := make(chan syncJob)
-	sw := newSyncWorker(s.synchronizerConfig, s.engine)
+	sw := newSyncWorker(s.log, s.applier)
 	var wg wait.Group
 	defer wg.Wait()   // Wait for sw to exit
 	defer close(jobs) // Close jobs to signal sw there is no more work to be done
@@ -86,10 +86,25 @@ func (s *synchronizer) run(ctx context.Context) {
 			if jobCancel != nil {
 				jobCancel() // Cancel running/pending job ASAP
 			}
-			markAsManaged(objs)
 			newJob = syncJob{
 				commitId: state.CommitId,
+				invInfo:  s.inventoryInfo(),
 				objects:  objs,
+				opts: apply.Options{
+					ServerSideOptions: common.ServerSideOptions{
+						ServerSideApply: true,
+						ForceConflicts:  false, // want to fail on conflicts - just out of caution TODO make configurable?
+						FieldManager:    "agentk",
+					},
+					ReconcileTimeout:       time.Hour, // TODO make configurable?
+					PollInterval:           0,         // use default value
+					EmitStatusEvents:       true,
+					NoPrune:                false,
+					DryRunStrategy:         common.DryRunNone,
+					PrunePropagationPolicy: metav1.DeletePropagationBackground, // TODO make configurable?
+					PruneTimeout:           time.Hour,                          // TODO make configurable?
+					InventoryPolicy:        inventory.InventoryPolicyMustMatch, // TODO make configurable
+				},
 			}
 			newJob.ctx, jobCancel = context.WithCancel(context.Background()) // nolint: govet
 			jobsCh = jobs                                                    // Enable select case
@@ -106,10 +121,11 @@ func (s *synchronizer) decodeObjectsToSynchronize(sources []rpc.ObjectSource) ([
 		return nil, nil
 	}
 	// TODO allow enforcing namespace
-	builder := resource.NewBuilder(s.k8sClientGetter).
-		ContinueOnError().
+	builder := s.k8sUtilFactory.NewBuilder().
+		//ContinueOnError(). // TODO collect errors and report them all
 		Flatten().
-		Local().
+		NamespaceParam(s.project.DefaultNamespace).
+		DefaultNamespace().
 		Unstructured()
 	for _, source := range sources {
 		builder.Stream(bytes.NewReader(source.Data), source.Name)
@@ -117,10 +133,10 @@ func (s *synchronizer) decodeObjectsToSynchronize(sources []rpc.ObjectSource) ([
 	var res []*unstructured.Unstructured
 	err := builder.Do().Visit(func(info *resource.Info, err error) error {
 		if err != nil {
+			// TODO collect errors and report them all
 			return err
 		}
 		un := info.Object.(*unstructured.Unstructured)
-		// TODO enforce namespace is set for namespaced objects?
 		res = append(res, un)
 		return nil
 	})
@@ -129,23 +145,25 @@ func (s *synchronizer) decodeObjectsToSynchronize(sources []rpc.ObjectSource) ([
 	}
 	return res, nil
 }
-
-func markAsManaged(objs []*unstructured.Unstructured) {
-	for _, obj := range objs {
-		annotations := obj.GetAnnotations()
-		if annotations == nil {
-			annotations = make(map[string]string, 1)
-		}
-		annotations[managedObjectAnnotationName] = "managed" // TODO
-		obj.SetAnnotations(annotations)
-	}
+func (s *synchronizer) inventoryInfo() inventory.InventoryInfo {
+	id := inventoryId(s.agentId, s.project.Id)
+	return inventory.WrapInventoryInfoObj(&unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "ConfigMap",
+			"metadata": map[string]interface{}{
+				"name":      "inventory-" + id,
+				"namespace": s.project.DefaultNamespace,
+				"labels": map[string]interface{}{
+					common.InventoryLabel: id,
+				},
+			},
+		},
+	})
 }
 
-func populateResourceInfoHandler(un *unstructured.Unstructured, isRoot bool) (interface{} /*info*/, bool /*cacheManifest*/) {
-	// store gc mark of every resource
-	gcMark := un.GetAnnotations()[managedObjectAnnotationName]
-	// cache resources that has that mark to improve performance
-	return &resourceInfo{
-		gcMark: gcMark,
-	}, gcMark != ""
+func inventoryId(agentId int64, projectId string) string {
+	h := fnv.New128()
+	_, _ = h.Write([]byte(projectId))
+	return fmt.Sprintf("%d-%x", agentId, h.Sum(nil))
 }

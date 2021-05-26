@@ -4,11 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/argoproj/gitops-engine/pkg/cache"
-	"github.com/argoproj/gitops-engine/pkg/sync"
-	"github.com/argoproj/gitops-engine/pkg/sync/common"
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/matcher"
@@ -19,7 +15,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
+	cmdtesting "k8s.io/kubectl/pkg/cmd/testing"
+	"sigs.k8s.io/cli-utils/pkg/apply"
+	"sigs.k8s.io/cli-utils/pkg/apply/event"
+	"sigs.k8s.io/cli-utils/pkg/inventory"
 )
 
 const (
@@ -29,13 +28,13 @@ const (
 )
 
 var (
-	_ GitopsEngineFactory = &defaultGitopsEngineFactory{}
-	_ GitopsWorker        = &gitopsWorker{}
+	_ ApplierFactory      = &defaultApplierFactory{}
+	_ GitopsWorker        = &defaultGitopsWorker{}
 	_ GitopsWorkerFactory = &defaultGitopsWorkerFactory{}
 )
 
 func TestRunHappyPathNoObjects(t *testing.T) {
-	w, engine, watcher := setupWorker(t)
+	w, applier, watcher := setupWorker(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	req := &rpc.ObjectsToSynchronizeRequest{
@@ -51,17 +50,20 @@ func TestRunHappyPathNoObjects(t *testing.T) {
 				})
 				<-ctx.Done()
 			}),
-		engine.EXPECT().
-			Sync(gomock.Any(), gomock.Len(0), gomock.Any(), revision, defaultNamespace, gomock.Any()).
-			Do(func(ctx context.Context, resources []*unstructured.Unstructured, isManaged func(r *cache.Resource) bool, revision string, namespace string, opts ...sync.SyncOpt) {
+		applier.EXPECT().
+			Run(gomock.Any(), gomock.Any(), gomock.Len(0), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
 				cancel() // all good, stop run()
+				c := make(chan event.Event)
+				close(c)
+				return c
 			}),
 	)
 	w.Run(ctx)
 }
 
 func TestRunHappyPath(t *testing.T) {
-	w, engine, watcher := setupWorker(t)
+	w, applier, watcher := setupWorker(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	req := &rpc.ObjectsToSynchronizeRequest{
@@ -92,22 +94,20 @@ func TestRunHappyPath(t *testing.T) {
 				})
 				<-ctx.Done()
 			}),
-		engine.EXPECT().
-			Sync(gomock.Any(), matcher.K8sObjectEq(t, objs, kube_testing.IgnoreAnnotation(managedObjectAnnotationName)), gomock.Any(), revision, defaultNamespace, gomock.Any()).
-			DoAndReturn(func(ctx context.Context, resources []*unstructured.Unstructured, isManaged func(r *cache.Resource) bool, revision string, namespace string, opts ...sync.SyncOpt) ([]common.ResourceSyncResult, error) {
+		applier.EXPECT().
+			Run(gomock.Any(), gomock.Any(), matcher.K8sObjectEq(t, objs), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
 				cancel() // all good, stop run()
-				return []common.ResourceSyncResult{
-					{
-						Status: common.ResultCodeSynced,
-					},
-				}, nil
+				c := make(chan event.Event)
+				close(c)
+				return c
 			}),
 	)
 	w.Run(ctx)
 }
 
 func TestRunHappyPathSyncCancellation(t *testing.T) {
-	w, engine, watcher := setupWorker(t)
+	w, applier, watcher := setupWorker(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	req := &rpc.ObjectsToSynchronizeRequest{
@@ -143,48 +143,45 @@ func TestRunHappyPathSyncCancellation(t *testing.T) {
 			<-ctx.Done()
 		})
 	gomock.InOrder(
-		engine.EXPECT().
-			Sync(gomock.Any(), matcher.K8sObjectEq(t, objs, kube_testing.IgnoreAnnotation(managedObjectAnnotationName)), gomock.Any(), revision, defaultNamespace, gomock.Any()).
-			DoAndReturn(func(ctx context.Context, resources []*unstructured.Unstructured, isManaged func(r *cache.Resource) bool, revision string, namespace string, opts ...sync.SyncOpt) ([]common.ResourceSyncResult, error) {
+		applier.EXPECT().
+			Run(gomock.Any(), gomock.Any(), matcher.K8sObjectEq(t, objs), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
 				close(job1started) // signal that this job has been started
-				<-ctx.Done()       // block until the job is cancelled
-				return nil, ctx.Err()
+				c := make(chan event.Event)
+				go func() {
+					<-ctx.Done() // block until the job is cancelled
+					close(c)
+				}()
+				return c
 			}),
-		engine.EXPECT().
-			Sync(gomock.Any(), gomock.Len(0), gomock.Any(), revision, defaultNamespace, gomock.Any()).
-			Do(func(ctx context.Context, resources []*unstructured.Unstructured, isManaged func(r *cache.Resource) bool, revision string, namespace string, opts ...sync.SyncOpt) {
+		applier.EXPECT().
+			Run(gomock.Any(), gomock.Any(), gomock.Len(0), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
 				cancel() // all good, stop run()
+				c := make(chan event.Event)
+				close(c)
+				return c
 			}),
 	)
 	w.Run(ctx)
 }
 
-func setupWorker(t *testing.T) (*gitopsWorker, *MockGitOpsEngine, *mock_rpc.MockObjectsToSynchronizeWatcherInterface) {
+func setupWorker(t *testing.T) (*defaultGitopsWorker, *MockApplier, *mock_rpc.MockObjectsToSynchronizeWatcherInterface) {
 	ctrl := gomock.NewController(t)
-	mockEngineCtrl := gomock.NewController(t)
-	// engine is used concurrently with other mocks. So use a separate mock controller to avoid data races because
-	// mock controllers are not thread safe.
-	engine := NewMockGitOpsEngine(mockEngineCtrl)
-	engineFactory := NewMockGitopsEngineFactory(ctrl)
+	applier := NewMockApplier(ctrl)
+	applierFactory := NewMockApplierFactory(ctrl)
 	watcher := mock_rpc.NewMockObjectsToSynchronizeWatcherInterface(ctrl)
-	engineWasStopped := false
-	t.Cleanup(func() {
-		assert.True(t, engineWasStopped)
-	})
 	gomock.InOrder(
-		engineFactory.EXPECT().
-			New(gomock.Any(), gomock.Any()).
-			Return(engine),
-		engine.EXPECT().
-			Run().
-			Return(func() {
-				engineWasStopped = true
-			}, nil),
+		applierFactory.EXPECT().
+			New().
+			Return(applier),
+		applier.EXPECT().
+			Initialize(),
 	)
-	w := &gitopsWorker{
-		objWatcher:           watcher,
-		engineFactory:        engineFactory,
-		engineBackoffFactory: testhelpers.NewBackoff(),
+	w := &defaultGitopsWorker{
+		objWatcher:     watcher,
+		applierFactory: applierFactory,
+		applierBackoff: testhelpers.NewBackoff(),
 		synchronizerConfig: synchronizerConfig{
 			log: zaptest.NewLogger(t),
 			project: &agentcfg.ManifestProjectCF{
@@ -196,10 +193,10 @@ func setupWorker(t *testing.T) (*gitopsWorker, *MockGitOpsEngine, *mock_rpc.Mock
 					},
 				},
 			},
-			k8sClientGetter: genericclioptions.NewTestConfigFlags(),
+			k8sUtilFactory: cmdtesting.NewTestFactory(),
 		},
 	}
-	return w, engine, watcher
+	return w, applier, watcher
 }
 
 func testMap1() *corev1.ConfigMap {

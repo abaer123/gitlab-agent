@@ -33,97 +33,6 @@ var (
 	_ = anypb.Any{}
 )
 
-// Validate checks the field values on ResourceFilterCF with the rules defined
-// in the proto definition for this message. If any rules are violated, an
-// error is returned.
-func (m *ResourceFilterCF) Validate() error {
-	if m == nil {
-		return nil
-	}
-
-	if len(m.GetApiGroups()) < 1 {
-		return ResourceFilterCFValidationError{
-			field:  "ApiGroups",
-			reason: "value must contain at least 1 item(s)",
-		}
-	}
-
-	if len(m.GetKinds()) < 1 {
-		return ResourceFilterCFValidationError{
-			field:  "Kinds",
-			reason: "value must contain at least 1 item(s)",
-		}
-	}
-
-	for idx, item := range m.GetKinds() {
-		_, _ = idx, item
-
-		if utf8.RuneCountInString(item) < 1 {
-			return ResourceFilterCFValidationError{
-				field:  fmt.Sprintf("Kinds[%v]", idx),
-				reason: "value length must be at least 1 runes",
-			}
-		}
-
-	}
-
-	return nil
-}
-
-// ResourceFilterCFValidationError is the validation error returned by
-// ResourceFilterCF.Validate if the designated constraints aren't met.
-type ResourceFilterCFValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e ResourceFilterCFValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e ResourceFilterCFValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e ResourceFilterCFValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e ResourceFilterCFValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e ResourceFilterCFValidationError) ErrorName() string { return "ResourceFilterCFValidationError" }
-
-// Error satisfies the builtin error interface
-func (e ResourceFilterCFValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sResourceFilterCF.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = ResourceFilterCFValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = ResourceFilterCFValidationError{}
-
 // Validate checks the field values on PathCF with the rules defined in the
 // proto definition for this message. If any rules are violated, an error is returned.
 func (m *PathCF) Validate() error {
@@ -208,36 +117,6 @@ func (m *ManifestProjectCF) Validate() error {
 			field:  "Id",
 			reason: "value length must be at least 1 runes",
 		}
-	}
-
-	for idx, item := range m.GetResourceInclusions() {
-		_, _ = idx, item
-
-		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return ManifestProjectCFValidationError{
-					field:  fmt.Sprintf("ResourceInclusions[%v]", idx),
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
-	}
-
-	for idx, item := range m.GetResourceExclusions() {
-		_, _ = idx, item
-
-		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
-			if err := v.Validate(); err != nil {
-				return ManifestProjectCFValidationError{
-					field:  fmt.Sprintf("ResourceExclusions[%v]", idx),
-					reason: "embedded message failed validation",
-					cause:  err,
-				}
-			}
-		}
-
 	}
 
 	// no validation rules for DefaultNamespace

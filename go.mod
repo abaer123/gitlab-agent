@@ -4,7 +4,6 @@ go 1.15
 
 require (
 	cloud.google.com/go v0.81.0
-	github.com/argoproj/gitops-engine v0.3.1-0.20210503031607-3f38eee773eb
 	github.com/ash2k/stager v0.2.1
 	github.com/bmatcuk/doublestar/v2 v2.0.4
 	github.com/cilium/cilium v1.9.6
@@ -38,7 +37,9 @@ require (
 	k8s.io/cli-runtime v0.21.0
 	k8s.io/client-go v0.21.0
 	k8s.io/klog/v2 v2.8.0
+	k8s.io/kubectl v0.21.0
 	nhooyr.io/websocket v1.8.7
+	sigs.k8s.io/cli-utils v0.25.1-0.20210520001905-88db50a0252d
 	sigs.k8s.io/yaml v1.2.0
 )
 

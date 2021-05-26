@@ -40,7 +40,6 @@ import (
 	"google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/keepalive"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/cli-runtime/pkg/resource"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp" // Install the GCP auth plugin
 	"k8s.io/klog/v2"
 	"nhooyr.io/websocket"
@@ -70,7 +69,7 @@ type App struct {
 	KasAddress      string
 	CACertFile      string
 	TokenFile       string
-	K8sClientGetter resource.RESTClientGetter
+	K8sClientGetter genericclioptions.RESTClientGetter
 }
 
 func (a *App) Run(ctx context.Context) (retErr error) {
