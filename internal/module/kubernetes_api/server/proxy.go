@@ -105,7 +105,8 @@ type kubernetesApiProxy struct {
 	streamVisitor       *grpctool.StreamVisitor
 	requestCount        usage_metrics.Counter
 	serverName          string
-	urlPathPrefix       string
+	// urlPathPrefix is guaranteed to end with / by defaulting.
+	urlPathPrefix string
 }
 
 func (p *kubernetesApiProxy) Run(ctx context.Context, listener net.Listener) error {
@@ -161,10 +162,9 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 		log.Debug("Bad request: URL does not start with expected prefix", logz.UrlPath(r.URL.Path), logz.UrlPathPrefix(p.urlPathPrefix))
 		return
 	}
-	r.URL.Path = r.URL.Path[len(p.urlPathPrefix):]
-	if r.URL.Path == "" {
-		r.URL.Path = "/"
-	}
+	// urlPathPrefix is guaranteed to end with / by defaulting. That means / will be removed here.
+	// Put it back by -1 on length.
+	r.URL.Path = r.URL.Path[len(p.urlPathPrefix)-1:]
 
 	p.requestCount.Inc() // Count only authenticated and authorized requests
 

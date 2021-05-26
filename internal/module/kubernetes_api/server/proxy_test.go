@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"testing"
@@ -78,7 +79,7 @@ func TestProxy_JobTokenErrors(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			_, _, client, req, _ := setupProxyWithHandler(t, "", func(w http.ResponseWriter, r *http.Request) {
+			_, _, client, req, _ := setupProxyWithHandler(t, "/", func(w http.ResponseWriter, r *http.Request) {
 				t.Fail() // unexpected invocation
 			})
 			req.Header.Del("Authorization")
@@ -94,7 +95,7 @@ func TestProxy_JobTokenErrors(t *testing.T) {
 }
 
 func TestProxy_UnknownJobToken(t *testing.T) {
-	_, _, client, req, _ := setupProxyWithHandler(t, "", func(w http.ResponseWriter, r *http.Request) {
+	_, _, client, req, _ := setupProxyWithHandler(t, "/", func(w http.ResponseWriter, r *http.Request) {
 		assertToken(t, r)
 		w.WriteHeader(http.StatusUnauthorized) // pretend the token is invalid
 	})
@@ -116,7 +117,7 @@ func TestProxy_ForbiddenJobToken(t *testing.T) {
 }
 
 func TestProxy_ServerError(t *testing.T) {
-	api, _, client, req, _ := setupProxyWithHandler(t, "", func(w http.ResponseWriter, r *http.Request) {
+	api, _, client, req, _ := setupProxyWithHandler(t, "/", func(w http.ResponseWriter, r *http.Request) {
 		assertToken(t, r)
 		w.WriteHeader(http.StatusBadGateway) // pretend there is some weird error
 	})
@@ -129,7 +130,7 @@ func TestProxy_ServerError(t *testing.T) {
 }
 
 func TestProxy_NoExpectedUrlPathPrefix(t *testing.T) {
-	_, _, client, req, _ := setupProxyWithHandler(t, "/bla", defaultGitLabHandler(t))
+	_, _, client, req, _ := setupProxyWithHandler(t, "/bla/", defaultGitLabHandler(t))
 	req.URL.Path = requestPath
 	resp, err := client.Do(req)
 	require.NoError(t, err)
@@ -147,11 +148,11 @@ func TestProxy_ForbiddenAgentId(t *testing.T) {
 }
 
 func TestProxy_HappyPathWithoutUrlPrefix(t *testing.T) {
-	testProxyHappyPath(t, "")
+	testProxyHappyPath(t, "/")
 }
 
 func TestProxy_HappyPathWithUrlPrefix(t *testing.T) {
-	testProxyHappyPath(t, "/bla")
+	testProxyHappyPath(t, "/bla/")
 }
 
 func testProxyHappyPath(t *testing.T, urlPathPrefix string) {
@@ -355,7 +356,7 @@ func assertToken(t *testing.T, r *http.Request) bool {
 }
 
 func setupProxy(t *testing.T) (*mock_modserver.MockAPI, *mock_kubernetes_api.MockKubernetesApiClient, *http.Client, *http.Request, *mock_usage_metrics.MockCounter) {
-	return setupProxyWithHandler(t, "", defaultGitLabHandler(t))
+	return setupProxyWithHandler(t, "/", defaultGitLabHandler(t))
 }
 
 func defaultGitLabHandler(t *testing.T) func(w http.ResponseWriter, r *http.Request) {
@@ -417,7 +418,7 @@ func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http
 	req, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
-		"http://any_host_will_do.local"+urlPathPrefix+requestPath+"?"+url.QueryEscape(queryParamName)+"="+url.QueryEscape(queryParamValue),
+		"http://any_host_will_do.local"+path.Join(urlPathPrefix, requestPath)+"?"+url.QueryEscape(queryParamName)+"="+url.QueryEscape(queryParamValue),
 		strings.NewReader(requestPayload),
 	)
 	require.NoError(t, err)
