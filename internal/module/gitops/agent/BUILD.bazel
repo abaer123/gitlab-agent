@@ -10,6 +10,7 @@ go_library(
         "module.go",
         "sync_worker.go",
         "synchronizer.go",
+        "worker_manager.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/agent",
     visibility = ["//:__subpackages__"],
@@ -46,6 +47,7 @@ go_custom_test(
         "gitops_worker_test.go",
         "mock_for_test.go",
         "module_test.go",
+        "worker_manager_test.go",
     ],
     embed = [":agent"],
     deps = [
