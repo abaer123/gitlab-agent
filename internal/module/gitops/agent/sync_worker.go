@@ -20,18 +20,19 @@ type syncJob struct {
 	commitId string
 	invInfo  inventory.InventoryInfo
 	objects  []*unstructured.Unstructured
-	opts     apply.Options
 }
 
 type syncWorker struct {
-	log     *zap.Logger
-	applier Applier
+	log          *zap.Logger
+	applier      Applier
+	applyOptions apply.Options
 }
 
-func newSyncWorker(log *zap.Logger, applier Applier) *syncWorker {
+func newSyncWorker(log *zap.Logger, applier Applier, applyOptions apply.Options) *syncWorker {
 	return &syncWorker{
-		log:     log,
-		applier: applier,
+		log:          log,
+		applier:      applier,
+		applyOptions: applyOptions,
 	}
 }
 
@@ -49,7 +50,7 @@ func (s *syncWorker) run(jobs <-chan syncJob) {
 }
 
 func (s *syncWorker) synchronize(job syncJob) error {
-	events := s.applier.Run(job.ctx, job.invInfo, job.objects, job.opts)
+	events := s.applier.Run(job.ctx, job.invInfo, job.objects, s.applyOptions)
 	//The printer will print updates from the channel. It will block
 	//until the channel is closed.
 	printer := printers.GetPrinter(printers.JSONPrinter, genericclioptions.IOStreams{

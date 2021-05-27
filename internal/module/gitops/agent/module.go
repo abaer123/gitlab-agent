@@ -2,6 +2,8 @@ package agent
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
@@ -13,6 +15,11 @@ import (
 const (
 	defaultGitOpsManifestNamespace = metav1.NamespaceDefault
 	defaultGitOpsManifestPathGlob  = "**/*.{yaml,yml,json}"
+	defaultDryRunStrategy          = dryRunStrategyNone
+	defaultPruneTimeout            = time.Hour
+	defaultReconcileTimeout        = time.Hour
+	defaultPrunePropagationPolicy  = prunePropagationPolicyForeground
+	defaultInventoryPolicy         = inventoryPolicyMustMatch
 )
 
 type module struct {
@@ -40,12 +47,15 @@ func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfigura
 func defaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error {
 	prototool.NotNil(&config.Gitops)
 	for _, project := range config.Gitops.ManifestProjects {
-		applyDefaultsToManifestProject(project)
+		err := applyDefaultsToManifestProject(project)
+		if err != nil {
+			return fmt.Errorf("project %s: %v", project.Id, err)
+		}
 	}
 	return nil
 }
 
-func applyDefaultsToManifestProject(project *agentcfg.ManifestProjectCF) {
+func applyDefaultsToManifestProject(project *agentcfg.ManifestProjectCF) error {
 	prototool.String(&project.DefaultNamespace, defaultGitOpsManifestNamespace)
 	if len(project.Paths) == 0 {
 		project.Paths = []*agentcfg.PathCF{
@@ -54,6 +64,21 @@ func applyDefaultsToManifestProject(project *agentcfg.ManifestProjectCF) {
 			},
 		}
 	}
+	prototool.Duration(&project.ReconcileTimeout, defaultReconcileTimeout)
+	prototool.String(&project.DryRunStrategy, defaultDryRunStrategy)
+	if _, ok := dryRunStrategyMapping[project.DryRunStrategy]; !ok {
+		return fmt.Errorf("invalid dry-run strategy: %q", project.DryRunStrategy)
+	}
+	prototool.Duration(&project.PruneTimeout, defaultPruneTimeout)
+	prototool.String(&project.PrunePropagationPolicy, defaultPrunePropagationPolicy)
+	if _, ok := prunePropagationPolicyMapping[project.PrunePropagationPolicy]; !ok {
+		return fmt.Errorf("invalid prune propagation policy: %q", project.PrunePropagationPolicy)
+	}
+	prototool.String(&project.InventoryPolicy, defaultInventoryPolicy)
+	if _, ok := inventoryPolicyMapping[project.InventoryPolicy]; !ok {
+		return fmt.Errorf("invalid inventory policy: %q", project.InventoryPolicy)
+	}
+	return nil
 }
 
 func (m *module) Name() string {
