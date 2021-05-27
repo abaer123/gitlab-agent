@@ -18,7 +18,7 @@ go_library(
         "kascfg.pb.validate.go",
         "kascfg_extra.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/kascfg",
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",

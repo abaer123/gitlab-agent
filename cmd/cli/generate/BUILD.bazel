@@ -3,7 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "generate",
     srcs = ["cli.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/cli/generate",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd/cli/generate",
     visibility = ["//visibility:public"],
     deps = [
         "//cmd",

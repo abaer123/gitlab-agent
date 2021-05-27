@@ -4,7 +4,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "usage_metrics",
     srcs = ["api.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics",
     visibility = ["//:__subpackages__"],
 )
 

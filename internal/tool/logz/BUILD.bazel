@@ -6,7 +6,7 @@ go_library(
         "helpers.go",
         "logz.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz",
     visibility = ["//:__subpackages__"],
     deps = [
         "@com_gitlab_gitlab_org_labkit//correlation",

@@ -18,7 +18,7 @@ go_library(
         "redistool.pb.go",
         "token_limiter.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/redistool",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/redistool",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/tool/logz",

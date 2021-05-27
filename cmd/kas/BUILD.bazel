@@ -5,7 +5,7 @@ load("//build:build.bzl", "copy_absolute")
 go_library(
     name = "kas_lib",
     srcs = ["main.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kas",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd/kas",
     visibility = ["//visibility:private"],
     deps = [
         "//cmd",

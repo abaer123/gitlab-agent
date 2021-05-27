@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"sort"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/automata"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool/automata"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"

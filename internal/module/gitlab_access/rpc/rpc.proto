@@ -4,7 +4,7 @@ syntax = "proto3";
 
 package gitlab.agent.gitlab_access.rpc;
 
-option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/rpc";
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitlab_access/rpc";
 
 import "internal/tool/grpctool/grpctool.proto";
 //import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";

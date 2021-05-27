@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/pflag"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/cli/generate"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd/cli/generate"
 )
 
 const (

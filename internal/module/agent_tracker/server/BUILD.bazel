@@ -6,7 +6,7 @@ go_library(
         "factory.go",
         "module.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_tracker/server",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker/server",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/agent_tracker",

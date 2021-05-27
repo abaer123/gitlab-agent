@@ -5,7 +5,7 @@ syntax = "proto3";
 // Package allows to define the allowed order in which fields of a oneof group can appear in a client gRPC stream.
 package gitlab.agent.grpctool.automata;
 
-option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/automata";
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool/automata";
 
 import "google/protobuf/descriptor.proto";
 

@@ -10,7 +10,7 @@ go_library(
         "utils.go",
         "worker.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/cilium_alert/agent",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/cilium_alert/agent",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/cilium_alert",

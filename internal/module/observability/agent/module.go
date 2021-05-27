@@ -7,11 +7,11 @@ import (
 
 	"github.com/ash2k/stager"
 	"github.com/prometheus/client_golang/prometheus"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/observability"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
 )

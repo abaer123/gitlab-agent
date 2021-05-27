@@ -4,7 +4,7 @@ syntax = "proto3";
 
 package gitlab.agent.kascfg;
 
-option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg";
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/kascfg";
 
 import "google/protobuf/duration.proto";
 //import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";

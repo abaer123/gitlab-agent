@@ -7,8 +7,8 @@ import (
 	"io"
 	"net/http"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"

@@ -12,7 +12,7 @@ go_library(
         "synchronizer.go",
         "worker_manager.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/agent",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/agent",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/gitops",

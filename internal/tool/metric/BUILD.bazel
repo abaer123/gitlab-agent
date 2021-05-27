@@ -6,7 +6,7 @@ go_library(
         "metric.go",
         "promgrpc.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/metric",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/metric",
     visibility = ["//:__subpackages__"],
     deps = [
         "@com_github_piotrkowalczuk_promgrpc_v4//:promgrpc",

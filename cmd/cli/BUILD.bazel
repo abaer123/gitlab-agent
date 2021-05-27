@@ -5,7 +5,7 @@ load("@io_bazel_rules_docker//container:container.bzl", "container_image")
 go_library(
     name = "cli_lib",
     srcs = ["main.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/cli",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd/cli",
     visibility = ["//visibility:private"],
     deps = [
         "//cmd",

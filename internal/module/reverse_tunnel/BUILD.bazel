@@ -9,7 +9,7 @@ go_library(
         "tunnel.go",
         "tunnel_registry.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",

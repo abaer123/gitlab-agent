@@ -18,7 +18,7 @@ go_library(
         "api.go",
         "tracker.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_tracker",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/modshared",

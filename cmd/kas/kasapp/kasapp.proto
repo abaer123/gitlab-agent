@@ -4,7 +4,7 @@ syntax = "proto3";
 
 package gitlab.agent.kas;
 
-option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kas/kasapp";
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd/kas/kasapp";
 
 import "internal/tool/grpctool/automata/automata.proto";
 import "internal/tool/prototool/prototool.proto";

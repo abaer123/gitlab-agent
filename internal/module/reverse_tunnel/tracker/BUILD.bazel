@@ -18,7 +18,7 @@ go_library(
         "tracker.pb.go",
         "tracker.pb.validate.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/tracker",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/tracker",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/reverse_tunnel/info",

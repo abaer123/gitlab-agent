@@ -7,7 +7,7 @@ go_library(
         "factory.go",
         "module.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/server",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/server",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",

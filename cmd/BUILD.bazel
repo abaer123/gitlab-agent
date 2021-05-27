@@ -63,7 +63,7 @@ go_library(
         "build_info.go",
         "utils.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd",
     visibility = ["//visibility:public"],
     deps = [
         "//internal/tool/errz",

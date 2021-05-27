@@ -6,7 +6,7 @@ go_library(
         "factory.go",
         "module.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/kubernetes_api/agent",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api/agent",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/kubernetes_api",

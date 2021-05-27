@@ -3,8 +3,8 @@ package server
 import (
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/kascfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/kascfg"
 )
 
 const (

@@ -17,7 +17,7 @@ go_library(
         "test.pb.validate.go",
         "test_grpc.pb.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/test",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool/test",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/tool/grpctool/automata",

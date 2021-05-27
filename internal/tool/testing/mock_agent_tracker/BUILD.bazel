@@ -6,7 +6,7 @@ go_library(
         "doc.go",
         "tracker.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_agent_tracker",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_agent_tracker",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/agent_tracker",

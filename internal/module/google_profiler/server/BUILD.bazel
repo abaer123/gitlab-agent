@@ -7,7 +7,7 @@ go_library(
         "factory.go",
         "module.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/google_profiler/server",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/google_profiler/server",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/google_profiler",

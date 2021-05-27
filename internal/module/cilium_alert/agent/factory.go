@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/cilium/cilium/pkg/k8s/client/clientset/versioned"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/cilium_alert"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/cilium_alert"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 )
 
 const (

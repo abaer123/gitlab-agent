@@ -16,7 +16,7 @@ go_library(
         "agentcfg.pb.go",
         "agentcfg.pb.validate.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg",
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",

@@ -5,7 +5,7 @@ import (
 	"context"
 	"os"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/cli-runtime/pkg/genericclioptions"

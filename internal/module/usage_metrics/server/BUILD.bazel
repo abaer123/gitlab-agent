@@ -8,7 +8,7 @@ go_library(
         "factory.go",
         "module.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics/server",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics/server",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/gitlab",

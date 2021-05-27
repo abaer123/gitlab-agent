@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/redistool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/redistool"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/anypb"
 )

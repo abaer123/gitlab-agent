@@ -7,6 +7,6 @@ go_library(
         "run_server.go",
         "tools.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/httpz",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz",
     visibility = ["//:__subpackages__"],
 )

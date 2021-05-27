@@ -29,7 +29,7 @@ go_library(
         "router_agent.go",
         "router_kas.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kas/kasapp",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd/kas/kasapp",
     visibility = ["//visibility:public"],
     deps = [
         "//cmd",

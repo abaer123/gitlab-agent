@@ -3,6 +3,6 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "tlstool",
     srcs = ["tlstool.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/tlstool",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/tlstool",
     visibility = ["//:__subpackages__"],
 )

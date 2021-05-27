@@ -4,7 +4,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "pktline",
     srcs = ["pktline.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/pktline",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitaly/pktline",
     visibility = ["//:__subpackages__"],
 )
 

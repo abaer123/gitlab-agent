@@ -6,8 +6,8 @@ import (
 	"net"
 
 	"github.com/ash2k/stager"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/prototool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"

@@ -6,7 +6,7 @@ go_library(
         "doc.go",
         "rpc.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_reverse_tunnel_rpc",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_reverse_tunnel_rpc",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/reverse_tunnel/rpc",

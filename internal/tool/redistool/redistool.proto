@@ -4,7 +4,7 @@ syntax = "proto3";
 
 package gitlab.agent.redistool;
 
-option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/redistool";
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/redistool";
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/any.proto";

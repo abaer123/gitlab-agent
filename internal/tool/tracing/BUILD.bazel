@@ -8,7 +8,7 @@ go_library(
         "labkit_outbound_http_options.go",
         "tracing.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/tracing",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/tracing",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/tool/logz",

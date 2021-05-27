@@ -11,7 +11,7 @@ go_library(
         "grpctool.go",
         "testing_helpers.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_rpc",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_rpc",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/agent_configuration/rpc",

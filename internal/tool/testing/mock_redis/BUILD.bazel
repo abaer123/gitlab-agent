@@ -6,7 +6,7 @@ go_library(
         "doc.go",
         "expiring_hash.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_redis",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_redis",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/tool/redistool",
