@@ -3,8 +3,8 @@ package rpc
 import (
 	"context"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )

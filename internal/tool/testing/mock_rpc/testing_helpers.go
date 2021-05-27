@@ -4,7 +4,7 @@ import (
 	"io"
 
 	"github.com/golang/mock/gomock"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/testhelpers"
 	"google.golang.org/protobuf/proto"
 )
 

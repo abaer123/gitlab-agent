@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly/pktline"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitaly/pktline"
 )
 
 // This file and the corresponding test were copied from Gitaly.

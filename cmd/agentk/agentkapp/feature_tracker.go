@@ -3,7 +3,7 @@ package agentkapp
 import (
 	"sync"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
 	"go.uber.org/zap"
 )
 

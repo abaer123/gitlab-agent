@@ -7,8 +7,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"go.uber.org/zap/zaptest"
 	"k8s.io/apimachinery/pkg/util/wait"
 )

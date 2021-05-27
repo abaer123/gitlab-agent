@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )

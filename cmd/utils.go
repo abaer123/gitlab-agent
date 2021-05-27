@@ -13,7 +13,7 @@ import (
 
 	"github.com/ash2k/stager"
 	"github.com/spf13/pflag"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 )
 
 // StageFunc is a function that uses the provided Stage to start goroutines.

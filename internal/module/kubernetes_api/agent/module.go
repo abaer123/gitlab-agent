@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"net/url"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/kubernetes_api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/kubernetes_api/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 )
 
 const (

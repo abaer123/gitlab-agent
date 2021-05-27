@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"k8s.io/cli-runtime/pkg/genericclioptions"

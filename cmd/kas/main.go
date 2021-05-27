@@ -1,8 +1,8 @@
 package main
 
 import (
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/kas/kasapp"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd/kas/kasapp"
 )
 
 func main() {

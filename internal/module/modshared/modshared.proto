@@ -4,7 +4,7 @@ syntax = "proto3";
 
 package gitlab.agent.modshared;
 
-option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared";
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared";
 
 // AgentMeta contains information about agentk.
 message AgentMeta {

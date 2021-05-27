@@ -4,7 +4,7 @@ syntax = "proto3";
 
 package gitlab.agent.reverse_tunnel.rpc;
 
-option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/reverse_tunnel/rpc";
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/rpc";
 
 import "internal/tool/grpctool/automata/automata.proto";
 import "internal/tool/prototool/prototool.proto";

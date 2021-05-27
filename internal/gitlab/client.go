@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go/v4"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/httpz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/tracing"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/tracing"
 	"gitlab.com/gitlab-org/labkit/correlation"
 )
 

@@ -15,13 +15,13 @@ load("@com_github_bazelbuild_buildtools//buildifier:def.bzl", "buildifier")
 
 gazelle(
     name = "gazelle",
-    prefix = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent",
+    prefix = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14",
 )
 
 gazelle(
     name = "gazelle_fix",
     command = "fix",
-    prefix = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent",
+    prefix = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14",
 )
 
 buildifier(

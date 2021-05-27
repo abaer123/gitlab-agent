@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	"github.com/ash2k/stager"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd"
-	agent_configuration_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/pkg/agentcfg"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd"
+	agent_configuration_rpc "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"go.uber.org/zap"
 )
 

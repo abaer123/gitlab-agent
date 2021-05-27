@@ -3,11 +3,11 @@ package server
 import (
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_tracker"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 )
 
 const (

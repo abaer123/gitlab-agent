@@ -1,7 +1,7 @@
 package rpc
 
 import (
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"google.golang.org/grpc/metadata"
 )
 

@@ -4,12 +4,12 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/cache"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/metric"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/cache"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/metric"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 )
 
 const (

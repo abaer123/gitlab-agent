@@ -1,9 +1,9 @@
 package server
 
 import (
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitlab_access"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitlab_access/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 )
 
 type Factory struct {

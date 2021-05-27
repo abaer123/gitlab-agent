@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"net/url"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitlab_access"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitlab_access/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 )
 
 const (

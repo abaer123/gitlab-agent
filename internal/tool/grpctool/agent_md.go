@@ -4,7 +4,7 @@ import (
 	"context"
 
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/api"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	"google.golang.org/grpc"
 )
 

@@ -1,8 +1,8 @@
 package agent
 
 import (
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/observability"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/observability"
 	"go.uber.org/zap"
 )
 

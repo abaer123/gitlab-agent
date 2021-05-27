@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modserver"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/usage_metrics"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"go.uber.org/zap"
 )
 

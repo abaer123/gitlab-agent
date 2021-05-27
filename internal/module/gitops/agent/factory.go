@@ -3,10 +3,10 @@ package agent
 import (
 	"time"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitops/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/retry"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"k8s.io/kubectl/pkg/cmd/util"
 	"sigs.k8s.io/cli-utils/pkg/provider"
 )

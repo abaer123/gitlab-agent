@@ -3,7 +3,7 @@ package info
 import (
 	"testing"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/testhelpers"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/testhelpers"
 )
 
 func TestValidation_Invalid(t *testing.T) {

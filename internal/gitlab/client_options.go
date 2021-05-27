@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/opentracing/opentracing-go"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/httpz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/tlstool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/tlstool"
 	"go.uber.org/zap"
 )
 

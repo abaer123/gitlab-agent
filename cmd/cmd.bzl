@@ -30,9 +30,9 @@ def define_command_targets(
         base_image = "@go_image_static//image",
         base_image_race = "@go_debug_image_base//image"):
     x_defs = {
-        "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.Version": "{STABLE_BUILD_GIT_TAG}",
-        "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.Commit": "{STABLE_BUILD_GIT_COMMIT}",
-        "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd.BuildTime": "{BUILD_TIME}",
+        "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd.Version": "{STABLE_BUILD_GIT_TAG}",
+        "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd.Commit": "{STABLE_BUILD_GIT_COMMIT}",
+        "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd.BuildTime": "{BUILD_TIME}",
     }
     go_binary(
         name = name,
