@@ -14,7 +14,7 @@ go_library(
     name = "prototool",
     srcs = [
         "defaulting.go",
-        "extra_methods.go",
+        "prototool.extra_methods.go",
         "prototool.pb.go",
         "prototool.pb.validate.go",
     ],
