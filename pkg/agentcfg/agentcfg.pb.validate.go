@@ -136,6 +136,49 @@ func (m *ManifestProjectCF) Validate() error {
 
 	}
 
+	if v, ok := interface{}(m.GetReconcileTimeout()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ManifestProjectCFValidationError{
+				field:  "ReconcileTimeout",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if _, ok := _ManifestProjectCF_DryRunStrategy_InLookup[m.GetDryRunStrategy()]; !ok {
+		return ManifestProjectCFValidationError{
+			field:  "DryRunStrategy",
+			reason: "value must be in list [ none client server]",
+		}
+	}
+
+	// no validation rules for NoPrune
+
+	if v, ok := interface{}(m.GetPruneTimeout()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ManifestProjectCFValidationError{
+				field:  "PruneTimeout",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if _, ok := _ManifestProjectCF_PrunePropagationPolicy_InLookup[m.GetPrunePropagationPolicy()]; !ok {
+		return ManifestProjectCFValidationError{
+			field:  "PrunePropagationPolicy",
+			reason: "value must be in list [ orphan background foreground]",
+		}
+	}
+
+	if _, ok := _ManifestProjectCF_InventoryPolicy_InLookup[m.GetInventoryPolicy()]; !ok {
+		return ManifestProjectCFValidationError{
+			field:  "InventoryPolicy",
+			reason: "value must be in list [ must_match adopt_if_no_inventory adopt_all]",
+		}
+	}
+
 	return nil
 }
 
@@ -194,6 +237,27 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = ManifestProjectCFValidationError{}
+
+var _ManifestProjectCF_DryRunStrategy_InLookup = map[string]struct{}{
+	"":       {},
+	"none":   {},
+	"client": {},
+	"server": {},
+}
+
+var _ManifestProjectCF_PrunePropagationPolicy_InLookup = map[string]struct{}{
+	"":           {},
+	"orphan":     {},
+	"background": {},
+	"foreground": {},
+}
+
+var _ManifestProjectCF_InventoryPolicy_InLookup = map[string]struct{}{
+	"":                      {},
+	"must_match":            {},
+	"adopt_if_no_inventory": {},
+	"adopt_all":             {},
+}
 
 // Validate checks the field values on GitopsCF with the rules defined in the
 // proto definition for this message. If any rules are violated, an error is returned.
