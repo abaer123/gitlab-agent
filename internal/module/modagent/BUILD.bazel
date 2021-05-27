@@ -3,7 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "modagent",
     srcs = ["api.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modagent",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/modshared",

@@ -8,7 +8,7 @@ go_library(
         "client.go",
         "server.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/wstunnel",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/wstunnel",
     visibility = ["//:__subpackages__"],
     deps = ["@io_nhooyr_websocket//:websocket"],
 )

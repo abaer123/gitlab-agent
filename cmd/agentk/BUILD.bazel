@@ -4,7 +4,7 @@ load("//cmd:cmd.bzl", "define_command_targets")
 go_library(
     name = "agentk_lib",
     srcs = ["main.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/agentk",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd/agentk",
     visibility = ["//visibility:private"],
     deps = [
         "//cmd",

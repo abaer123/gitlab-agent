@@ -12,7 +12,7 @@ go_proto_generate(
 go_library(
     name = "automata",
     srcs = ["automata.pb.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool/automata",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool/automata",
     visibility = ["//:__subpackages__"],
     deps = [
         "@com_github_golang_protobuf//protoc-gen-go/descriptor",

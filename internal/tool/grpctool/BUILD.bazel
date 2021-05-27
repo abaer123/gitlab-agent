@@ -35,7 +35,7 @@ go_library(
         "token_creds.go",
         "tools.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/grpctool",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",

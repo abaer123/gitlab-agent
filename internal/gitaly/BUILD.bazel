@@ -12,7 +12,7 @@ go_library(
         "pool.go",
         "reference_discovery.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitaly",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitaly",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",

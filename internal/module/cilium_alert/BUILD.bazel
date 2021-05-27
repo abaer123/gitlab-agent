@@ -1,15 +1,8 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
-    name = "cilium_agent",
-    srcs = ["api.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/cilium_agent",
-    visibility = ["//:__subpackages__"],
-)
-
-go_library(
     name = "cilium_alert",
     srcs = ["api.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/cilium_alert",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/cilium_alert",
     visibility = ["//:__subpackages__"],
 )

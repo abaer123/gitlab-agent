@@ -9,7 +9,7 @@ go_library(
         "module.go",
         "poll_job.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/agent_configuration/server",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration/server",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",

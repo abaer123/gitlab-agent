@@ -10,7 +10,7 @@ go_library(
         "logz.go",
         "module_runner.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/cmd/agentk/agentkapp",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd/agentk/agentkapp",
     visibility = ["//visibility:public"],
     deps = [
         "//cmd",

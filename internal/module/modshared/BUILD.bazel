@@ -12,7 +12,7 @@ go_library(
         "api.go",
         "modshared.pb.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/modshared",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared",
     visibility = ["//:__subpackages__"],
     deps = [
         "@com_gitlab_gitlab_org_labkit//errortracking",

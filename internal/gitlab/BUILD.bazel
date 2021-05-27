@@ -11,7 +11,7 @@ go_library(
         "response_handlers.go",
         "types.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/gitlab",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",

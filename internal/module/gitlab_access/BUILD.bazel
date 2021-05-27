@@ -3,6 +3,6 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "gitlab_access",
     srcs = ["api.go"],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/gitlab_access",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitlab_access",
     visibility = ["//:__subpackages__"],
 )

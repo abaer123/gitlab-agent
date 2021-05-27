@@ -15,7 +15,7 @@ go_library(
         "rpc.pb.go",
         "rpc_grpc.pb.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/kubernetes_api/rpc",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api/rpc",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/tool/grpctool",

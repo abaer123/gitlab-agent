@@ -6,7 +6,7 @@ go_library(
         "api.go",
         "doc.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_usage_metrics",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_usage_metrics",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/module/usage_metrics",

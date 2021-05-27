@@ -8,7 +8,7 @@ go_library(
         "mock_api.go",
         "testing_helpers.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/tool/testing/mock_modserver",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_modserver",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/api",

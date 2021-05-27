@@ -9,7 +9,7 @@ go_library(
         "module.go",
         "proxy.go",
     ],
-    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/internal/module/kubernetes_api/server",
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api/server",
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/gitlab",
