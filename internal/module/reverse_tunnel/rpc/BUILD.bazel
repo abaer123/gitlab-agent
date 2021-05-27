@@ -17,7 +17,7 @@ go_grpc_generate(
 go_library(
     name = "rpc",
     srcs = [
-        "extra_methods.go",
+        "rpc.extra_methods.go",
         "rpc.pb.go",
         "rpc.pb.validate.go",
         "rpc_grpc.pb.go",
