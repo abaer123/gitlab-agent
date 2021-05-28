@@ -8,7 +8,7 @@ go_library(
     deps = [
         "//internal/module/modshared",
         "//pkg/agentcfg",
-        "@io_k8s_cli_runtime//pkg/genericclioptions",
+        "@io_k8s_kubectl//pkg/cmd/util",
         "@org_golang_google_grpc//:grpc",
         "@org_uber_go_zap//:zap",
     ],

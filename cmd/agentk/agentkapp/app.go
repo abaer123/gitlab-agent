@@ -42,6 +42,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp" // Install the GCP auth plugin
 	"k8s.io/klog/v2"
+	"k8s.io/kubectl/pkg/cmd/util"
 	"nhooyr.io/websocket"
 )
 
@@ -142,6 +143,7 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 	if err != nil {
 		return nil, err
 	}
+	k8sFactory := util.NewFactory(a.K8sClientGetter)
 	fTracker := newFeatureTracker(a.Log)
 	accessClient := gitlab_access_rpc.NewGitlabAccessClient(kasConn)
 	factories := []modagent.Factory{
@@ -168,10 +170,10 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 				responseVisitor: sv,
 				featureTracker:  fTracker,
 			},
-			K8sClientGetter: a.K8sClientGetter,
-			KasConn:         kasConn,
-			Server:          internalServer,
-			AgentName:       agentName,
+			K8sUtilFactory: k8sFactory,
+			KasConn:        kasConn,
+			Server:         internalServer,
+			AgentName:      agentName,
 		})
 		if err != nil {
 			return nil, err
