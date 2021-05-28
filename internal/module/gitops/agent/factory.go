@@ -7,7 +7,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
-	"k8s.io/kubectl/pkg/cmd/util"
 	"sigs.k8s.io/cli-utils/pkg/provider"
 )
 
@@ -29,15 +28,14 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
-	factory := util.NewFactory(config.K8sClientGetter)
 	return &module{
 		log: config.Log,
 		workerFactory: &defaultGitopsWorkerFactory{
 			log: config.Log,
 			applierFactory: &defaultApplierFactory{
-				provider: provider.NewProvider(factory),
+				provider: provider.NewProvider(config.K8sUtilFactory),
 			},
-			k8sUtilFactory: factory,
+			k8sUtilFactory: config.K8sUtilFactory,
 			gitopsClient:   rpc.NewGitopsClient(config.KasConn),
 			watchBackoffFactory: retry.NewExponentialBackoffFactory(
 				getObjectsToSynchronizeInitBackoff,

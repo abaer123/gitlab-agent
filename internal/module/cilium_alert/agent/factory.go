@@ -25,7 +25,7 @@ type Factory struct {
 }
 
 func (f *Factory) New(cfg *modagent.Config) (modagent.Module, error) {
-	restConfig, err := cfg.K8sClientGetter.ToRESTConfig()
+	restConfig, err := cfg.K8sUtilFactory.ToRESTConfig()
 	if err != nil {
 		return nil, err
 	}
