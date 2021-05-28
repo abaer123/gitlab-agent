@@ -5,13 +5,11 @@ import (
 	"context"
 	"fmt"
 	"hash/fnv"
-	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"go.uber.org/zap"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/resource"
@@ -27,6 +25,7 @@ type synchronizerConfig struct {
 	agentId        int64
 	project        *agentcfg.ManifestProjectCF
 	k8sUtilFactory util.Factory
+	applyOptions   apply.Options
 }
 
 type synchronizer struct {
@@ -54,7 +53,7 @@ func (s *synchronizer) setDesiredState(ctx context.Context, state rpc.ObjectsToS
 
 func (s *synchronizer) run(ctx context.Context) {
 	jobs := make(chan syncJob)
-	sw := newSyncWorker(s.log, s.applier)
+	sw := newSyncWorker(s.log, s.applier, s.applyOptions)
 	var wg wait.Group
 	defer wg.Wait()   // Wait for sw to exit
 	defer close(jobs) // Close jobs to signal sw there is no more work to be done
@@ -90,21 +89,6 @@ func (s *synchronizer) run(ctx context.Context) {
 				commitId: state.CommitId,
 				invInfo:  s.inventoryInfo(),
 				objects:  objs,
-				opts: apply.Options{
-					ServerSideOptions: common.ServerSideOptions{
-						ServerSideApply: true,
-						ForceConflicts:  false, // want to fail on conflicts - just out of caution TODO make configurable?
-						FieldManager:    "agentk",
-					},
-					ReconcileTimeout:       time.Hour, // TODO make configurable?
-					PollInterval:           0,         // use default value
-					EmitStatusEvents:       true,
-					NoPrune:                false,
-					DryRunStrategy:         common.DryRunNone,
-					PrunePropagationPolicy: metav1.DeletePropagationBackground, // TODO make configurable?
-					PruneTimeout:           time.Hour,                          // TODO make configurable?
-					InventoryPolicy:        inventory.InventoryPolicyMustMatch, // TODO make configurable
-				},
 			}
 			newJob.ctx, jobCancel = context.WithCancel(context.Background()) // nolint: govet
 			jobsCh = jobs                                                    // Enable select case
