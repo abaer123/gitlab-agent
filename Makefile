@@ -181,7 +181,7 @@ kas:
 show-go-dependency-updates:
 	go list \
 		-tags "${GO_BUILD_TAGS}" \
-		-u -f '{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}}: {{.Version}} -> {{.Update.Version}}{{end}}' -m all 2> /dev/null
+		-u -f '{{if (and (not (or .Main .Indirect)) .Update)}}{{.Path}}: {{.Version}} -> {{.Update.Version}}{{end}}' -m all
 
 .PHONY: delete-generated-files
 delete-generated-files:
