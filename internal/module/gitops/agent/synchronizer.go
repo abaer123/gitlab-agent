@@ -79,7 +79,12 @@ func (s *synchronizer) run(ctx context.Context) {
 		case state := <-s.desiredState:
 			objs, err := s.decodeObjectsToSynchronize(state.Sources)
 			if err != nil {
-				s.log.Warn("Failed to decode GitOps objects", zap.Error(err), logz.CommitId(state.CommitId))
+				s.log.Error("Failed to decode GitOps objects", zap.Error(err), logz.CommitId(state.CommitId))
+				continue
+			}
+			invObj, objs, err := s.splitObjects(objs)
+			if err != nil {
+				s.log.Error("Failed to locate inventory object in GitOps objects", zap.Error(err), logz.CommitId(state.CommitId))
 				continue
 			}
 			if jobCancel != nil {
@@ -87,7 +92,7 @@ func (s *synchronizer) run(ctx context.Context) {
 			}
 			newJob = syncJob{
 				commitId: state.CommitId,
-				invInfo:  s.inventoryInfo(),
+				invInfo:  inventory.WrapInventoryInfoObj(invObj),
 				objects:  objs,
 			}
 			newJob.ctx, jobCancel = context.WithCancel(context.Background()) // nolint: govet
@@ -129,9 +134,30 @@ func (s *synchronizer) decodeObjectsToSynchronize(sources []rpc.ObjectSource) ([
 	}
 	return res, nil
 }
-func (s *synchronizer) inventoryInfo() inventory.InventoryInfo {
+
+func (s *synchronizer) splitObjects(objs []*unstructured.Unstructured) (*unstructured.Unstructured, []*unstructured.Unstructured, error) {
+	invs := make([]*unstructured.Unstructured, 0, 1)
+	resources := make([]*unstructured.Unstructured, 0, len(objs))
+	for _, obj := range objs {
+		if inventory.IsInventoryObject(obj) {
+			invs = append(invs, obj)
+		} else {
+			resources = append(resources, obj)
+		}
+	}
+	switch len(invs) {
+	case 0:
+		return s.defaultInventoryObjTemplate(), resources, nil
+	case 1:
+		return invs[0], resources, nil
+	default:
+		return nil, nil, fmt.Errorf("expecting zero or one inventory object, found %d", len(invs))
+	}
+}
+
+func (s *synchronizer) defaultInventoryObjTemplate() *unstructured.Unstructured {
 	id := inventoryId(s.agentId, s.project.Id)
-	return inventory.WrapInventoryInfoObj(&unstructured.Unstructured{
+	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "v1",
 			"kind":       "ConfigMap",
@@ -143,7 +169,7 @@ func (s *synchronizer) inventoryInfo() inventory.InventoryInfo {
 				},
 			},
 		},
-	})
+	}
 }
 
 func inventoryId(agentId int64, projectId string) string {

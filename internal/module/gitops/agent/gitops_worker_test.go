@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/matcher"
@@ -18,6 +19,7 @@ import (
 	cmdtesting "k8s.io/kubectl/pkg/cmd/testing"
 	"sigs.k8s.io/cli-utils/pkg/apply"
 	"sigs.k8s.io/cli-utils/pkg/apply/event"
+	"sigs.k8s.io/cli-utils/pkg/common"
 	"sigs.k8s.io/cli-utils/pkg/inventory"
 )
 
@@ -62,7 +64,7 @@ func TestRunHappyPathNoObjects(t *testing.T) {
 	w.Run(ctx)
 }
 
-func TestRunHappyPath(t *testing.T) {
+func TestRunHappyPath_NoInventoryTemplate(t *testing.T) {
 	w, applier, watcher := setupWorker(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -97,6 +99,46 @@ func TestRunHappyPath(t *testing.T) {
 		applier.EXPECT().
 			Run(gomock.Any(), gomock.Any(), matcher.K8sObjectEq(t, objs), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
+				assert.Equal(t, w.project.DefaultNamespace, invInfo.Namespace())
+				cancel() // all good, stop run()
+				c := make(chan event.Event)
+				close(c)
+				return c
+			}),
+	)
+	w.Run(ctx)
+}
+
+func TestRunHappyPath_InventoryTemplate(t *testing.T) {
+	w, applier, watcher := setupWorker(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	req := &rpc.ObjectsToSynchronizeRequest{
+		ProjectId: projectId,
+		Paths:     w.project.Paths,
+	}
+	inv := invObject("some_id", "some_ns")
+	objs := []*unstructured.Unstructured{kube_testing.ToUnstructured(t, testMap1())}
+	gomock.InOrder(
+		watcher.EXPECT().
+			Watch(gomock.Any(), matcher.ProtoEq(t, req), gomock.Any()).
+			Do(func(ctx context.Context, req *rpc.ObjectsToSynchronizeRequest, callback rpc.ObjectsToSynchronizeCallback) {
+				callback(ctx, rpc.ObjectsToSynchronizeData{
+					CommitId: revision,
+					Sources: []rpc.ObjectSource{
+						{
+							Name: "obj1.yaml",
+							Data: kube_testing.ObjsToYAML(t, objs[0], inv),
+						},
+					},
+				})
+				<-ctx.Done()
+			}),
+		applier.EXPECT().
+			Run(gomock.Any(), gomock.Any(), matcher.K8sObjectEq(t, objs), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
+				assert.Equal(t, "some_ns", invInfo.Namespace())
+				assert.Equal(t, "inventory-some_id", invInfo.Name())
 				cancel() // all good, stop run()
 				c := make(chan event.Event)
 				close(c)
@@ -247,6 +289,22 @@ func testNs1() *corev1.Namespace {
 			Name: "ns1",
 			Annotations: map[string]string{
 				"k3": "v3",
+			},
+		},
+	}
+}
+
+func invObject(id, namespace string) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "v1",
+			"kind":       "ConfigMap",
+			"metadata": map[string]interface{}{
+				"name":      "inventory-" + id,
+				"namespace": namespace,
+				"labels": map[string]interface{}{
+					common.InventoryLabel: id,
+				},
 			},
 		},
 	}
