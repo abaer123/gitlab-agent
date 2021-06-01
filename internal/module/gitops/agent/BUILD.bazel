@@ -68,6 +68,7 @@ go_custom_test(
         "@io_k8s_kubectl//pkg/cmd/testing",
         "@io_k8s_sigs_cli_utils//pkg/apply",
         "@io_k8s_sigs_cli_utils//pkg/apply/event",
+        "@io_k8s_sigs_cli_utils//pkg/common",
         "@io_k8s_sigs_cli_utils//pkg/inventory",
         "@org_golang_google_protobuf//proto",
         "@org_uber_go_zap//zaptest",
