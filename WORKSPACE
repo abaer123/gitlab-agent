@@ -1,7 +1,7 @@
 workspace(name = "gitlab_k8s_agent")
 
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive", "http_file")
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 # When updating rules_go make sure to update org_golang_x_tools dependency below by copying it from
 # https://github.com/bazelbuild/rules_go/blob/master/go/private/repositories.bzl
@@ -77,6 +77,13 @@ http_archive(
         "https://mirror.bazel.build/github.com/bazelbuild/rules_pkg/releases/download/0.4.0/rules_pkg-0.4.0.tar.gz",
         "https://github.com/bazelbuild/rules_pkg/releases/download/0.4.0/rules_pkg-0.4.0.tar.gz",
     ],
+)
+
+git_repository(
+    name = "bazelruby_rules_ruby",
+    commit = "b738b9885f3fba30cbbb6fc05f23ae7a78a4ca84",
+    remote = "https://github.com/bazelruby/rules_ruby.git",
+    shallow_since = "1619209813 -0700",
 )
 
 http_archive(
@@ -255,6 +262,10 @@ rules_proto_toolchains()
 rules_proto_grpc_toolchains()
 
 rules_proto_grpc_go_repos()
+
+load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")
+
+grpc_deps()
 
 pgv_third_party()
 
