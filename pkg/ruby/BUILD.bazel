@@ -22,26 +22,26 @@ copy_to_workspace(
     name = "extract_modshared_pb",
     file_to_copy = "modshared_pb.rb",
     label = ":lib_proto",
-    workspace_relative_target_directory = "ruby/lib/internal/module/modshared",
+    workspace_relative_target_directory = "pkg/ruby/lib/internal/module/modshared",
 )
 
 copy_to_workspace(
     name = "extract_agent_tracker_pb",
     file_to_copy = "agent_tracker_pb.rb",
     label = ":lib_proto",
-    workspace_relative_target_directory = "ruby/lib/internal/module/agent_tracker",
+    workspace_relative_target_directory = "pkg/ruby/lib/internal/module/agent_tracker",
 )
 
 copy_to_workspace(
     name = "extract_agent_tracker_rpc_pb",
     file_to_copy = "rpc_pb.rb",
     label = ":lib_grpc",
-    workspace_relative_target_directory = "ruby/lib/internal/module/agent_tracker/rpc",
+    workspace_relative_target_directory = "pkg/ruby/lib/internal/module/agent_tracker/rpc",
 )
 
 copy_to_workspace(
     name = "extract_agent_tracker_rpc_services_pb",
     file_to_copy = "rpc_services_pb.rb",
     label = ":lib_grpc",
-    workspace_relative_target_directory = "ruby/lib/internal/module/agent_tracker/rpc",
+    workspace_relative_target_directory = "pkg/ruby/lib/internal/module/agent_tracker/rpc",
 )

@@ -56,10 +56,10 @@ multirun(
         "//internal/tool/redistool:extract_generated",
         "//pkg/agentcfg:extract_generated",
         "//pkg/kascfg:extract_generated",
-        "//ruby:extract_modshared_pb",
-        "//ruby:extract_agent_tracker_pb",
-        "//ruby:extract_agent_tracker_rpc_pb",
-        "//ruby:extract_agent_tracker_rpc_services_pb",
+        "//pkg/ruby:extract_modshared_pb",
+        "//pkg/ruby:extract_agent_tracker_pb",
+        "//pkg/ruby:extract_agent_tracker_rpc_pb",
+        "//pkg/ruby:extract_agent_tracker_rpc_services_pb",
     ],
 )
 
