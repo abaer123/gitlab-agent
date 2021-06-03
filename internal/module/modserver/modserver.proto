@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+// If you make any changes make sure you run: make regenerate-proto
+
+package gitlab.agent.modserver;
+
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver";
+
+// Copy of Gitaly https://gitlab.com/gitlab-org/gitaly/-/blob/55cb537898bce04e5e44be074a4d3d441e1f62b6/proto/shared.proto#L25
+// Was copied to avoid exposing Gitaly type in the API and forcing the consumer to have a dependency on Gitaly.
+message Repository {
+  // DEPRECATED: https://gitlab.com/gitlab-org/gitaly/issues/151
+  reserved 1;
+  reserved "path";
+
+  string storage_name = 2;
+  string relative_path = 3;
+  // Sets the GIT_OBJECT_DIRECTORY envvar on git commands to the value of this field.
+  // It influences the object storage directory the SHA1 directories are created underneath.
+  string git_object_directory = 4;
+  // Sets the GIT_ALTERNATE_OBJECT_DIRECTORIES envvar on git commands to the values of this field.
+  // It influences the list of Git object directories which can be used to search for Git objects.
+  repeated string git_alternate_object_directories = 5;
+  // Used in callbacks to GitLab so that it knows what repository the event is
+  // associated with. May be left empty on RPC's that do not perform callbacks.
+  // During project creation, `gl_repository` may not be known.
+  string gl_repository = 6;
+  reserved 7;
+  // The human-readable GitLab project path (e.g. gitlab-org/gitlab-ce).
+  // When hashed storage is use, this associates a project path with its
+  // path on disk. The name can change over time (e.g. when a project is
+  // renamed). This is primarily used for logging/debugging at the
+  // moment.
+  string gl_project_path = 8;
+}
+
+message GitalyAddress {
+  string address = 1;
+  string token = 2;
+}

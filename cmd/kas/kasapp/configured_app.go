@@ -25,6 +25,7 @@ import (
 	agent_configuration_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker"
 	agent_tracker_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker/server"
+	configuration_project_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/configuration_project/server"
 	gitlab_access_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitlab_access/server"
 	gitops_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/server"
 	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/google_profiler/server"
@@ -193,6 +194,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		&agent_configuration_server.Factory{
 			AgentRegisterer: agentTracker,
 		},
+		&configuration_project_server.Factory{},
 		&gitops_server.Factory{},
 		&usage_metrics_server.Factory{
 			UsageTracker: usageTracker,
