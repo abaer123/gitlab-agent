@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitaly"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
@@ -38,13 +39,13 @@ var (
 	_ modserver.Module             = &module{}
 	_ modserver.Factory            = &Factory{}
 	_ modserver.ApplyDefaults      = ApplyDefaults
-	_ rpc.AgentConfigurationServer = &module{}
+	_ rpc.AgentConfigurationServer = &server{}
 )
 
 func TestGetConfiguration_HappyPath(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	m, agentInfo, ctrl, gitalyPool, _ := setupModule(t)
+	m, agentInfo, ctrl, gitalyPool, _ := setupServer(t)
 	configFile := sampleConfig()
 	resp := mock_rpc.NewMockAgentConfiguration_GetConfigurationServer(ctrl)
 	resp.EXPECT().
@@ -68,7 +69,7 @@ func TestGetConfiguration_HappyPath(t *testing.T) {
 		}))
 	p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 	pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
-	configFileName := agentConfigurationDirectory + "/" + agentInfo.Name + "/" + agentConfigurationFileName
+	configFileName := agent_configuration.Directory + "/" + agentInfo.Name + "/" + agent_configuration.FileName
 	gomock.InOrder(
 		gitalyPool.EXPECT().
 			Poller(gomock.Any(), &agentInfo.GitalyInfo).
@@ -95,7 +96,7 @@ func TestGetConfiguration_HappyPath(t *testing.T) {
 func TestGetConfiguration_ResumeConnection(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	m, agentInfo, ctrl, gitalyPool, _ := setupModule(t)
+	m, agentInfo, ctrl, gitalyPool, _ := setupServer(t)
 	resp := mock_rpc.NewMockAgentConfiguration_GetConfigurationServer(ctrl)
 	resp.EXPECT().
 		Context().
@@ -130,7 +131,7 @@ func TestGetConfiguration_UserErrors(t *testing.T) {
 		t.Run(gitalyErr.(*gitaly.Error).Code.String(), func(t *testing.T) { // nolint: errorlint
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			m, agentInfo, ctrl, gitalyPool, mockApi := setupModule(t)
+			m, agentInfo, ctrl, gitalyPool, mockApi := setupServer(t)
 			resp := mock_rpc.NewMockAgentConfiguration_GetConfigurationServer(ctrl)
 			resp.EXPECT().
 				Context().
@@ -138,7 +139,7 @@ func TestGetConfiguration_UserErrors(t *testing.T) {
 				MinTimes(1)
 			p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 			pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
-			configFileName := agentConfigurationDirectory + "/" + agentInfo.Name + "/" + agentConfigurationFileName
+			configFileName := agent_configuration.Directory + "/" + agentInfo.Name + "/" + agent_configuration.FileName
 			gomock.InOrder(
 				gitalyPool.EXPECT().
 					Poller(gomock.Any(), &agentInfo.GitalyInfo).
@@ -168,12 +169,12 @@ func TestGetConfiguration_UserErrors(t *testing.T) {
 	}
 }
 
-func setupModule(t *testing.T) (*module, *api.AgentInfo, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_modserver.MockAPI) { // nolint: unparam
+func setupServer(t *testing.T) (*server, *api.AgentInfo, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_modserver.MockAPI) { // nolint: unparam
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver.NewMockAPIWithMockPoller(ctrl, 1)
 	gitalyPool := mock_internalgitaly.NewMockPoolInterface(ctrl)
 	agentTracker := mock_agent_tracker.NewMockTracker(ctrl)
-	m := &module{
+	s := &server{
 		api:                        mockApi,
 		agentRegisterer:            agentTracker,
 		gitaly:                     gitalyPool,
@@ -196,7 +197,7 @@ func setupModule(t *testing.T) (*module, *api.AgentInfo, *gomock.Controller, *mo
 	)
 	agentTracker.EXPECT().
 		UnregisterConnection(gomock.Any(), connMatcher)
-	return m, agentInfo, ctrl, gitalyPool, mockApi
+	return s, agentInfo, ctrl, gitalyPool, mockApi
 }
 
 func configToBytes(t *testing.T, configFile *agentcfg.ConfigurationFile) []byte {
