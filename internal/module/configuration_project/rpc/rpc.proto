@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+// If you make any changes make sure you run: make regenerate-proto
+
+package gitlab.agent.configuration_project.rpc;
+
+option go_package = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/configuration_project/rpc";
+
+//import "github.com/envoyproxy/protoc-gen-validate/blob/master/validate/validate.proto";
+import "validate/validate.proto";
+import "internal/module/modserver/modserver.proto";
+
+message ListAgentConfigFilesRequest {
+  modserver.Repository repository = 1 [(validate.rules).message.required = true];
+  modserver.GitalyAddress gitaly_address = 2 [(validate.rules).message.required = true];
+}
+
+message ListAgentConfigFilesResponse {
+  repeated AgentConfigFile config_files = 1;
+}
+
+message AgentConfigFile {
+  string name = 1;
+  string agent_name = 2;
+}
+
+service ConfigurationProject {
+  rpc ListAgentConfigFiles (ListAgentConfigFilesRequest) returns (ListAgentConfigFilesResponse) {
+  }
+}

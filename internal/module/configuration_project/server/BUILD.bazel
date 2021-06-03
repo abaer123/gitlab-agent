@@ -1,0 +1,51 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//build:build.bzl", "go_custom_test")
+
+go_library(
+    name = "server",
+    srcs = [
+        "factory.go",
+        "module.go",
+        "server.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/configuration_project/server",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/api",
+        "//internal/gitaly",
+        "//internal/module/agent_configuration",
+        "//internal/module/configuration_project",
+        "//internal/module/configuration_project/rpc",
+        "//internal/module/modserver",
+        "//internal/tool/grpctool",
+        "//internal/tool/logz",
+        "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+    ],
+)
+
+go_custom_test(
+    name = "server_test",
+    srcs = ["server_test.go"],
+    embed = [":server"],
+    deps = [
+        "//internal/api",
+        "//internal/gitaly",
+        "//internal/gitlab",
+        "//internal/gitlab/api",
+        "//internal/module/configuration_project/rpc",
+        "//internal/module/modserver",
+        "//internal/tool/filez",
+        "//internal/tool/grpctool",
+        "@com_github_google_go_cmp//cmp",
+        "@com_github_google_go_cmp//cmp/cmpopts",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+        "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_protobuf//encoding/protojson",
+        "@org_golang_google_protobuf//testing/protocmp",
+        "@org_uber_go_zap//zaptest",
+    ],
+)

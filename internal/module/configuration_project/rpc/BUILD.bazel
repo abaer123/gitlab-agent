@@ -1,0 +1,32 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//build:proto.bzl", "go_grpc_generate")
+
+go_grpc_generate(
+    src = "rpc.proto",
+    workspace_relative_target_directory = "internal/module/configuration_project/rpc",
+    deps = [
+        "//internal/module/modserver:proto",
+        "@com_github_envoyproxy_protoc_gen_validate//validate:validate_proto",
+    ],
+)
+
+go_library(
+    name = "rpc",
+    srcs = [
+        "rpc.pb.go",
+        "rpc.pb.validate.go",
+        "rpc_grpc.pb.go",
+    ],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/configuration_project/rpc",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/module/modserver",
+        "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+        "@org_golang_google_protobuf//types/known/anypb",
+    ],
+)

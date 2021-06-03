@@ -3,7 +3,6 @@ package kasapp
 import (
 	"context"
 	"crypto/tls"
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -26,6 +25,7 @@ import (
 	agent_configuration_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker"
 	agent_tracker_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker/server"
+	configuration_project_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/configuration_project/server"
 	gitlab_access_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitlab_access/server"
 	gitops_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/server"
 	google_profiler_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/google_profiler/server"
@@ -39,6 +39,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics"
 	usage_metrics_server "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics/server"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/filez"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/metric"
@@ -193,6 +194,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		&agent_configuration_server.Factory{
 			AgentRegisterer: agentTracker,
 		},
+		&configuration_project_server.Factory{},
 		&gitops_server.Factory{},
 		&usage_metrics_server.Factory{
 			UsageTracker: usageTracker,
@@ -283,7 +285,7 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, tun
 		return nopKasRouter{}, nil
 	}
 	listenCfg := a.Configuration.PrivateApi.Listen
-	jwtSecret, err := ioutil.ReadFile(listenCfg.AuthenticationSecretFile)
+	jwtSecret, err := filez.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
 	if err != nil {
 		return nil, fmt.Errorf("auth secret file: %v", err)
 	}
@@ -469,7 +471,7 @@ func (a *ConfiguredApp) constructApiServer(interceptorsCtx context.Context, trac
 		return grpc.NewServer(), nil
 	}
 	listenCfg := a.Configuration.Api.Listen
-	jwtSecret, err := ioutil.ReadFile(listenCfg.AuthenticationSecretFile)
+	jwtSecret, err := filez.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
 	if err != nil {
 		return nil, fmt.Errorf("auth secret file: %v", err)
 	}
@@ -532,7 +534,7 @@ func (a *ConfiguredApp) constructPrivateApiServer(interceptorsCtx context.Contex
 		return grpc.NewServer(), nil
 	}
 	listenCfg := a.Configuration.PrivateApi.Listen
-	jwtSecret, err := ioutil.ReadFile(listenCfg.AuthenticationSecretFile)
+	jwtSecret, err := filez.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
 	if err != nil {
 		return nil, fmt.Errorf("auth secret file: %v", err)
 	}
@@ -674,19 +676,13 @@ func (a *ConfiguredApp) constructErrorTracker() (errortracking.Tracker, error) {
 	return tracker, nil
 }
 
-func (a *ConfiguredApp) loadAuthSecret() ([]byte, error) {
-	encodedAuthSecret, err := ioutil.ReadFile(a.Configuration.Gitlab.AuthenticationSecretFile) // nolint: gosec
+func (a *ConfiguredApp) loadGitLabClientAuthSecret() ([]byte, error) {
+	decodedAuthSecret, err := filez.LoadBase64Secret(a.Configuration.Gitlab.AuthenticationSecretFile)
 	if err != nil {
 		return nil, fmt.Errorf("read file: %v", err)
 	}
-	decodedAuthSecret := make([]byte, authSecretLength)
-
-	n, err := base64.StdEncoding.Decode(decodedAuthSecret, encodedAuthSecret)
-	if err != nil {
-		return nil, fmt.Errorf("decoding: %v", err)
-	}
-	if n != authSecretLength {
-		return nil, fmt.Errorf("decoding: expecting %d bytes, was %d", authSecretLength, n)
+	if len(decodedAuthSecret) != authSecretLength {
+		return nil, fmt.Errorf("decoding: expecting %d bytes, was %d", authSecretLength, len(decodedAuthSecret))
 	}
 	return decodedAuthSecret, nil
 }
@@ -704,7 +700,7 @@ func (a *ConfiguredApp) constructGitLabClient(tracer opentracing.Tracer) (*gitla
 		return nil, err
 	}
 	// Secret for JWT signing
-	decodedAuthSecret, err := a.loadAuthSecret()
+	decodedAuthSecret, err := a.loadGitLabClientAuthSecret()
 	if err != nil {
 		return nil, fmt.Errorf("authentication secret: %v", err)
 	}

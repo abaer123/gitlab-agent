@@ -24,7 +24,7 @@ type Factory struct {
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	agent := config.Config.Agent
-	m := &module{
+	rpc.RegisterAgentConfigurationServer(config.AgentServer, &server{
 		api:                      config.Api,
 		gitaly:                   config.Gitaly,
 		agentRegisterer:          f.AgentRegisterer,
@@ -38,9 +38,8 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 		),
 		getConfigurationPollPeriod: agent.Configuration.PollPeriod.AsDuration(),
 		maxConnectionAge:           agent.Listen.MaxConnectionAge.AsDuration(),
-	}
-	rpc.RegisterAgentConfigurationServer(config.AgentServer, m)
-	return m, nil
+	})
+	return &module{}, nil
 }
 
 func (f *Factory) Name() string {

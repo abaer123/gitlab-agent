@@ -1,3 +1,4 @@
+load(":copy_helper.bzl", "copy_grpc_files")
 load("//build:build.bzl", "copy_to_workspace")
 load("@rules_proto_grpc//ruby:defs.bzl", "ruby_grpc_compile", "ruby_proto_compile")
 
@@ -5,15 +6,24 @@ ruby_proto_compile(
     name = "lib_proto",
     protos = [
         "//internal/module/agent_tracker:proto",
+        "//internal/module/modserver:proto",
         "//internal/module/modshared:proto",
     ],
     tags = ["manual"],
 )
 
 ruby_grpc_compile(
-    name = "lib_grpc",
+    name = "agent_tracker_grpc",
     protos = [
         "//internal/module/agent_tracker/rpc:proto",
+    ],
+    tags = ["manual"],
+)
+
+ruby_grpc_compile(
+    name = "configuration_project_grpc",
+    protos = [
+        "//internal/module/configuration_project/rpc:proto",
     ],
     tags = ["manual"],
 )
@@ -26,22 +36,25 @@ copy_to_workspace(
 )
 
 copy_to_workspace(
+    name = "extract_modserver_pb",
+    file_to_copy = "modserver_pb.rb",
+    label = ":lib_proto",
+    workspace_relative_target_directory = "pkg/ruby/lib/internal/module/modserver",
+)
+
+copy_to_workspace(
     name = "extract_agent_tracker_pb",
     file_to_copy = "agent_tracker_pb.rb",
     label = ":lib_proto",
     workspace_relative_target_directory = "pkg/ruby/lib/internal/module/agent_tracker",
 )
 
-copy_to_workspace(
-    name = "extract_agent_tracker_rpc_pb",
-    file_to_copy = "rpc_pb.rb",
-    label = ":lib_grpc",
-    workspace_relative_target_directory = "pkg/ruby/lib/internal/module/agent_tracker/rpc",
+copy_grpc_files(
+    label = ":agent_tracker_grpc",
+    module_name = "agent_tracker",
 )
 
-copy_to_workspace(
-    name = "extract_agent_tracker_rpc_services_pb",
-    file_to_copy = "rpc_services_pb.rb",
-    label = ":lib_grpc",
-    workspace_relative_target_directory = "pkg/ruby/lib/internal/module/agent_tracker/rpc",
+copy_grpc_files(
+    label = ":configuration_project_grpc",
+    module_name = "configuration_project",
 )

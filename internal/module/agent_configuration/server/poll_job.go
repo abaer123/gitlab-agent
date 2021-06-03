@@ -9,6 +9,7 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitaly"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
@@ -21,11 +22,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"sigs.k8s.io/yaml"
-)
-
-const (
-	agentConfigurationDirectory = ".gitlab/agents"
-	agentConfigurationFileName  = "config.yaml"
 )
 
 type pollJob struct {
@@ -108,7 +104,7 @@ func (j *pollJob) fetchConfiguration(ctx context.Context, agentInfo *api.AgentIn
 	if err != nil {
 		return nil, fmt.Errorf("PathFetcher: %w", err) // wrap
 	}
-	filename := path.Join(agentConfigurationDirectory, agentInfo.Name, agentConfigurationFileName)
+	filename := path.Join(agent_configuration.Directory, agentInfo.Name, agent_configuration.FileName)
 	configYAML, err := pf.FetchFile(ctx, &agentInfo.Repository, []byte(revision), []byte(filename), j.maxConfigurationFileSize)
 	if err != nil {
 		switch gitaly.ErrorCodeFromError(err) { // nolint:exhaustive

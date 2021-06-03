@@ -1,8 +1,17 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//build:proto.bzl", "go_proto_generate")
+
+go_proto_generate(
+    src = "modserver.proto",
+    workspace_relative_target_directory = "internal/module/modserver",
+)
 
 go_library(
     name = "modserver",
-    srcs = ["api.go"],
+    srcs = [
+        "api.go",
+        "modserver.pb.go",
+    ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver",
     visibility = ["//:__subpackages__"],
     deps = [
@@ -16,6 +25,8 @@ go_library(
         "@com_github_prometheus_client_golang//prometheus",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//metadata",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
         "@org_uber_go_zap//:zap",
     ],
 )
