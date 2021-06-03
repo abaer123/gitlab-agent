@@ -8,6 +8,7 @@ go_library(
         "factory.go",
         "module.go",
         "poll_job.go",
+        "server.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration/server",
     visibility = ["//:__subpackages__"],
@@ -38,13 +39,14 @@ go_library(
 go_custom_test(
     name = "server_test",
     srcs = [
-        "module_test.go",
         "poll_job_test.go",
+        "server_test.go",
     ],
     embed = [":server"],
     deps = [
         "//internal/api",
         "//internal/gitaly",
+        "//internal/module/agent_configuration",
         "//internal/module/agent_configuration/rpc",
         "//internal/module/agent_tracker",
         "//internal/module/modserver",

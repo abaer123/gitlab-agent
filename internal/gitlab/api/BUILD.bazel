@@ -1,0 +1,26 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("//build:build.bzl", "go_custom_test")
+
+go_library(
+    name = "api",
+    srcs = ["get_agent_info.go"],
+    importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/api",
+        "//internal/gitlab",
+    ],
+)
+
+go_custom_test(
+    name = "api_test",
+    srcs = ["get_agent_info_test.go"],
+    embed = [":api"],
+    deps = [
+        "//internal/gitlab",
+        "//internal/tool/testing/mock_gitlab",
+        "//internal/tool/testing/testhelpers",
+        "@com_github_stretchr_testify//assert",
+        "@com_github_stretchr_testify//require",
+    ],
+)
