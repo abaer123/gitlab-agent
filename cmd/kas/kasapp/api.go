@@ -8,6 +8,7 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab"
+	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
@@ -21,8 +22,6 @@ import (
 
 const (
 	maxConnectionAgeJitterPercent = 5
-
-	agentInfoApiPath = "/api/v4/internal/kubernetes/agent_info"
 )
 
 type apiConfig struct {
@@ -112,7 +111,7 @@ func (a *serverAPI) logAndCapture(ctx context.Context, log *zap.Logger, msg stri
 
 func (a *serverAPI) getAgentInfoCached(ctx context.Context, agentToken api.AgentToken) (*api.AgentInfo, error) {
 	if a.cfg.AgentInfoCacheTtl == 0 {
-		return a.getAgentInfoDirect(ctx, agentToken)
+		return gapi.GetAgentInfo(ctx, a.cfg.GitLabClient, agentToken)
 	}
 	a.agentInfoCache.EvictExpiredEntries()
 	entry := a.agentInfoCache.GetOrCreateCacheEntry(agentToken)
@@ -122,7 +121,7 @@ func (a *serverAPI) getAgentInfoCached(ctx context.Context, agentToken api.Agent
 	defer entry.Unlock()
 	var item agentInfoCacheItem
 	if entry.IsNeedRefreshLocked() {
-		item.agentInfo, item.err = a.getAgentInfoDirect(ctx, agentToken)
+		item.agentInfo, item.err = gapi.GetAgentInfo(ctx, a.cfg.GitLabClient, agentToken)
 		var ttl time.Duration
 		if item.err == nil {
 			ttl = a.cfg.AgentInfoCacheTtl
@@ -137,38 +136,10 @@ func (a *serverAPI) getAgentInfoCached(ctx context.Context, agentToken api.Agent
 	return item.agentInfo, item.err
 }
 
-func (a *serverAPI) getAgentInfoDirect(ctx context.Context, agentToken api.AgentToken) (*api.AgentInfo, error) {
-	response := getAgentInfoResponse{}
-	err := a.cfg.GitLabClient.Do(ctx,
-		gitlab.WithPath(agentInfoApiPath),
-		gitlab.WithAgentToken(agentToken),
-		gitlab.WithJWT(true),
-		gitlab.WithResponseHandler(gitlab.JsonResponseHandler(&response)),
-	)
-	if err != nil {
-		return nil, err
-	}
-	return &api.AgentInfo{
-		Id:         response.AgentId,
-		ProjectId:  response.ProjectId,
-		Name:       response.AgentName,
-		GitalyInfo: response.GitalyInfo.ToGitalyInfo(),
-		Repository: response.GitalyRepository.ToProtoRepository(),
-	}, nil
-}
-
 // agentInfoCacheItem holds cached information about an agent.
 type agentInfoCacheItem struct {
 	agentInfo *api.AgentInfo
 	err       error
-}
-
-type getAgentInfoResponse struct {
-	ProjectId        int64                   `json:"project_id"`
-	AgentId          int64                   `json:"agent_id"`
-	AgentName        string                  `json:"agent_name"`
-	GitalyInfo       gitlab.GitalyInfo       `json:"gitaly_info"`
-	GitalyRepository gitlab.GitalyRepository `json:"gitaly_repository"`
 }
 
 func minDuration(a, b time.Duration) time.Duration {

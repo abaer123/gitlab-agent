@@ -7,8 +7,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_errtracker"
@@ -51,55 +50,12 @@ func TestGetAgentInfoFailures_InternalServerError(t *testing.T) {
 	assert.Nil(t, info)
 }
 
-func TestGetAgentInfo(t *testing.T) {
-	ctx, correlationId := testhelpers.CtxWithCorrelation(t)
-	response := getAgentInfoResponse{
-		ProjectId: 234,
-		AgentId:   555,
-		AgentName: "agent-x",
-		GitalyInfo: gitlab.GitalyInfo{
-			Address: "example.com",
-			Token:   "123123",
-			Features: map[string]string{
-				"a": "b",
-			},
-		},
-		GitalyRepository: gitlab.GitalyRepository{
-			StorageName:   "234",
-			RelativePath:  "123",
-			GlRepository:  "254634",
-			GlProjectPath: "64662",
-		},
-	}
-	l := zaptest.NewLogger(t)
-	ctrl := gomock.NewController(t)
-	gitLabClient := mock_gitlab.SetupClient(t, agentInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
-		testhelpers.AssertGetJsonRequestIsCorrect(t, r, correlationId)
-		testhelpers.RespondWithJSON(t, w, response)
-	})
-	apiObj := newAPI(apiConfig{
-		GitLabClient:           gitLabClient,
-		ErrorTracker:           mock_errtracker.NewMockTracker(ctrl),
-		AgentInfoCacheTtl:      0, // no cache!
-		AgentInfoCacheErrorTtl: 0,
-	})
-	agentInfo, err := apiObj.GetAgentInfo(ctx, l, testhelpers.AgentkToken)
-	require.NoError(t, err)
-
-	assert.Equal(t, response.ProjectId, agentInfo.ProjectId)
-	assert.Equal(t, response.AgentId, agentInfo.Id)
-	assert.Equal(t, response.AgentName, agentInfo.Name)
-
-	mock_gitlab.AssertGitalyInfo(t, response.GitalyInfo, agentInfo.GitalyInfo)
-	mock_gitlab.AssertGitalyRepository(t, response.GitalyRepository, agentInfo.Repository)
-}
-
 func setupApi(t *testing.T, statusCode int) (context.Context, *zap.Logger, *mock_errtracker.MockTracker, *serverAPI) {
 	log := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
 	errTracker := mock_errtracker.NewMockTracker(ctrl)
 	ctx, correlationId := testhelpers.CtxWithCorrelation(t)
-	gitLabClient := mock_gitlab.SetupClient(t, agentInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
+	gitLabClient := mock_gitlab.SetupClient(t, api.AgentInfoApiPath, func(w http.ResponseWriter, r *http.Request) {
 		testhelpers.AssertGetJsonRequestIsCorrect(t, r, correlationId)
 		w.WriteHeader(statusCode)
 	})
