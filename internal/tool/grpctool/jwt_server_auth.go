@@ -13,9 +13,15 @@ import (
 )
 
 type JWTAuther struct {
-	Secret   []byte
-	Audience string
-	Issuer   string
+	jwtParser *jwt.Parser
+	secret    []byte
+}
+
+func NewJWTAuther(secret []byte, opts ...jwt.ParserOption) *JWTAuther {
+	return &JWTAuther{
+		jwtParser: jwt.NewParser(opts...),
+		secret:    secret,
+	}
 }
 
 // UnaryServerInterceptor returns a new unary server interceptors that performs per-request JWT auth.
@@ -39,16 +45,12 @@ func (a *JWTAuther) doAuth(ctx context.Context) error {
 	if err != nil {
 		return err // returns gRPC status error
 	}
-	opts := []jwt.ParserOption{jwt.WithAudience(a.Audience)}
-	if a.Issuer != "" {
-		opts = append(opts, jwt.WithIssuer(a.Issuer))
-	}
-	_, err = jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+	_, err = a.jwtParser.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return a.Secret, nil
-	}, opts...)
+		return a.secret, nil
+	})
 	if err != nil {
 		LoggerFromContext(ctx).Debug("JWT auth failed", zap.Error(err))
 		return status.Error(codes.Unauthenticated, "JWT validation failed")

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ash2k/stager"
+	"github.com/dgrijalva/jwt-go/v4"
 	"github.com/go-redis/redis/v8"
 	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
@@ -476,10 +477,7 @@ func (a *ConfiguredApp) constructApiServer(interceptorsCtx context.Context, trac
 		return nil, fmt.Errorf("auth secret file: %v", err)
 	}
 
-	jwtAuther := grpctool.JWTAuther{
-		Secret:   jwtSecret,
-		Audience: kasName,
-	}
+	jwtAuther := grpctool.NewJWTAuther(jwtSecret, jwt.WithAudience(kasName))
 
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
@@ -539,11 +537,7 @@ func (a *ConfiguredApp) constructPrivateApiServer(interceptorsCtx context.Contex
 		return nil, fmt.Errorf("auth secret file: %v", err)
 	}
 
-	jwtAuther := grpctool.JWTAuther{
-		Secret:   jwtSecret,
-		Audience: kasName,
-		Issuer:   kasName,
-	}
+	jwtAuther := grpctool.NewJWTAuther(jwtSecret, jwt.WithAudience(kasName), jwt.WithIssuer(kasName))
 
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
