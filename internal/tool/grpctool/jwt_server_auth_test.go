@@ -129,14 +129,11 @@ func TestJWTServerAuth(t *testing.T) {
 	})
 }
 
-func setupAuther() grpctool.JWTAuther {
-	return grpctool.JWTAuther{
-		Secret:   secret,
-		Audience: jwtAudience,
-	}
+func setupAuther() *grpctool.JWTAuther {
+	return grpctool.NewJWTAuther(secret, jwt.WithAudience(jwtAudience))
 }
 
-func assertValidationFailed(t *testing.T, signedClaims string, jwtAuther grpctool.JWTAuther) {
+func assertValidationFailed(t *testing.T, signedClaims string, jwtAuther *grpctool.JWTAuther) {
 	unaryInfo := &grpc.UnaryServerInfo{
 		FullMethod: "bla",
 	}

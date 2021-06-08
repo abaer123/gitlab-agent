@@ -69,6 +69,7 @@ go_library(
         "//internal/tool/wstunnel",
         "//pkg/kascfg",
         "@com_github_ash2k_stager//:stager",
+        "@com_github_dgrijalva_jwt_go_v4//:jwt-go",
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
         "@com_github_go_logr_zapr//:zapr",
         "@com_github_go_redis_redis_v8//:redis",
