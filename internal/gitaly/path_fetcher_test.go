@@ -93,38 +93,7 @@ func TestPathFetcher_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestPathFetcher_StreamFile_NotFoundMessage(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	commitClient := mock_gitaly.NewMockCommitServiceClient(ctrl)
-	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(ctrl)
-	mockVisitor := mock_internalgitaly.NewMockFileVisitor(ctrl)
-	r := repo()
-	req := &gitalypb.TreeEntryRequest{
-		Repository: r,
-		Revision:   []byte(revision),
-		Path:       []byte(repoPath),
-		MaxSize:    fileMaxSize,
-	}
-	resp := &gitalypb.TreeEntryResponse{}
-	gomock.InOrder(
-		commitClient.EXPECT().
-			TreeEntry(gomock.Any(), matcher.ProtoEq(t, req)).
-			Return(treeEntryClient, nil),
-		treeEntryClient.EXPECT().
-			Recv().
-			Return(resp, nil),
-		treeEntryClient.EXPECT().
-			Recv().
-			Return(nil, io.EOF),
-	)
-	v := gitaly.PathFetcher{
-		Client: commitClient,
-	}
-	err := v.StreamFile(context.Background(), r, []byte(revision), []byte(repoPath), fileMaxSize, mockVisitor)
-	require.EqualError(t, err, "FileNotFound: TreeEntry.Recv: file/directory/ref not found: dir")
-}
-
-func TestPathFetcher_StreamFile_NotFoundCode(t *testing.T) {
+func TestPathFetcher_StreamFile_NotFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	commitClient := mock_gitaly.NewMockCommitServiceClient(ctrl)
 	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(ctrl)
