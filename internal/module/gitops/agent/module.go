@@ -16,6 +16,7 @@ const (
 	defaultGitOpsManifestNamespace = metav1.NamespaceDefault
 	defaultGitOpsManifestPathGlob  = "**/*.{yaml,yml,json}"
 	defaultDryRunStrategy          = dryRunStrategyNone
+	defaultPrune                   = true
 	defaultPruneTimeout            = time.Hour
 	defaultReconcileTimeout        = time.Hour
 	defaultPrunePropagationPolicy  = prunePropagationPolicyForeground
@@ -68,6 +69,9 @@ func applyDefaultsToManifestProject(project *agentcfg.ManifestProjectCF) error {
 	prototool.String(&project.DryRunStrategy, defaultDryRunStrategy)
 	if _, ok := dryRunStrategyMapping[project.DryRunStrategy]; !ok {
 		return fmt.Errorf("invalid dry-run strategy: %q", project.DryRunStrategy)
+	}
+	if project.PruneOneof == nil {
+		project.PruneOneof = &agentcfg.ManifestProjectCF_Prune{Prune: defaultPrune}
 	}
 	prototool.Duration(&project.PruneTimeout, defaultPruneTimeout)
 	prototool.String(&project.PrunePropagationPolicy, defaultPrunePropagationPolicy)

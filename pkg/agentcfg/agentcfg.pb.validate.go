@@ -153,8 +153,6 @@ func (m *ManifestProjectCF) Validate() error {
 		}
 	}
 
-	// no validation rules for NoPrune
-
 	if v, ok := interface{}(m.GetPruneTimeout()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return ManifestProjectCFValidationError{
@@ -177,6 +175,13 @@ func (m *ManifestProjectCF) Validate() error {
 			field:  "InventoryPolicy",
 			reason: "value must be in list [ must_match adopt_if_no_inventory adopt_all]",
 		}
+	}
+
+	switch m.PruneOneof.(type) {
+
+	case *ManifestProjectCF_Prune:
+		// no validation rules for Prune
+
 	}
 
 	return nil
