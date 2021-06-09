@@ -156,7 +156,7 @@ func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.Manife
 				ReconcileTimeout:       project.ReconcileTimeout.AsDuration(),
 				PollInterval:           0, // use default value
 				EmitStatusEvents:       true,
-				NoPrune:                project.NoPrune,
+				NoPrune:                !project.GetPrune(),
 				DryRunStrategy:         f.mapDryRunStrategy(project.DryRunStrategy),
 				PrunePropagationPolicy: f.mapPrunePropagationPolicy(project.PrunePropagationPolicy),
 				PruneTimeout:           project.PruneTimeout.AsDuration(),

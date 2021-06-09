@@ -41,9 +41,12 @@ message ManifestProjectCF {
   // or if it is just talk and no action.
   // https://github.com/kubernetes-sigs/cli-utils/blob/d6968048dcd80b1c7b55d9e4f31fc25f71c9b490/pkg/common/common.go#L68-L89
   string dry_run_strategy = 7 [json_name = "dry_run_strategy", (validate.rules).string = {in: ["", "none", "client", "server"]}];
-  // No prune defines whether pruning of previously applied
-  // objects should happen after apply.
-  bool no_prune = 8 [json_name = "no_prune"];
+  // TODO drop oneof and make prune field optional when https://github.com/envoyproxy/protoc-gen-validate/issues/431 is resolved.
+  oneof prune_oneof {
+    // Prune defines whether pruning of previously applied
+    // objects should happen after apply.
+    bool prune = 8 [json_name = "prune"];
+  }
   // Prune timeout defines whether we should wait for all resources
   // to be fully deleted after pruning, and if so, how long we should
   // wait.
