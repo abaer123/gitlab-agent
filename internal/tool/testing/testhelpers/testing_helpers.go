@@ -125,7 +125,7 @@ func AgentInfoObj() *api.AgentInfo {
 				"bla": "true",
 			},
 		},
-		Repository: gitalypb.Repository{
+		Repository: &gitalypb.Repository{
 			StorageName:        "StorageName",
 			RelativePath:       "RelativePath",
 			GitObjectDirectory: "GitObjectDirectory",

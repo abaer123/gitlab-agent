@@ -27,11 +27,11 @@ type AgentInfo struct {
 	// Can contain only /a-z\d-/
 	Name       string
 	GitalyInfo GitalyInfo
-	Repository gitalypb.Repository
+	Repository *gitalypb.Repository
 }
 
 type ProjectInfo struct {
 	ProjectId  int64
 	GitalyInfo GitalyInfo
-	Repository gitalypb.Repository
+	Repository *gitalypb.Repository
 }

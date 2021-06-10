@@ -21,8 +21,9 @@ type ObjectSource struct {
 }
 
 type ObjectsToSynchronizeData struct {
-	CommitId string
-	Sources  []ObjectSource
+	CommitId  string
+	ProjectId int64
+	Sources   []ObjectSource
 }
 
 type ObjectsToSynchronizeCallback func(context.Context, ObjectsToSynchronizeData)
@@ -86,6 +87,7 @@ type objectsToSynchronizeVisitor struct {
 
 func (v *objectsToSynchronizeVisitor) OnHeader(header *ObjectsToSynchronizeResponse_Header) error {
 	v.objs.CommitId = header.CommitId
+	v.objs.ProjectId = header.ProjectId
 	return nil
 }
 

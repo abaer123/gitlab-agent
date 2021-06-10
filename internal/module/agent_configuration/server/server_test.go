@@ -75,7 +75,7 @@ func TestGetConfiguration_HappyPath(t *testing.T) {
 			Poller(gomock.Any(), &agentInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), &agentInfo.Repository, "", gitaly.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", gitaly.DefaultBranch).
 			Return(&gitaly.PollInfo{
 				UpdateAvailable: true,
 				CommitId:        revision,
@@ -84,7 +84,7 @@ func TestGetConfiguration_HappyPath(t *testing.T) {
 			PathFetcher(gomock.Any(), &agentInfo.GitalyInfo).
 			Return(pf, nil),
 		pf.EXPECT().
-			FetchFile(gomock.Any(), &agentInfo.Repository, []byte(revision), []byte(configFileName), int64(maxConfigurationFileSize)).
+			FetchFile(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), []byte(revision), []byte(configFileName), int64(maxConfigurationFileSize)).
 			Return(configToBytes(t, configFile), nil),
 	)
 	err := m.GetConfiguration(&rpc.ConfigurationRequest{
@@ -108,7 +108,7 @@ func TestGetConfiguration_ResumeConnection(t *testing.T) {
 			Poller(gomock.Any(), &agentInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), &agentInfo.Repository, revision, gitaly.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), revision, gitaly.DefaultBranch).
 			Return(&gitaly.PollInfo{
 				UpdateAvailable: false,
 				CommitId:        revision,
@@ -145,7 +145,7 @@ func TestGetConfiguration_UserErrors(t *testing.T) {
 					Poller(gomock.Any(), &agentInfo.GitalyInfo).
 					Return(p, nil),
 				p.EXPECT().
-					Poll(gomock.Any(), &agentInfo.Repository, "", gitaly.DefaultBranch).
+					Poll(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), "", gitaly.DefaultBranch).
 					Return(&gitaly.PollInfo{
 						UpdateAvailable: true,
 						CommitId:        revision,
@@ -154,7 +154,7 @@ func TestGetConfiguration_UserErrors(t *testing.T) {
 					PathFetcher(gomock.Any(), &agentInfo.GitalyInfo).
 					Return(pf, nil),
 				pf.EXPECT().
-					FetchFile(gomock.Any(), &agentInfo.Repository, []byte(revision), []byte(configFileName), int64(maxConfigurationFileSize)).
+					FetchFile(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), []byte(revision), []byte(configFileName), int64(maxConfigurationFileSize)).
 					Return(nil, gitalyErr), // nolint: scopelint
 				mockApi.EXPECT().
 					HandleProcessingError(gomock.Any(), gomock.Any(), "Config: failed to fetch",
