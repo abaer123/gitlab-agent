@@ -58,7 +58,7 @@ func (j *pollJob) Attempt() (error, retry.AttemptResult) {
 		j.api.HandleProcessingError(j.ctx, log, "Config: Poller", err)
 		return nil, retry.Backoff
 	}
-	info, err := p.Poll(j.ctx, &agentInfo.Repository, j.lastProcessedCommitId, gitaly.DefaultBranch)
+	info, err := p.Poll(j.ctx, agentInfo.Repository, j.lastProcessedCommitId, gitaly.DefaultBranch)
 	if err != nil {
 		j.api.HandleProcessingError(j.ctx, log, "Config: repository poll failed", err)
 		return nil, retry.Backoff
@@ -105,7 +105,7 @@ func (j *pollJob) fetchConfiguration(ctx context.Context, agentInfo *api.AgentIn
 		return nil, fmt.Errorf("PathFetcher: %w", err) // wrap
 	}
 	filename := path.Join(agent_configuration.Directory, agentInfo.Name, agent_configuration.FileName)
-	configYAML, err := pf.FetchFile(ctx, &agentInfo.Repository, []byte(revision), []byte(filename), j.maxConfigurationFileSize)
+	configYAML, err := pf.FetchFile(ctx, agentInfo.Repository, []byte(revision), []byte(filename), j.maxConfigurationFileSize)
 	if err != nil {
 		switch gitaly.ErrorCodeFromError(err) { // nolint:exhaustive
 		case gitaly.NotFound, gitaly.FileTooBig, gitaly.UnexpectedTreeEntryType:

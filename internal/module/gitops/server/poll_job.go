@@ -16,7 +16,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
-	"gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -67,7 +66,7 @@ func (j *pollJob) Attempt() (error, retry.AttemptResult) {
 		j.api.HandleProcessingError(ctx, j.log, "GitOps: Poller", err)
 		return nil, retry.Backoff
 	}
-	info, err := p.Poll(ctx, &projectInfo.Repository, j.req.CommitId, revision)
+	info, err := p.Poll(ctx, projectInfo.Repository, j.req.CommitId, revision)
 	if err != nil {
 		j.api.HandleProcessingError(ctx, j.log, "GitOps: repository poll failed", err)
 		return nil, retry.Backoff
@@ -81,11 +80,11 @@ func (j *pollJob) Attempt() (error, retry.AttemptResult) {
 	}
 	log := j.log.With(logz.CommitId(info.CommitId))
 	log.Info("GitOps: new commit")
-	err = j.sendObjectsToSynchronizeHeader(log, info.CommitId)
+	err = j.sendObjectsToSynchronizeHeader(log, info.CommitId, projectInfo.ProjectId)
 	if err != nil {
 		return err, retry.Done // no wrap
 	}
-	filesVisited, filesSent, err := j.sendObjectsToSynchronizeBody(log, j.req, &projectInfo.Repository, &projectInfo.GitalyInfo, info.CommitId)
+	filesVisited, filesSent, err := j.sendObjectsToSynchronizeBody(log, j.req, projectInfo, info.CommitId)
 	if err != nil {
 		return err, retry.Done // no wrap
 	}
@@ -109,11 +108,12 @@ func (j *pollJob) trackPollInterval() {
 	j.lastPoll = now
 }
 
-func (j *pollJob) sendObjectsToSynchronizeHeader(log *zap.Logger, commitId string) error {
+func (j *pollJob) sendObjectsToSynchronizeHeader(log *zap.Logger, commitId string, projectId int64) error {
 	err := j.server.Send(&rpc.ObjectsToSynchronizeResponse{
 		Message: &rpc.ObjectsToSynchronizeResponse_Header_{
 			Header: &rpc.ObjectsToSynchronizeResponse_Header{
-				CommitId: commitId,
+				CommitId:  commitId,
+				ProjectId: projectId,
 			},
 		},
 	})
@@ -126,12 +126,11 @@ func (j *pollJob) sendObjectsToSynchronizeHeader(log *zap.Logger, commitId strin
 func (j *pollJob) sendObjectsToSynchronizeBody(
 	log *zap.Logger,
 	req *rpc.ObjectsToSynchronizeRequest,
-	repo *gitalypb.Repository,
-	gitalyInfo *api.GitalyInfo,
+	projectInfo *api.ProjectInfo,
 	commitId string,
 ) (uint32 /* files visited */, uint32 /* files sent */, error) {
 	ctx := j.server.Context()
-	pf, err := j.gitalyPool.PathFetcher(ctx, gitalyInfo)
+	pf, err := j.gitalyPool.PathFetcher(ctx, &projectInfo.GitalyInfo)
 	if err != nil {
 		j.api.HandleProcessingError(ctx, log, "GitOps: PathFetcher", err)
 		return 0, 0, status.Error(codes.Unavailable, "GitOps: PathFetcher")
@@ -151,7 +150,7 @@ func (j *pollJob) sendObjectsToSynchronizeBody(
 		globNoSlash := strings.TrimPrefix(p.Glob, "/") // original glob without the leading slash
 		repoPath, recursive := globToGitaly(globNoSlash)
 		vGlob.Glob = globNoSlash // set new glob for each path
-		err = pf.Visit(ctx, repo, []byte(commitId), repoPath, recursive, vCounting)
+		err = pf.Visit(ctx, projectInfo.Repository, []byte(commitId), repoPath, recursive, vCounting)
 		if err != nil {
 			if v.sendFailed {
 				return vCounting.FilesVisited, vCounting.FilesSent, j.api.HandleSendError(log, "GitOps: failed to send objects to synchronize", err)

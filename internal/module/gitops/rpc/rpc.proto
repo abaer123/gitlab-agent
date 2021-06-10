@@ -31,6 +31,8 @@ message ObjectsToSynchronizeResponse {
     // Commit id of the manifest repository.
     // Can be used to resume connection from where it dropped.
     string commit_id = 1 [(validate.rules).string.min_len = 1];
+    // Numeric project id of the manifest repository.
+    int64 project_id = 2;
   }
   // Subsequent messages of the stream.
   message Object {

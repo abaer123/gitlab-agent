@@ -111,7 +111,8 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
 				Message: &rpc.ObjectsToSynchronizeResponse_Header_{
 					Header: &rpc.ObjectsToSynchronizeResponse_Header{
-						CommitId: revision,
+						CommitId:  revision,
+						ProjectId: projInfo.ProjectId,
 					},
 				},
 			})),
@@ -150,7 +151,7 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 			Poller(gomock.Any(), &projInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), &projInfo.Repository, "", gitaly.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", gitaly.DefaultBranch).
 			Return(&gitaly.PollInfo{
 				UpdateAvailable: true,
 				CommitId:        revision,
@@ -159,7 +160,7 @@ func TestGetObjectsToSynchronize_HappyPath(t *testing.T) {
 			PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
 			Return(pf, nil),
 		pf.EXPECT().
-			Visit(gomock.Any(), &projInfo.Repository, []byte(revision), []byte("."), true, gomock.Any()).
+			Visit(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), []byte(revision), []byte("."), true, gomock.Any()).
 			Do(func(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, recursive bool, visitor gitaly.FetchVisitor) {
 				download, maxSize, err := visitor.Entry(&gitalypb.TreeEntry{
 					Path:      []byte("manifest.yaml"),
@@ -205,7 +206,8 @@ func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
 			Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
 				Message: &rpc.ObjectsToSynchronizeResponse_Header_{
 					Header: &rpc.ObjectsToSynchronizeResponse_Header{
-						CommitId: revision,
+						CommitId:  revision,
+						ProjectId: projInfo.ProjectId,
 					},
 				},
 			})),
@@ -235,7 +237,7 @@ func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
 			Poller(gomock.Any(), &projInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), &projInfo.Repository, "", gitaly.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", gitaly.DefaultBranch).
 			Return(&gitaly.PollInfo{
 				UpdateAvailable: true,
 				CommitId:        revision,
@@ -244,7 +246,7 @@ func TestGetObjectsToSynchronize_HappyPath_Glob(t *testing.T) {
 			PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
 			Return(pf, nil),
 		pf.EXPECT().
-			Visit(gomock.Any(), &projInfo.Repository, []byte(revision), []byte("path"), false, gomock.Any()).
+			Visit(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), []byte(revision), []byte("path"), false, gomock.Any()).
 			Do(func(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, recursive bool, visitor gitaly.FetchVisitor) {
 				download, maxSize, err := visitor.Entry(&gitalypb.TreeEntry{
 					Path:      []byte("path/manifest.yaml"),
@@ -285,7 +287,7 @@ func TestGetObjectsToSynchronize_ResumeConnection(t *testing.T) {
 			Poller(gomock.Any(), &projInfo.GitalyInfo).
 			Return(p, nil),
 		p.EXPECT().
-			Poll(gomock.Any(), &projInfo.Repository, revision, gitaly.DefaultBranch).
+			Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), revision, gitaly.DefaultBranch).
 			DoAndReturn(func(ctx context.Context, repo *gitalypb.Repository, lastProcessedCommitId, refName string) (*gitaly.PollInfo, error) {
 				cancel() // stop the test
 				return &gitaly.PollInfo{
@@ -345,7 +347,8 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 				Send(matcher.ProtoEq(t, &rpc.ObjectsToSynchronizeResponse{
 					Message: &rpc.ObjectsToSynchronizeResponse_Header_{
 						Header: &rpc.ObjectsToSynchronizeResponse_Header{
-							CommitId: revision,
+							CommitId:  revision,
+							ProjectId: projInfo.ProjectId,
 						},
 					},
 				}))
@@ -360,7 +363,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 					Poller(gomock.Any(), &projInfo.GitalyInfo).
 					Return(p, nil),
 				p.EXPECT().
-					Poll(gomock.Any(), &projInfo.Repository, "", gitaly.DefaultBranch).
+					Poll(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), "", gitaly.DefaultBranch).
 					Return(&gitaly.PollInfo{
 						UpdateAvailable: true,
 						CommitId:        revision,
@@ -369,7 +372,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 					PathFetcher(gomock.Any(), &projInfo.GitalyInfo).
 					Return(pf, nil),
 				pf.EXPECT().
-					Visit(gomock.Any(), &projInfo.Repository, []byte(revision), []byte("."), true, gomock.Any()).
+					Visit(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), []byte(revision), []byte("."), true, gomock.Any()).
 					Return(tc.err), // nolint: scopelint
 			)
 			err := a.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{

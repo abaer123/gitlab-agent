@@ -261,6 +261,8 @@ func (m *ObjectsToSynchronizeResponse_Header) Validate() error {
 		}
 	}
 
+	// no validation rules for ProjectId
+
 	return nil
 }
 

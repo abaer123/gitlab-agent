@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
-func AssertGitalyRepository(t *testing.T, gitalyRepository gitlab.GitalyRepository, apiGitalyRepository gitalypb.Repository) {
+func AssertGitalyRepository(t *testing.T, gitalyRepository gitlab.GitalyRepository, apiGitalyRepository *gitalypb.Repository) {
 	assert.Equal(t, gitalyRepository.StorageName, apiGitalyRepository.StorageName)
 	assert.Equal(t, gitalyRepository.RelativePath, apiGitalyRepository.RelativePath)
 	assert.Equal(t, gitalyRepository.GlRepository, apiGitalyRepository.GlRepository)

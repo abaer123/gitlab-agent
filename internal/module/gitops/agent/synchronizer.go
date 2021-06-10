@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"hash/fnv"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
@@ -82,7 +81,7 @@ func (s *synchronizer) run(ctx context.Context) {
 				s.log.Error("Failed to decode GitOps objects", zap.Error(err), logz.CommitId(state.CommitId))
 				continue
 			}
-			invObj, objs, err := s.splitObjects(objs)
+			invObj, objs, err := s.splitObjects(state.ProjectId, objs)
 			if err != nil {
 				s.log.Error("Failed to locate inventory object in GitOps objects", zap.Error(err), logz.CommitId(state.CommitId))
 				continue
@@ -135,7 +134,7 @@ func (s *synchronizer) decodeObjectsToSynchronize(sources []rpc.ObjectSource) ([
 	return res, nil
 }
 
-func (s *synchronizer) splitObjects(objs []*unstructured.Unstructured) (*unstructured.Unstructured, []*unstructured.Unstructured, error) {
+func (s *synchronizer) splitObjects(projectId int64, objs []*unstructured.Unstructured) (*unstructured.Unstructured, []*unstructured.Unstructured, error) {
 	invs := make([]*unstructured.Unstructured, 0, 1)
 	resources := make([]*unstructured.Unstructured, 0, len(objs))
 	for _, obj := range objs {
@@ -147,7 +146,7 @@ func (s *synchronizer) splitObjects(objs []*unstructured.Unstructured) (*unstruc
 	}
 	switch len(invs) {
 	case 0:
-		return s.defaultInventoryObjTemplate(), resources, nil
+		return s.defaultInventoryObjTemplate(projectId), resources, nil
 	case 1:
 		return invs[0], resources, nil
 	default:
@@ -155,8 +154,8 @@ func (s *synchronizer) splitObjects(objs []*unstructured.Unstructured) (*unstruc
 	}
 }
 
-func (s *synchronizer) defaultInventoryObjTemplate() *unstructured.Unstructured {
-	id := inventoryId(s.agentId, s.project.Id)
+func (s *synchronizer) defaultInventoryObjTemplate(projectId int64) *unstructured.Unstructured {
+	id := inventoryId(s.agentId, projectId)
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "v1",
@@ -172,8 +171,6 @@ func (s *synchronizer) defaultInventoryObjTemplate() *unstructured.Unstructured 
 	}
 }
 
-func inventoryId(agentId int64, projectId string) string {
-	h := fnv.New128()
-	_, _ = h.Write([]byte(projectId))
-	return fmt.Sprintf("%d-%x", agentId, h.Sum(nil))
+func inventoryId(agentId, projectId int64) string {
+	return fmt.Sprintf("%d-%d", agentId, projectId)
 }

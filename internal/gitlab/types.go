@@ -34,8 +34,8 @@ type GitalyRepository struct {
 	GlProjectPath string `json:"gl_project_path"`
 }
 
-func (r *GitalyRepository) ToProtoRepository() gitalypb.Repository {
-	return gitalypb.Repository{
+func (r *GitalyRepository) ToProtoRepository() *gitalypb.Repository {
+	return &gitalypb.Repository{
 		StorageName:   r.StorageName,
 		RelativePath:  r.RelativePath,
 		GlRepository:  r.GlRepository,
