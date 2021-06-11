@@ -21,7 +21,7 @@ go_library(
         "//internal/tool/tracing",
         "@com_github_dgrijalva_jwt_go_v4//:jwt-go",
         "@com_github_opentracing_opentracing_go//:opentracing-go",
-        "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",
+        "@com_gitlab_gitlab_org_gitaly_v14//proto/go/gitalypb",
         "@com_gitlab_gitlab_org_labkit//correlation",
         "@org_uber_go_zap//:zap",
     ],

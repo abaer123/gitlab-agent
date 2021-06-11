@@ -11,7 +11,7 @@ go_library(
         "//internal/tool/testing/testhelpers",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
-        "@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb",
+        "@com_gitlab_gitlab_org_gitaly_v14//proto/go/gitalypb",
         "@org_uber_go_zap//zaptest",
     ],
 )
