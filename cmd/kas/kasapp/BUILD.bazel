@@ -80,7 +80,7 @@ go_library(
         "@com_github_opentracing_opentracing_go//:opentracing-go",
         "@com_github_prometheus_client_golang//prometheus",
         "@com_github_spf13_pflag//:pflag",
-        "@com_gitlab_gitlab_org_gitaly//client",
+        "@com_gitlab_gitlab_org_gitaly_v14//client",
         "@com_gitlab_gitlab_org_labkit//correlation/grpc",
         "@com_gitlab_gitlab_org_labkit//errortracking",
         "@com_gitlab_gitlab_org_labkit//monitoring",

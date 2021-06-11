@@ -1,6 +1,6 @@
 package api
 
-import "gitlab.com/gitlab-org/gitaly/proto/go/gitalypb"
+import "gitlab.com/gitlab-org/gitaly/v14/proto/go/gitalypb"
 
 // AgentToken is agentk's bearer access token.
 type AgentToken string

@@ -22,7 +22,7 @@ require (
 	github.com/prometheus/client_golang v1.10.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
-	gitlab.com/gitlab-org/gitaly v1.87.1-0.20210422060106-a7bc2f86b507
+	gitlab.com/gitlab-org/gitaly/v14 v14.0.0-rc2.0.20210611102240-262492a22d5b
 	gitlab.com/gitlab-org/labkit v1.4.1
 	go.uber.org/zap v1.17.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c

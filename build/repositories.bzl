@@ -54,8 +54,8 @@ def go_repositories():
         name = "com_github_alexbrainman_sspi",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/alexbrainman/sspi",
-        sum = "h1:Kk6a4nehpJ3UuJRqlA3JxYxBZEqCeOmATOvrbT4p9RA=",
-        version = "v0.0.0-20210105120005-909beea2cc74",
+        sum = "h1:OZQyEhf4BviydsRdmK4ryeJHotDLd7vL1X8+nnxXkfk=",
+        version = "v0.0.0-20180125232955-4729b3d4d858",
     )
     go_repository(
         name = "com_github_alexflint_go_filemutex",
@@ -138,8 +138,8 @@ def go_repositories():
         name = "com_github_avast_retry_go",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/avast/retry-go",
-        sum = "h1:4SOWQ7Qs+oroOTQOYnAHqelpCO0biHSxpiH9JdtuBj0=",
-        version = "v3.0.0+incompatible",
+        sum = "h1:+ZjCypQT/CyP0kyJO2EcU4d/ZEJWSbP8NENI578cPmA=",
+        version = "v2.4.2+incompatible",
     )
     go_repository(
         name = "com_github_aws_aws_lambda_go",
@@ -1658,8 +1658,8 @@ def go_repositories():
         name = "com_github_hashicorp_go_uuid",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/hashicorp/go-uuid",
-        sum = "h1:cfejS+Tpcp13yd5nYHWDI6qVCny6wyX2Mt5SGur2IGE=",
-        version = "v1.0.2",
+        sum = "h1:fv1ep09latC32wFoVwnqcnKJGnMSdBanPczbHAYm1BE=",
+        version = "v1.0.1",
     )
     go_repository(
         name = "com_github_hashicorp_go_version",
@@ -3325,8 +3325,15 @@ def go_repositories():
         name = "com_gitlab_gitlab_org_gitaly",
         build_file_proto_mode = "disable_global",
         importpath = "gitlab.com/gitlab-org/gitaly",
-        sum = "h1:gZvq2JA+GgBn0nzOLs0uo1CiRqhwwdIgtc30Dt3tXK8=",
-        version = "v1.87.1-0.20210422060106-a7bc2f86b507",
+        sum = "h1:VlcJs1+PrhW7lqJUU7Fh1q8FMJujmbbivdfde/cwB98=",
+        version = "v1.68.0",
+    )
+    go_repository(
+        name = "com_gitlab_gitlab_org_gitaly_v14",
+        build_file_proto_mode = "disable_global",
+        importpath = "gitlab.com/gitlab-org/gitaly/v14",
+        sum = "h1:STKGFqet+dU7zeHrZ4CXz+/o4DkRUeKkZnavaCW/xqo=",
+        version = "v14.0.0-rc2.0.20210611102240-262492a22d5b",
     )
     go_repository(
         name = "com_gitlab_gitlab_org_gitlab_shell",
@@ -3423,8 +3430,8 @@ def go_repositories():
         name = "in_gopkg_datadog_dd_trace_go_v1",
         build_file_proto_mode = "disable_global",
         importpath = "gopkg.in/DataDog/dd-trace-go.v1",
-        sum = "h1:yJJrDYzAlUsDPpAVBjv4VFnXKTbgvaJFTX0646xDPi4=",
-        version = "v1.30.0",
+        sum = "h1:ouY+DNlRTckk63TNh468tPWBC21qBZPniVQXQs0iq10=",
+        version = "v1.31.0",
     )
     go_repository(
         name = "in_gopkg_errgo_v2",
@@ -3924,8 +3931,8 @@ def go_repositories():
         name = "org_golang_x_exp",
         build_file_proto_mode = "disable_global",
         importpath = "golang.org/x/exp",
-        sum = "h1:FR+oGxGfbQu1d+jglI3rCkjAjUnhRSZcUxr+DqlDLNo=",
-        version = "v0.0.0-20200331195152-e8c3332aa8e5",
+        sum = "h1:QE6XYQK6naiK1EPAe1g/ILLxN5RBoH5xkJk3CqlMI/Y=",
+        version = "v0.0.0-20200224162631-6cc2880d07d6",
     )
     go_repository(
         name = "org_golang_x_image",

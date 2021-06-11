@@ -8,5 +8,5 @@ go_library(
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api",
     visibility = ["//:__subpackages__"],
-    deps = ["@com_gitlab_gitlab_org_gitaly//proto/go/gitalypb"],
+    deps = ["@com_gitlab_gitlab_org_gitaly_v14//proto/go/gitalypb"],
 )
