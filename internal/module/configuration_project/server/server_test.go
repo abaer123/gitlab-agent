@@ -53,6 +53,9 @@ func TestConfigVisitor(t *testing.T) {
 		{
 			path: ".gitlab/agents/my-agent/",
 		},
+		{
+			path: ".gitlab/agents/-my-agent-with-invalid-name/config.yaml",
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.path, func(t *testing.T) {

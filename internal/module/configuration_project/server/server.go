@@ -17,8 +17,17 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const (
+	// https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/blob/master/doc/identity_and_auth.md#agent-identity-and-name
+	agentNameRegex = `[a-z0-9](?:[-a-z0-9]*[a-z0-9])?`
+)
+
 var (
-	agentConfigFileRegex = regexp.MustCompile(fmt.Sprintf("^%s/([^/]+)/%s$", regexp.QuoteMeta(agent_configuration.Directory), regexp.QuoteMeta(agent_configuration.FileName)))
+	agentConfigFileRegex = regexp.MustCompile(fmt.Sprintf("^%s/(%s)/%s$",
+		regexp.QuoteMeta(agent_configuration.Directory),
+		agentNameRegex,
+		regexp.QuoteMeta(agent_configuration.FileName),
+	))
 )
 
 type server struct {
