@@ -78,7 +78,7 @@ you use `kpt`, but `kpt` makes cloning and updating the package more convenient.
    directory by default.
 
     ```shell
-    echo -n "<agent token>" | base64 > base/secrets/agent.token
+    echo -n "<agent token>" > base/secrets/agent.token
     ```
 
 1. Deploy the stock configuration or your customized overlay:
