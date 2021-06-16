@@ -88,7 +88,7 @@ func (c *GenerateCmd) kustomizeSet(ctx context.Context, setKey, value string) er
 	// Ignoring stdout, piping only stderr
 	cmdctx.Stderr = os.Stderr
 
-	return cmdctx.Run() //nolint:gosec
+	return cmdctx.Run()
 }
 
 func (c *GenerateCmd) kustomizeBuild(ctx context.Context, overlay string) error {

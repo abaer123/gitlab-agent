@@ -7,7 +7,7 @@ import (
 )
 
 func Register(registerer prometheus.Registerer, toRegister ...prometheus.Collector) (func(), error) {
-	var registered []prometheus.Collector
+	registered := make([]prometheus.Collector, 0, len(toRegister))
 	cleanup := func() {
 		for _, c := range registered {
 			registerer.Unregister(c)

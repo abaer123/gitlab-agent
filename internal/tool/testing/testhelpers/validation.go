@@ -23,17 +23,17 @@ type ValidTestcase struct {
 
 func AssertInvalid(t *testing.T, tests []InvalidTestcase) {
 	for _, tc := range tests {
-		t.Run(tc.Name, func(t *testing.T) { // nolint: scopelint
-			err := tc.Invalid.Validate()            // nolint: scopelint
-			assert.EqualError(t, err, tc.ErrString) // nolint: scopelint
+		t.Run(tc.Name, func(t *testing.T) {
+			err := tc.Invalid.Validate()
+			assert.EqualError(t, err, tc.ErrString)
 		})
 	}
 }
 
 func AssertValid(t *testing.T, tests []ValidTestcase) {
 	for _, tc := range tests {
-		t.Run(tc.Name, func(t *testing.T) { // nolint: scopelint
-			assert.NoError(t, tc.Valid.Validate()) // nolint: scopelint
+		t.Run(tc.Name, func(t *testing.T) {
+			assert.NoError(t, tc.Valid.Validate())
 		})
 	}
 }

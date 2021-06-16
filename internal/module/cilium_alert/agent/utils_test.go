@@ -897,7 +897,7 @@ func TestL7DirectMatch(t *testing.T) {
 	}
 	for _, flw := range flws {
 		t.Run(fmt.Sprintf("Test %v", flw.GetTrafficDirection()), func(t *testing.T) {
-			assert.True(t, matchL7Policy(rules, flw)) // nolint: scopelint
+			assert.True(t, matchL7Policy(rules, flw))
 		})
 	}
 }
@@ -935,7 +935,7 @@ func TestL7DirectUnMatch(t *testing.T) {
 
 	for idx, flw := range unmatchFlws() {
 		t.Run(fmt.Sprintf("Test %v", idx), func(t *testing.T) {
-			assert.False(t, matchL7Policy(rules, flw)) // nolint: scopelint
+			assert.False(t, matchL7Policy(rules, flw))
 		})
 	}
 }

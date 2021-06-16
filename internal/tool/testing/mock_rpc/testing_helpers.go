@@ -10,7 +10,7 @@ import (
 
 func InitMockClientStream(ctrl *gomock.Controller, eof bool, msgs ...proto.Message) (*MockClientStream, []*gomock.Call) {
 	stream := NewMockClientStream(ctrl)
-	var res []*gomock.Call
+	res := make([]*gomock.Call, 0, len(msgs)+1)
 	for _, msg := range msgs {
 		call := stream.EXPECT().
 			RecvMsg(gomock.Any()).

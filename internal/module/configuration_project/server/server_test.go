@@ -61,13 +61,13 @@ func TestConfigVisitor(t *testing.T) {
 		t.Run(tc.path, func(t *testing.T) {
 			v := configVisitor{}
 			download, _, err := v.Entry(&gitalypb.TreeEntry{
-				Path: []byte(tc.path), // nolint: scopelint
+				Path: []byte(tc.path),
 			})
 			require.NoError(t, err)
 			assert.False(t, download)
 			var expected []*rpc.AgentConfigFile
-			if tc.file != nil { // nolint: scopelint
-				expected = []*rpc.AgentConfigFile{tc.file} // nolint: scopelint
+			if tc.file != nil {
+				expected = []*rpc.AgentConfigFile{tc.file}
 			}
 			assert.Empty(t, cmp.Diff(v.resp, expected, protocmp.Transform(), cmpopts.EquateEmpty()))
 		})

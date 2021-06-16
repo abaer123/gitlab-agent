@@ -178,7 +178,7 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 			// If we try to write the status again here, http package would log a warning, which is not nice.
 			panic(http.ErrAbortHandler)
 		} else {
-			errF(w) // nolint: errorlint
+			errF(w)
 		}
 	}
 }

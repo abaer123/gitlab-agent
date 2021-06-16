@@ -52,7 +52,7 @@ func (j *pollJob) Attempt() (error, retry.AttemptResult) {
 		j.agentRegisterer.RegisterConnection(j.ctx, j.connectedAgentInfo)
 		j.connectionRegistered = true
 	}
-	log := j.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath)) // nolint:govet
+	log := j.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath))
 	p, err := j.gitaly.Poller(j.ctx, &agentInfo.GitalyInfo)
 	if err != nil {
 		j.api.HandleProcessingError(j.ctx, log, "Config: Poller", err)

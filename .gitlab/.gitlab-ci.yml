@@ -69,8 +69,8 @@ test:
     - if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then make release-latest; fi
 
 lint:
-  # registry.gitlab.com/gitlab-org/gitlab-build-images:golangci-lint-alpine as of 2021-03-02
-  image: registry.gitlab.com/gitlab-org/gitlab-build-images@sha256:6a8a2a5c09668fe9acbf54dbcc4172b836ab9cb21d3644c57d9b64dfd07590ec
+  # registry.gitlab.com/gitlab-org/gitlab-build-images:golangci-lint-alpine as of 2021-06-16
+  image: registry.gitlab.com/gitlab-org/gitlab-build-images@sha256:66e3dbbc387e033d6d9fcda83624cdd7d124b88d5114eb032ff165d9423d15ce
   stage: test
   script:
     # Write the code coverage report to gl-code-quality-report.json

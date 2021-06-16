@@ -69,10 +69,10 @@ func TestGlobToGitaly(t *testing.T) {
 		},
 	}
 	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) { // nolint: scopelint
-			gotRepoPath, gotRecursive := globToGitaly(tc.glob)  // nolint: scopelint
-			assert.Equal(t, tc.expectedRepoPath, gotRepoPath)   // nolint: scopelint
-			assert.Equal(t, tc.expectedRecursive, gotRecursive) // nolint: scopelint
+		t.Run(tc.name, func(t *testing.T) {
+			gotRepoPath, gotRecursive := globToGitaly(tc.glob)
+			assert.Equal(t, tc.expectedRepoPath, gotRepoPath)
+			assert.Equal(t, tc.expectedRecursive, gotRecursive)
 		})
 	}
 }
