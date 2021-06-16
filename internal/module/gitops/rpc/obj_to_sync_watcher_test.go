@@ -171,8 +171,8 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 					GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, req)).
 					Return(stream1, nil),
 			}
-			if tc.eof { // nolint:scopelint
-				for _, streamItem := range tc.stream { // nolint:scopelint
+			if tc.eof {
+				for _, streamItem := range tc.stream {
 					calls = append(calls, stream1.EXPECT().
 						RecvMsg(gomock.Any()).
 						Do(testhelpers.RecvMsg(streamItem)),
@@ -185,15 +185,15 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 						return io.EOF
 					}))
 			} else {
-				for i := 0; i < len(tc.stream)-1; i++ { // nolint:scopelint
-					streamItem := tc.stream[i] // nolint:scopelint
+				for i := 0; i < len(tc.stream)-1; i++ {
+					streamItem := tc.stream[i]
 					calls = append(calls, stream1.EXPECT().
 						RecvMsg(gomock.Any()).
 						Do(testhelpers.RecvMsg(streamItem)),
 					)
 				}
 				calls = append(calls, stream1.EXPECT().RecvMsg(gomock.Any()).Do(func(msg interface{}) {
-					testhelpers.SetValue(msg, tc.stream[len(tc.stream)-1]) // nolint:scopelint
+					testhelpers.SetValue(msg, tc.stream[len(tc.stream)-1])
 					cancel()
 				}))
 			}

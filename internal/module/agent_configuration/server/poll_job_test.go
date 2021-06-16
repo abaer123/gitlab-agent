@@ -37,7 +37,7 @@ func TestEmptyConfig(t *testing.T) {
 func assertEmpty(t *testing.T, data []byte) {
 	config, err := parseYAMLToConfiguration(data)
 	require.NoError(t, err)
-	diff := cmp.Diff(config, &agentcfg.ConfigurationFile{}, protocmp.Transform()) // nolint: scopelint
+	diff := cmp.Diff(config, &agentcfg.ConfigurationFile{}, protocmp.Transform())
 	assert.Empty(t, diff)
 }
 
@@ -78,13 +78,13 @@ func TestYAMLToConfigurationAndBack(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			config, err := parseYAMLToConfiguration([]byte(tc.given)) // nolint: scopelint
+			config, err := parseYAMLToConfiguration([]byte(tc.given))
 			require.NoError(t, err)
 			configJson, err := protojson.Marshal(config)
 			require.NoError(t, err)
 			configYaml, err := yaml.JSONToYAML(configJson)
 			require.NoError(t, err)
-			diff := cmp.Diff(tc.expected, string(configYaml)) // nolint: scopelint
+			diff := cmp.Diff(tc.expected, string(configYaml))
 			assert.Empty(t, diff)
 		})
 	}

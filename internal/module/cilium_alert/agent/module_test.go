@@ -32,12 +32,12 @@ func TestStartsWorkersAccordingToConfiguration(t *testing.T) {
 			wg.Start(func() {
 				assert.NoError(t, m.Run(ctx, cfg))
 			})
-			cfg <- scenario.Agentcfg // nolint: scopelint
+			cfg <- scenario.Agentcfg
 			time.Sleep(2 * time.Second)
 			close(cfg)
 			cancel()
 			wg.Wait()
-			assert.Equal(t, scenario.ErrCount, atomic.LoadInt32(&errorEntryCount)) // nolint: scopelint
+			assert.Equal(t, scenario.ErrCount, atomic.LoadInt32(&errorEntryCount))
 		})
 	}
 }
@@ -55,7 +55,7 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 	})
 	expectedCount := int32(0)
 	for _, scenario := range testScenarios() {
-		cfg <- scenario.Agentcfg // nolint: scopelint
+		cfg <- scenario.Agentcfg
 		time.Sleep(2 * time.Second)
 		expectedCount += scenario.ErrCount
 	}

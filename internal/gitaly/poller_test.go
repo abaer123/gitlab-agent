@@ -108,10 +108,10 @@ func TestPoller(t *testing.T) {
 			p := Poller{
 				Client: httpClient,
 			}
-			pollInfo, err := p.Poll(context.Background(), r, tc.lastProcessedCommit, tc.ref) // nolint: scopelint
+			pollInfo, err := p.Poll(context.Background(), r, tc.lastProcessedCommit, tc.ref)
 			require.NoError(t, err)
-			assert.Equal(t, tc.expectedInfoUpdate, pollInfo.UpdateAvailable) // nolint: scopelint
-			assert.Equal(t, tc.expectedInfoCommit, pollInfo.CommitId)        // nolint: scopelint
+			assert.Equal(t, tc.expectedInfoUpdate, pollInfo.UpdateAvailable)
+			assert.Equal(t, tc.expectedInfoCommit, pollInfo.CommitId)
 		})
 	}
 }

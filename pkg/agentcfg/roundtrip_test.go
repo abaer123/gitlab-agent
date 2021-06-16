@@ -35,12 +35,12 @@ func TestStructToJSONAndBack(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			data, err := protojson.Marshal(tc) // nolint: scopelint
+			data, err := protojson.Marshal(tc)
 			require.NoError(t, err)
 			tcCopy := &ConfigurationFile{}
 			err = protojson.Unmarshal(data, tcCopy)
 			require.NoError(t, err)
-			diff := cmp.Diff(tc, tcCopy, protocmp.Transform()) // nolint: scopelint
+			diff := cmp.Diff(tc, tcCopy, protocmp.Transform())
 			assert.Empty(t, diff)
 		})
 	}
@@ -71,11 +71,11 @@ func TestJSONToStructAndBack(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			tcCopy := &ConfigurationFile{}
-			err := protojson.Unmarshal([]byte(tc.given), tcCopy) // nolint: scopelint
+			err := protojson.Unmarshal([]byte(tc.given), tcCopy)
 			require.NoError(t, err)
 			data, err := protojson.Marshal(tcCopy)
 			require.NoError(t, err)
-			diff := cmp.Diff(tc.expected, string(data)) // nolint: scopelint
+			diff := cmp.Diff(tc.expected, string(data))
 			assert.Empty(t, diff)
 		})
 	}

@@ -56,7 +56,7 @@ func newModule(api modagent.API, userAgent string, client httpClient, baseUrl *u
 				}
 				req.Header.Set(userAgentHeaderName, ua)
 
-				resp, err := client.Do(req) // nolint: bodyclose
+				resp, err := client.Do(req)
 				if err != nil {
 					select {
 					case <-ctx.Done(): // assume request errored out because of context

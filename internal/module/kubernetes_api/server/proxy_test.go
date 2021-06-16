@@ -83,8 +83,8 @@ func TestProxy_JobTokenErrors(t *testing.T) {
 				t.Fail() // unexpected invocation
 			})
 			req.Header.Del("Authorization")
-			if len(tc.auth) > 0 { // nolint: scopelint
-				req.Header["Authorization"] = tc.auth // nolint: scopelint
+			if len(tc.auth) > 0 {
+				req.Header["Authorization"] = tc.auth
 			}
 			resp, err := client.Do(req)
 			require.NoError(t, err)
@@ -427,7 +427,7 @@ func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http
 }
 
 func mockRecvStream(server *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, msgs ...proto.Message) []*gomock.Call {
-	var res []*gomock.Call
+	res := make([]*gomock.Call, 0, len(msgs)+1)
 	for _, msg := range msgs {
 		call := server.EXPECT().
 			RecvMsg(gomock.Any()).
@@ -442,7 +442,7 @@ func mockRecvStream(server *mock_kubernetes_api.MockKubernetesApi_MakeRequestCli
 }
 
 func mockSendStream(t *testing.T, client *mock_kubernetes_api.MockKubernetesApi_MakeRequestClient, msgs ...*grpctool.HttpRequest) []*gomock.Call {
-	var res []*gomock.Call
+	res := make([]*gomock.Call, 0, len(msgs)+1)
 	for _, msg := range msgs {
 		call := client.EXPECT().
 			Send(matcher.ProtoEq(t, msg))

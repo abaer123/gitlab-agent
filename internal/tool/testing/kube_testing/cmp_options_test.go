@@ -19,9 +19,9 @@ func TestIgnoreAnnotation(t *testing.T) {
 	for i, a := range equalAnnotatedObjs(t) {
 		for j, b := range equalAnnotatedObjs(t) {
 			t.Run(fmt.Sprintf("%T %d vs %T %d", a, i, b, j), func(t *testing.T) {
-				equal := cmp.Equal(a, b, TransformToUnstructured(), IgnoreAnnotation(toIgnore)) // nolint: scopelint
+				equal := cmp.Equal(a, b, TransformToUnstructured(), IgnoreAnnotation(toIgnore))
 				if !equal {
-					assert.True(t, equal, cmp.Diff(a, b, TransformToUnstructured(), IgnoreAnnotation(toIgnore))) // nolint: scopelint
+					assert.True(t, equal, cmp.Diff(a, b, TransformToUnstructured(), IgnoreAnnotation(toIgnore)))
 				}
 			})
 		}
@@ -32,9 +32,9 @@ func TestTransformToUnstructured(t *testing.T) {
 	for i, a := range equalObjs(t) {
 		for j, b := range equalObjs(t) {
 			t.Run(fmt.Sprintf("%T %d vs %T %d", a, i, b, j), func(t *testing.T) {
-				equal := cmp.Equal(a, b, TransformToUnstructured()) // nolint: scopelint
+				equal := cmp.Equal(a, b, TransformToUnstructured())
 				if !equal {
-					assert.True(t, equal, cmp.Diff(a, b, TransformToUnstructured())) // nolint: scopelint
+					assert.True(t, equal, cmp.Diff(a, b, TransformToUnstructured()))
 				}
 			})
 		}

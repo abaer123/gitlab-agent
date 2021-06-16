@@ -43,7 +43,7 @@ func (m *workerManager) ApplyConfiguration(agentId int64, gitops *agentcfg.Gitop
 	projects := gitops.ManifestProjects
 	newSetOfProjects := make(map[string]struct{}, len(projects))
 	var projectsToStartWorkersFor []*agentcfg.ManifestProjectCF
-	var workersToStop []*gitopsWorkerHolder
+	var workersToStop []*gitopsWorkerHolder //nolint:prealloc
 
 	// Collect projects without workers or with updated configuration.
 	for _, project := range projects {

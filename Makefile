@@ -1,7 +1,8 @@
-# The same list of go build tags must be in three places:
+# The same list of go build tags must be in four places:
 # - Makefile
 # - Workspace
 # - .bazelrc
+# - .golangci.yml
 GO_BUILD_TAGS := tracer_static,tracer_static_jaeger
 
 # Install using your package manager, as recommended by

@@ -133,7 +133,7 @@ func TestInboundGrpcToOutboundHttpStream_HappyPath(t *testing.T) {
 }
 
 func mockRecvStream(server *mock_rpc.MockInboundGrpcToOutboundHttpStream, eof bool, msgs ...proto.Message) []*gomock.Call {
-	var res []*gomock.Call
+	res := make([]*gomock.Call, 0, len(msgs)+1)
 	for _, msg := range msgs {
 		call := server.EXPECT().
 			RecvMsg(gomock.Any()).
@@ -150,7 +150,7 @@ func mockRecvStream(server *mock_rpc.MockInboundGrpcToOutboundHttpStream, eof bo
 }
 
 func mockSendStream(t *testing.T, server *mock_rpc.MockInboundGrpcToOutboundHttpStream, msgs ...*grpctool.HttpResponse) []*gomock.Call {
-	var res []*gomock.Call
+	res := make([]*gomock.Call, 0, len(msgs))
 	for _, msg := range msgs {
 		call := server.EXPECT().
 			SendMsg(matcher.ProtoEq(t, msg))

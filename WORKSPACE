@@ -128,10 +128,11 @@ load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 go_repository(
     name = "com_gitlab_gitlab_org_labkit",
     build_file_proto_mode = "disable_global",
-    # The same list of go build tags must be in three places:
+    # The same list of go build tags must be in four places:
     # - Makefile
     # - Workspace
     # - .bazelrc
+    # - .golangci.yml
     build_tags = [
         "tracer_static",
         "tracer_static_jaeger",

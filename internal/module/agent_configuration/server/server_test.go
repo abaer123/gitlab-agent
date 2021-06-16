@@ -155,21 +155,21 @@ func TestGetConfiguration_UserErrors(t *testing.T) {
 					Return(pf, nil),
 				pf.EXPECT().
 					FetchFile(gomock.Any(), matcher.ProtoEq(nil, agentInfo.Repository), []byte(revision), []byte(configFileName), int64(maxConfigurationFileSize)).
-					Return(nil, gitalyErr), // nolint: scopelint
+					Return(nil, gitalyErr),
 				mockApi.EXPECT().
 					HandleProcessingError(gomock.Any(), gomock.Any(), "Config: failed to fetch",
-						matcher.ErrorEq(fmt.Sprintf("agent configuration file: %v", gitalyErr)), // nolint: scopelint
+						matcher.ErrorEq(fmt.Sprintf("agent configuration file: %v", gitalyErr)),
 					),
 			)
 			err := m.GetConfiguration(&rpc.ConfigurationRequest{
 				AgentMeta: agentMeta(),
 			}, resp)
-			assert.EqualError(t, err, fmt.Sprintf("rpc error: code = FailedPrecondition desc = Config: agent configuration file: %v", gitalyErr)) // nolint: scopelint
+			assert.EqualError(t, err, fmt.Sprintf("rpc error: code = FailedPrecondition desc = Config: agent configuration file: %v", gitalyErr))
 		})
 	}
 }
 
-func setupServer(t *testing.T) (*server, *api.AgentInfo, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_modserver.MockAPI) { // nolint: unparam
+func setupServer(t *testing.T) (*server, *api.AgentInfo, *gomock.Controller, *mock_internalgitaly.MockPoolInterface, *mock_modserver.MockAPI) {
 	ctrl := gomock.NewController(t)
 	mockApi := mock_modserver.NewMockAPIWithMockPoller(ctrl, 1)
 	gitalyPool := mock_internalgitaly.NewMockPoolInterface(ctrl)

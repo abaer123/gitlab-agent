@@ -33,7 +33,7 @@ func TestSuccessfulMapping(t *testing.T) {
 		t.Run(fmt.Sprintf("case %d", caseNum), func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			cf := cilium_fake.NewSimpleClientset(matchingData.CnpList) // nolint: scopelint
+			cf := cilium_fake.NewSimpleClientset(matchingData.CnpList)
 			worker, obsClient, flwClient, mAPI := setupTest(t, cf)
 			gomock.InOrder(
 				obsClient.EXPECT().
@@ -41,7 +41,7 @@ func TestSuccessfulMapping(t *testing.T) {
 					Return(flwClient, nil),
 				flwClient.EXPECT().
 					Recv().
-					Return(matchingData.FlwResponse, nil), // nolint: scopelint
+					Return(matchingData.FlwResponse, nil),
 				mAPI.EXPECT().
 					MakeGitLabRequest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&modagent.GitLabResponse{StatusCode: http.StatusOK}, nil),
@@ -62,7 +62,7 @@ func TestNoMatch(t *testing.T) {
 		t.Run(fmt.Sprintf("case %d", caseNum), func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			cf := cilium_fake.NewSimpleClientset(unmatchingData.CnpList) // nolint: scopelint
+			cf := cilium_fake.NewSimpleClientset(unmatchingData.CnpList)
 			worker, obsClient, flwClient, _ := setupTest(t, cf)
 			gomock.InOrder(
 				obsClient.EXPECT().
@@ -70,7 +70,7 @@ func TestNoMatch(t *testing.T) {
 					Return(flwClient, nil),
 				flwClient.EXPECT().
 					Recv().
-					Return(unmatchingData.FlwResponse, nil), // nolint: scopelint
+					Return(unmatchingData.FlwResponse, nil),
 				flwClient.EXPECT().
 					Recv().
 					DoAndReturn(func() (*observer.GetFlowsResponse, error) {

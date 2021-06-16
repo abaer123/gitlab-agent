@@ -2,10 +2,11 @@ build --workspace_status_command build/print_workspace_status.sh
 build --stamp
 build --experimental_convenience_symlinks=ignore
 
-# The same list of go build tags must be in three places:
+# The same list of go build tags must be in four places:
 # - Makefile
 # - Workspace
 # - .bazelrc
+# - .golangci.yml
 build --define gotags=tracer_static,tracer_static_jaeger
 
 test --test_output=errors

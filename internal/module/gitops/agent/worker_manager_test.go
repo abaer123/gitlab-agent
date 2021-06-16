@@ -17,8 +17,8 @@ import (
 func TestStartsWorkersAccordingToConfiguration(t *testing.T) {
 	for caseNum, config := range testConfigurations() {
 		t.Run(fmt.Sprintf("case %d", caseNum), func(t *testing.T) {
-			projects := config.GetGitops().GetManifestProjects() // nolint: scopelint
-			expectedNumberOfWorkers := len(projects)             // nolint: scopelint
+			projects := config.GetGitops().GetManifestProjects()
+			expectedNumberOfWorkers := len(projects)
 			wm, ctrl, factory := setupWM(t)
 			worker := NewMockGitopsWorker(ctrl)
 			for i := 0; i < expectedNumberOfWorkers; i++ {
@@ -29,9 +29,9 @@ func TestStartsWorkersAccordingToConfiguration(t *testing.T) {
 			worker.EXPECT().
 				Run(gomock.Any()).
 				Times(expectedNumberOfWorkers)
-			err := defaultAndValidateConfiguration(config) // nolint: scopelint
+			err := defaultAndValidateConfiguration(config)
 			require.NoError(t, err)
-			err = wm.ApplyConfiguration(testhelpers.AgentId, config.Gitops) // nolint: scopelint
+			err = wm.ApplyConfiguration(testhelpers.AgentId, config.Gitops)
 			require.NoError(t, err)
 		})
 	}
@@ -56,7 +56,7 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			numProjects := numUniqueProjects(tc.configs) // nolint: scopelint
+			numProjects := numUniqueProjects(tc.configs)
 			wm, ctrl, factory := setupWM(t)
 			worker := NewMockGitopsWorker(ctrl)
 			worker.EXPECT().
@@ -69,7 +69,7 @@ func TestUpdatesWorkersAccordingToConfiguration(t *testing.T) {
 				New(testhelpers.AgentId, gomock.Any()).
 				Return(worker).
 				Times(numProjects)
-			for _, config := range tc.configs { // nolint: scopelint
+			for _, config := range tc.configs {
 				err := defaultAndValidateConfiguration(config)
 				require.NoError(t, err)
 				err = wm.ApplyConfiguration(testhelpers.AgentId, config.Gitops)

@@ -56,8 +56,8 @@ func TestIgnoresInvalidConfiguration(t *testing.T) {
 				err := m.Run(ctx, cfg)
 				assert.NoError(t, err)
 			})
-			require.NoError(t, m.DefaultAndValidateConfiguration(tc.config)) // nolint: scopelint
-			cfg <- tc.config                                                 // nolint: scopelint
+			require.NoError(t, m.DefaultAndValidateConfiguration(tc.config))
+			cfg <- tc.config
 			close(cfg)
 			wg.Wait()
 		})

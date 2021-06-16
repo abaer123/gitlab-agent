@@ -334,7 +334,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 		},
 	}
 	for _, tc := range pathFetcherErrs {
-		t.Run(tc.errMsg, func(t *testing.T) { // nolint: errorlint
+		t.Run(tc.errMsg, func(t *testing.T) {
 			ctx, _, a, ctrl, gitalyPool, mockApi := setupModule(t)
 
 			projInfo := projectInfo()
@@ -354,7 +354,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 				}))
 			mockApi.EXPECT().
 				HandleProcessingError(gomock.Any(), gomock.Any(), "GitOps: failed to get objects to synchronize",
-					matcher.ErrorEq(tc.errMsg), // nolint: scopelint
+					matcher.ErrorEq(tc.errMsg),
 				)
 			p := mock_internalgitaly.NewMockPollerInterface(ctrl)
 			pf := mock_internalgitaly.NewMockPathFetcherInterface(ctrl)
@@ -373,7 +373,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 					Return(pf, nil),
 				pf.EXPECT().
 					Visit(gomock.Any(), matcher.ProtoEq(nil, projInfo.Repository), []byte(revision), []byte("."), true, gomock.Any()).
-					Return(tc.err), // nolint: scopelint
+					Return(tc.err),
 			)
 			err := a.GetObjectsToSynchronize(&rpc.ObjectsToSynchronizeRequest{
 				ProjectId: projectId,
@@ -383,7 +383,7 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 					},
 				},
 			}, server)
-			assert.EqualError(t, err, fmt.Sprintf("rpc error: code = FailedPrecondition desc = GitOps: failed to get objects to synchronize: %s", tc.errMsg)) // nolint: scopelint
+			assert.EqualError(t, err, fmt.Sprintf("rpc error: code = FailedPrecondition desc = GitOps: failed to get objects to synchronize: %s", tc.errMsg))
 		})
 	}
 }
