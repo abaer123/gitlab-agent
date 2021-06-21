@@ -3430,8 +3430,9 @@ def go_repositories():
         name = "in_gopkg_datadog_dd_trace_go_v1",
         build_file_proto_mode = "disable_global",
         importpath = "gopkg.in/DataDog/dd-trace-go.v1",
-        sum = "h1:ouY+DNlRTckk63TNh468tPWBC21qBZPniVQXQs0iq10=",
-        version = "v1.31.0",
+        replace = "gopkg.in/DataDog/dd-trace-go.v1",
+        sum = "h1:yJJrDYzAlUsDPpAVBjv4VFnXKTbgvaJFTX0646xDPi4=",
+        version = "v1.30.0",
     )
     go_repository(
         name = "in_gopkg_errgo_v2",

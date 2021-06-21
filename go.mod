@@ -49,6 +49,7 @@ replace (
 	github.com/optiopay/kafka => github.com/cilium/kafka v0.0.0-20180809090225-01ce283b732b
 	// same version as used by rules_go to maintain compatibility with patches - see the WORKSPACE file
 	golang.org/x/tools => golang.org/x/tools v0.0.0-20201201192219-a1b87a1c0de4
+	gopkg.in/DataDog/dd-trace-go.v1 => gopkg.in/DataDog/dd-trace-go.v1 v1.30.0
 
 	// https://github.com/kubernetes/kubernetes/issues/79384#issuecomment-505627280
 	k8s.io/api => k8s.io/api v0.21.1
