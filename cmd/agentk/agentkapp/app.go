@@ -40,7 +40,6 @@ import (
 	"google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/keepalive"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp" // Install the GCP auth plugin
 	"k8s.io/klog/v2"
 	"k8s.io/kubectl/pkg/cmd/util"
 	"nhooyr.io/websocket"
