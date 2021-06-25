@@ -29,28 +29,17 @@ type synchronizerConfig struct {
 
 type synchronizer struct {
 	synchronizerConfig
-	applier      Applier
-	desiredState chan rpc.ObjectsToSynchronizeData
+	applier Applier
 }
 
 func newSynchronizer(config synchronizerConfig, applier Applier) *synchronizer {
 	return &synchronizer{
 		synchronizerConfig: config,
 		applier:            applier,
-		desiredState:       make(chan rpc.ObjectsToSynchronizeData),
 	}
 }
 
-func (s *synchronizer) setDesiredState(ctx context.Context, state rpc.ObjectsToSynchronizeData) bool {
-	select {
-	case <-ctx.Done():
-		return false
-	case s.desiredState <- state:
-		return true
-	}
-}
-
-func (s *synchronizer) run(ctx context.Context) {
+func (s *synchronizer) run(desiredState <-chan rpc.ObjectsToSynchronizeData) {
 	jobs := make(chan syncJob)
 	sw := newSyncWorker(s.log, s.applier, s.applyOptions)
 	var wg wait.Group
@@ -73,9 +62,10 @@ func (s *synchronizer) run(ctx context.Context) {
 
 	for {
 		select {
-		case <-ctx.Done():
-			return // nolint: govet
-		case state := <-s.desiredState:
+		case state, ok := <-desiredState:
+			if !ok {
+				return // nolint: govet
+			}
 			objs, err := s.decodeObjectsToSynchronize(state.Sources)
 			if err != nil {
 				s.log.Error("Failed to decode GitOps objects", zap.Error(err), logz.CommitId(state.CommitId))

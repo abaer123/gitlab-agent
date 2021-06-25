@@ -89,21 +89,26 @@ func (w *defaultGitopsWorker) Run(ctx context.Context) {
 		// context is done
 		return
 	}
-	s := newSynchronizer(w.synchronizerConfig, applier)
+	desiredState := make(chan rpc.ObjectsToSynchronizeData)
 	st := stager.New()
 	stage := st.NextStage()
 	stage.Go(func(ctx context.Context) error {
-		s.run(ctx)
+		s := newSynchronizer(w.synchronizerConfig, applier)
+		s.run(desiredState)
 		return nil
 	})
 	stage = st.NextStage()
 	stage.Go(func(ctx context.Context) error {
+		defer close(desiredState)
 		req := &rpc.ObjectsToSynchronizeRequest{
 			ProjectId: w.project.Id,
 			Paths:     w.project.Paths,
 		}
 		w.objWatcher.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
-			s.setDesiredState(ctx, data)
+			select {
+			case <-ctx.Done():
+			case desiredState <- data:
+			}
 		})
 		return nil
 	})
