@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime"
 	"net/http"
 
@@ -49,7 +48,7 @@ func JsonResponseHandler(response interface{}) ResponseHandler {
 				if !isApplicationJSON(resp) {
 					return fmt.Errorf("unexpected Content-Type in response: %q", resp.Header.Get("Content-Type"))
 				}
-				data, err := ioutil.ReadAll(resp.Body)
+				data, err := io.ReadAll(resp.Body)
 				if err != nil {
 					return fmt.Errorf("response body read: %v", err)
 				}
@@ -88,7 +87,7 @@ func NoContentResponseHandler() ResponseHandler {
 			switch resp.StatusCode {
 			case http.StatusOK, http.StatusNoContent:
 				const maxBodySlurpSize = 8 * 1024
-				_, _ = io.CopyN(ioutil.Discard, resp.Body, maxBodySlurpSize)
+				_, _ = io.CopyN(io.Discard, resp.Body, maxBodySlurpSize)
 				return nil
 			case http.StatusUnauthorized: // No token, invalid token, revoked token
 				return &ClientError{

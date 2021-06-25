@@ -1,6 +1,6 @@
 module gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14
 
-go 1.15
+go 1.16
 
 require (
 	cloud.google.com/go v0.82.0

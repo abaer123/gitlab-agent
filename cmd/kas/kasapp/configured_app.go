@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -772,7 +771,7 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 	}
 	var password string
 	if cfg.PasswordFile != "" {
-		passwordBytes, err := ioutil.ReadFile(cfg.PasswordFile)
+		passwordBytes, err := os.ReadFile(cfg.PasswordFile)
 		if err != nil {
 			return nil, err
 		}
@@ -798,7 +797,7 @@ func (a *ConfiguredApp) constructRedisClient() (redis.UniversalClient, error) {
 	case *kascfg.RedisCF_Sentinel:
 		var sentinelPassword string
 		if v.Sentinel.SentinelPasswordFile != "" {
-			sentinelPasswordBytes, err := ioutil.ReadFile(v.Sentinel.SentinelPasswordFile)
+			sentinelPasswordBytes, err := os.ReadFile(v.Sentinel.SentinelPasswordFile)
 			if err != nil {
 				return nil, err
 			}
