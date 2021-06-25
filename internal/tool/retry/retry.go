@@ -103,6 +103,7 @@ func PollWithBackoff(ctx context.Context, backoff BackoffManager, sliding bool, 
 		case <-doneCh:
 			return ErrWaitTimeout
 		case <-t.C():
+			t = nil
 		}
 	}
 }
