@@ -3,7 +3,6 @@ package agentkapp
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -183,7 +182,7 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 }
 
 func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, error) {
-	tokenData, err := ioutil.ReadFile(a.TokenFile)
+	tokenData, err := os.ReadFile(a.TokenFile)
 	if err != nil {
 		return nil, fmt.Errorf("token file: %v", err)
 	}

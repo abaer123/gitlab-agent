@@ -3,11 +3,11 @@ package filez
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
+	"os"
 )
 
 func LoadBase64Secret(filename string) ([]byte, error) {
-	encodedAuthSecret, err := ioutil.ReadFile(filename) // nolint: gosec
+	encodedAuthSecret, err := os.ReadFile(filename) // nolint: gosec
 	if err != nil {
 		return nil, fmt.Errorf("read file: %v", err)
 	}

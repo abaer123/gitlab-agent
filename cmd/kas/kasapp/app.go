@@ -3,7 +3,7 @@ package kasapp
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/go-logr/zapr"
 	"github.com/spf13/pflag"
@@ -46,7 +46,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 }
 
 func LoadConfigurationFile(configFile string) (*kascfg.ConfigurationFile, error) {
-	configYAML, err := ioutil.ReadFile(configFile) // nolint: gosec
+	configYAML, err := os.ReadFile(configFile) // nolint: gosec
 	if err != nil {
 		return nil, fmt.Errorf("configuration file: %v", err)
 	}

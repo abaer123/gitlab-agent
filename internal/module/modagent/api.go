@@ -3,7 +3,6 @@ package modagent
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 
@@ -148,7 +147,7 @@ func WithRequestBody(body io.Reader) GitLabRequestOption {
 		if rc, ok := body.(io.ReadCloser); ok {
 			c.Body = rc
 		} else {
-			c.Body = ioutil.NopCloser(body)
+			c.Body = io.NopCloser(body)
 		}
 	}
 }

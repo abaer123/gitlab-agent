@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -168,7 +168,7 @@ func assertNoContentRequest(t *testing.T, r *http.Request, expectedPayload inter
 	if !assert.NoError(t, err) {
 		return
 	}
-	actualBin, err := ioutil.ReadAll(r.Body)
+	actualBin, err := io.ReadAll(r.Body)
 	if !assert.NoError(t, err) {
 		return
 	}

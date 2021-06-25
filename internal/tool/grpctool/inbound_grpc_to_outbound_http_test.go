@@ -3,7 +3,6 @@ package grpctool_test
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
@@ -114,7 +113,7 @@ func TestInboundGrpcToOutboundHttpStream_HappyPath(t *testing.T) {
 	)...)
 	p := grpctool.NewInboundGrpcToOutboundHttp(mockApi, func(ctx context.Context, header *grpctool.HttpRequest_Header, body io.Reader) (*http.Response, error) {
 		assert.Empty(t, cmp.Diff(header, sendHeader, protocmp.Transform()))
-		data, err := ioutil.ReadAll(body)
+		data, err := io.ReadAll(body)
 		if !assert.NoError(t, err) {
 			return nil, err
 		}

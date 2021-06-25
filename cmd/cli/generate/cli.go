@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -113,5 +112,5 @@ func (c *GenerateCmd) writeTokenFile() error {
 	}
 
 	tokenFilePath := filepath.Join(c.KustomizationPath, kustomizationAgentTokenPath)
-	return ioutil.WriteFile(tokenFilePath, []byte(c.AgentToken), 0777) //nolint:gosec
+	return os.WriteFile(tokenFilePath, []byte(c.AgentToken), 0777) //nolint:gosec
 }

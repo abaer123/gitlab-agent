@@ -2,7 +2,7 @@ package grpctool_test
 
 import (
 	"context"
-	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -97,7 +97,7 @@ func TestJWTServerAuth(t *testing.T) {
 		now := time.Now()
 		claims := validClams(now)
 
-		keyData, err := ioutil.ReadFile("testdata/sample_key")
+		keyData, err := os.ReadFile("testdata/sample_key")
 		require.NoError(t, err)
 		rsaKey, err := jwt.ParseRSAPrivateKeyFromPEM(keyData)
 		require.NoError(t, err)

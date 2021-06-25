@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"testing"
@@ -133,7 +132,7 @@ func TestMakeRequest(t *testing.T) {
 	m, err := f.New(&modserver.Config{
 		Api: mockApi,
 		GitLabClient: mock_gitlab.SetupClient(t, "/api/v4/internal/kubernetes/modules/"+moduleName+urlPath, func(w http.ResponseWriter, r *http.Request) {
-			all, errIO := ioutil.ReadAll(r.Body)
+			all, errIO := io.ReadAll(r.Body)
 			if !assert.NoError(t, errIO) {
 				return
 			}

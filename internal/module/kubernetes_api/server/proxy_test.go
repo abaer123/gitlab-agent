@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -250,7 +249,7 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string) {
 	resp, err := client.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	respData, err := ioutil.ReadAll(resp.Body)
+	respData, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	assert.EqualValues(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, responsePayload, string(respData))
