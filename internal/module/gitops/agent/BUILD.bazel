@@ -53,6 +53,7 @@ go_custom_test(
     deps = [
         "//internal/module/gitops/rpc",
         "//internal/module/modagent",
+        "//internal/tool/retry",
         "//internal/tool/testing/kube_testing",
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_rpc",
