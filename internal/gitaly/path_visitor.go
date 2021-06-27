@@ -13,11 +13,12 @@ type PathEntryVisitor interface {
 }
 
 type PathVisitor struct {
-	Client gitalypb.CommitServiceClient
+	Client   gitalypb.CommitServiceClient
+	Features map[string]string
 }
 
 func (v *PathVisitor) Visit(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, recursive bool, visitor PathEntryVisitor) error {
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(appendFeatureFlagsToContext(ctx, v.Features))
 	defer cancel() // ensure streaming call is canceled
 	entries, err := v.Client.GetTreeEntries(ctx, &gitalypb.GetTreeEntriesRequest{
 		Repository: repo,

@@ -5,6 +5,7 @@ go_library(
     name = "gitaly",
     srcs = [
         "error.go",
+        "feature_flags.go",
         "fetch_visitors.go",
         "path_fetcher.go",
         "path_visitor.go",
@@ -21,6 +22,7 @@ go_library(
         "@com_gitlab_gitlab_org_gitaly_v14//proto/go/gitalypb",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//metadata",
         "@org_golang_google_grpc//status",
     ],
 )

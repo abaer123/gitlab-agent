@@ -52,14 +52,18 @@ func TestPathFetcher_HappyPath(t *testing.T) {
 		CommitOid: manifestRevision,
 	}
 	data2 := []byte("data2")
-	mockGetTreeEntries(t, ctrl, commitClient, treeEntriesReq, []*gitalypb.TreeEntry{expectedEntry1, treeEntry, expectedEntry2})
-	mockTreeEntry(t, ctrl, commitClient, data1, &gitalypb.TreeEntryRequest{
+	features := map[string]string{
+		"f1": "true",
+	}
+	ctxMatch := matcher.GrpcOutgoingCtx(features)
+	mockGetTreeEntries(t, ctrl, ctxMatch, commitClient, treeEntriesReq, []*gitalypb.TreeEntry{expectedEntry1, treeEntry, expectedEntry2})
+	mockTreeEntry(t, ctrl, ctxMatch, commitClient, data1, &gitalypb.TreeEntryRequest{
 		Repository: r,
 		Revision:   []byte(expectedEntry1.CommitOid),
 		Path:       expectedEntry1.Path,
 		MaxSize:    fileMaxSize,
 	})
-	mockTreeEntry(t, ctrl, commitClient, data2, &gitalypb.TreeEntryRequest{
+	mockTreeEntry(t, ctrl, ctxMatch, commitClient, data2, &gitalypb.TreeEntryRequest{
 		Repository: r,
 		Revision:   []byte(expectedEntry2.CommitOid),
 		Path:       expectedEntry2.Path,
@@ -87,7 +91,8 @@ func TestPathFetcher_HappyPath(t *testing.T) {
 			EntryDone(matcher.ProtoEq(t, expectedEntry2), nil),
 	)
 	v := gitaly.PathFetcher{
-		Client: commitClient,
+		Client:   commitClient,
+		Features: features,
 	}
 	err := v.Visit(context.Background(), r, []byte(revision), []byte(repoPath), false, mockVisitor)
 	require.NoError(t, err)
@@ -178,7 +183,7 @@ func TestPathFetcher_StreamFile_InvalidType(t *testing.T) {
 	require.EqualError(t, err, "UnexpectedTreeEntryType: TreeEntry.Recv: file is not a usual file: dir")
 }
 
-func mockTreeEntry(t *testing.T, ctrl *gomock.Controller, commitClient *mock_gitaly.MockCommitServiceClient, data []byte, req *gitalypb.TreeEntryRequest) {
+func mockTreeEntry(t *testing.T, ctrl *gomock.Controller, ctx gomock.Matcher, commitClient *mock_gitaly.MockCommitServiceClient, data []byte, req *gitalypb.TreeEntryRequest) {
 	treeEntryClient := mock_gitaly.NewMockCommitService_TreeEntryClient(ctrl)
 	// Emulate streaming response
 	resp1 := &gitalypb.TreeEntryResponse{
@@ -190,7 +195,7 @@ func mockTreeEntry(t *testing.T, ctrl *gomock.Controller, commitClient *mock_git
 	}
 	gomock.InOrder(
 		commitClient.EXPECT().
-			TreeEntry(gomock.Any(), matcher.ProtoEq(t, req)).
+			TreeEntry(ctx, matcher.ProtoEq(t, req)).
 			Return(treeEntryClient, nil),
 		treeEntryClient.EXPECT().
 			Recv().

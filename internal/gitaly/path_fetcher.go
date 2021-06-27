@@ -40,12 +40,14 @@ type FetchVisitor interface {
 }
 
 type PathFetcher struct {
-	Client gitalypb.CommitServiceClient
+	Client   gitalypb.CommitServiceClient
+	Features map[string]string
 }
 
 func (f *PathFetcher) Visit(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, recursive bool, visitor FetchVisitor) error {
 	v := PathVisitor{
-		Client: f.Client,
+		Client:   f.Client,
+		Features: f.Features,
 	}
 	return v.Visit(ctx, repo, revision, repoPath, recursive, fetcherPathEntryVisitor(func(entry *gitalypb.TreeEntry) (bool /* done? */, error) {
 		if entry.Type != gitalypb.TreeEntry_BLOB {
@@ -64,7 +66,7 @@ func (f *PathFetcher) Visit(ctx context.Context, repo *gitalypb.Repository, revi
 }
 
 func (f *PathFetcher) StreamFile(ctx context.Context, repo *gitalypb.Repository, revision, repoPath []byte, sizeLimit int64, v FileVisitor) error {
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(appendFeatureFlagsToContext(ctx, f.Features))
 	defer cancel() // ensure streaming call is canceled
 	teResp, err := f.Client.TreeEntry(ctx, &gitalypb.TreeEntryRequest{
 		Repository: repo,
