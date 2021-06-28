@@ -2,11 +2,14 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/kube_testing"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_rpc"
@@ -35,7 +38,7 @@ var (
 	_ GitopsWorkerFactory = &defaultGitopsWorkerFactory{}
 )
 
-func TestRunHappyPathNoObjects(t *testing.T) {
+func TestRun_HappyPath_NoObjects(t *testing.T) {
 	w, applier, watcher := setupWorker(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -64,7 +67,7 @@ func TestRunHappyPathNoObjects(t *testing.T) {
 	w.Run(ctx)
 }
 
-func TestRunHappyPath_NoInventoryTemplate(t *testing.T) {
+func TestRun_HappyPath_NoInventoryTemplate(t *testing.T) {
 	w, applier, watcher := setupWorker(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -100,7 +103,7 @@ func TestRunHappyPath_NoInventoryTemplate(t *testing.T) {
 			Run(gomock.Any(), gomock.Any(), matcher.K8sObjectEq(t, objs), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
 				assert.Equal(t, w.project.DefaultNamespace, invInfo.Namespace())
-				cancel() // all good, stop run()
+				cancel() // all good, stop Run()
 				c := make(chan event.Event)
 				close(c)
 				return c
@@ -109,7 +112,7 @@ func TestRunHappyPath_NoInventoryTemplate(t *testing.T) {
 	w.Run(ctx)
 }
 
-func TestRunHappyPath_InventoryTemplate(t *testing.T) {
+func TestRun_HappyPath_InventoryTemplate(t *testing.T) {
 	w, applier, watcher := setupWorker(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -139,7 +142,7 @@ func TestRunHappyPath_InventoryTemplate(t *testing.T) {
 			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
 				assert.Equal(t, "some_ns", invInfo.Namespace())
 				assert.Equal(t, "inventory-some_id", invInfo.Name())
-				cancel() // all good, stop run()
+				cancel() // all good, stop Run()
 				c := make(chan event.Event)
 				close(c)
 				return c
@@ -148,7 +151,7 @@ func TestRunHappyPath_InventoryTemplate(t *testing.T) {
 	w.Run(ctx)
 }
 
-func TestRunHappyPathSyncCancellation(t *testing.T) {
+func TestRun_SyncCancellation(t *testing.T) {
 	w, applier, watcher := setupWorker(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -199,7 +202,87 @@ func TestRunHappyPathSyncCancellation(t *testing.T) {
 		applier.EXPECT().
 			Run(gomock.Any(), gomock.Any(), gomock.Len(0), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
-				cancel() // all good, stop run()
+				cancel() // all good, stop Run()
+				c := make(chan event.Event)
+				close(c)
+				return c
+			}),
+	)
+	w.Run(ctx)
+}
+
+func TestRun_ApplyIsRetriedOnError(t *testing.T) {
+	w, applier, watcher := setupWorker(t)
+	w.applierBackoff = retry.NewExponentialBackoffFactory(time.Millisecond, time.Minute, time.Minute, 2, 1)()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	req := &rpc.ObjectsToSynchronizeRequest{
+		ProjectId: projectId,
+		Paths:     w.project.Paths,
+	}
+	watcher.EXPECT().
+		Watch(gomock.Any(), matcher.ProtoEq(t, req), gomock.Any()).
+		Do(func(ctx context.Context, req *rpc.ObjectsToSynchronizeRequest, callback rpc.ObjectsToSynchronizeCallback) {
+			callback(ctx, rpc.ObjectsToSynchronizeData{
+				CommitId: revision,
+			})
+			<-ctx.Done()
+		})
+	gomock.InOrder(
+		applier.EXPECT().
+			Run(gomock.Any(), gomock.Any(), gomock.Len(0), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
+				c := make(chan event.Event, 1)
+				c <- event.Event{
+					Type: event.ErrorType,
+					ErrorEvent: event.ErrorEvent{
+						Err: errors.New("expected error"),
+					},
+				}
+				close(c)
+				return c
+			}),
+		applier.EXPECT().
+			Run(gomock.Any(), gomock.Any(), gomock.Len(0), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
+				cancel() // all good, stop Run()
+				c := make(chan event.Event)
+				close(c)
+				return c
+			}),
+	)
+	w.Run(ctx)
+}
+
+func TestRun_PeriodicApply(t *testing.T) {
+	w, applier, watcher := setupWorker(t)
+	w.reapplyInterval = time.Millisecond
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	req := &rpc.ObjectsToSynchronizeRequest{
+		ProjectId: projectId,
+		Paths:     w.project.Paths,
+	}
+	watcher.EXPECT().
+		Watch(gomock.Any(), matcher.ProtoEq(t, req), gomock.Any()).
+		Do(func(ctx context.Context, req *rpc.ObjectsToSynchronizeRequest, callback rpc.ObjectsToSynchronizeCallback) {
+			callback(ctx, rpc.ObjectsToSynchronizeData{
+				CommitId: revision,
+			})
+			<-ctx.Done()
+		})
+	gomock.InOrder(
+		applier.EXPECT().
+			Run(gomock.Any(), gomock.Any(), gomock.Len(0), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
+				c := make(chan event.Event)
+				close(c)
+				return c
+			}),
+		applier.EXPECT().
+			Run(gomock.Any(), gomock.Any(), gomock.Len(0), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event {
+				cancel() // all good, stop Run()
 				c := make(chan event.Event)
 				close(c)
 				return c
@@ -223,7 +306,6 @@ func setupWorker(t *testing.T) (*defaultGitopsWorker, *MockApplier, *mock_rpc.Mo
 	w := &defaultGitopsWorker{
 		objWatcher:     watcher,
 		applierFactory: applierFactory,
-		applierBackoff: testhelpers.NewBackoff(),
 		synchronizerConfig: synchronizerConfig{
 			log: zaptest.NewLogger(t),
 			project: &agentcfg.ManifestProjectCF{
@@ -235,7 +317,9 @@ func setupWorker(t *testing.T) (*defaultGitopsWorker, *MockApplier, *mock_rpc.Mo
 					},
 				},
 			},
-			k8sUtilFactory: cmdtesting.NewTestFactory(),
+			k8sUtilFactory:  cmdtesting.NewTestFactory(),
+			reapplyInterval: time.Minute,
+			applierBackoff:  testhelpers.NewBackoff()(),
 		},
 	}
 	return w, applier, watcher

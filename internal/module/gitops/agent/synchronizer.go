@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -20,11 +22,13 @@ import (
 
 // synchronizerConfig holds configuration for a synchronizer.
 type synchronizerConfig struct {
-	log            *zap.Logger
-	agentId        int64
-	project        *agentcfg.ManifestProjectCF
-	k8sUtilFactory util.Factory
-	applyOptions   apply.Options
+	log             *zap.Logger
+	agentId         int64
+	project         *agentcfg.ManifestProjectCF
+	k8sUtilFactory  util.Factory
+	reapplyInterval time.Duration
+	applierBackoff  retry.BackoffManager
+	applyOptions    apply.Options
 }
 
 type synchronizer struct {
@@ -41,12 +45,18 @@ func newSynchronizer(config synchronizerConfig, applier Applier) *synchronizer {
 
 func (s *synchronizer) run(desiredState <-chan rpc.ObjectsToSynchronizeData) {
 	jobs := make(chan syncJob)
-	sw := newSyncWorker(s.log, s.applier, s.applyOptions)
+	sw := syncWorker{
+		log:             s.log,
+		reapplyInterval: s.reapplyInterval,
+		applier:         s.applier,
+		applierBackoff:  s.applierBackoff,
+		applyOptions:    s.applyOptions,
+	}
 	var wg wait.Group
 	defer wg.Wait()   // Wait for sw to exit
 	defer close(jobs) // Close jobs to signal sw there is no more work to be done
 	wg.Start(func() {
-		sw.run(jobs) // Start sw
+		sw.Run(jobs) // Start sw
 	})
 
 	var (

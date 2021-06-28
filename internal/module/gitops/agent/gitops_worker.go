@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"time"
 
 	"github.com/ash2k/stager"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
@@ -31,6 +32,8 @@ const (
 	inventoryPolicyMustMatch          = "must_match"
 	inventoryPolicyAdoptIfNoInventory = "adopt_if_no_inventory"
 	inventoryPolicyAdoptAll           = "adopt_all"
+
+	defaultReapplyInterval = 5 * time.Minute
 )
 
 var (
@@ -71,13 +74,12 @@ type GitopsWorker interface {
 type defaultGitopsWorker struct {
 	objWatcher     rpc.ObjectsToSynchronizeWatcherInterface
 	applierFactory ApplierFactory
-	applierBackoff retry.BackoffManagerFactory
 	synchronizerConfig
 }
 
 func (w *defaultGitopsWorker) Run(ctx context.Context) {
 	applier := w.applierFactory.New()
-	err := retry.PollWithBackoff(ctx, w.applierBackoff(), true, 0, func() (error, retry.AttemptResult) {
+	err := retry.PollWithBackoff(ctx, w.applierBackoff, true, 0, func() (error, retry.AttemptResult) {
 		err := applier.Initialize()
 		if err != nil {
 			w.log.Error("Applier.Initialize() failed", zap.Error(err))
@@ -141,12 +143,13 @@ func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.Manife
 			Backoff:      f.watchBackoffFactory,
 		},
 		applierFactory: f.applierFactory,
-		applierBackoff: f.applierBackoffFactory,
 		synchronizerConfig: synchronizerConfig{
-			log:            l,
-			agentId:        agentId,
-			project:        project,
-			k8sUtilFactory: f.k8sUtilFactory,
+			log:             l,
+			agentId:         agentId,
+			project:         project,
+			k8sUtilFactory:  f.k8sUtilFactory,
+			reapplyInterval: defaultReapplyInterval,
+			applierBackoff:  f.applierBackoffFactory(),
 			applyOptions: apply.Options{
 				ServerSideOptions: common.ServerSideOptions{
 					// It's supported since Kubernetes 1.16, so there should be no reason not to use it.
