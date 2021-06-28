@@ -83,11 +83,21 @@ you use `kpt`, but `kpt` makes cloning and updating the package more convenient.
 
 1. Deploy the stock configuration or your customized overlay:
 
-    ```shell
-    # in the package directory
-    kustomize build cluster | kubectl apply -f -
-    # kustomize build my-custom-overlay | kubectl apply -f -
-    ```
+   - With Kustomize and kubectl:
+
+     ```shell
+     # in the package directory
+     kustomize build ./cluster | kubectl apply -f -
+     # kustomize build ./my-custom-overlay | kubectl apply -f -
+     ```
+
+   - With `kpt`:
+
+     ```shell
+     # in the package directory
+     kpt live apply ./cluster
+     # kpt live apply ./my-custom-overlay
+     ```
 
 Later, you can pull in package updates using
 [`kpt pkg update`](https://googlecontainertools.github.io/kpt/guides/consumer/update/):
