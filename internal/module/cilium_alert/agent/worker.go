@@ -19,6 +19,7 @@ import (
 	monitor_api "github.com/cilium/cilium/pkg/monitor/api"
 	legacy_proto "github.com/golang/protobuf/proto" // nolint:staticcheck
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"go.uber.org/zap"
@@ -154,7 +155,7 @@ func (w *worker) processFlow(ctx context.Context, flw *flow.Flow, informer cache
 	return w.sendAlert(ctx, flw, cnp)
 }
 
-func (w *worker) sendAlert(ctx context.Context, fl *flow.Flow, cnp *v2.CiliumNetworkPolicy) error {
+func (w *worker) sendAlert(ctx context.Context, fl *flow.Flow, cnp *v2.CiliumNetworkPolicy) (retErr error) {
 	mbdy, err := json.Marshal(payload{
 		Alert: alert{
 			Flow:                (*flowAlias)(fl),
@@ -172,6 +173,7 @@ func (w *worker) sendAlert(ctx context.Context, fl *flow.Flow, cnp *v2.CiliumNet
 	if err != nil {
 		return fmt.Errorf("failed request to internal api: %v", err)
 	}
+	defer errz.SafeDrainAndClose(resp.Body, &retErr)
 	switch resp.StatusCode {
 	case http.StatusOK, http.StatusNoContent:
 		w.log.Info("successful response when creating alerts from cilium_alert endpoint", zap.Int32("status_code", resp.StatusCode))

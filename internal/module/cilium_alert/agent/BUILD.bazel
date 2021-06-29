@@ -15,6 +15,7 @@ go_library(
     deps = [
         "//internal/module/cilium_alert",
         "//internal/module/modagent",
+        "//internal/tool/errz",
         "//internal/tool/grpctool",
         "//internal/tool/retry",
         "//pkg/agentcfg",
