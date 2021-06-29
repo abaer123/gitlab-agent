@@ -10,6 +10,18 @@ func ContextDone(err error) bool {
 	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 }
 
+func SafeDrainAndClose(toClose io.ReadCloser, err *error) {
+	if toClose == nil {
+		return
+	}
+	const maxSlurpSize = 8 * 1024
+	_, copyErr := io.CopyN(io.Discard, toClose, maxSlurpSize)
+	if *err == nil {
+		*err = copyErr
+	}
+	SafeClose(toClose, err)
+}
+
 func SafeClose(toClose io.Closer, err *error) {
 	if toClose == nil {
 		return
