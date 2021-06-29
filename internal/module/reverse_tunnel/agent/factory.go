@@ -41,6 +41,13 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 		featureChan <- enabled
 	})
 	client := rpc.NewReverseTunnelClient(config.KasConn)
+	backoffFactory := retry.NewExponentialBackoffFactory(
+		connectionInitBackoff,
+		connectionMaxBackoff,
+		connectionResetDuration,
+		connectionBackoffFactor,
+		connectionJitter,
+	)
 	return &module{
 		server:         config.Server,
 		numConnections: numConnections,
@@ -52,13 +59,7 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 				client:             client,
 				internalServerConn: f.InternalServerConn,
 				streamVisitor:      sv,
-				backoff: retry.NewExponentialBackoffFactory(
-					connectionInitBackoff,
-					connectionMaxBackoff,
-					connectionResetDuration,
-					connectionBackoffFactor,
-					connectionJitter,
-				),
+				backoff:            backoffFactory,
 			}
 		},
 	}, nil
