@@ -17,7 +17,6 @@ import (
 	"github.com/cilium/cilium/pkg/k8s/client/clientset/versioned"
 	informers_v2 "github.com/cilium/cilium/pkg/k8s/client/informers/externalversions/cilium.io/v2"
 	monitor_api "github.com/cilium/cilium/pkg/monitor/api"
-	legacy_proto "github.com/golang/protobuf/proto" // nolint:staticcheck
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
@@ -192,12 +191,12 @@ type flowAlias flow.Flow
 
 func (f *flowAlias) MarshalJSON() ([]byte, error) {
 	typedF := (*flow.Flow)(f)
-	return protojson.Marshal(legacy_proto.MessageV2(typedF))
+	return protojson.Marshal(typedF)
 }
 
 func (f *flowAlias) UnmarshalJSON(data []byte) error {
 	typedF := (*flow.Flow)(f)
-	return protojson.Unmarshal(data, legacy_proto.MessageV2(typedF))
+	return protojson.Unmarshal(data, typedF)
 }
 
 type payload struct {
