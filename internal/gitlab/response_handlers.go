@@ -2,6 +2,7 @@ package gitlab
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -87,8 +88,11 @@ func NoContentResponseHandler() ResponseHandler {
 			switch resp.StatusCode {
 			case http.StatusOK, http.StatusNoContent:
 				const maxBodySlurpSize = 8 * 1024
-				_, _ = io.CopyN(io.Discard, resp.Body, maxBodySlurpSize)
-				return nil
+				_, err = io.CopyN(io.Discard, resp.Body, maxBodySlurpSize)
+				if errors.Is(err, io.EOF) {
+					err = nil
+				}
+				return err
 			case http.StatusUnauthorized: // No token, invalid token, revoked token
 				return &ClientError{
 					Kind:       ErrorKindUnauthorized,
