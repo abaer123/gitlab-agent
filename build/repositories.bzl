@@ -3038,8 +3038,8 @@ def go_repositories():
         name = "com_github_spf13_cobra",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/spf13/cobra",
-        sum = "h1:KfztREH0tPxJJ+geloSLaAkaPkr4ki2Er5quFV1TDo4=",
-        version = "v1.1.1",
+        sum = "h1:xghbfqPkxzxP3C/f3n5DdpAbdKLj4ZE4BWQI362l53M=",
+        version = "v1.1.3",
     )
     go_repository(
         name = "com_github_spf13_jwalterweatherman",

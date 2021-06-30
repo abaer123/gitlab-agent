@@ -3,13 +3,13 @@ package generate
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 
-	"github.com/spf13/pflag"
+	"github.com/spf13/cobra"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd"
 )
 
@@ -33,22 +33,30 @@ type GenerateCmd struct {
 	KasAddress        string
 	Namespace         string
 	NoRbac            bool
+	StdOut, StdErr    io.Writer
 }
 
-func NewFromFlags(flagset *pflag.FlagSet, arguments []string) (cmd.Runnable, error) {
-	app := &GenerateCmd{}
-	app.KustomizationPath = os.Getenv(kustomizationPathEnvVar)
-
-	flagset.StringVar(&app.AgentToken, "agent-token", "", "Access token registered for agent")
-	flagset.StringVar(&app.AgentVersion, "agent-version", cmd.Version, "Version of the agentk image to use")
-	flagset.StringVar(&app.KasAddress, "kas-address", "", "GitLab Kubernetes Agent Server address")
-	flagset.StringVar(&app.Namespace, "namespace", "gitlab-agent", "Kubernetes namespace to create resources in")
-	flagset.BoolVar(&app.NoRbac, "no-rbac", false, "Do not include corresponding Roles and RoleBindings for the agent service account")
-
-	if err := flagset.Parse(arguments); err != nil {
-		return nil, err
+func NewCommand() *cobra.Command {
+	a := GenerateCmd{}
+	a.KustomizationPath = os.Getenv(kustomizationPathEnvVar)
+	c := &cobra.Command{
+		Use:   "generate",
+		Short: "Prints the YAML manifests based on specified configuration",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			a.StdOut = cmd.OutOrStdout()
+			a.StdErr = cmd.ErrOrStderr()
+			return a.Run(cmd.Context())
+		},
 	}
-	return app, nil
+	f := c.Flags()
+	f.StringVar(&a.AgentToken, "agent-token", "", "Access token registered for agent")
+	f.StringVar(&a.AgentVersion, "agent-version", cmd.Version, "Version of the agentk image to use")
+	f.StringVar(&a.KasAddress, "kas-address", "", "GitLab Kubernetes Agent Server address")
+	f.StringVar(&a.Namespace, "namespace", "gitlab-agent", "Kubernetes namespace to create resources in")
+	f.BoolVar(&a.NoRbac, "no-rbac", false, "Do not include corresponding Roles and RoleBindings for the agent service account")
+	cobra.CheckErr(c.MarkFlagRequired("agent-token"))
+	return c
 }
 
 func (c *GenerateCmd) Run(ctx context.Context) (retErr error) {
@@ -85,7 +93,7 @@ func (c *GenerateCmd) kustomizeSet(ctx context.Context, setKey, value string) er
 	cmdctx := exec.CommandContext(ctx, "kustomize", "cfg", "set", c.KustomizationPath, setKey, value) // nolint:gosec
 
 	// Ignoring stdout, piping only stderr
-	cmdctx.Stderr = os.Stderr
+	cmdctx.Stderr = c.StdErr
 
 	return cmdctx.Run()
 }
@@ -97,20 +105,16 @@ func (c *GenerateCmd) kustomizeBuild(ctx context.Context, overlay string) error 
 	var out bytes.Buffer
 	out.WriteString(warningText)
 	cmdctx.Stdout = &out
-	cmdctx.Stderr = os.Stderr
+	cmdctx.Stderr = c.StdErr
 
 	if err := cmdctx.Run(); err != nil {
 		return err
 	}
-	_, _ = os.Stdout.Write(out.Bytes())
-	return nil
+	_, err := c.StdOut.Write(out.Bytes())
+	return err
 }
 
 func (c *GenerateCmd) writeTokenFile() error {
-	if c.AgentToken == "" {
-		return errors.New("--agent-token is required")
-	}
-
 	tokenFilePath := filepath.Join(c.KustomizationPath, kustomizationAgentTokenPath)
 	return os.WriteFile(tokenFilePath, []byte(c.AgentToken), 0777) //nolint:gosec
 }

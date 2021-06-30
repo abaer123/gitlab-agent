@@ -10,7 +10,7 @@ go_library(
     deps = [
         "//cmd",
         "//cmd/cli/generate",
-        "@com_github_spf13_pflag//:pflag",
+        "@com_github_spf13_cobra//:cobra",
     ],
 )
 
