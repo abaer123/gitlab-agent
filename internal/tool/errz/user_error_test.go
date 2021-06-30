@@ -9,11 +9,11 @@ import (
 )
 
 var (
-	_ error = &UserError{}
+	_ error = UserError{}
 )
 
 func Test_UserError_Unwrap(t *testing.T) {
-	e := &UserError{
+	e := UserError{
 		Cause:   context.Canceled,
 		Message: "bla",
 	}
@@ -23,13 +23,13 @@ func Test_UserError_Unwrap(t *testing.T) {
 
 func Test_UserError_String(t *testing.T) {
 	t.Run("without id", func(t *testing.T) {
-		e := &UserError{
+		e := UserError{
 			Message: "bla",
 		}
 		assert.EqualError(t, e, "bla")
 	})
 	t.Run("with id", func(t *testing.T) {
-		e := &UserError{
+		e := UserError{
 			Cause:   context.Canceled,
 			Message: "bla",
 		}

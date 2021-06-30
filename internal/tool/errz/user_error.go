@@ -2,10 +2,6 @@ package errz
 
 import "fmt"
 
-var (
-	_ error = &UserError{}
-)
-
 // UserError is an error that happened because the user messed something up:
 // - invalid syntax
 // - invalid configuration
@@ -18,7 +14,7 @@ type UserError struct {
 }
 
 func NewUserError(msg string) error {
-	return &UserError{
+	return UserError{
 		Message: msg,
 	}
 }
@@ -28,7 +24,7 @@ func NewUserErrorf(format string, args ...interface{}) error {
 }
 
 func NewUserErrorWithCause(cause error, msg string) error {
-	return &UserError{
+	return UserError{
 		Message: msg,
 		Cause:   cause,
 	}
@@ -38,16 +34,16 @@ func NewUserErrorWithCausef(cause error, format string, args ...interface{}) err
 	return NewUserErrorWithCause(cause, fmt.Sprintf(format, args...))
 }
 
-func (u *UserError) Error() string {
-	if u.Cause == nil {
-		return u.Message
+func (e UserError) Error() string {
+	if e.Cause == nil {
+		return e.Message
 	}
-	if u.Message == "" {
-		return u.Cause.Error()
+	if e.Message == "" {
+		return e.Cause.Error()
 	}
-	return fmt.Sprintf("%s: %v", u.Message, u.Cause)
+	return fmt.Sprintf("%s: %v", e.Message, e.Cause)
 }
 
-func (u *UserError) Unwrap() error {
-	return u.Cause
+func (e UserError) Unwrap() error {
+	return e.Cause
 }
