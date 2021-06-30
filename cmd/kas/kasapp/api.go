@@ -83,7 +83,7 @@ func (a *serverAPI) HandleProcessingError(ctx context.Context, log *zap.Logger, 
 		// An error caused by context signalling done
 		return
 	}
-	var ue *errz.UserError
+	var ue errz.UserError
 	isUserError := errors.As(err, &ue)
 	if isUserError {
 		// TODO Don't log it, send it somewhere the user can see it https://gitlab.com/gitlab-org/gitlab/-/issues/277323

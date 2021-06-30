@@ -71,7 +71,7 @@ func (j *pollJob) Attempt() (error, retry.AttemptResult) {
 	config, err := j.fetchConfiguration(j.ctx, agentInfo, info.CommitId)
 	if err != nil {
 		j.api.HandleProcessingError(j.ctx, log, "Config: failed to fetch", err)
-		var ue *errz.UserError
+		var ue errz.UserError
 		if errors.As(err, &ue) {
 			// return the error to the client because it's a user error
 			return status.Errorf(codes.FailedPrecondition, "Config: %v", err), retry.Done
