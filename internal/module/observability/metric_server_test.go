@@ -72,7 +72,7 @@ func TestMetricServer(t *testing.T) {
 		innerLivenessProbe = func(context.Context) error {
 			return expectedErr
 		}
-		tracker.EXPECT().Capture(fmt.Errorf("LivenessProbe failed: %v", expectedErr), gomock.Any())
+		tracker.EXPECT().Capture(fmt.Errorf("LivenessProbe failed: %w", expectedErr), gomock.Any())
 
 		rec = httpGet(t, "/liveness")
 		httpResponse = rec.Result()
@@ -92,7 +92,7 @@ func TestMetricServer(t *testing.T) {
 		innerReadinessProbe = func(context.Context) error {
 			return expectedErr
 		}
-		tracker.EXPECT().Capture(fmt.Errorf("ReadinessProbe failed: %v", expectedErr), gomock.Any())
+		tracker.EXPECT().Capture(fmt.Errorf("ReadinessProbe failed: %w", expectedErr), gomock.Any())
 
 		rec = httpGet(t, "/readiness")
 		httpResponse = rec.Result()

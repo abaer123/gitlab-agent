@@ -134,7 +134,7 @@ func (j *pollJob) fetchConfiguration(ctx context.Context, agentInfo *api.AgentIn
 func parseYAMLToConfiguration(configYAML []byte) (*agentcfg.ConfigurationFile, error) {
 	configJSON, err := yaml.YAMLToJSON(configYAML)
 	if err != nil {
-		return nil, fmt.Errorf("YAMLToJSON: %v", err)
+		return nil, fmt.Errorf("YAMLToJSON: %w", err)
 	}
 	configFile := &agentcfg.ConfigurationFile{}
 	if bytes.Equal(configJSON, []byte("null")) {
@@ -143,7 +143,7 @@ func parseYAMLToConfiguration(configYAML []byte) (*agentcfg.ConfigurationFile, e
 	}
 	err = protojson.Unmarshal(configJSON, configFile)
 	if err != nil {
-		return nil, fmt.Errorf("protojson.Unmarshal: %v", err)
+		return nil, fmt.Errorf("protojson.Unmarshal: %w", err)
 	}
 	return configFile, nil
 }

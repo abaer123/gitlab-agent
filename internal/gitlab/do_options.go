@@ -132,7 +132,7 @@ func WithJsonRequestBody(body interface{}) DoOption {
 	return func(config *doConfig) error {
 		bodyBytes, err := json.Marshal(body)
 		if err != nil {
-			return fmt.Errorf("WithJsonRequestBody: json.Marshal: %v", err)
+			return fmt.Errorf("WithJsonRequestBody: json.Marshal: %w", err)
 		}
 		return WithRequestBody(bytes.NewReader(bodyBytes), "application/json")(config)
 	}

@@ -16,7 +16,7 @@ func Register(registerer prometheus.Registerer, toRegister ...prometheus.Collect
 	for _, c := range toRegister {
 		if err := registerer.Register(c); err != nil {
 			cleanup()
-			return nil, fmt.Errorf("registering %T: %v", c, err)
+			return nil, fmt.Errorf("registering %T: %w", c, err)
 		}
 		registered = append(registered, c)
 	}

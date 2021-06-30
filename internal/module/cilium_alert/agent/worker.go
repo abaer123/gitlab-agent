@@ -162,7 +162,7 @@ func (w *worker) sendAlert(ctx context.Context, fl *flow.Flow, cnp *v2.CiliumNet
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("failed while encapsulating alert: %v", err)
+		return fmt.Errorf("failed while encapsulating alert: %w", err)
 	}
 	resp, err := w.api.MakeGitLabRequest(ctx, "/",
 		modagent.WithRequestMethod(http.MethodPost),
@@ -170,7 +170,7 @@ func (w *worker) sendAlert(ctx context.Context, fl *flow.Flow, cnp *v2.CiliumNet
 		modagent.WithRequestBody(bytes.NewReader(mbdy)),
 	)
 	if err != nil {
-		return fmt.Errorf("failed request to internal api: %v", err)
+		return fmt.Errorf("failed request to internal api: %w", err)
 	}
 	defer errz.SafeDrainAndClose(resp.Body, &retErr)
 	switch resp.StatusCode {

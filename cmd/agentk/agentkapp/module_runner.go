@@ -105,7 +105,7 @@ func (r *moduleRunner) applyConfiguration(holders []moduleHolder, commitId strin
 	for _, holder := range holders {
 		err := holder.module.DefaultAndValidateConfiguration(config)
 		if err != nil {
-			return fmt.Errorf("%s: %v", holder.module.Name(), err)
+			return fmt.Errorf("%s: %w", holder.module.Name(), err)
 		}
 	}
 	// Set for use.

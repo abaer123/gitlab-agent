@@ -125,5 +125,5 @@ func (s *MetricServer) pprofHandler(mux *http.ServeMux) {
 
 func (s *MetricServer) logAndCapture(ctx context.Context, msg string, err error) {
 	s.Log.Error(msg, zap.Error(err))
-	s.Tracker.Capture(fmt.Errorf("%s: %v", msg, err), errortracking.WithContext(ctx))
+	s.Tracker.Capture(fmt.Errorf("%s: %w", msg, err), errortracking.WithContext(ctx))
 }

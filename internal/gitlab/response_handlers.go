@@ -50,10 +50,10 @@ func JsonResponseHandler(response interface{}) ResponseHandler {
 				}
 				data, err := io.ReadAll(resp.Body)
 				if err != nil {
-					return fmt.Errorf("response body read: %v", err)
+					return fmt.Errorf("response body read: %w", err)
 				}
 				if err = json.Unmarshal(data, response); err != nil {
-					return fmt.Errorf("WithJsonResponseHandler: json.Unmarshal: %v", err)
+					return fmt.Errorf("WithJsonResponseHandler: json.Unmarshal: %w", err)
 				}
 				return nil
 			case http.StatusUnauthorized: // No token, invalid token, revoked token

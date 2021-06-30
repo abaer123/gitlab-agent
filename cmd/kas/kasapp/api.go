@@ -106,7 +106,7 @@ func (a *serverAPI) HandleSendError(log *zap.Logger, msg string, err error) erro
 func (a *serverAPI) logAndCapture(ctx context.Context, log *zap.Logger, msg string, err error) {
 	// don't add logz.CorrelationIdFromContext(ctx) here as it's been added to the logger already
 	log.Error(msg, zap.Error(err))
-	a.Capture(fmt.Errorf("%s: %v", msg, err), errortracking.WithContext(ctx))
+	a.Capture(fmt.Errorf("%s: %w", msg, err), errortracking.WithContext(ctx))
 }
 
 func (a *serverAPI) getAgentInfoCached(ctx context.Context, agentToken api.AgentToken) (*api.AgentInfo, error) {

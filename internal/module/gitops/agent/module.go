@@ -50,7 +50,7 @@ func defaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error 
 	for _, project := range config.Gitops.ManifestProjects {
 		err := applyDefaultsToManifestProject(project)
 		if err != nil {
-			return fmt.Errorf("project %s: %v", project.Id, err)
+			return fmt.Errorf("project %s: %w", project.Id, err)
 		}
 	}
 	return nil

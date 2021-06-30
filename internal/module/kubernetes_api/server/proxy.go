@@ -368,7 +368,7 @@ func getAgentIdAndJobTokenFromHeader(header string) (int64, string, error) {
 	}
 	agentId, err := strconv.ParseInt(agentIdAndTokenParts[0], 10, 64)
 	if err != nil {
-		return 0, "", fmt.Errorf("%s header: failed to parse: %v", authorizationHeader, err)
+		return 0, "", fmt.Errorf("%s header: failed to parse: %w", authorizationHeader, err)
 	}
 	token := agentIdAndTokenParts[1]
 	if token == "" {

@@ -83,7 +83,7 @@ func pktLineSplitter(data []byte, atEOF bool) (advance int, token []byte, err er
 	// length prefix of the packet line.
 	pktLength64, err := strconv.ParseInt(string(data[:4]), 16, 0)
 	if err != nil {
-		return 0, nil, fmt.Errorf("pktLineSplitter: decode length: %v", err)
+		return 0, nil, fmt.Errorf("pktLineSplitter: decode length: %w", err)
 	}
 
 	// Cast is safe because we requested an int-size number from strconv.ParseInt

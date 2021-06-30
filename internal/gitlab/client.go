@@ -81,7 +81,7 @@ func (c *Client) Do(ctx context.Context, opts ...DoOption) error {
 	u.RawQuery = o.query.Encode() // handles query == nil
 	r, err := http.NewRequestWithContext(ctx, o.method, u.String(), o.body)
 	if err != nil {
-		return fmt.Errorf("NewRequestWithContext: %v", err)
+		return fmt.Errorf("NewRequestWithContext: %w", err)
 	}
 	if o.header != nil {
 		r.Header = o.header
@@ -98,7 +98,7 @@ func (c *Client) Do(ctx context.Context, opts ...DoOption) error {
 		signedClaims, claimsErr := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).
 			SignedString(c.AuthSecret)
 		if claimsErr != nil {
-			return fmt.Errorf("sign JWT: %v", claimsErr)
+			return fmt.Errorf("sign JWT: %w", claimsErr)
 		}
 		r.Header.Set(jwtRequestHeader, signedClaims)
 	}
