@@ -23,7 +23,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
 	gitlab.com/gitlab-org/gitaly/v14 v14.1.0-rc1.0.20210621154920-1031c468bdb2
-	gitlab.com/gitlab-org/labkit v1.4.1
+	gitlab.com/gitlab-org/labkit v1.4.2-0.20210629091633-d58457fc4407
 	go.uber.org/zap v1.17.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba

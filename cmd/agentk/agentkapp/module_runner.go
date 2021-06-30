@@ -91,7 +91,7 @@ func (r *moduleRunner) RunConfigurationRefresh(ctx context.Context) error {
 		err := r.applyConfiguration(r.holders, data.CommitId, data.Config)
 		if err != nil {
 			if !errz.ContextDone(err) {
-				r.log.Error("Failed to apply configuration", logz.CommitId(data.CommitId), zap.Error(err))
+				r.log.Error("Failed to apply configuration", logz.CommitId(data.CommitId), logz.Error(err))
 			}
 			return
 		}

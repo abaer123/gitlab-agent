@@ -90,7 +90,7 @@ func (r *router) attemptToRoute(log *zap.Logger, agentId int64, stream grpc.Serv
 				return false, status.Error(codes.DeadlineExceeded, err.Error())
 			default:
 				// There was an error routing the request via this tunnel. Log and try another one.
-				log.Error("Failed to route request", zap.Error(err))
+				log.Error("Failed to route request", logz.Error(err))
 			}
 		}
 		return false, nil
@@ -105,7 +105,7 @@ func (r *router) attemptToGetTunnels(ctx context.Context, log *zap.Logger, agent
 		err := r.tunnelQuerier.GetTunnelsByAgentId(ctx, agentId, infos.Collect)
 		if err != nil {
 			// TODO error tracking
-			log.Error("GetTunnelsByAgentId()", zap.Error(err))
+			log.Error("GetTunnelsByAgentId()", logz.Error(err))
 			return nil, retry.Backoff
 		}
 		*infosTarget = infos
@@ -237,7 +237,7 @@ func (r *router) pipeFromKasToStream(log *zap.Logger, kasStream grpc.ClientStrea
 	default:
 		// Something unexpected
 		// TODO track error
-		log.Error("Failed to route request: visitor", zap.Error(err))
+		log.Error("Failed to route request: visitor", logz.Error(err))
 		return status.New(codes.Unavailable, "unavailable")
 	}
 }

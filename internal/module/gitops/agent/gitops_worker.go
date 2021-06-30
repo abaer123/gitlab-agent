@@ -82,7 +82,7 @@ func (w *defaultGitopsWorker) Run(ctx context.Context) {
 	err := retry.PollWithBackoff(ctx, w.applierBackoff, true, 0, func() (error, retry.AttemptResult) {
 		err := applier.Initialize()
 		if err != nil {
-			w.log.Error("Applier.Initialize() failed", zap.Error(err))
+			w.log.Error("Applier.Initialize() failed", logz.Error(err))
 			return nil, retry.Backoff
 		}
 		return nil, retry.Done

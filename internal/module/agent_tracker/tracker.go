@@ -67,12 +67,12 @@ func (t *RedisTracker) Run(ctx context.Context) error {
 		case <-refreshTicker.C:
 			err := t.refreshRegistrations(ctx)
 			if err != nil {
-				t.log.Error("Failed to refresh data in Redis", zap.Error(err))
+				t.log.Error("Failed to refresh data in Redis", logz.Error(err))
 			}
 		case <-gcTicker.C:
 			deletedKeys, err := t.runGc(ctx)
 			if err != nil {
-				t.log.Error("Failed to GC data in Redis", zap.Error(err))
+				t.log.Error("Failed to GC data in Redis", logz.Error(err))
 				// fallthrough
 			}
 			if deletedKeys > 0 {
@@ -81,12 +81,12 @@ func (t *RedisTracker) Run(ctx context.Context) error {
 		case toReg := <-t.toRegister:
 			err := t.registerConnection(ctx, toReg)
 			if err != nil {
-				t.log.Error("Failed to register connection", zap.Error(err))
+				t.log.Error("Failed to register connection", logz.Error(err))
 			}
 		case toUnreg := <-t.toUnregister:
 			err := t.unregisterConnection(ctx, toUnreg)
 			if err != nil {
-				t.log.Error("Failed to unregister connection", zap.Error(err))
+				t.log.Error("Failed to unregister connection", logz.Error(err))
 			}
 		}
 	}
@@ -121,13 +121,13 @@ func (t *RedisTracker) GetConnectionsByProjectId(ctx context.Context, projectId 
 func (t *RedisTracker) getConnectionsByKey(ctx context.Context, hash redistool.ExpiringHashInterface, key interface{}, cb ConnectedAgentInfoCallback) error {
 	_, err := hash.Scan(ctx, key, func(value *anypb.Any, err error) (bool, error) {
 		if err != nil {
-			t.log.Error("Redis hash scan", zap.Error(err))
+			t.log.Error("Redis hash scan", logz.Error(err))
 			return false, nil
 		}
 		var info ConnectedAgentInfo
 		err = value.UnmarshalTo(&info)
 		if err != nil {
-			t.log.Error("Redis proto.UnmarshalTo(ConnectedAgentInfo)", zap.Error(err))
+			t.log.Error("Redis proto.UnmarshalTo(ConnectedAgentInfo)", logz.Error(err))
 			return false, nil
 		}
 		return cb(&info)

@@ -41,9 +41,9 @@ func (s *syncWorker) Run(jobs <-chan syncJob) {
 			err := s.synchronize(job)
 			if err != nil {
 				if errz.ContextDone(err) {
-					l.Info("Synchronization was canceled", zap.Error(err))
+					l.Info("Synchronization was canceled", logz.Error(err))
 				} else {
-					l.Warn("Synchronization failed", zap.Error(err))
+					l.Warn("Synchronization failed", logz.Error(err))
 				}
 				return nil, retry.Backoff
 			}

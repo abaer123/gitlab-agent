@@ -128,7 +128,7 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 	agentId, jobToken, err := getAgentIdAndJobTokenFromRequest(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
-		log.Debug("Unauthorized: header", zap.Error(err))
+		log.Debug("Unauthorized: header", logz.Error(err))
 		return
 	}
 	log = log.With(logz.AgentId(agentId))

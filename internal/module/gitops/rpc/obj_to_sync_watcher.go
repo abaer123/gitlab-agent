@@ -4,8 +4,11 @@ import (
 	"context"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
@@ -50,10 +53,11 @@ func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToS
 		ctx, cancel := context.WithCancel(ctx) // nolint:govet
 		defer cancel()                         // ensure streaming call is canceled
 		req.CommitId = lastProcessedCommitId
-		res, err := o.GitopsClient.GetObjectsToSynchronize(ctx, req)
+		var responseMD metadata.MD
+		res, err := o.GitopsClient.GetObjectsToSynchronize(ctx, req, grpc.Header(&responseMD))
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
-				o.Log.Error("GetObjectsToSynchronize failed", zap.Error(err))
+				o.Log.Error("GetObjectsToSynchronize failed", logz.Error(grpctool.MaybeWrapWithCorrelationId(err, responseMD)))
 			}
 			return nil, retry.Backoff
 		}
@@ -65,7 +69,7 @@ func (o *ObjectsToSynchronizeWatcher) Watch(ctx context.Context, req *ObjectsToS
 		)
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
-				o.Log.Error("GetObjectsToSynchronize.Recv failed", zap.Error(err))
+				o.Log.Error("GetObjectsToSynchronize.Recv failed", logz.Error(grpctool.MaybeWrapWithCorrelationId(err, responseMD)))
 			}
 			return nil, retry.Backoff
 		}

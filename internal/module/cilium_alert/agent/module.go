@@ -8,6 +8,7 @@ import (
 	"github.com/cilium/cilium/pkg/k8s/client/clientset/versioned"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/cilium_alert"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"go.uber.org/zap"
@@ -62,7 +63,7 @@ func (m *module) applyNewConfiguration(ctx context.Context, holder *workerHolder
 	// TODO parse the address and check the scheme to see if we need to add WithInsecure()
 	clientConn, err := grpc.Dial(config.Cilium.HubbleRelayAddress, grpc.WithInsecure())
 	if err != nil {
-		m.log.Error("Failed to apply Cilium configuration", zap.Error(err))
+		m.log.Error("Failed to apply Cilium configuration", logz.Error(err))
 		return nil
 	}
 	newHolder := &workerHolder{
@@ -99,6 +100,6 @@ func (h *workerHolder) stop() {
 	// close gRPC connection
 	err := h.clientConn.Close()
 	if err != nil {
-		h.log.Error("Cilium gRPC conn close", zap.Error(err))
+		h.log.Error("Cilium gRPC conn close", logz.Error(err))
 	}
 }

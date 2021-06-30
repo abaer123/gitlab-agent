@@ -37,7 +37,7 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 				for config := range cfg {
 					err := m.setConfigurationLogging(config.Observability.Logging)
 					if err != nil {
-						m.log.Error("Failed to apply logging configuration", zap.Error(err))
+						m.log.Error("Failed to apply logging configuration", logz.Error(err))
 						continue
 					}
 				}

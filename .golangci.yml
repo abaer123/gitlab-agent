@@ -127,7 +127,7 @@ linters-settings:
 
   errorlint:
     # Check whether fmt.Errorf uses the %w verb for formatting errors. See the readme for caveats
-    errorf: false
+    errorf: true
     # Check for plain type assertions and type switches
     asserts: true
     # Check for plain error comparisons
@@ -153,8 +153,9 @@ linters-settings:
   forbidigo:
     # Forbid the following identifiers (identifiers are written using regexp):
     forbid:
-      - ^print.*$
-      - 'fmt\.Print.*'
+      - '^print$'
+      - '^fmt\.Print.*'
+      - '^zap\.Error$'
     # Exclude godoc examples from forbidigo checks.  Default is true.
     exclude_godoc_examples: false
 
@@ -642,6 +643,7 @@ linters:
     - megacheck
     - govet
     - exportloopref
+    - forbidigo
 #  enable-all: true
   disable:
     - scopelint

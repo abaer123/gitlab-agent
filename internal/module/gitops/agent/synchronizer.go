@@ -78,12 +78,12 @@ func (s *synchronizer) run(desiredState <-chan rpc.ObjectsToSynchronizeData) {
 			}
 			objs, err := s.decodeObjectsToSynchronize(state.Sources)
 			if err != nil {
-				s.log.Error("Failed to decode GitOps objects", zap.Error(err), logz.CommitId(state.CommitId))
+				s.log.Error("Failed to decode GitOps objects", logz.Error(err), logz.CommitId(state.CommitId))
 				continue
 			}
 			invObj, objs, err := s.splitObjects(state.ProjectId, objs)
 			if err != nil {
-				s.log.Error("Failed to locate inventory object in GitOps objects", zap.Error(err), logz.CommitId(state.CommitId))
+				s.log.Error("Failed to locate inventory object in GitOps objects", logz.Error(err), logz.CommitId(state.CommitId))
 				continue
 			}
 			if jobCancel != nil {

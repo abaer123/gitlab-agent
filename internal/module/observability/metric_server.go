@@ -12,6 +12,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
 )
@@ -124,6 +125,6 @@ func (s *MetricServer) pprofHandler(mux *http.ServeMux) {
 }
 
 func (s *MetricServer) logAndCapture(ctx context.Context, msg string, err error) {
-	s.Log.Error(msg, zap.Error(err))
+	s.Log.Error(msg, logz.Error(err))
 	s.Tracker.Capture(fmt.Errorf("%s: %w", msg, err), errortracking.WithContext(ctx))
 }

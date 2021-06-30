@@ -20,6 +20,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -109,7 +110,7 @@ func (w *worker) Run(ctx context.Context) {
 		})
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
-				w.log.Error("Failed to get flows from Hubble relay", zap.Error(err))
+				w.log.Error("Failed to get flows from Hubble relay", logz.Error(err))
 			}
 			return nil, retry.Backoff
 		}
@@ -120,7 +121,7 @@ func (w *worker) Run(ctx context.Context) {
 					return nil, retry.Continue
 				}
 				if !grpctool.RequestCanceled(err) {
-					w.log.Error("GetFlows.Recv() failed", zap.Error(err))
+					w.log.Error("GetFlows.Recv() failed", logz.Error(err))
 				}
 				return nil, retry.Backoff
 			}
@@ -130,7 +131,7 @@ func (w *worker) Run(ctx context.Context) {
 			case *observer.GetFlowsResponse_Flow:
 				err = w.processFlow(ctx, value.Flow, ciliumEndpointInformer)
 				if err != nil {
-					w.log.Error("Flow processing failed", zap.Error(err))
+					w.log.Error("Flow processing failed", logz.Error(err))
 					// continue consuming response messages
 				}
 			}

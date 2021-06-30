@@ -51,7 +51,7 @@ func TestConnectUnblocksIfNotStartedStreaming(t *testing.T) {
 	client, _, _, c := setupConnection(t)
 
 	client.EXPECT().
-		Connect(gomock.Any()).
+		Connect(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, opts ...grpc.CallOption) (rpc.ReverseTunnel_ConnectClient, error) {
 			cancel()
 			<-ctx.Done()
@@ -81,7 +81,7 @@ func TestNoErrorOnEofAfterRequestInfo(t *testing.T) {
 
 	gomock.InOrder(
 		client.EXPECT().
-			Connect(gomock.Any()).
+			Connect(gomock.Any(), gomock.Any()).
 			Return(tunnel, nil),
 		tunnel.EXPECT().
 			Send(gomock.Any()),
@@ -123,7 +123,7 @@ func TestNoErrorOnEofAfterMessage(t *testing.T) {
 
 	gomock.InOrder(
 		client.EXPECT().
-			Connect(gomock.Any()).
+			Connect(gomock.Any(), gomock.Any()).
 			Return(tunnel, nil),
 		tunnel.EXPECT().
 			Send(gomock.Any()),
@@ -186,7 +186,7 @@ func TestNoTrailerAfterHeaderError(t *testing.T) {
 
 	gomock.InOrder(
 		client.EXPECT().
-			Connect(gomock.Any()).
+			Connect(gomock.Any(), gomock.Any()).
 			Return(tunnel, nil),
 		tunnel.EXPECT().
 			Send(gomock.Any()),
@@ -255,7 +255,7 @@ func TestTrailerAfterRecvMsgEof(t *testing.T) {
 
 	gomock.InOrder(
 		client.EXPECT().
-			Connect(gomock.Any()).
+			Connect(gomock.Any(), gomock.Any()).
 			Return(tunnel, nil),
 		tunnel.EXPECT().
 			Send(gomock.Any()),
@@ -333,7 +333,7 @@ func TestTrailerAndErrorAfterRecvMsgError(t *testing.T) {
 
 	gomock.InOrder(
 		client.EXPECT().
-			Connect(gomock.Any()).
+			Connect(gomock.Any(), gomock.Any()).
 			Return(tunnel, nil),
 		tunnel.EXPECT().
 			Send(gomock.Any()),
@@ -368,7 +368,7 @@ func TestRecvMsgUnblocksIfNotStartedStreaming(t *testing.T) {
 
 	gomock.InOrder(
 		client.EXPECT().
-			Connect(gomock.Any()).
+			Connect(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, opts ...grpc.CallOption) (rpc.ReverseTunnel_ConnectClient, error) {
 				connectCtx = ctx
 				return tunnel, nil
@@ -406,7 +406,7 @@ func TestContextIgnoredIfStartedStreaming(t *testing.T) {
 
 	gomock.InOrder(
 		client.EXPECT().
-			Connect(gomock.Any()).
+			Connect(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, opts ...grpc.CallOption) (rpc.ReverseTunnel_ConnectClient, error) {
 				connectCtx = ctx
 				return tunnel, nil
@@ -444,7 +444,7 @@ func TestAgentDescriptorIsSent(t *testing.T) {
 	client, _, tunnel, c := setupConnection(t)
 	gomock.InOrder(
 		client.EXPECT().
-			Connect(gomock.Any()).
+			Connect(gomock.Any(), gomock.Any()).
 			Return(tunnel, nil),
 		tunnel.EXPECT().
 			Send(matcher.ProtoEq(t, &rpc.ConnectRequest{

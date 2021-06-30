@@ -12,6 +12,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/mathz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"gitlab.com/gitlab-org/labkit/errortracking"
@@ -88,7 +89,7 @@ func (a *serverAPI) HandleProcessingError(ctx context.Context, log *zap.Logger, 
 	if isUserError {
 		// TODO Don't log it, send it somewhere the user can see it https://gitlab.com/gitlab-org/gitlab/-/issues/277323
 		// Log at Info for now.
-		log.Info(msg, zap.Error(err))
+		log.Info(msg, logz.Error(err))
 	} else {
 		a.logAndCapture(ctx, log, msg, err)
 	}
@@ -98,14 +99,14 @@ func (a *serverAPI) HandleSendError(log *zap.Logger, msg string, err error) erro
 	// The problem is almost certainly with the client's connection.
 	// Still log it on Debug.
 	if !grpctool.RequestCanceled(err) {
-		log.Debug(msg, zap.Error(err))
+		log.Debug(msg, logz.Error(err))
 	}
 	return status.Error(codes.Unavailable, "gRPC send failed")
 }
 
 func (a *serverAPI) logAndCapture(ctx context.Context, log *zap.Logger, msg string, err error) {
 	// don't add logz.CorrelationIdFromContext(ctx) here as it's been added to the logger already
-	log.Error(msg, zap.Error(err))
+	log.Error(msg, logz.Error(err))
 	a.Capture(fmt.Errorf("%s: %w", msg, err), errortracking.WithContext(ctx))
 }
 

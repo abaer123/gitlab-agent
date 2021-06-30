@@ -58,6 +58,6 @@ func TestExampleConfigHasCorrectDefaults(t *testing.T) {
 		require.NoError(t, err)
 		configYAML, err := yaml.JSONToYAML(data)
 		require.NoError(t, err)
-		fmt.Println(string(configYAML))
+		fmt.Println(string(configYAML)) // nolint: forbidigo
 	}
 }
