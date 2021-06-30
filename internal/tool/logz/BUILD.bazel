@@ -9,6 +9,7 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz",
     visibility = ["//:__subpackages__"],
     deps = [
+        "//internal/tool/errz",
         "@com_gitlab_gitlab_org_labkit//correlation",
         "@com_gitlab_gitlab_org_labkit//mask",
         "@org_uber_go_zap//:zap",

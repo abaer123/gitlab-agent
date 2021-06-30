@@ -16,6 +16,7 @@ go_library(
         "//internal/module/reverse_tunnel/info",
         "//internal/module/reverse_tunnel/rpc",
         "//internal/tool/grpctool",
+        "//internal/tool/logz",
         "//internal/tool/retry",
         "//pkg/agentcfg",
         "@io_k8s_apimachinery//pkg/util/wait",

@@ -25,11 +25,13 @@ go_library(
     deps = [
         "//internal/tool/grpctool",
         "//internal/tool/grpctool/automata",
+        "//internal/tool/logz",
         "//internal/tool/retry",
         "//pkg/agentcfg",
         "@com_github_envoyproxy_protoc_gen_validate//validate:go_custom_library",
         "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//metadata",
         "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_golang_google_protobuf//runtime/protoimpl",
