@@ -12,7 +12,7 @@ var (
 	_ error = &UserError{}
 )
 
-func TestErrorUnwrap(t *testing.T) {
+func Test_UserError_Unwrap(t *testing.T) {
 	e := &UserError{
 		Cause:   context.Canceled,
 		Message: "bla",
@@ -21,15 +21,18 @@ func TestErrorUnwrap(t *testing.T) {
 	assert.True(t, errors.Is(e, context.Canceled))
 }
 
-func TestErrorString(t *testing.T) {
-	e := &UserError{
-		Message: "bla",
-	}
-	assert.EqualError(t, e, "bla")
-
-	e = &UserError{
-		Cause:   context.Canceled,
-		Message: "bla",
-	}
-	assert.EqualError(t, e, "bla: context canceled")
+func Test_UserError_String(t *testing.T) {
+	t.Run("without id", func(t *testing.T) {
+		e := &UserError{
+			Message: "bla",
+		}
+		assert.EqualError(t, e, "bla")
+	})
+	t.Run("with id", func(t *testing.T) {
+		e := &UserError{
+			Cause:   context.Canceled,
+			Message: "bla",
+		}
+		assert.EqualError(t, e, "bla: context canceled")
+	})
 }
