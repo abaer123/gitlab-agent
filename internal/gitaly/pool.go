@@ -26,16 +26,16 @@ type Pool struct {
 	ClientPool ClientPool
 }
 
-func (p *Pool) commitServiceClient(ctx context.Context, gInfo *api.GitalyInfo) (gitalypb.CommitServiceClient, error) {
-	conn, err := p.ClientPool.Dial(ctx, gInfo.Address, gInfo.Token)
+func (p *Pool) commitServiceClient(ctx context.Context, info *api.GitalyInfo) (gitalypb.CommitServiceClient, error) {
+	conn, err := p.ClientPool.Dial(ctx, info.Address, info.Token)
 	if err != nil {
 		return nil, err // don't wrap
 	}
 	return gitalypb.NewCommitServiceClient(conn), nil
 }
 
-func (p *Pool) smartHTTPServiceClient(ctx context.Context, gInfo *api.GitalyInfo) (gitalypb.SmartHTTPServiceClient, error) {
-	conn, err := p.ClientPool.Dial(ctx, gInfo.Address, gInfo.Token)
+func (p *Pool) smartHTTPServiceClient(ctx context.Context, info *api.GitalyInfo) (gitalypb.SmartHTTPServiceClient, error) {
+	conn, err := p.ClientPool.Dial(ctx, info.Address, info.Token)
 	if err != nil {
 		return nil, err // don't wrap
 	}
@@ -48,7 +48,8 @@ func (p *Pool) PathFetcher(ctx context.Context, info *api.GitalyInfo) (PathFetch
 		return nil, err
 	}
 	return &PathFetcher{
-		Client: client,
+		Client:   client,
+		Features: info.Features,
 	}, nil
 }
 
@@ -58,6 +59,7 @@ func (p *Pool) Poller(ctx context.Context, info *api.GitalyInfo) (PollerInterfac
 		return nil, err
 	}
 	return &Poller{
-		Client: client,
+		Client:   client,
+		Features: info.Features,
 	}, nil
 }

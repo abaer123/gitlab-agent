@@ -1,6 +1,7 @@
 package matcher
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -8,12 +9,14 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/kube_testing"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
 var (
 	_ gomock.Matcher = &cmpMatcher{}
 	_ gomock.Matcher = &errorMatcher{}
+	_ gomock.Matcher = &grpcOutgoingCtx{}
 )
 
 // ProtoEq is a better gomock.Eq() that works correctly for protobuf messages.
@@ -79,4 +82,36 @@ func (e *errorMatcher) Matches(x interface{}) bool {
 
 func (e *errorMatcher) String() string {
 	return fmt.Sprintf("error with message %q", e.expectedError)
+}
+
+type grpcOutgoingCtx struct {
+	kv map[string]string
+}
+
+// GrpcOutgoingCtx returns a matcher for context.Context that must contain gRPC outgoing metadata
+// with certain key-value pairs.
+func GrpcOutgoingCtx(kv map[string]string) gomock.Matcher {
+	return grpcOutgoingCtx{kv: kv}
+}
+
+func (c grpcOutgoingCtx) Matches(x interface{}) bool {
+	ctx, ok := x.(context.Context)
+	if !ok {
+		return false
+	}
+	md, ok := metadata.FromOutgoingContext(ctx)
+	if !ok {
+		return false
+	}
+	for k, v := range c.kv {
+		vals := md[k]
+		if len(vals) != 1 || vals[0] != v {
+			return false
+		}
+	}
+	return true
+}
+
+func (c grpcOutgoingCtx) String() string {
+	return fmt.Sprintf("context %v", c.kv)
 }

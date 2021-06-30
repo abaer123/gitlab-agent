@@ -31,7 +31,8 @@ type PollerInterface interface {
 }
 
 type Poller struct {
-	Client gitalypb.SmartHTTPServiceClient
+	Client   gitalypb.SmartHTTPServiceClient
+	Features map[string]string
 }
 
 type PollInfo struct {
@@ -82,7 +83,7 @@ loop:
 // fetchRefs returns a wrapped context.Canceled, context.DeadlineExceeded or gRPC error if ctx signals done and interrupts a running gRPC call.
 // fetchRefs returns *Error when a error occurs.
 func (p *Poller) fetchRefs(ctx context.Context, repo *gitalypb.Repository) (*ReferenceDiscovery, error) {
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(appendFeatureFlagsToContext(ctx, p.Features))
 	defer cancel() // ensure streaming call is canceled
 	uploadPackReq := &gitalypb.InfoRefsRequest{
 		Repository: repo,

@@ -104,9 +104,13 @@ func TestPoller(t *testing.T) {
 			r := repo()
 			infoRefsReq := &gitalypb.InfoRefsRequest{Repository: r}
 			httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(ctrl)
-			mockInfoRefsUploadPack(t, ctrl, httpClient, infoRefsReq, []byte(infoRefsData))
+			features := map[string]string{
+				"f1": "true",
+			}
+			mockInfoRefsUploadPack(t, ctrl, matcher.GrpcOutgoingCtx(features), httpClient, infoRefsReq, []byte(infoRefsData))
 			p := Poller{
-				Client: httpClient,
+				Client:   httpClient,
+				Features: features,
 			}
 			pollInfo, err := p.Poll(context.Background(), r, tc.lastProcessedCommit, tc.ref)
 			require.NoError(t, err)
@@ -122,7 +126,7 @@ func TestPollerErrors(t *testing.T) {
 		r := repo()
 		infoRefsReq := &gitalypb.InfoRefsRequest{Repository: r}
 		httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(ctrl)
-		mockInfoRefsUploadPack(t, ctrl, httpClient, infoRefsReq, []byte(infoRefsData))
+		mockInfoRefsUploadPack(t, ctrl, gomock.Any(), httpClient, infoRefsReq, []byte(infoRefsData))
 		p := Poller{
 			Client: httpClient,
 		}
@@ -138,7 +142,7 @@ func TestPollerErrors(t *testing.T) {
 		r := repo()
 		infoRefsReq := &gitalypb.InfoRefsRequest{Repository: r}
 		httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(ctrl)
-		mockInfoRefsUploadPack(t, ctrl, httpClient, infoRefsReq, []byte(noHEAD))
+		mockInfoRefsUploadPack(t, ctrl, gomock.Any(), httpClient, infoRefsReq, []byte(noHEAD))
 		p := Poller{
 			Client: httpClient,
 		}
@@ -156,7 +160,7 @@ func TestPollerErrors(t *testing.T) {
 		r := repo()
 		infoRefsReq := &gitalypb.InfoRefsRequest{Repository: r}
 		httpClient := mock_gitaly.NewMockSmartHTTPServiceClient(ctrl)
-		mockInfoRefsUploadPack(t, ctrl, httpClient, infoRefsReq, []byte(noHEAD))
+		mockInfoRefsUploadPack(t, ctrl, gomock.Any(), httpClient, infoRefsReq, []byte(noHEAD))
 		p := Poller{
 			Client: httpClient,
 		}
@@ -165,7 +169,7 @@ func TestPollerErrors(t *testing.T) {
 	})
 }
 
-func mockInfoRefsUploadPack(t *testing.T, ctrl *gomock.Controller, httpClient *mock_gitaly.MockSmartHTTPServiceClient, infoRefsReq *gitalypb.InfoRefsRequest, data []byte) {
+func mockInfoRefsUploadPack(t *testing.T, ctrl *gomock.Controller, ctx gomock.Matcher, httpClient *mock_gitaly.MockSmartHTTPServiceClient, infoRefsReq *gitalypb.InfoRefsRequest, data []byte) {
 	infoRefsClient := mock_gitaly.NewMockSmartHTTPService_InfoRefsUploadPackClient(ctrl)
 	// Emulate streaming response
 	resp1 := &gitalypb.InfoRefsResponse{
@@ -186,7 +190,7 @@ func mockInfoRefsUploadPack(t *testing.T, ctrl *gomock.Controller, httpClient *m
 			Return(nil, io.EOF),
 	)
 	httpClient.EXPECT().
-		InfoRefsUploadPack(gomock.Any(), matcher.ProtoEq(t, infoRefsReq)).
+		InfoRefsUploadPack(ctx, matcher.ProtoEq(t, infoRefsReq)).
 		Return(infoRefsClient, nil)
 }
 
