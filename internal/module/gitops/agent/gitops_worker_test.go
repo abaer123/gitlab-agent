@@ -299,9 +299,7 @@ func setupWorker(t *testing.T) (*defaultGitopsWorker, *MockApplier, *mock_rpc.Mo
 	gomock.InOrder(
 		applierFactory.EXPECT().
 			New().
-			Return(applier),
-		applier.EXPECT().
-			Initialize(),
+			Return(applier, nil),
 	)
 	w := &defaultGitopsWorker{
 		objWatcher:     watcher,

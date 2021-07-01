@@ -7,7 +7,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
-	"sigs.k8s.io/cli-utils/pkg/provider"
+	"sigs.k8s.io/cli-utils/pkg/util/factory"
 )
 
 const (
@@ -28,12 +28,17 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
+	statusPoller, err := factory.NewStatusPoller(config.K8sUtilFactory)
+	if err != nil {
+		return nil, err
+	}
 	return &module{
 		log: config.Log,
 		workerFactory: &defaultGitopsWorkerFactory{
 			log: config.Log,
 			applierFactory: &defaultApplierFactory{
-				provider: provider.NewProvider(config.K8sUtilFactory),
+				factory:      config.K8sUtilFactory,
+				statusPoller: statusPoller,
 			},
 			k8sUtilFactory: config.K8sUtilFactory,
 			gitopsClient:   rpc.NewGitopsClient(config.KasConn),

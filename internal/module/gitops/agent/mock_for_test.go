@@ -40,11 +40,12 @@ func (m *MockApplierFactory) EXPECT() *MockApplierFactoryMockRecorder {
 }
 
 // New mocks base method.
-func (m *MockApplierFactory) New() Applier {
+func (m *MockApplierFactory) New() (Applier, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "New")
 	ret0, _ := ret[0].(Applier)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // New indicates an expected call of New.
@@ -146,20 +147,6 @@ func NewMockApplier(ctrl *gomock.Controller) *MockApplier {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockApplier) EXPECT() *MockApplierMockRecorder {
 	return m.recorder
-}
-
-// Initialize mocks base method.
-func (m *MockApplier) Initialize() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Initialize")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Initialize indicates an expected call of Initialize.
-func (mr *MockApplierMockRecorder) Initialize() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Initialize", reflect.TypeOf((*MockApplier)(nil).Initialize))
 }
 
 // Run mocks base method.
