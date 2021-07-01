@@ -9,5 +9,5 @@ import (
 )
 
 func main() {
-	cmd.Run(agentkapp.NewFromFlags)
+	cmd.Run(agentkapp.NewCommand())
 }

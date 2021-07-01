@@ -6,8 +6,7 @@ import (
 	"os"
 
 	"github.com/go-logr/zapr"
-	"github.com/spf13/pflag"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd"
+	"github.com/spf13/cobra"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/kascfg"
@@ -66,13 +65,20 @@ func LoadConfigurationFile(configFile string) (*kascfg.ConfigurationFile, error)
 	return cfg, nil
 }
 
-func NewFromFlags(flagset *pflag.FlagSet, programName string, arguments []string) (cmd.Runnable, error) {
-	app := &App{}
-	flagset.StringVar(&app.ConfigurationFile, "configuration-file", "", "Optional configuration file to use (YAML)")
-	if err := flagset.Parse(arguments); err != nil {
-		return nil, err
+func NewCommand() *cobra.Command {
+	a := App{}
+	c := &cobra.Command{
+		Use:   "kas",
+		Short: "GitLab Kubernetes Agent Server",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return a.Run(cmd.Context())
+		},
 	}
-	return app, nil
+	c.Flags().StringVar(&a.ConfigurationFile, "configuration-file", "", "Configuration file to use (YAML)")
+	cobra.CheckErr(c.MarkFlagRequired("configuration-file"))
+
+	return c
 }
 
 func loggerFromConfig(loggingCfg *kascfg.LoggingCF) (*zap.Logger, error) {

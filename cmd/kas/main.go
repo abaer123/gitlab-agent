@@ -6,5 +6,5 @@ import (
 )
 
 func main() {
-	cmd.Run(kasapp.NewFromFlags)
+	cmd.Run(kasapp.NewCommand())
 }

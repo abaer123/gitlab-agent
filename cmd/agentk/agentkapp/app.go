@@ -13,7 +13,7 @@ import (
 	"github.com/go-logr/zapr"
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
-	"github.com/spf13/pflag"
+	"github.com/spf13/cobra"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/cmd"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration/rpc"
@@ -301,31 +301,38 @@ func (a *App) constructInternalServerConn(ctx context.Context, dialContext func(
 	)
 }
 
-func NewFromFlags(flagset *pflag.FlagSet, programName string, arguments []string) (cmd.Runnable, error) {
-	log, level, err := logger()
-	if err != nil {
-		return nil, err
-	}
-	app := &App{
-		Log:      log,
-		LogLevel: level,
+func NewCommand() *cobra.Command {
+	kubeConfigFlags := genericclioptions.NewConfigFlags(true)
+	a := App{
 		AgentMeta: &modshared.AgentMeta{
 			Version:      cmd.Version,
 			CommitId:     cmd.Commit,
 			PodNamespace: os.Getenv(envVarPodNamespace),
 			PodName:      os.Getenv(envVarPodName),
 		},
+		K8sClientGetter: kubeConfigFlags,
 	}
-	flagset.StringVar(&app.KasAddress, "kas-address", "", "GitLab Kubernetes Agent Server address")
-	flagset.StringVar(&app.CACertFile, "ca-cert-file", "", "Optional file with X.509 certificate authority certificate in PEM format")
-	flagset.StringVar(&app.TokenFile, "token-file", "", "File with access token")
-	kubeConfigFlags := genericclioptions.NewConfigFlags(true)
-	kubeConfigFlags.AddFlags(flagset)
-	if err := flagset.Parse(arguments); err != nil {
-		return nil, err
+	c := &cobra.Command{
+		Use:   "agentk",
+		Short: "GitLab Kubernetes Agent",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var err error
+			a.Log, a.LogLevel, err = logger()
+			if err != nil {
+				return err
+			}
+			return a.Run(cmd.Context())
+		},
 	}
-	app.K8sClientGetter = kubeConfigFlags
-	return app, nil
+	f := c.Flags()
+	f.StringVar(&a.KasAddress, "kas-address", "", "GitLab Kubernetes Agent Server address")
+	f.StringVar(&a.CACertFile, "ca-cert-file", "", "Optional file with X.509 certificate authority certificate in PEM format")
+	f.StringVar(&a.TokenFile, "token-file", "", "File with access token")
+	kubeConfigFlags.AddFlags(f)
+	cobra.CheckErr(c.MarkFlagRequired("kas-address"))
+	cobra.CheckErr(c.MarkFlagRequired("token-file"))
+	return c
 }
 
 func logger() (*zap.Logger, zap.AtomicLevel, error) {
