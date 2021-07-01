@@ -12,8 +12,8 @@ openAPI:
           setBy: package-default
           count: 1
     io.k8s.cli.setters.kas-address:
-      description: kas address. Use grpc://host.docker.internal:8150 if connecting
-        from within Docker e.g. from kind.
+      description: kas address. Use grpc://host.docker.internal:8150 if connecting from within Docker e.g. from kind.
+      type: string
       x-k8s-cli:
         setter:
           name: kas-address
@@ -21,6 +21,7 @@ openAPI:
           setBy: package-default
     io.k8s.cli.setters.prometheus-scrape:
       description: Enable or disable Prometheus scraping of agentk metrics.
+      type: string
       x-k8s-cli:
         setter:
           name: prometheus-scrape
@@ -32,7 +33,7 @@ openAPI:
       x-k8s-cli:
         setter:
           name: agent-version
-          value: latest
+          value: stable
           setBy: package-default
     io.k8s.cli.substitutions.agent-version-subst:
       x-k8s-cli:
@@ -42,3 +43,10 @@ openAPI:
           values:
           - marker: ${agent-version}
             ref: '#/definitions/io.k8s.cli.setters.agent-version'
+    io.k8s.cli.setters.name-prefix:
+      type: string
+      description: Prefix for resource names
+      x-k8s-cli:
+        setter:
+          name: name-prefix
+          value: ""
