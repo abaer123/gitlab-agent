@@ -4,12 +4,15 @@ package logz
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/url"
 
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/labkit/correlation"
 	"gitlab.com/gitlab-org/labkit/mask"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // These constants are for type-safe zap field helpers that are not here to:
@@ -127,6 +130,29 @@ func GrpcService(service string) zap.Field {
 
 func GrpcMethod(method string) zap.Field {
 	return zap.String("grpc_method", method)
+}
+
+func Error(err error) zap.Field {
+	var errCorrelation errz.CorrelationError
+	if errors.As(err, &errCorrelation) {
+		return zap.Inline(correlationMarshaler{
+			err:           err, // store the original error, not the unwrapped errCorrelation
+			correlationId: errCorrelation.CorrelationId,
+		})
+	} else {
+		return zap.Error(err) // nolint: forbidigo
+	}
+}
+
+type correlationMarshaler struct {
+	err           error
+	correlationId string
+}
+
+func (m correlationMarshaler) MarshalLogObject(encoder zapcore.ObjectEncoder) error {
+	zap.Error(m.err).AddTo(encoder)
+	CorrelationId(m.correlationId).AddTo(encoder)
+	return nil
 }
 
 // This should be in https://gitlab.com/gitlab-org/labkit/-/blob/master/mask/url.go

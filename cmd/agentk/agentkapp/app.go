@@ -184,7 +184,7 @@ func (a *App) constructModules(internalServer *grpc.Server, kasConn, internalSer
 func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, error) {
 	tokenData, err := os.ReadFile(a.TokenFile)
 	if err != nil {
-		return nil, fmt.Errorf("token file: %v", err)
+		return nil, fmt.Errorf("token file: %w", err)
 	}
 	tlsConfig, err := tlstool.DefaultClientTLSConfigWithCACert(a.CACertFile)
 	if err != nil {
@@ -192,7 +192,7 @@ func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, err
 	}
 	u, err := url.Parse(a.KasAddress)
 	if err != nil {
-		return nil, fmt.Errorf("invalid gitlab-kas address: %v", err)
+		return nil, fmt.Errorf("invalid gitlab-kas address: %w", err)
 	}
 	userAgent := fmt.Sprintf("agentk/%s/%s", a.AgentMeta.Version, a.AgentMeta.CommitId)
 	opts := []grpc.DialOption{
@@ -263,7 +263,7 @@ func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, err
 	opts = append(opts, grpc.WithPerRPCCredentials(grpctool.NewTokenCredentials(api.AgentToken(tokenData), !secure)))
 	conn, err := grpc.DialContext(ctx, addressToDial, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("gRPC.dial: %v", err)
+		return nil, fmt.Errorf("gRPC.dial: %w", err)
 	}
 	return conn, nil
 }

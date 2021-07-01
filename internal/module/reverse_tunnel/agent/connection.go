@@ -9,6 +9,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/info"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -49,7 +50,7 @@ func (c *connection) Run(ctx context.Context) {
 		err := c.attempt(ctx)
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
-				c.log.Error("Reverse tunnel", zap.Error(err))
+				c.log.Error("Reverse tunnel", logz.Error(err))
 			}
 			return nil, retry.Backoff
 		}
@@ -57,11 +58,14 @@ func (c *connection) Run(ctx context.Context) {
 	})
 }
 
-func (c *connection) attempt(ctx context.Context) error {
+func (c *connection) attempt(ctx context.Context) (retErr error) {
+	var responseMD metadata.MD
+	defer grpctool.DeferMaybeWrapWithCorrelationId(&retErr, &responseMD)
+
 	ctx, cancel, stopPropagation := propagateUntil(ctx)
 	defer cancel()
 
-	tunnel, err := c.client.Connect(ctx)
+	tunnel, err := c.client.Connect(ctx, grpc.Header(&responseMD))
 	if err != nil {
 		return fmt.Errorf("Connect(): %w", err) // wrap
 	}

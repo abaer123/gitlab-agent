@@ -10,10 +10,13 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -45,7 +48,7 @@ func (a *agentAPI) HandleProcessingError(ctx context.Context, log *zap.Logger, m
 	if isUserError {
 		// TODO Don't log it, send it somewhere the user can see it https://gitlab.com/gitlab-org/gitlab/-/issues/277323
 		// Log at Info for now.
-		log.Info(msg, zap.Error(err))
+		log.Info(msg, logz.Error(err))
 	} else {
 		a.logAndCapture(ctx, log, msg, err)
 	}
@@ -55,14 +58,14 @@ func (a *agentAPI) HandleSendError(log *zap.Logger, msg string, err error) error
 	// The problem is almost certainly with the client's connection.
 	// Still log it on Debug.
 	if !grpctool.RequestCanceled(err) {
-		log.Debug(msg, zap.Error(err))
+		log.Debug(msg, logz.Error(err))
 	}
 	return status.Error(codes.Unavailable, "gRPC send failed")
 }
 
 func (a *agentAPI) logAndCapture(ctx context.Context, log *zap.Logger, msg string, err error) {
 	// don't add logz.CorrelationIdFromContext(ctx) here as it's been added to the logger already
-	log.Error(msg, zap.Error(err))
+	log.Error(msg, logz.Error(err))
 }
 
 func (a *agentAPI) ToggleFeature(feature modagent.Feature, enabled bool) {
@@ -77,10 +80,12 @@ func (a *agentAPI) SubscribeToFeatureStatus(feature modagent.Feature, cb modagen
 func (a *agentAPI) Capture(err error, opts ...errortracking.CaptureOption) {
 }
 
-func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...modagent.GitLabRequestOption) (*modagent.GitLabResponse, error) {
+func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...modagent.GitLabRequestOption) (retResponse *modagent.GitLabResponse, retErr error) {
 	config := modagent.ApplyRequestOptions(opts)
 	ctx, cancel := context.WithCancel(ctx)
-	client, errReq := a.client.MakeRequest(ctx)
+	var responseMD metadata.MD
+	defer grpctool.DeferMaybeWrapWithCorrelationId(&retErr, &responseMD)
+	client, errReq := a.client.MakeRequest(ctx, grpc.Header(&responseMD))
 	if errReq != nil {
 		cancel()
 		if config.Body != nil {

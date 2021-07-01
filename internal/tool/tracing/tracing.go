@@ -18,7 +18,7 @@ func ConstructTracer(serviceName, connectionString string) (opentracing.Tracer, 
 
 	driverName, options, err := connstr.Parse(connectionString)
 	if err != nil {
-		return nil, nil, fmt.Errorf("unable to parse connection: %v", err)
+		return nil, nil, fmt.Errorf("unable to parse connection: %w", err)
 	}
 
 	if serviceName != "" {

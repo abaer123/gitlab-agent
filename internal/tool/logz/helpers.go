@@ -13,7 +13,7 @@ func LevelFromString(levelStr string) (zapcore.Level, error) {
 	var level zapcore.Level
 	err := level.Set(levelStr)
 	if err != nil {
-		return level, fmt.Errorf("log level: %v", err)
+		return level, fmt.Errorf("log level: %w", err)
 	}
 	switch level { // nolint: exhaustive
 	case zap.DebugLevel, zap.InfoLevel, zap.WarnLevel, zap.ErrorLevel:

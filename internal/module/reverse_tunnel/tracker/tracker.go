@@ -64,12 +64,12 @@ func (t *RedisTracker) Run(ctx context.Context) error {
 		case <-refreshTicker.C:
 			err := t.refreshRegistrations(ctx)
 			if err != nil {
-				t.log.Error("Failed to refresh data in Redis", zap.Error(err))
+				t.log.Error("Failed to refresh data in Redis", logz.Error(err))
 			}
 		case <-gcTicker.C:
 			deletedKeys, err := t.runGc(ctx)
 			if err != nil {
-				t.log.Error("Failed to GC data in Redis", zap.Error(err))
+				t.log.Error("Failed to GC data in Redis", logz.Error(err))
 				// fallthrough
 			}
 			if deletedKeys > 0 {
@@ -78,12 +78,12 @@ func (t *RedisTracker) Run(ctx context.Context) error {
 		case toReg := <-t.toRegister:
 			err := t.registerConnection(ctx, toReg)
 			if err != nil {
-				t.log.Error("Failed to register tunnel", zap.Error(err))
+				t.log.Error("Failed to register tunnel", logz.Error(err))
 			}
 		case toUnreg := <-t.toUnregister:
 			err := t.unregisterConnection(ctx, toUnreg)
 			if err != nil {
-				t.log.Error("Failed to unregister tunnel", zap.Error(err))
+				t.log.Error("Failed to unregister tunnel", logz.Error(err))
 			}
 		}
 	}
@@ -110,13 +110,13 @@ func (t *RedisTracker) UnregisterTunnel(ctx context.Context, info *TunnelInfo) b
 func (t *RedisTracker) GetTunnelsByAgentId(ctx context.Context, agentId int64, cb GetTunnelsByAgentIdCallback) error {
 	_, err := t.tunnelsByAgentId.Scan(ctx, agentId, func(value *anypb.Any, err error) (bool, error) {
 		if err != nil {
-			t.log.Error("Redis hash scan", zap.Error(err))
+			t.log.Error("Redis hash scan", logz.Error(err))
 			return false, nil
 		}
 		var info TunnelInfo
 		err = value.UnmarshalTo(&info)
 		if err != nil {
-			t.log.Error("Redis proto.UnmarshalTo(TunnelInfo)", zap.Error(err))
+			t.log.Error("Redis proto.UnmarshalTo(TunnelInfo)", logz.Error(err))
 			return false, nil
 		}
 		return cb(&info)

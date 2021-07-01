@@ -37,7 +37,7 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 				for config := range cfg {
 					err := m.setConfigurationLogging(config.Observability.Logging)
 					if err != nil {
-						m.log.Error("Failed to apply logging configuration", zap.Error(err))
+						m.log.Error("Failed to apply logging configuration", logz.Error(err))
 						continue
 					}
 				}
@@ -47,7 +47,7 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 			stage.Go(func(ctx context.Context) error {
 				lis, err := net.Listen("tcp", listenAddress) // nolint:gosec
 				if err != nil {
-					return fmt.Errorf("Observability listener failed to start: %v", err)
+					return fmt.Errorf("Observability listener failed to start: %w", err)
 				}
 				// Error is ignored because metricSrv.Run() closes the listener and
 				// a second close always produces an error.
@@ -83,7 +83,7 @@ func (m *module) DefaultAndValidateConfiguration(config *agentcfg.AgentConfigura
 	prototool.NotNil(&config.Observability.Logging)
 	err := m.defaultAndValidateLogging(config.Observability.Logging)
 	if err != nil {
-		return fmt.Errorf("logging: %v", err)
+		return fmt.Errorf("logging: %w", err)
 	}
 	return nil
 }

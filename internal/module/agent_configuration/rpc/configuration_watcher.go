@@ -7,9 +7,12 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 type ConfigurationData struct {
@@ -36,13 +39,14 @@ func (w *ConfigurationWatcher) Watch(ctx context.Context, callback Configuration
 	_ = retry.PollWithBackoff(ctx, w.Backoff(), true, 0 /* doesn't matter */, func() (error, retry.AttemptResult) {
 		ctx, cancel := context.WithCancel(ctx) // nolint:govet
 		defer cancel()                         // ensure streaming call is canceled
+		var responseMD metadata.MD
 		res, err := w.Client.GetConfiguration(ctx, &ConfigurationRequest{
 			CommitId:  lastProcessedCommitId,
 			AgentMeta: w.AgentMeta,
-		})
+		}, grpc.Header(&responseMD))
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
-				w.Log.Warn("GetConfiguration failed", zap.Error(err))
+				w.Log.Warn("GetConfiguration failed", logz.Error(grpctool.MaybeWrapWithCorrelationId(err, responseMD)))
 			}
 			return nil, retry.Backoff
 		}
@@ -54,7 +58,7 @@ func (w *ConfigurationWatcher) Watch(ctx context.Context, callback Configuration
 					return nil, retry.ContinueImmediately // immediately reconnect after a clean close
 				case grpctool.RequestCanceled(err):
 				default:
-					w.Log.Warn("GetConfiguration.Recv failed", zap.Error(err))
+					w.Log.Warn("GetConfiguration.Recv failed", logz.Error(grpctool.MaybeWrapWithCorrelationId(err, responseMD)))
 				}
 				return nil, retry.Backoff
 			}

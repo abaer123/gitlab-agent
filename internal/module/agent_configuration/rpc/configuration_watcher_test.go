@@ -44,7 +44,7 @@ func TestConfigurationWatcher(t *testing.T) {
 	cfg2 := &agentcfg.AgentConfiguration{}
 	gomock.InOrder(
 		client.EXPECT().
-			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc.ConfigurationRequest{})).
+			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc.ConfigurationRequest{}), gomock.Any()).
 			Return(configStream, nil),
 		configStream.EXPECT().
 			Recv().
@@ -94,7 +94,7 @@ func TestConfigurationWatcher_ResumeConnection(t *testing.T) {
 	configStream2 := mock_rpc.NewMockAgentConfiguration_GetConfigurationClient(ctrl)
 	gomock.InOrder(
 		client.EXPECT().
-			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc.ConfigurationRequest{})).
+			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc.ConfigurationRequest{}), gomock.Any()).
 			Return(configStream1, nil),
 		configStream1.EXPECT().
 			Recv().
@@ -108,7 +108,7 @@ func TestConfigurationWatcher_ResumeConnection(t *testing.T) {
 		client.EXPECT().
 			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc.ConfigurationRequest{
 				CommitId: revision1,
-			})).
+			}), gomock.Any()).
 			Return(configStream2, nil),
 		configStream2.EXPECT().
 			Recv().
@@ -145,7 +145,7 @@ func TestConfigurationWatcher_ImmediateReconnectOnEOF(t *testing.T) {
 	}
 	gomock.InOrder(
 		client.EXPECT().
-			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc.ConfigurationRequest{})).
+			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc.ConfigurationRequest{}), gomock.Any()).
 			Return(configStream1, nil),
 		configStream1.EXPECT().
 			Recv().
@@ -159,7 +159,7 @@ func TestConfigurationWatcher_ImmediateReconnectOnEOF(t *testing.T) {
 		client.EXPECT().
 			GetConfiguration(gomock.Any(), matcher.ProtoEq(t, &rpc.ConfigurationRequest{
 				CommitId: revision1,
-			})).
+			}), gomock.Any()).
 			Return(configStream2, nil),
 		configStream2.EXPECT().
 			Recv().

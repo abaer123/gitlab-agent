@@ -16,6 +16,7 @@ go_library(
         "//internal/module/reverse_tunnel/rpc",
         "//internal/module/reverse_tunnel/tracker",
         "//internal/tool/grpctool",
+        "//internal/tool/logz",
         "//internal/tool/mathz",
         "//internal/tool/prototool",
         "@org_golang_google_genproto//googleapis/rpc/status",

@@ -8,6 +8,7 @@ import (
 	"github.com/ash2k/stager"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
+	grpccorrelation "gitlab.com/gitlab-org/labkit/correlation/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -95,4 +96,15 @@ func ValuesMapToMeta(vals map[string]*prototool.Values) metadata.MD {
 		result[k] = val
 	}
 	return result
+}
+
+func MaybeWrapWithCorrelationId(err error, md metadata.MD) error {
+	return errz.MaybeWrapWithCorrelationId(err, grpccorrelation.CorrelationIDFromMetadata(md))
+}
+
+func DeferMaybeWrapWithCorrelationId(err *error, md *metadata.MD) {
+	if err == nil {
+		return
+	}
+	*err = MaybeWrapWithCorrelationId(*err, *md)
 }

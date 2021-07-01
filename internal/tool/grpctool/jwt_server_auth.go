@@ -6,7 +6,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go/v4"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
-	"go.uber.org/zap"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -52,7 +52,7 @@ func (a *JWTAuther) doAuth(ctx context.Context) error {
 		return a.secret, nil
 	})
 	if err != nil {
-		LoggerFromContext(ctx).Debug("JWT auth failed", zap.Error(err))
+		LoggerFromContext(ctx).Debug("JWT auth failed", logz.Error(err))
 		return status.Error(codes.Unauthenticated, "JWT validation failed")
 	}
 	return nil

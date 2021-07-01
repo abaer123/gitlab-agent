@@ -4,6 +4,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "errz",
     srcs = [
+        "correlation_error.go",
         "errz.go",
         "user_error.go",
     ],
@@ -13,7 +14,10 @@ go_library(
 
 go_custom_test(
     name = "errz_test",
-    srcs = ["user_error_test.go"],
+    srcs = [
+        "correlation_error_test.go",
+        "user_error_test.go",
+    ],
     embed = [":errz"],
     deps = ["@com_github_stretchr_testify//assert"],
 )

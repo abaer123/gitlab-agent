@@ -91,7 +91,7 @@ func (r *moduleRunner) RunConfigurationRefresh(ctx context.Context) error {
 		err := r.applyConfiguration(r.holders, data.CommitId, data.Config)
 		if err != nil {
 			if !errz.ContextDone(err) {
-				r.log.Error("Failed to apply configuration", logz.CommitId(data.CommitId), zap.Error(err))
+				r.log.Error("Failed to apply configuration", logz.CommitId(data.CommitId), logz.Error(err))
 			}
 			return
 		}
@@ -105,7 +105,7 @@ func (r *moduleRunner) applyConfiguration(holders []moduleHolder, commitId strin
 	for _, holder := range holders {
 		err := holder.module.DefaultAndValidateConfiguration(config)
 		if err != nil {
-			return fmt.Errorf("%s: %v", holder.module.Name(), err)
+			return fmt.Errorf("%s: %w", holder.module.Name(), err)
 		}
 	}
 	// Set for use.

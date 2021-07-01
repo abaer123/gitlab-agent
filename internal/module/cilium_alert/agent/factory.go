@@ -31,7 +31,7 @@ func (f *Factory) New(cfg *modagent.Config) (modagent.Module, error) {
 	}
 	ciliumClient, err := versioned.NewForConfig(restConfig)
 	if err != nil {
-		return nil, fmt.Errorf("client set for cilium v2: %v", err)
+		return nil, fmt.Errorf("client set for Cilium: %w", err)
 	}
 	return &module{
 		log:          cfg.Log,

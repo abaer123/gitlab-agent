@@ -41,7 +41,7 @@ func (l *TokenLimiter) Allow(ctx context.Context) bool {
 	if err != nil {
 		if !errors.Is(err, redis.Nil) {
 			// FIXME: Handle error
-			l.log.Error("redistool.TokenLimiter: Error retrieving minute bucket count", zap.Error(err))
+			l.log.Error("redistool.TokenLimiter: Error retrieving minute bucket count", logz.Error(err))
 			return false
 		}
 		count = 0
@@ -59,7 +59,7 @@ func (l *TokenLimiter) Allow(ctx context.Context) bool {
 		return nil
 	})
 	if err != nil {
-		l.log.Error("redistool.TokenLimiter: Error wile incrementing token key count", zap.Error(err))
+		l.log.Error("redistool.TokenLimiter: Error wile incrementing token key count", logz.Error(err))
 		// FIXME: Handle error
 		return false
 	}

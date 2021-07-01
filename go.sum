@@ -1072,8 +1072,9 @@ gitlab.com/gitlab-org/gitlab-shell v1.9.8-0.20210608004414-a9c25c17ea0a/go.mod h
 gitlab.com/gitlab-org/labkit v0.0.0-20190221122536-0c3fc7cdd57c/go.mod h1:rYhLgfrbEcyfinG+R3EvKu6bZSsmwQqcXzLfHWSfUKM=
 gitlab.com/gitlab-org/labkit v0.0.0-20200908084045-45895e129029/go.mod h1:SNfxkfUwVNECgtmluVayv0GWFgEjjBs5AzgsowPQuo0=
 gitlab.com/gitlab-org/labkit v1.0.0/go.mod h1:nohrYTSLDnZix0ebXZrbZJjymRar8HeV2roWL5/jw2U=
-gitlab.com/gitlab-org/labkit v1.4.1 h1:mh4g+c/esQSWCVQJ197aftrIbXlhXCtiLC8RgSvyCx0=
 gitlab.com/gitlab-org/labkit v1.4.1/go.mod h1:x5JO5uvdX4t6e/TZXLXZnFL5AcKz2uLLd3uKXZcuO4k=
+gitlab.com/gitlab-org/labkit v1.4.2-0.20210629091633-d58457fc4407 h1:LNBHzR5NSWHu17ETteZhTNcaMqOB+bGnpLapenmer2k=
+gitlab.com/gitlab-org/labkit v1.4.2-0.20210629091633-d58457fc4407/go.mod h1:x5JO5uvdX4t6e/TZXLXZnFL5AcKz2uLLd3uKXZcuO4k=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.5/go.mod h1:G5EMThwa9y8QZGBClrRx5EY+Yw9kAhnjy3bSjsnlVTQ=

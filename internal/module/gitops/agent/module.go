@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/agentcfg"
 	"go.uber.org/zap"
@@ -34,7 +35,7 @@ func (m *module) Run(ctx context.Context, cfg <-chan *agentcfg.AgentConfiguratio
 	for config := range cfg {
 		err := wm.ApplyConfiguration(config.AgentId, config.Gitops)
 		if err != nil {
-			m.log.Error("Failed to apply manifest projects configuration", zap.Error(err))
+			m.log.Error("Failed to apply manifest projects configuration", logz.Error(err))
 			continue
 		}
 	}
@@ -50,7 +51,7 @@ func defaultAndValidateConfiguration(config *agentcfg.AgentConfiguration) error 
 	for _, project := range config.Gitops.ManifestProjects {
 		err := applyDefaultsToManifestProject(project)
 		if err != nil {
-			return fmt.Errorf("project %s: %v", project.Id, err)
+			return fmt.Errorf("project %s: %w", project.Id, err)
 		}
 	}
 	return nil

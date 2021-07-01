@@ -28,7 +28,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	ApplyDefaultsToKasConfigurationFile(cfg)
 	err = cfg.ValidateExtra()
 	if err != nil {
-		return fmt.Errorf("kascfg.ValidateExtra: %v", err)
+		return fmt.Errorf("kascfg.ValidateExtra: %w", err)
 	}
 	logger, err := loggerFromConfig(cfg.Observability.Logging)
 	if err != nil {
@@ -47,20 +47,20 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 func LoadConfigurationFile(configFile string) (*kascfg.ConfigurationFile, error) {
 	configYAML, err := os.ReadFile(configFile) // nolint: gosec
 	if err != nil {
-		return nil, fmt.Errorf("configuration file: %v", err)
+		return nil, fmt.Errorf("configuration file: %w", err)
 	}
 	configJSON, err := yaml.YAMLToJSON(configYAML)
 	if err != nil {
-		return nil, fmt.Errorf("YAMLToJSON: %v", err)
+		return nil, fmt.Errorf("YAMLToJSON: %w", err)
 	}
 	cfg := &kascfg.ConfigurationFile{}
 	err = protojson.Unmarshal(configJSON, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("protojson.Unmarshal: %v", err)
+		return nil, fmt.Errorf("protojson.Unmarshal: %w", err)
 	}
 	err = cfg.Validate()
 	if err != nil {
-		return nil, fmt.Errorf("kascfg.Validate: %v", err)
+		return nil, fmt.Errorf("kascfg.Validate: %w", err)
 	}
 	return cfg, nil
 }

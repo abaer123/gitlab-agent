@@ -17,6 +17,7 @@ go_library(
         "//internal/module/modagent",
         "//internal/tool/errz",
         "//internal/tool/grpctool",
+        "//internal/tool/logz",
         "//internal/tool/retry",
         "//pkg/agentcfg",
         "@com_github_cilium_cilium//api/v1/flow",

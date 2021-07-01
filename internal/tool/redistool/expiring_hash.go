@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -155,7 +156,7 @@ func (h *ExpiringHash) refreshKey(ctx context.Context, key interface{}, hashData
 		})
 		if err != nil {
 			// This should never happen
-			h.log.Error("Failed to marshal ExpiringValue", zap.Error(err))
+			h.log.Error("Failed to marshal ExpiringValue", logz.Error(err))
 			continue
 		}
 		args = append(args, hashKey, redisValue)

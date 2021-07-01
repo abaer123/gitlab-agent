@@ -102,7 +102,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Tracing
 	tracer, closer, err := tracing.ConstructTracer(kasName, cfg.Observability.Tracing.ConnectionString)
 	if err != nil {
-		return fmt.Errorf("tracing: %v", err)
+		return fmt.Errorf("tracing: %w", err)
 	}
 	defer errz.SafeClose(closer, &retErr)
 
@@ -115,7 +115,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Sentry
 	errTracker, err := a.constructErrorTracker()
 	if err != nil {
-		return fmt.Errorf("error tracker: %v", err)
+		return fmt.Errorf("error tracker: %w", err)
 	}
 
 	// Redis
@@ -240,7 +240,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 			CommitId:         cmd.Commit,
 		})
 		if err != nil {
-			return fmt.Errorf("%s: %v", factory.Name(), err)
+			return fmt.Errorf("%s: %w", factory.Name(), err)
 		}
 		modules = append(modules, module)
 	}
@@ -263,7 +263,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 				stage.Go(func(ctx context.Context) error {
 					err := module.Run(ctx)
 					if err != nil {
-						return fmt.Errorf("%s: %v", module.Name(), err)
+						return fmt.Errorf("%s: %w", module.Name(), err)
 					}
 					return nil
 				})
@@ -287,7 +287,7 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, tun
 	listenCfg := a.Configuration.PrivateApi.Listen
 	jwtSecret, err := filez.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
 	if err != nil {
-		return nil, fmt.Errorf("auth secret file: %v", err)
+		return nil, fmt.Errorf("auth secret file: %w", err)
 	}
 	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
 	if err != nil {
@@ -407,19 +407,23 @@ func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tr
 	listenCfg := a.Configuration.Agent.Listen
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
-		grpc_prometheus.StreamServerInterceptor,                                                  // 1. measure all invocations
-		grpctool.StreamServerAgentMDInterceptor(),                                                // 2. ensure agent presents a token
-		grpccorrelation.StreamServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()), // 3. add correlation id
-		grpctool.StreamServerLoggerInterceptor(a.Log),                                            // 4. inject logger with correlation id
+		grpc_prometheus.StreamServerInterceptor,   // 1. measure all invocations
+		grpctool.StreamServerAgentMDInterceptor(), // 2. ensure agent presents a token
+		grpccorrelation.StreamServerCorrelationInterceptor( // 3. add correlation id
+			grpccorrelation.WithoutPropagation(),
+			grpccorrelation.WithReversePropagation()),
+		grpctool.StreamServerLoggerInterceptor(a.Log), // 4. inject logger with correlation id
 		grpc_validator.StreamServerInterceptor(),
 		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
 	}
 	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
-		grpc_prometheus.UnaryServerInterceptor,                                                  // 1. measure all invocations
-		grpctool.UnaryServerAgentMDInterceptor(),                                                // 2. ensure agent presents a token
-		grpccorrelation.UnaryServerCorrelationInterceptor(grpccorrelation.WithoutPropagation()), // 3. add correlation id
-		grpctool.UnaryServerLoggerInterceptor(a.Log),                                            // 4. inject logger with correlation id
+		grpc_prometheus.UnaryServerInterceptor,   // 1. measure all invocations
+		grpctool.UnaryServerAgentMDInterceptor(), // 2. ensure agent presents a token
+		grpccorrelation.UnaryServerCorrelationInterceptor( // 3. add correlation id
+			grpccorrelation.WithoutPropagation(),
+			grpccorrelation.WithReversePropagation()),
+		grpctool.UnaryServerLoggerInterceptor(a.Log), // 4. inject logger with correlation id
 		grpc_validator.UnaryServerInterceptor(),
 		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
 		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
@@ -473,7 +477,7 @@ func (a *ConfiguredApp) constructApiServer(interceptorsCtx context.Context, trac
 	listenCfg := a.Configuration.Api.Listen
 	jwtSecret, err := filez.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
 	if err != nil {
-		return nil, fmt.Errorf("auth secret file: %v", err)
+		return nil, fmt.Errorf("auth secret file: %w", err)
 	}
 
 	jwtAuther := grpctool.NewJWTAuther(jwtSecret, jwt.WithAudience(kasName))
@@ -533,7 +537,7 @@ func (a *ConfiguredApp) constructPrivateApiServer(interceptorsCtx context.Contex
 	listenCfg := a.Configuration.PrivateApi.Listen
 	jwtSecret, err := filez.LoadBase64Secret(listenCfg.AuthenticationSecretFile)
 	if err != nil {
-		return nil, fmt.Errorf("auth secret file: %v", err)
+		return nil, fmt.Errorf("auth secret file: %w", err)
 	}
 
 	jwtAuther := grpctool.NewJWTAuther(jwtSecret, jwt.WithAudience(kasName), jwt.WithIssuer(kasName))
@@ -672,7 +676,7 @@ func (a *ConfiguredApp) constructErrorTracker() (errortracking.Tracker, error) {
 func (a *ConfiguredApp) loadGitLabClientAuthSecret() ([]byte, error) {
 	decodedAuthSecret, err := filez.LoadBase64Secret(a.Configuration.Gitlab.AuthenticationSecretFile)
 	if err != nil {
-		return nil, fmt.Errorf("read file: %v", err)
+		return nil, fmt.Errorf("read file: %w", err)
 	}
 	if len(decodedAuthSecret) != authSecretLength {
 		return nil, fmt.Errorf("decoding: expecting %d bytes, was %d", authSecretLength, len(decodedAuthSecret))
@@ -695,7 +699,7 @@ func (a *ConfiguredApp) constructGitLabClient(tracer opentracing.Tracer) (*gitla
 	// Secret for JWT signing
 	decodedAuthSecret, err := a.loadGitLabClientAuthSecret()
 	if err != nil {
-		return nil, fmt.Errorf("authentication secret: %v", err)
+		return nil, fmt.Errorf("authentication secret: %w", err)
 	}
 	return gitlab.NewClient(
 		gitLabUrl,
@@ -830,7 +834,7 @@ func constructReadinessProbe(redisClient redis.UniversalClient) observability.Pr
 		status := redisClient.Ping(ctx)
 		err := status.Err()
 		if err != nil {
-			return fmt.Errorf("redis: %v", err)
+			return fmt.Errorf("redis: %w", err)
 		}
 		return nil
 	}

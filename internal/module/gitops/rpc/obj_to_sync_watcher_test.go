@@ -43,7 +43,7 @@ func TestObjectsToSynchronizeWatcherResumeConnection(t *testing.T) {
 	}
 	gomock.InOrder(
 		client.EXPECT().
-			GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, req)).
+			GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, req), gomock.Any()).
 			Return(stream1, nil),
 		stream1.EXPECT().
 			RecvMsg(gomock.Any()).
@@ -69,7 +69,7 @@ func TestObjectsToSynchronizeWatcherResumeConnection(t *testing.T) {
 				ProjectId: projectId,
 				CommitId:  revision,
 				Paths:     pathsCfg,
-			})).
+			}), gomock.Any()).
 			Return(stream2, nil),
 		stream2.EXPECT().
 			RecvMsg(gomock.Any()).
@@ -168,7 +168,7 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 			}
 			calls := []*gomock.Call{
 				client.EXPECT().
-					GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, req)).
+					GetObjectsToSynchronize(gomock.Any(), matcher.ProtoEq(t, req), gomock.Any()).
 					Return(stream1, nil),
 			}
 			if tc.eof {
