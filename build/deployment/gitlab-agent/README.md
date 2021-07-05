@@ -16,10 +16,9 @@ GitLab Kubernetes Agent needs two pieces of configuration to connect to a GitLab
 1. URL. The agent can use WebSockets or gRPC protocols to connect to GitLab. Depending
    on how your GitLab instance is configured, you may need to use one or the other.
 
-   - Specify `grpc` scheme (e.g. `grpc://127.0.0.1:8150`) to use gRPC directly. The connection is not encrypted.
-   - Encrypted gRPC is not supported yet. See the issue
-     [Support TLS for gRPC communication](https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/7).
-   - Specify `ws` scheme to use WebSocket connection. The connection is not encrypted.
+   - Specify `grpc` scheme (e.g. `grpc://127.0.0.1:8150`) to use gRPC. The connection is **not encrypted**.
+   - Specify `grpcs` scheme to use an encrypted gRPC connection.
+   - Specify `ws` scheme to use WebSocket connection. The connection is **not encrypted**.
    - Specify `wss` scheme to use an encrypted WebSocket connection.
 
 1. Token.
@@ -55,18 +54,22 @@ you use `kpt`, but `kpt` makes cloning and updating the package more convenient.
     ```shell
     # in gitlab-agent directory
     kustomize cfg list-setters .
+    ./
 
-        NAME                VALUE               SET BY                  DESCRIPTION              COUNT   REQUIRED   IS SET
-    agent-version   latest                  package-default   Image tag for agentk container     1       No         No
-    kas-address     grpc://127.0.0.1:8150   package-default   kas address. Use                   1       No         No
-                                                              grpc://host.docker.internal:8150
-                                                              if connecting from within Docker
-                                                              e.g. from kind.
-    namespace       gitlab-agent            package-default   Namespace to install GitLab        1       No         No
-                                                              Kubernetes Agent into
-
+        NAME                    VALUE               SET BY                  DESCRIPTION              COUNT   REQUIRED   IS SET
+    agent-version       stable                  package-default   Image tag for agentk container     1       No         No
+    kas-address         wss://kas.gitlab.com    package-default   kas address. Use                   1       No         No
+                                                                  grpc://host.docker.internal:8150
+                                                                  if connecting from within Docker
+                                                                  e.g. from kind.
+    name-prefix                                                   Prefix for resource names          1       No         No
+    namespace           gitlab-agent            package-default   Namespace to install GitLab        1       No         No
+                                                                  Kubernetes Agent into
+    prometheus-scrape   true                    package-default   Enable or disable Prometheus       1       No         No
+                                                                  scraping of agentk metrics.
     kustomize cfg set . namespace custom-place
     set 1 fields
+    # kustomize cfg set . kas-address wss://kas.gitlab.com # for GitLab.com
     kustomize cfg set . kas-address wss://my-host.example.com:443/-/kubernetes-agent
     set 1 fields
     ```
