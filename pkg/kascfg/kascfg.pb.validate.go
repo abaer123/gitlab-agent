@@ -2202,6 +2202,13 @@ func (m *ApiCF) Validate() error {
 		return nil
 	}
 
+	if m.GetListen() == nil {
+		return ApiCFValidationError{
+			field:  "Listen",
+			reason: "value is required",
+		}
+	}
+
 	if v, ok := interface{}(m.GetListen()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return ApiCFValidationError{
@@ -2275,6 +2282,13 @@ var _ interface {
 func (m *PrivateApiCF) Validate() error {
 	if m == nil {
 		return nil
+	}
+
+	if m.GetListen() == nil {
+		return PrivateApiCFValidationError{
+			field:  "Listen",
+			reason: "value is required",
+		}
 	}
 
 	if v, ok := interface{}(m.GetListen()).(interface{ Validate() error }); ok {

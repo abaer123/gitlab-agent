@@ -305,12 +305,12 @@ message ListenApiCF {
 
 message ApiCF {
   // RPC listener configuration for API connections.
-  ListenApiCF listen = 1 [json_name = "listen"];
+  ListenApiCF listen = 1 [json_name = "listen", (validate.rules).message.required = true];
 }
 
 message PrivateApiCF {
   // RPC listener configuration for API connections.
-  ListenApiCF listen = 1 [json_name = "listen"];
+  ListenApiCF listen = 1 [json_name = "listen", (validate.rules).message.required = true];
 }
 
 // ConfigurationFile represents kas configuration file.

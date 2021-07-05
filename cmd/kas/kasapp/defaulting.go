@@ -43,6 +43,8 @@ const (
 
 	defaultApiListenAddress          = "127.0.0.1:8153"
 	defaultApiListenMaxConnectionAge = 30 * time.Minute
+
+	defaultPrivateApiListenMaxConnectionAge = 30 * time.Minute
 )
 
 var (
@@ -76,6 +78,11 @@ func ApplyDefaultsToKasConfigurationFile(cfg *kascfg.ConfigurationFile) {
 		defaultApi(cfg.Api)
 	}
 
+	// TODO this should become required
+	if cfg.PrivateApi != nil {
+		defaultPrivateApi(cfg.PrivateApi)
+	}
+
 	for _, defaulter := range defaulters {
 		defaulter(cfg)
 	}
@@ -85,6 +92,11 @@ func defaultApi(api *kascfg.ApiCF) {
 	prototool.NotNil(&api.Listen)
 	prototool.String(&api.Listen.Address, defaultApiListenAddress)
 	prototool.Duration(&api.Listen.MaxConnectionAge, defaultApiListenMaxConnectionAge)
+}
+
+func defaultPrivateApi(api *kascfg.PrivateApiCF) {
+	prototool.NotNil(&api.Listen)
+	prototool.Duration(&api.Listen.MaxConnectionAge, defaultPrivateApiListenMaxConnectionAge)
 }
 
 func defaultGitLab(g *kascfg.GitLabCF) {
