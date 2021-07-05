@@ -357,6 +357,37 @@ func TestValidation_Invalid(t *testing.T) {
 			ErrString: "invalid ConfigurationFile.Gitlab: value is required",
 			Invalid:   &ConfigurationFile{},
 		},
+		{
+			Name:      "empty ListenApiCF.AuthenticationSecretFile",
+			ErrString: "invalid ListenApiCF.AuthenticationSecretFile: value length must be at least 1 runes",
+			Invalid:   &ListenApiCF{},
+		},
+		{
+			Name:      "zero ListenApiCF.MaxConnectionAge",
+			ErrString: "invalid ListenApiCF.MaxConnectionAge: value must be greater than 0s",
+			Invalid: &ListenApiCF{
+				AuthenticationSecretFile: "bla",
+				MaxConnectionAge:         durationpb.New(0),
+			},
+		},
+		{
+			Name:      "negative ListenApiCF.MaxConnectionAge",
+			ErrString: "invalid ListenApiCF.MaxConnectionAge: value must be greater than 0s",
+			Invalid: &ListenApiCF{
+				AuthenticationSecretFile: "bla",
+				MaxConnectionAge:         durationpb.New(-1),
+			},
+		},
+		{
+			Name:      "missing ApiCF.Listen",
+			ErrString: "invalid ApiCF.Listen: value is required",
+			Invalid:   &ApiCF{},
+		},
+		{
+			Name:      "missing PrivateApiCF.Listen",
+			ErrString: "invalid PrivateApiCF.Listen: value is required",
+			Invalid:   &PrivateApiCF{},
+		},
 	}
 	testhelpers.AssertInvalid(t, tests)
 }
