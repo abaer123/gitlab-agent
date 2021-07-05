@@ -3,7 +3,6 @@ package generate
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -32,6 +31,7 @@ type GenerateCmd struct {
 	AgentVersion      string
 	KasAddress        string
 	Namespace         string
+	NamePrefix        string
 	NoRbac            bool
 	StdOut, StdErr    io.Writer
 }
@@ -54,8 +54,10 @@ func NewCommand() *cobra.Command {
 	f.StringVar(&a.AgentVersion, "agent-version", cmd.Version, "Version of the agentk image to use")
 	f.StringVar(&a.KasAddress, "kas-address", "", "GitLab Kubernetes Agent Server address")
 	f.StringVar(&a.Namespace, "namespace", "gitlab-agent", "Kubernetes namespace to create resources in")
+	f.StringVar(&a.NamePrefix, "name-prefix", "", "The prefix to use for names of Kubernetes objects")
 	f.BoolVar(&a.NoRbac, "no-rbac", false, "Do not include corresponding Roles and RoleBindings for the agent service account")
 	cobra.CheckErr(c.MarkFlagRequired("agent-token"))
+	cobra.CheckErr(c.MarkFlagRequired("kas-address"))
 	return c
 }
 
@@ -78,6 +80,9 @@ func (c *GenerateCmd) Run(ctx context.Context) (retErr error) {
 	if err := c.kustomizeSet(ctx, "namespace", c.Namespace); err != nil {
 		return err
 	}
+	if err := c.kustomizeSet(ctx, "name-prefix", c.NamePrefix); err != nil {
+		return err
+	}
 
 	if err := c.kustomizeBuild(ctx, overlay); err != nil {
 		return err
@@ -88,7 +93,7 @@ func (c *GenerateCmd) Run(ctx context.Context) (retErr error) {
 
 func (c *GenerateCmd) kustomizeSet(ctx context.Context, setKey, value string) error {
 	if value == "" {
-		return fmt.Errorf("--%v is required", setKey)
+		return nil // Use the default value, encoded in the package.
 	}
 	cmdctx := exec.CommandContext(ctx, "kustomize", "cfg", "set", c.KustomizationPath, setKey, value) // nolint:gosec
 

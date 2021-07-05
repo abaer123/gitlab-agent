@@ -1,10 +1,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+namePrefix: "" # {"$openapi":"name-prefix"}
 resources:
-- base.yaml
+  - base.yaml
 transformers:
-- namespace_transformer.yaml
+  - namespace_transformer.yaml
 secretGenerator:
-- name: gitlab-agent-token
-  files:
-  - token=secrets/agent.token
+  - name: gitlab-agent-token
+    files:
+      - token=secrets/agent.token
