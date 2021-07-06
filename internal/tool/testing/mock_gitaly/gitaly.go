@@ -337,6 +337,46 @@ func (mr *MockCommitServiceClientMockRecorder) LastCommitForPath(arg0, arg1 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LastCommitForPath", reflect.TypeOf((*MockCommitServiceClient)(nil).LastCommitForPath), varargs...)
 }
 
+// ListAllCommits mocks base method.
+func (m *MockCommitServiceClient) ListAllCommits(arg0 context.Context, arg1 *gitalypb.ListAllCommitsRequest, arg2 ...grpc.CallOption) (gitalypb.CommitService_ListAllCommitsClient, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListAllCommits", varargs...)
+	ret0, _ := ret[0].(gitalypb.CommitService_ListAllCommitsClient)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListAllCommits indicates an expected call of ListAllCommits.
+func (mr *MockCommitServiceClientMockRecorder) ListAllCommits(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllCommits", reflect.TypeOf((*MockCommitServiceClient)(nil).ListAllCommits), varargs...)
+}
+
+// ListCommits mocks base method.
+func (m *MockCommitServiceClient) ListCommits(arg0 context.Context, arg1 *gitalypb.ListCommitsRequest, arg2 ...grpc.CallOption) (gitalypb.CommitService_ListCommitsClient, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListCommits", varargs...)
+	ret0, _ := ret[0].(gitalypb.CommitService_ListCommitsClient)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListCommits indicates an expected call of ListCommits.
+func (mr *MockCommitServiceClientMockRecorder) ListCommits(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCommits", reflect.TypeOf((*MockCommitServiceClient)(nil).ListCommits), varargs...)
+}
+
 // ListCommitsByOid mocks base method.
 func (m *MockCommitServiceClient) ListCommitsByOid(arg0 context.Context, arg1 *gitalypb.ListCommitsByOidRequest, arg2 ...grpc.CallOption) (gitalypb.CommitService_ListCommitsByOidClient, error) {
 	m.ctrl.T.Helper()
