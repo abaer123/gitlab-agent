@@ -98,6 +98,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	if err != nil {
 		return err
 	}
+	defer errz.SafeClose(internalServerConn, &retErr)
 
 	// Construct agent modules
 	modules, err := a.constructModules(internalServer, kasConn, internalServerConn)
@@ -293,7 +294,7 @@ func (a *App) startInternalServer(stage stager.Stage, internalServer *grpc.Serve
 	})
 }
 
-func (a *App) constructInternalServerConn(ctx context.Context, dialContext func(ctx context.Context, addr string) (net.Conn, error)) (grpc.ClientConnInterface, error) {
+func (a *App) constructInternalServerConn(ctx context.Context, dialContext func(ctx context.Context, addr string) (net.Conn, error)) (*grpc.ClientConn, error) {
 	return grpc.DialContext(ctx, "pipe",
 		grpc.WithContextDialer(dialContext),
 		grpc.WithInsecure(),
