@@ -154,6 +154,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	if err != nil {
 		return err
 	}
+	defer errz.SafeClose(internalServerConn, &retErr)
 
 	// Reverse gRPC tunnel tracker
 	tunnelTracker := a.constructTunnelTracker(redisClient)
@@ -609,7 +610,7 @@ func (a *ConfiguredApp) constructInternalServer(interceptorsCtx context.Context,
 	)
 }
 
-func (a *ConfiguredApp) constructInternalServerConn(ctx context.Context, tracer opentracing.Tracer, dialContext func(ctx context.Context, addr string) (net.Conn, error)) (grpc.ClientConnInterface, error) {
+func (a *ConfiguredApp) constructInternalServerConn(ctx context.Context, tracer opentracing.Tracer, dialContext func(ctx context.Context, addr string) (net.Conn, error)) (*grpc.ClientConn, error) {
 	return grpc.DialContext(ctx, "pipe",
 		grpc.WithContextDialer(dialContext),
 		grpc.WithInsecure(),
