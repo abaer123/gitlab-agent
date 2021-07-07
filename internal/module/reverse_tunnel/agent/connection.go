@@ -50,10 +50,11 @@ func (c *connection) Run(ctx context.Context) {
 		err := c.attempt(ctx)
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {
-				c.log.Error("Reverse tunnel", logz.Error(err))
+				c.log.Error("Error handling a connection", logz.Error(err))
 			}
 			return nil, retry.Backoff
 		}
+		c.log.Debug("Handled a connection successfully")
 		return nil, retry.ContinueImmediately // successfully handled a connection, re-establish it immediately
 	})
 }
