@@ -141,7 +141,7 @@ type defaultGitopsWorkerFactory struct {
 }
 
 func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.ManifestProjectCF) GitopsWorker {
-	l := f.log.With(logz.ProjectId(project.Id))
+	l := f.log.With(logz.ProjectId(project.Id), logz.AgentId(agentId))
 	return &defaultGitopsWorker{
 		objWatcher: &rpc.ObjectsToSynchronizeWatcher{
 			Log:          l,
