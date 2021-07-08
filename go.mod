@@ -23,7 +23,7 @@ require (
 	github.com/spf13/cobra v1.1.3
 	github.com/stretchr/testify v1.7.0
 	gitlab.com/gitlab-org/gitaly/v14 v14.1.0-rc3
-	gitlab.com/gitlab-org/labkit v1.5.0
+	gitlab.com/gitlab-org/labkit v1.5.1-0.20210709085637-98de0925bac8
 	go.uber.org/zap v1.18.1
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/time v0.0.0-20210611083556-38a9dc6acbc6

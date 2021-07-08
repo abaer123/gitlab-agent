@@ -111,7 +111,10 @@ type kubernetesApiProxy struct {
 
 func (p *kubernetesApiProxy) Run(ctx context.Context, listener net.Listener) error {
 	srv := &http.Server{
-		Handler:      http.HandlerFunc(p.proxy),
+		Handler: correlation.InjectCorrelationID(
+			http.HandlerFunc(p.proxy),
+			correlation.WithSetResponseHeader(),
+		),
 		WriteTimeout: writeTimeout,
 		ReadTimeout:  readTimeout,
 		IdleTimeout:  idleTimeout,
@@ -122,7 +125,8 @@ func (p *kubernetesApiProxy) Run(ctx context.Context, listener net.Listener) err
 func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Server", p.serverName) // This might be overwritten by remote (e.g. if there is no error)
 
-	correlationId := correlation.SafeRandomID()
+	ctx := r.Context()
+	correlationId := correlation.ExtractFromContext(ctx)
 	log := p.log.With(logz.CorrelationId(correlationId))
 
 	agentId, jobToken, err := getAgentIdAndJobTokenFromRequest(r)
@@ -132,7 +136,6 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log = log.With(logz.AgentId(agentId))
-	ctx := correlation.ContextWithCorrelation(r.Context(), correlationId)
 
 	jInfo, err := p.getJobInfo(ctx, jobToken)
 	if err != nil {
