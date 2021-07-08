@@ -188,8 +188,7 @@ func (p *kubernetesApiProxy) pipeStreams(ctx context.Context, log *zap.Logger, w
 	md := metadata.Pairs(modserver.RoutingAgentIdMetadataKey, strconv.FormatInt(agentId, 10))
 	mkClient, err := p.kubernetesApiClient.MakeRequest(metadata.NewOutgoingContext(ctx, md)) // must use context from errgroup
 	if err != nil {
-		p.api.HandleProcessingError(ctx, log, "Proxy failed to make outbound request", err)
-		return false, p.http502
+		return false, p.handleProcessingError(ctx, log, "Proxy failed to make outbound request", err)
 	}
 	// Pipe client -> remote
 	g.Go(func() error {
@@ -245,10 +244,9 @@ func (p *kubernetesApiProxy) pipeRemoteToClient(ctx context.Context, log *zap.Lo
 	if err != nil {
 		if writeFailed {
 			// there is likely a connection problem so the client will likely not receive this
-			return headerWritten, p.http400
+			return headerWritten, p.handleProcessingError(ctx, log, "Proxy failed to write response to client", err)
 		}
-		p.api.HandleProcessingError(ctx, log, "Proxy failed to read response body", err)
-		return headerWritten, p.http502
+		return headerWritten, p.handleProcessingError(ctx, log, "Proxy failed to read response from agent", err)
 	}
 	return headerWritten, nil
 }
@@ -267,8 +265,7 @@ func (p *kubernetesApiProxy) pipeClientToRemote(ctx context.Context, log *zap.Lo
 		},
 	})
 	if err != nil {
-		_ = p.api.HandleSendError(log, "Proxy failed to send header", err)
-		return p.http502
+		return p.handleSendError(log, "Proxy failed to send request header to agent", err)
 	}
 
 	buffer := make([]byte, maxDataChunkSize)
@@ -276,8 +273,8 @@ func (p *kubernetesApiProxy) pipeClientToRemote(ctx context.Context, log *zap.Lo
 		var n int
 		n, err = r.Body.Read(buffer)
 		if err != nil && !errors.Is(err, io.EOF) {
-			p.api.HandleProcessingError(ctx, log, "Proxy failed to read request body", err)
-			return p.http400 // there is likely a connection problem so the client will likely not receive this
+			// There is likely a connection problem so the client will likely not receive this
+			return p.handleProcessingError(ctx, log, "Proxy failed to read request body from client", err)
 		}
 		if n > 0 { // handle n=0, err=io.EOF case
 			sendErr := mkClient.Send(&grpctool.HttpRequest{
@@ -288,8 +285,7 @@ func (p *kubernetesApiProxy) pipeClientToRemote(ctx context.Context, log *zap.Lo
 				},
 			})
 			if sendErr != nil {
-				_ = p.api.HandleSendError(log, "Proxy failed to send data", sendErr)
-				return p.http502
+				return p.handleSendError(log, "Proxy failed to send request body to agent", sendErr)
 			}
 		}
 		if errors.Is(err, io.EOF) {
@@ -302,13 +298,11 @@ func (p *kubernetesApiProxy) pipeClientToRemote(ctx context.Context, log *zap.Lo
 		},
 	})
 	if err != nil {
-		_ = p.api.HandleSendError(log, "Proxy failed to send trailers", err)
-		return p.http502
+		return p.handleSendError(log, "Proxy failed to send trailers to agent", err)
 	}
 	err = mkClient.CloseSend()
 	if err != nil {
-		_ = p.api.HandleSendError(log, "Proxy failed to send close frame", err)
-		return p.http502
+		return p.handleSendError(log, "Proxy failed to send close frame to agent", err)
 	}
 	return nil
 }
@@ -393,14 +387,21 @@ func headerFromHttpRequestHeader(header http.Header) map[string]*prototool.Value
 	return prototool.HttpHeaderToValuesMap(header)
 }
 
-// See https://tools.ietf.org/html/rfc7231#section-6.5.1
-func (p *kubernetesApiProxy) http400(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusBadRequest)
+func (p *kubernetesApiProxy) handleSendError(log *zap.Logger, msg string, err error) errFunc {
+	_ = p.api.HandleSendError(log, msg, err)
+	return writeError(msg, err)
 }
 
-// See https://tools.ietf.org/html/rfc7231#section-6.6.3
-func (p *kubernetesApiProxy) http502(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusBadGateway)
+func (p *kubernetesApiProxy) handleProcessingError(ctx context.Context, log *zap.Logger, msg string, err error) errFunc {
+	p.api.HandleProcessingError(ctx, log, msg, err)
+	return writeError(msg, err)
+}
+
+func writeError(msg string, err error) errFunc {
+	return func(w http.ResponseWriter) {
+		// See https://tools.ietf.org/html/rfc7231#section-6.6.3
+		http.Error(w, fmt.Sprintf("%s: %v", msg, err), http.StatusBadGateway)
+	}
 }
 
 var (

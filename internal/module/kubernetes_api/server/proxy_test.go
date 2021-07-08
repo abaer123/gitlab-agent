@@ -45,35 +45,43 @@ const (
 
 func TestProxy_JobTokenErrors(t *testing.T) {
 	tests := []struct {
-		name string
-		auth []string
+		name     string
+		auth     []string
+		response string
 	}{
 		{
-			name: "missing header",
+			name:     "missing header",
+			response: "Authorization header: expecting token\n",
 		},
 		{
-			name: "multiple headers",
-			auth: []string{"a", "b"},
+			name:     "multiple headers",
+			auth:     []string{"a", "b"},
+			response: "Authorization header: expecting a single header, got 2\n",
 		},
 		{
-			name: "invalid format",
-			auth: []string{"Token asdfadsf"},
+			name:     "invalid format1",
+			auth:     []string{"Token asdfadsf"},
+			response: "Authorization header: expecting Bearer token\n",
 		},
 		{
-			name: "invalid format",
-			auth: []string{"Bearer asdfadsf"},
+			name:     "invalid format2",
+			auth:     []string{"Bearer asdfadsf"},
+			response: "Authorization header: invalid value\n",
 		},
 		{
-			name: "invalid agent id",
-			auth: []string{"Bearer ci:asdf:as"},
+			name:     "invalid agent id",
+			auth:     []string{"Bearer ci:asdf:as"},
+			response: "Authorization header: failed to parse: strconv.ParseInt: parsing \"asdf\": invalid syntax\n",
 		},
 		{
-			name: "empty token",
-			auth: []string{"Bearer ci:1:"},
+			name:     "empty token",
+			auth:     []string{"Bearer ci:1:"},
+			response: "Authorization header: empty token\n",
 		},
 		{
-			name: "unknown token type",
-			auth: []string{"Bearer blabla:1:asd"},
+			name:     "unknown token type",
+			auth:     []string{"Bearer blabla:1:asd"},
+			response: "Authorization header: unknown token type\n",
 		},
 	}
 	for _, tc := range tests {
@@ -89,6 +97,7 @@ func TestProxy_JobTokenErrors(t *testing.T) {
 			require.NoError(t, err)
 			defer resp.Body.Close()
 			assert.EqualValues(t, http.StatusUnauthorized, resp.StatusCode)
+			assert.Equal(t, tc.response, string(readAll(t, resp.Body)))
 		})
 	}
 }
@@ -102,6 +111,7 @@ func TestProxy_UnknownJobToken(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.EqualValues(t, http.StatusUnauthorized, resp.StatusCode)
+	assert.Empty(t, string(readAll(t, resp.Body)))
 }
 
 func TestProxy_ForbiddenJobToken(t *testing.T) {
@@ -113,6 +123,7 @@ func TestProxy_ForbiddenJobToken(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.EqualValues(t, http.StatusForbidden, resp.StatusCode)
+	assert.Empty(t, string(readAll(t, resp.Body)))
 }
 
 func TestProxy_ServerError(t *testing.T) {
@@ -126,6 +137,7 @@ func TestProxy_ServerError(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.EqualValues(t, http.StatusInternalServerError, resp.StatusCode)
+	assert.Empty(t, string(readAll(t, resp.Body)))
 }
 
 func TestProxy_NoExpectedUrlPathPrefix(t *testing.T) {
@@ -135,6 +147,7 @@ func TestProxy_NoExpectedUrlPathPrefix(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.EqualValues(t, http.StatusBadRequest, resp.StatusCode)
+	assert.Empty(t, string(readAll(t, resp.Body)))
 }
 
 func TestProxy_ForbiddenAgentId(t *testing.T) {
@@ -144,6 +157,7 @@ func TestProxy_ForbiddenAgentId(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.EqualValues(t, http.StatusForbidden, resp.StatusCode)
+	assert.Empty(t, string(readAll(t, resp.Body)))
 }
 
 func TestProxy_HappyPathWithoutUrlPrefix(t *testing.T) {
@@ -249,10 +263,8 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string) {
 	resp, err := client.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	respData, err := io.ReadAll(resp.Body)
-	require.NoError(t, err)
 	assert.EqualValues(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, responsePayload, string(respData))
+	assert.Equal(t, responsePayload, string(readAll(t, resp.Body)))
 	resp.Header.Del("Date")
 	assert.Empty(t, cmp.Diff(map[string][]string{
 		"Resp-Header":    {"a1", "a2"},
@@ -339,6 +351,7 @@ func TestProxy_ErrorAfterHeaderWritten(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.EqualValues(t, http.StatusBadGateway, resp.StatusCode)
+	assert.Equal(t, "Proxy failed to read response from agent: expected error 2\n", string(readAll(t, resp.Body)))
 }
 
 func requireCorrectOutgoingMeta(t *testing.T, ctx context.Context) {
@@ -449,4 +462,10 @@ func mockSendStream(t *testing.T, client *mock_kubernetes_api.MockKubernetesApi_
 	}
 	res = append(res, client.EXPECT().CloseSend())
 	return res
+}
+
+func readAll(t *testing.T, r io.Reader) []byte {
+	data, err := io.ReadAll(r)
+	require.NoError(t, err)
+	return data
 }
