@@ -138,8 +138,8 @@ go_repository(
         "tracer_static_jaeger",
     ],  # keep
     importpath = "gitlab.com/gitlab-org/labkit",
-    sum = "h1:JUdSgNtAynKffx7eAqSjB76D5H2Y6aYOrn6WCoI6aEw=",
-    version = "v1.5.0",
+    sum = "h1:Hbo1zaI2e3apCftMuOb8j2BiVsIvyjbEuC/54Qe+7yg=",
+    version = "v1.5.1-0.20210709085637-98de0925bac8",
 )
 
 go_repository(

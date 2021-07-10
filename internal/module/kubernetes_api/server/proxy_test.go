@@ -266,6 +266,8 @@ func testProxyHappyPath(t *testing.T, urlPathPrefix string) {
 	assert.EqualValues(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, responsePayload, string(readAll(t, resp.Body)))
 	resp.Header.Del("Date")
+	assert.NotEmpty(t, resp.Header.Get("X-Request-Id"))
+	resp.Header.Del("X-Request-Id")
 	assert.Empty(t, cmp.Diff(map[string][]string{
 		"Resp-Header":    {"a1", "a2"},
 		"Content-Length": {"31"},
