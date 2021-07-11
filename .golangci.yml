@@ -156,6 +156,7 @@ linters-settings:
       - '^print$'
       - '^fmt\.Print.*'
       - '^zap\.Error$'
+      - '^grpc\.(Header|Trailer)$' # easy to misuse and create a data race
     # Exclude godoc examples from forbidigo checks.  Default is true.
     exclude_godoc_examples: false
 

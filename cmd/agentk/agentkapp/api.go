@@ -14,9 +14,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -83,9 +81,7 @@ func (a *agentAPI) Capture(err error, opts ...errortracking.CaptureOption) {
 func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...modagent.GitLabRequestOption) (retResponse *modagent.GitLabResponse, retErr error) {
 	config := modagent.ApplyRequestOptions(opts)
 	ctx, cancel := context.WithCancel(ctx)
-	var responseMD metadata.MD
-	defer grpctool.DeferMaybeWrapWithCorrelationId(&retErr, &responseMD)
-	client, errReq := a.client.MakeRequest(ctx, grpc.Header(&responseMD))
+	client, errReq := a.client.MakeRequest(ctx)
 	if errReq != nil {
 		cancel()
 		if config.Body != nil {
@@ -93,6 +89,7 @@ func (a *agentAPI) MakeGitLabRequest(ctx context.Context, path string, opts ...m
 		}
 		return nil, errReq
 	}
+	defer grpctool.DeferMaybeWrapWithCorrelationId(&retErr, client)
 	response := make(chan *modagent.GitLabResponse)
 	responseErr := make(chan error)
 	pr, pw := io.Pipe()

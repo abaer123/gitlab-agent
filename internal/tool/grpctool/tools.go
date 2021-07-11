@@ -98,13 +98,17 @@ func ValuesMapToMeta(vals map[string]*prototool.Values) metadata.MD {
 	return result
 }
 
-func MaybeWrapWithCorrelationId(err error, md metadata.MD) error {
+func MaybeWrapWithCorrelationId(err error, client grpc.ClientStream) error {
+	md, headerErr := client.Header()
+	if headerErr != nil {
+		return err
+	}
 	return errz.MaybeWrapWithCorrelationId(err, grpccorrelation.CorrelationIDFromMetadata(md))
 }
 
-func DeferMaybeWrapWithCorrelationId(err *error, md *metadata.MD) {
-	if err == nil {
+func DeferMaybeWrapWithCorrelationId(err *error, client grpc.ClientStream) {
+	if *err == nil {
 		return
 	}
-	*err = MaybeWrapWithCorrelationId(*err, *md)
+	*err = MaybeWrapWithCorrelationId(*err, client)
 }

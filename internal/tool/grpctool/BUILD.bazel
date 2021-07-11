@@ -84,6 +84,7 @@ go_custom_test(
     data = glob(["testdata/**"]),
     embed = [":grpctool"],
     deps = [
+        "//internal/tool/errz",
         "//internal/tool/grpctool/test",
         "//internal/tool/prototool",
         "//internal/tool/testing/matcher",
@@ -96,6 +97,7 @@ go_custom_test(
         "@com_github_google_go_cmp//cmp",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
+        "@com_gitlab_gitlab_org_labkit//correlation",
         "@io_k8s_apimachinery//pkg/util/wait",
         "@io_nhooyr_websocket//:websocket",
         "@org_golang_google_grpc//:grpc",

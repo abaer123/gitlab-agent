@@ -60,16 +60,14 @@ func (c *connection) Run(ctx context.Context) {
 }
 
 func (c *connection) attempt(ctx context.Context) (retErr error) {
-	var responseMD metadata.MD
-	defer grpctool.DeferMaybeWrapWithCorrelationId(&retErr, &responseMD)
-
 	ctx, cancel, stopPropagation := propagateUntil(ctx)
 	defer cancel()
 
-	tunnel, err := c.client.Connect(ctx, grpc.Header(&responseMD))
+	tunnel, err := c.client.Connect(ctx)
 	if err != nil {
 		return fmt.Errorf("Connect(): %w", err) // wrap
 	}
+	defer grpctool.DeferMaybeWrapWithCorrelationId(&retErr, tunnel)
 	err = tunnel.Send(&rpc.ConnectRequest{
 		Msg: &rpc.ConnectRequest_Descriptor_{
 			Descriptor_: &rpc.Descriptor{
@@ -78,6 +76,9 @@ func (c *connection) attempt(ctx context.Context) (retErr error) {
 		},
 	})
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			_, err = tunnel.Recv() // get the actual error
+		}
 		return fmt.Errorf("Send(descriptor): %w", err) // wrap
 	}
 	var (

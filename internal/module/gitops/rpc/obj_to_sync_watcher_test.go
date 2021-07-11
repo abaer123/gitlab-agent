@@ -197,6 +197,7 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 					cancel()
 				}))
 			}
+			calls = append(calls, stream1.EXPECT().Header().MaxTimes(1)) // exact number not important for this test
 			gomock.InOrder(calls...)
 			w := rpc.ObjectsToSynchronizeWatcher{
 				Log:          zaptest.NewLogger(t),
