@@ -6,6 +6,7 @@ go_library(
     srcs = [
         "factory.go",
         "module.go",
+        "server.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/server",
     visibility = ["//:__subpackages__"],
@@ -21,23 +22,23 @@ go_library(
 
 go_custom_test(
     name = "server_test",
-    srcs = ["module_test.go"],
+    srcs = [
+        "module_test.go",
+        "server_test.go",
+    ],
     embed = [":server"],
     deps = [
         "//internal/api",
         "//internal/module/modserver",
+        "//internal/module/reverse_tunnel/rpc",
         "//internal/tool/grpctool",
         "//internal/tool/testing/mock_modserver",
         "//internal/tool/testing/mock_reverse_tunnel",
         "//internal/tool/testing/mock_reverse_tunnel_rpc",
         "//internal/tool/testing/testhelpers",
-        "//pkg/kascfg",
         "@com_github_golang_mock//gomock",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
-        "@io_k8s_apimachinery//pkg/util/wait",
-        "@org_golang_google_grpc//:grpc",
-        "@org_golang_google_protobuf//types/known/durationpb",
         "@org_uber_go_zap//zaptest",
     ],
 )
