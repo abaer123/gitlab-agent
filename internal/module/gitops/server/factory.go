@@ -25,15 +25,20 @@ const (
 type Factory struct {
 }
 
-func constructGitOpsPollIntervalHistogram() prometheus.Histogram {
-	return prometheus.NewHistogram(prometheus.HistogramOpts{
-		Name:    "gitops_poll_interval",
-		Help:    "The time between KAS calls to Gitaly to look for gitops updates",
-		Buckets: prometheus.LinearBuckets(20, 20, 5), // 5 buckets (20, 40, 60, 80, 100)
-	})
+func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
+	s, err := newServerFromConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	rpc.RegisterGitopsServer(config.AgentServer, s)
+	return &module{}, nil
 }
 
-func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
+func (f *Factory) Name() string {
+	return gitops.ModuleName
+}
+
+func newServerFromConfig(config *modserver.Config) (*server, error) {
 	gitops := config.Config.Agent.Gitops
 	projectInfoCacheTtl := gitops.ProjectInfoCacheTtl.AsDuration()
 	projectInfoCacheErrorTtl := gitops.ProjectInfoCacheErrorTtl.AsDuration()
@@ -42,7 +47,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	if err != nil {
 		return nil, err
 	}
-	m := &module{
+	return &server{
 		api:        config.Api,
 		gitalyPool: config.Gitaly,
 		projectInfoClient: &projectInfoClient{
@@ -66,13 +71,15 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 		maxTotalManifestFileSize: int64(gitops.MaxTotalManifestFileSize),
 		maxNumberOfPaths:         gitops.MaxNumberOfPaths,
 		maxNumberOfFiles:         gitops.MaxNumberOfFiles,
-	}
-	rpc.RegisterGitopsServer(config.AgentServer, m)
-	return m, nil
+	}, nil
 }
 
-func (f *Factory) Name() string {
-	return gitops.ModuleName
+func constructGitOpsPollIntervalHistogram() prometheus.Histogram {
+	return prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name:    "gitops_poll_interval",
+		Help:    "The time between kas calls to Gitaly to look for GitOps updates",
+		Buckets: prometheus.LinearBuckets(20, 20, 5), // 5 buckets (20, 40, 60, 80, 100)
+	})
 }
 
 func minDuration(a, b time.Duration) time.Duration {

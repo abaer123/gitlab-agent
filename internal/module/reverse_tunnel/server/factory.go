@@ -11,13 +11,12 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
-	m := &module{
+	rpc.RegisterReverseTunnelServer(config.AgentServer, &server{
 		api:              config.Api,
 		maxConnectionAge: config.Config.Agent.Listen.MaxConnectionAge.AsDuration(),
 		tunnelHandler:    f.TunnelHandler,
-	}
-	rpc.RegisterReverseTunnelServer(config.AgentServer, m)
-	return m, nil
+	})
+	return &module{}, nil
 }
 
 func (f *Factory) Name() string {
