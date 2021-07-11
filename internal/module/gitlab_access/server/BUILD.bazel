@@ -6,6 +6,7 @@ go_library(
     srcs = [
         "factory.go",
         "module.go",
+        "server.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitlab_access/server",
     visibility = ["//:__subpackages__"],
@@ -21,7 +22,10 @@ go_library(
 
 go_custom_test(
     name = "server_test",
-    srcs = ["module_test.go"],
+    srcs = [
+        "module_test.go",
+        "server_test.go",
+    ],
     embed = [":server"],
     deps = [
         "//internal/module/gitlab_access/rpc",
@@ -36,7 +40,6 @@ go_custom_test(
         "@com_github_golang_mock//gomock",
         "@com_github_stretchr_testify//assert",
         "@com_github_stretchr_testify//require",
-        "@org_golang_google_grpc//:grpc",
         "@org_golang_google_protobuf//proto",
         "@org_golang_google_protobuf//types/known/anypb",
     ],

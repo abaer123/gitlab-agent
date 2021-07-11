@@ -10,9 +10,9 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
-	m := newModule(config.Api, config.GitLabClient)
-	rpc.RegisterGitlabAccessServer(config.AgentServer, m)
-	return m, nil
+	s := newServer(config.Api, config.GitLabClient)
+	rpc.RegisterGitlabAccessServer(config.AgentServer, s)
+	return &module{}, nil
 }
 
 func (f *Factory) Name() string {
