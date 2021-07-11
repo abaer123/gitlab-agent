@@ -13,6 +13,7 @@ go_grpc_generate(
 go_library(
     name = "test",
     srcs = [
+        "test.go",
         "test.pb.go",
         "test.pb.validate.go",
         "test_grpc.pb.go",

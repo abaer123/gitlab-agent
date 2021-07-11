@@ -39,8 +39,8 @@ const (
 func TestStreamHappyPath(t *testing.T) {
 	trailer := metadata.MD{}
 	trailer.Set(trailerKey, "1", "2")
-	ats := &agentTestingServer{
-		streamingRequestResponse: func(server test.Testing_StreamingRequestResponseServer) error {
+	ats := &test.GrpcTestingServer{
+		StreamingFunc: func(server test.Testing_StreamingRequestResponseServer) error {
 			recv, err := server.Recv()
 			if err != nil {
 				return status.Error(codes.Unavailable, "unavailable")
@@ -164,8 +164,8 @@ func testStreamHappyPath(ctx context.Context, t *testing.T, client test.TestingC
 }
 
 func TestUnaryHappyPath(t *testing.T) {
-	ats := &agentTestingServer{
-		requestResponse: func(ctx context.Context, request *test.Request) (*test.Response, error) {
+	ats := &test.GrpcTestingServer{
+		UnaryFunc: func(ctx context.Context, request *test.Request) (*test.Response, error) {
 			val, err := strconv.ParseInt(request.S1, 10, 64)
 			if err != nil {
 				return nil, status.Error(codes.Unavailable, "unavailable")
@@ -220,8 +220,8 @@ func TestStreamError(t *testing.T) {
 	statusWithDetails, err := status.New(codes.InvalidArgument, "Some expected error").
 		WithDetails(&test.Request{S1: "some details of the error"})
 	require.NoError(t, err)
-	ats := &agentTestingServer{
-		streamingRequestResponse: func(server test.Testing_StreamingRequestResponseServer) error {
+	ats := &test.GrpcTestingServer{
+		StreamingFunc: func(server test.Testing_StreamingRequestResponseServer) error {
 			return statusWithDetails.Err()
 		},
 	}
@@ -241,8 +241,8 @@ func TestUnaryError(t *testing.T) {
 	statusWithDetails, err := status.New(codes.InvalidArgument, "Some expected error").
 		WithDetails(&test.Request{S1: "some details of the error"})
 	require.NoError(t, err)
-	ats := &agentTestingServer{
-		requestResponse: func(ctx context.Context, request *test.Request) (*test.Response, error) {
+	ats := &test.GrpcTestingServer{
+		UnaryFunc: func(ctx context.Context, request *test.Request) (*test.Response, error) {
 			return nil, statusWithDetails.Err()
 		},
 	}
@@ -347,24 +347,6 @@ func registerTestingServer(s *grpc.Server, h *serverTestingServer) {
 		},
 		Metadata: test.Testing_ServiceDesc.Metadata,
 	}, nil)
-}
-
-var (
-	_ test.TestingServer = &agentTestingServer{}
-)
-
-type agentTestingServer struct {
-	test.UnimplementedTestingServer
-	requestResponse          func(context.Context, *test.Request) (*test.Response, error)
-	streamingRequestResponse func(test.Testing_StreamingRequestResponseServer) error
-}
-
-func (s *agentTestingServer) RequestResponse(ctx context.Context, request *test.Request) (*test.Response, error) {
-	return s.requestResponse(ctx, request)
-}
-
-func (s *agentTestingServer) StreamingRequestResponse(server test.Testing_StreamingRequestResponseServer) error {
-	return s.streamingRequestResponse(server)
 }
 
 var (

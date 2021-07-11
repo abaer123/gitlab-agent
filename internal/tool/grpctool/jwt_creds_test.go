@@ -41,7 +41,18 @@ func TestJwtCredentialsProducesValidToken(t *testing.T) {
 			auther.UnaryServerInterceptor,
 		),
 	)
-	test.RegisterTestingServer(srv, &authTestingServer{})
+	test.RegisterTestingServer(srv, &test.GrpcTestingServer{
+		UnaryFunc: func(ctx context.Context, request *test.Request) (*test.Response, error) {
+			return &test.Response{
+				Message: &test.Response_Scalar{Scalar: 123},
+			}, nil
+		},
+		StreamingFunc: func(server test.Testing_StreamingRequestResponseServer) error {
+			return server.Send(&test.Response{
+				Message: &test.Response_Scalar{Scalar: 123},
+			})
+		},
+	})
 	var wg wait.Group
 	defer wg.Wait()
 	defer srv.Stop()
@@ -61,20 +72,4 @@ func TestJwtCredentialsProducesValidToken(t *testing.T) {
 	require.NoError(t, err)
 	_, err = stream.Recv()
 	require.NoError(t, err)
-}
-
-type authTestingServer struct {
-	test.UnimplementedTestingServer
-}
-
-func (t *authTestingServer) RequestResponse(ctx context.Context, request *test.Request) (*test.Response, error) {
-	return &test.Response{
-		Message: &test.Response_Scalar{Scalar: 123},
-	}, nil
-}
-
-func (t *authTestingServer) StreamingRequestResponse(server test.Testing_StreamingRequestResponseServer) error {
-	return server.Send(&test.Response{
-		Message: &test.Response_Scalar{Scalar: 123},
-	})
 }

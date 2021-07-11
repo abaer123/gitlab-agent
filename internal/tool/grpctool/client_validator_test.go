@@ -10,16 +10,23 @@ import (
 	"google.golang.org/grpc"
 )
 
-var (
-	_ test.TestingServer = &testingServer{}
-)
-
 func TestValidator(t *testing.T) {
 	lis := NewDialListener()
 	defer lis.Close()
 	server := grpc.NewServer()
 	defer server.Stop()
-	test.RegisterTestingServer(server, &testingServer{})
+	test.RegisterTestingServer(server, &test.GrpcTestingServer{
+		UnaryFunc: func(ctx context.Context, request *test.Request) (*test.Response, error) {
+			return &test.Response{
+				// invalid response because Message is not set
+			}, nil
+		},
+		StreamingFunc: func(server test.Testing_StreamingRequestResponseServer) error {
+			return server.Send(&test.Response{
+				// invalid response because Message is not set
+			})
+		},
+	})
 	go func() {
 		assert.NoError(t, server.Serve(lis))
 	}()
@@ -44,21 +51,5 @@ func TestValidator(t *testing.T) {
 		require.NoError(t, err)
 		_, err = stream.Recv()
 		assert.EqualError(t, err, "rpc error: code = InvalidArgument desc = invalid server response: invalid Response.Message: value is required")
-	})
-}
-
-type testingServer struct {
-	test.UnimplementedTestingServer
-}
-
-func (t *testingServer) RequestResponse(ctx context.Context, request *test.Request) (*test.Response, error) {
-	return &test.Response{
-		// invalid response because Message is not set
-	}, nil
-}
-
-func (t *testingServer) StreamingRequestResponse(server test.Testing_StreamingRequestResponseServer) error {
-	return server.Send(&test.Response{
-		// invalid response because Message is not set
 	})
 }
