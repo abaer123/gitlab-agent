@@ -11,12 +11,11 @@ type Factory struct {
 }
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
-	m := &module{
+	rpc.RegisterAgentTrackerServer(config.ApiServer, &server{
 		api:          config.Api,
 		agentQuerier: f.AgentQuerier,
-	}
-	rpc.RegisterAgentTrackerServer(config.ApiServer, m)
-	return m, nil
+	})
+	return &module{}, nil
 }
 
 func (f *Factory) Name() string {
