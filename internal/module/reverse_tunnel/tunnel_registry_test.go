@@ -66,7 +66,7 @@ func TestRunUnregistersAllConnections(t *testing.T) {
 		assert.NoError(t, r.Run(ctx))
 	})
 	err = r.HandleTunnel(context.Background(), testhelpers.AgentInfoObj(), connectServer)
-	assert.EqualError(t, err, "rpc error: code = Canceled desc = context done")
+	assert.NoError(t, err)
 }
 
 func TestHandleTunnelIsUnblockedByContext(t *testing.T) {
@@ -100,7 +100,7 @@ func TestHandleTunnelIsUnblockedByContext(t *testing.T) {
 		assert.NoError(t, r.Run(ctx))
 	})
 	err = r.HandleTunnel(ctxConn, testhelpers.AgentInfoObj(), connectServer)
-	assert.EqualError(t, err, "rpc error: code = Canceled desc = context done")
+	assert.NoError(t, err)
 }
 
 func TestHandleTunnelReturnErrOnRecvErr(t *testing.T) {
