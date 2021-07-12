@@ -195,7 +195,7 @@ func (r *TunnelRegistry) handleTunnelRegister(toReg *tunnel) {
 func (r *TunnelRegistry) handleTunnelUnregister(toUnreg *tunnel) {
 	if r.tunsByAgentId[toUnreg.tunnelInfo.AgentId] != nil { // Tunnel might not be there if it's been obtained from the map already
 		r.unregisterTunnel(toUnreg)
-		toUnreg.tunnelRetErr <- status.Error(codes.Canceled, "context done")
+		toUnreg.tunnelRetErr <- nil
 	}
 }
 
