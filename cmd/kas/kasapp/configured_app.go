@@ -131,19 +131,19 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	// Server for handling agentk requests
 	agentServer, err := a.constructAgentServer(interceptorsCtx, tracer, redisClient, ssh)
 	if err != nil {
-		return err
+		return fmt.Errorf("agent server: %w", err)
 	}
 
 	// Server for handling external requests e.g. from GitLab
 	apiServer, err := a.constructApiServer(interceptorsCtx, tracer, ssh)
 	if err != nil {
-		return err
+		return fmt.Errorf("API server: %w", err)
 	}
 
 	// Server for handling API requests from other kas instances
 	privateApiServer, err := a.constructPrivateApiServer(interceptorsCtx, tracer, ssh)
 	if err != nil {
-		return err
+		return fmt.Errorf("private API server: %w", err)
 	}
 
 	// Internal gRPC client->listener pipe
@@ -453,19 +453,11 @@ func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tr
 		grpc.KeepaliveParams(keepaliveParams(listenCfg.MaxConnectionAge.AsDuration())),
 	}
 
-	certFile := listenCfg.CertificateFile
-	keyFile := listenCfg.KeyFile
-	switch {
-	case certFile != "" && keyFile != "":
-		config, err := tlstool.DefaultServerTLSConfig(certFile, keyFile)
-		if err != nil {
-			return nil, err
-		}
-		serverOpts = append(serverOpts, grpc.Creds(credentials.NewTLS(config)))
-	case certFile == "" && keyFile == "":
-	default:
-		return nil, fmt.Errorf("both certificate_file (%s) and key_file (%s) must be either set or not set", certFile, keyFile)
+	credsOpt, err := maybeTlsCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
+	if err != nil {
+		return nil, err
 	}
+	serverOpts = append(serverOpts, credsOpt...)
 
 	return grpc.NewServer(serverOpts...), nil
 }
@@ -513,19 +505,11 @@ func (a *ConfiguredApp) constructApiServer(interceptorsCtx context.Context, trac
 		grpc.KeepaliveParams(keepaliveParams(listenCfg.MaxConnectionAge.AsDuration())),
 	}
 
-	certFile := listenCfg.CertificateFile
-	keyFile := listenCfg.KeyFile
-	switch {
-	case certFile != "" && keyFile != "":
-		config, err := tlstool.DefaultServerTLSConfig(certFile, keyFile)
-		if err != nil {
-			return nil, err
-		}
-		serverOpts = append(serverOpts, grpc.Creds(credentials.NewTLS(config)))
-	case certFile == "" && keyFile == "":
-	default:
-		return nil, fmt.Errorf("both certificate_file (%s) and key_file (%s) must be either set or not set", certFile, keyFile)
+	credsOpt, err := maybeTlsCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
+	if err != nil {
+		return nil, err
 	}
+	serverOpts = append(serverOpts, credsOpt...)
 
 	return grpc.NewServer(serverOpts...), nil
 }
@@ -573,20 +557,11 @@ func (a *ConfiguredApp) constructPrivateApiServer(interceptorsCtx context.Contex
 		grpc.KeepaliveParams(keepaliveParams(listenCfg.MaxConnectionAge.AsDuration())),
 		grpc.ForceServerCodec(grpctool.RawCodecWithProtoFallback{}),
 	}
-
-	certFile := listenCfg.CertificateFile
-	keyFile := listenCfg.KeyFile
-	switch {
-	case certFile != "" && keyFile != "":
-		config, err := tlstool.DefaultServerTLSConfig(certFile, keyFile)
-		if err != nil {
-			return nil, err
-		}
-		serverOpts = append(serverOpts, grpc.Creds(credentials.NewTLS(config)))
-	case certFile == "" && keyFile == "":
-	default:
-		return nil, fmt.Errorf("both certificate_file (%s) and key_file (%s) must be either set or not set", certFile, keyFile)
+	credsOpt, err := maybeTlsCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
+	if err != nil {
+		return nil, err
 	}
+	serverOpts = append(serverOpts, credsOpt...)
 
 	return grpc.NewServer(serverOpts...), nil
 }
@@ -866,6 +841,21 @@ func keepaliveParams(maxConnectionAge time.Duration) keepalive.ServerParameters 
 		MaxConnectionAgeGrace: maxConnectionAge,
 		// trying to stay below 60 seconds (typical load-balancer timeout)
 		Time: 50 * time.Second,
+	}
+}
+
+func maybeTlsCreds(certFile, keyFile string) ([]grpc.ServerOption, error) {
+	switch {
+	case certFile != "" && keyFile != "":
+		config, err := tlstool.DefaultServerTLSConfig(certFile, keyFile)
+		if err != nil {
+			return nil, err
+		}
+		return []grpc.ServerOption{grpc.Creds(credentials.NewTLS(config))}, nil
+	case certFile == "" && keyFile == "":
+		return nil, nil
+	default:
+		return nil, fmt.Errorf("both certificate_file (%s) and key_file (%s) must be either set or not set", certFile, keyFile)
 	}
 }
 
