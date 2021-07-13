@@ -57,7 +57,8 @@ func TestRouter_UnaryHappyPath(t *testing.T) {
 		Do(forwardStream(t, routingMetadata, payloadMD, payloadReq, unaryResponse, responseMD, trailersMD))
 	runRouterTest(t, tunnel, tunnelForwardStream, func(client test.TestingClient) {
 		ctx := metadata.NewOutgoingContext(context.Background(), metadata.Join(routingMetadata, payloadMD))
-		response, err := client.RequestResponse(ctx, payloadReq, grpc.Header(&headerResp), grpc.Trailer(&trailerResp))
+		// grpc.Header() and grpc.Trailer are ok here because its a unary RPC.
+		response, err := client.RequestResponse(ctx, payloadReq, grpc.Header(&headerResp), grpc.Trailer(&trailerResp)) // nolint: forbidigo
 		require.NoError(t, err)
 		assert.Empty(t, cmp.Diff(response, unaryResponse, protocmp.Transform()))
 		mdContains(t, responseMD, headerResp)
@@ -108,7 +109,8 @@ func TestRouter_UnaryErrorAfterHeader(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		ctx = metadata.NewOutgoingContext(ctx, metadata.Join(routingMetadata, payloadMD))
-		_, err := client.RequestResponse(ctx, &test.Request{S1: "123"}, grpc.Header(&headerResp), grpc.Trailer(&trailerResp))
+		// grpc.Header() and grpc.Trailer are ok here because its a unary RPC.
+		_, err := client.RequestResponse(ctx, &test.Request{S1: "123"}, grpc.Header(&headerResp), grpc.Trailer(&trailerResp)) // nolint: forbidigo
 		require.Error(t, err)
 		receivedStatus := status.Convert(err).Proto()
 		assert.Empty(t, cmp.Diff(receivedStatus, statusWithDetails.Proto(), protocmp.Transform()))

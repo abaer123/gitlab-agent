@@ -175,13 +175,13 @@ func TestUnaryHappyPath(t *testing.T) {
 			meta.Set(metaKey, incomingContext.Get(metaKey)...)
 			err = grpc.SetHeader(ctx, meta)
 			if err != nil {
-				return nil, status.Error(codes.Unavailable, "unavailable")
+				return nil, err
 			}
 			trailer := metadata.MD{}
 			trailer.Set(trailerKey, "1", "2")
 			err = grpc.SetTrailer(ctx, trailer)
 			if err != nil {
-				return nil, status.Error(codes.Unavailable, "unavailable")
+				return nil, err
 			}
 			return &test.Response{
 				Message: &test.Response_Scalar{
@@ -205,9 +205,10 @@ func testUnaryHappyPath(ctx context.Context, t *testing.T, client test.TestingCl
 		headerResp  metadata.MD
 		trailerResp metadata.MD
 	)
+	// grpc.Header() and grpc.Trailer are ok here because its a unary RPC.
 	resp, err := client.RequestResponse(ctx, &test.Request{
 		S1: "123",
-	}, grpc.Header(&headerResp), grpc.Trailer(&trailerResp))
+	}, grpc.Header(&headerResp), grpc.Trailer(&trailerResp)) // nolint: forbidigo
 	require.NoError(t, err)
 	assert.EqualValues(t, 123, resp.Message.(*test.Response_Scalar).Scalar)
 	assert.Equal(t, meta.Get(metaKey), headerResp.Get(metaKey))
