@@ -8,6 +8,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/cache"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/metric"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 )
@@ -66,7 +67,7 @@ func newServerFromConfig(config *modserver.Config) (*server, error) {
 			getObjectsToSynchronizeJitter,
 		),
 		pollPeriod:               gitops.PollPeriod.AsDuration(),
-		maxConnectionAge:         config.Config.Agent.Listen.MaxConnectionAge.AsDuration(),
+		maxPollDuration:          grpctool.MaxConnectionAge2MaxPollDuration(config.Config.Agent.Listen.MaxConnectionAge.AsDuration()),
 		maxManifestFileSize:      int64(gitops.MaxManifestFileSize),
 		maxTotalManifestFileSize: int64(gitops.MaxTotalManifestFileSize),
 		maxNumberOfPaths:         gitops.MaxNumberOfPaths,

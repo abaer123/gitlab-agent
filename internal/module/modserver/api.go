@@ -80,7 +80,7 @@ type API interface {
 	// It returns when:
 	// - context signals done. nil is returned in this case.
 	// - f returns Done. error from f is returned in this case.
-	PollWithBackoff(ctx context.Context, backoff retry.BackoffManager, sliding bool, maxConnectionAge, interval time.Duration, f retry.PollWithBackoffFunc) error
+	PollWithBackoff(ctx context.Context, backoff retry.BackoffManager, sliding bool, maxPollDuration, interval time.Duration, f retry.PollWithBackoffFunc) error
 }
 
 type Factory interface {

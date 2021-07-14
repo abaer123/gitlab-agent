@@ -68,11 +68,11 @@ func (a *serverAPI) GetAgentInfo(ctx context.Context, log *zap.Logger, agentToke
 	return nil, err
 }
 
-func (a *serverAPI) PollWithBackoff(ctx context.Context, backoff retry.BackoffManager, sliding bool, maxConnectionAge, interval time.Duration, f retry.PollWithBackoffFunc) error {
+func (a *serverAPI) PollWithBackoff(ctx context.Context, backoff retry.BackoffManager, sliding bool, maxPollDuration, interval time.Duration, f retry.PollWithBackoffFunc) error {
 	// this context must only be used here, not inside of f() - connection should be closed only when idle.
-	ageCtx, cancel := context.WithTimeout(ctx, mathz.DurationWithJitter(maxConnectionAge, maxConnectionAgeJitterPercent))
+	pollCtx, cancel := context.WithTimeout(ctx, mathz.DurationWithJitter(maxPollDuration, maxConnectionAgeJitterPercent))
 	defer cancel()
-	err := retry.PollWithBackoff(ageCtx, backoff, sliding, interval, f)
+	err := retry.PollWithBackoff(pollCtx, backoff, sliding, interval, f)
 	if errors.Is(err, retry.ErrWaitTimeout) {
 		return nil // all good, ctx is done
 	}
