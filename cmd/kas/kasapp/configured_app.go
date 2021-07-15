@@ -450,7 +450,7 @@ func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tr
 			MinTime:             20 * time.Second,
 			PermitWithoutStream: true,
 		}),
-		grpc.KeepaliveParams(keepaliveParams(listenCfg.MaxConnectionAge.AsDuration())),
+		grpctool.MaxConnectionAge2GrpcKeepalive(listenCfg.MaxConnectionAge.AsDuration()),
 	}
 
 	credsOpt, err := maybeTlsCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
@@ -502,7 +502,7 @@ func (a *ConfiguredApp) constructApiServer(interceptorsCtx context.Context, trac
 			MinTime:             20 * time.Second,
 			PermitWithoutStream: true,
 		}),
-		grpc.KeepaliveParams(keepaliveParams(listenCfg.MaxConnectionAge.AsDuration())),
+		nonPollingKeepaliveParams(listenCfg.MaxConnectionAge.AsDuration()),
 	}
 
 	credsOpt, err := maybeTlsCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
@@ -554,7 +554,7 @@ func (a *ConfiguredApp) constructPrivateApiServer(interceptorsCtx context.Contex
 			MinTime:             20 * time.Second,
 			PermitWithoutStream: true,
 		}),
-		grpc.KeepaliveParams(keepaliveParams(listenCfg.MaxConnectionAge.AsDuration())),
+		nonPollingKeepaliveParams(listenCfg.MaxConnectionAge.AsDuration()),
 		grpc.ForceServerCodec(grpctool.RawCodecWithProtoFallback{}),
 	}
 	credsOpt, err := maybeTlsCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
@@ -829,19 +829,13 @@ func gitlabBuildInfoGauge() prometheus.Gauge {
 	return buildInfoGauge
 }
 
-func keepaliveParams(maxConnectionAge time.Duration) keepalive.ServerParameters {
-	return keepalive.ServerParameters{
-		// MaxConnectionAge should be below maxConnectionAge so that when kas closes a long running response
-		// stream, gRPC will close the underlying connection. -20% to account for jitter (see doc for the field)
-		// and ensure it's somewhat below maxConnectionAge.
-		// See https://github.com/grpc/grpc-go/blob/v1.33.1/internal/transport/http2_server.go#L949-L1047 to better understand how this all works.
-		MaxConnectionAge: time.Duration(0.8 * float64(maxConnectionAge)),
-		// Give pending RPCs plenty of time to complete.
-		// In practice it will happen in 10-30% of maxConnectionAge time (see above).
-		MaxConnectionAgeGrace: maxConnectionAge,
-		// trying to stay below 60 seconds (typical load-balancer timeout)
+func nonPollingKeepaliveParams(maxConnectionAge time.Duration) grpc.ServerOption {
+	return grpc.KeepaliveParams(keepalive.ServerParameters{
+		MaxConnectionAge:      maxConnectionAge * 4 / 5, // 80%
+		MaxConnectionAgeGrace: maxConnectionAge / 5,     // 20%
+		// Trying to stay below 60 seconds (typical load-balancer timeout)
 		Time: 50 * time.Second,
-	}
+	})
 }
 
 func maybeTlsCreds(certFile, keyFile string) ([]grpc.ServerOption, error) {

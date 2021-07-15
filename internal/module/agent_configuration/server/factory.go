@@ -7,6 +7,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 )
 
@@ -37,7 +38,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 			getConfigurationJitter,
 		),
 		getConfigurationPollPeriod: agent.Configuration.PollPeriod.AsDuration(),
-		maxConnectionAge:           agent.Listen.MaxConnectionAge.AsDuration(),
+		maxPollDuration:            grpctool.MaxConnectionAge2MaxPollDuration(agent.Listen.MaxConnectionAge.AsDuration()),
 	})
 	return &module{}, nil
 }

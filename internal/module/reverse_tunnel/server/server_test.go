@@ -65,9 +65,9 @@ func setupServer(t *testing.T) (*gomock.Controller, *mock_modserver.MockAPI, *mo
 	h := mock_reverse_tunnel.NewMockTunnelHandler(ctrl)
 	mockApi := mock_modserver.NewMockAPI(ctrl)
 	s := &server{
-		api:              mockApi,
-		maxConnectionAge: time.Minute,
-		tunnelHandler:    h,
+		api:             mockApi,
+		maxPollDuration: time.Minute,
+		tunnelHandler:   h,
 	}
 	return ctrl, mockApi, h, s
 }
