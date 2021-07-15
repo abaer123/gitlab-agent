@@ -8,10 +8,10 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 # Also update to the same version/commit in go.mod.
 http_archive(
     name = "io_bazel_rules_go",
-    sha256 = "69de5c704a05ff37862f7e0f5534d4f479418afc21806c887db544a316f3cb6b",
+    sha256 = "8e968b5fcea1d2d64071872b12737bbb5514524ee5f0a4f54f5920266c261acb",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.27.0/rules_go-v0.27.0.tar.gz",
-        "https://github.com/bazelbuild/rules_go/releases/download/v0.27.0/rules_go-v0.27.0.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.28.0/rules_go-v0.28.0.zip",
+        "https://github.com/bazelbuild/rules_go/releases/download/v0.28.0/rules_go-v0.28.0.zip",
     ],
 )
 
@@ -26,9 +26,9 @@ http_archive(
 
 http_archive(
     name = "io_bazel_rules_docker",
-    sha256 = "54d978734b7cbdcaa5cc4eece4ca4053d8b49972ae04a9fdb0ef05cfe812e524",
-    strip_prefix = "rules_docker-0adf8b2ff23e8d7a14562be0f5707cd4dbb32998",
-    urls = ["https://github.com/bazelbuild/rules_docker/archive/0adf8b2ff23e8d7a14562be0f5707cd4dbb32998.tar.gz"],
+    sha256 = "59d5b42ac315e7eadffa944e86e90c2990110a1c8075f1cd145f487e999d22b3",
+    strip_prefix = "rules_docker-0.17.0",
+    urls = ["https://github.com/bazelbuild/rules_docker/releases/download/v0.17.0/rules_docker-v0.17.0.tar.gz"],
 )
 
 http_archive(
@@ -40,25 +40,25 @@ http_archive(
 
 http_archive(
     name = "com_github_ash2k_bazel_tools",
-    sha256 = "adc624afa929abf56ffa7be34177e74ffa60e87d7820d781ca2128b3f238d91d",
-    strip_prefix = "bazel-tools-cbe7710fca61d5cc585af4ea29b0e1423e1ac17d",
-    urls = ["https://github.com/ash2k/bazel-tools/archive/cbe7710fca61d5cc585af4ea29b0e1423e1ac17d.tar.gz"],
+    sha256 = "eec529f8356247dc8ffa55ecdc1235fa786f4a0d39a115b2f496322a74f00a98",
+    strip_prefix = "bazel-tools-a96f0cb384e9e657bdf6ecc8be5548820c578e6b",
+    urls = ["https://github.com/ash2k/bazel-tools/archive/a96f0cb384e9e657bdf6ecc8be5548820c578e6b.tar.gz"],
 )
 
 http_archive(
     name = "rules_proto",
-    sha256 = "9fc210a34f0f9e7cc31598d109b5d069ef44911a82f507d5a88716db171615a8",
-    strip_prefix = "rules_proto-f7a30f6f80006b591fa7c437fe5a951eb10bcbcf",
+    sha256 = "bc12122a5ae4b517fa423ea03a8d82ea6352d5127ea48cb54bc324e8ab78493c",
+    strip_prefix = "rules_proto-af6481970a34554c6942d993e194a9aed7987780",
     urls = [
-        "https://github.com/bazelbuild/rules_proto/archive/f7a30f6f80006b591fa7c437fe5a951eb10bcbcf.tar.gz",
+        "https://github.com/bazelbuild/rules_proto/archive/af6481970a34554c6942d993e194a9aed7987780.tar.gz",
     ],
 )
 
 http_archive(
     name = "rules_proto_grpc",
-    sha256 = "fa7a59e0d1527ac69be652407b457ba1cb40700752a3ee6cc2dd25d9cb28bb1a",
-    strip_prefix = "rules_proto_grpc-3.1.0",
-    urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/archive/3.1.0.tar.gz"],
+    sha256 = "7954abbb6898830cd10ac9714fbcacf092299fda00ed2baf781172f545120419",
+    strip_prefix = "rules_proto_grpc-3.1.1",
+    urls = ["https://github.com/rules-proto-grpc/rules_proto_grpc/archive/3.1.1.tar.gz"],
 )
 
 http_archive(
@@ -72,10 +72,10 @@ http_archive(
 
 http_archive(
     name = "rules_pkg",
-    sha256 = "038f1caa773a7e35b3663865ffb003169c6a71dc995e39bf4815792f385d837d",
+    sha256 = "353b20e8b093d42dd16889c7f918750fb8701c485ac6cceb69a5236500507c27",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_pkg/releases/download/0.4.0/rules_pkg-0.4.0.tar.gz",
-        "https://github.com/bazelbuild/rules_pkg/releases/download/0.4.0/rules_pkg-0.4.0.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_pkg/releases/download/0.5.0/rules_pkg-0.5.0.tar.gz",
+        "https://github.com/bazelbuild/rules_pkg/releases/download/0.5.0/rules_pkg-0.5.0.tar.gz",
     ],
 )
 
@@ -165,16 +165,17 @@ http_archive(
     patches = [
         # deletegopls removes the gopls subdirectory. It contains a nested
         # module with additional dependencies. It's not needed by rules_go.
+        # releaser:patch-cmd rm -rf gopls
         "@io_bazel_rules_go//third_party:org_golang_x_tools-deletegopls.patch",
-        # gazelle args: -repo_root . -go_prefix golang.org/x/tools -go_naming_convention import_alias
+        # releaser:patch-cmd gazelle -repo_root . -go_prefix golang.org/x/tools -go_naming_convention import_alias
         "@io_bazel_rules_go//third_party:org_golang_x_tools-gazelle.patch",
     ],
-    sha256 = "60a5cee8304b4d9130344f156a10ba648e315b5fca4b84939b765b26ce217dee",
-    strip_prefix = "tools-0.1.0",
-    # v0.1.0, as of 2021-03-17
+    sha256 = "2cc1337fa5bc61aa2acb0e643ad34e619808b634a2728124d235fc07a9bfa33b",
+    strip_prefix = "tools-0.1.4",
+    # v0.1.4, latest as of 2021-06-30
     urls = [
-        "https://mirror.bazel.build/github.com/golang/tools/archive/v0.1.0.zip",
-        "https://github.com/golang/tools/archive/v0.1.0.zip",
+        "https://mirror.bazel.build/github.com/golang/tools/archive/v0.1.4.zip",
+        "https://github.com/golang/tools/archive/v0.1.4.zip",
     ],
 )
 
