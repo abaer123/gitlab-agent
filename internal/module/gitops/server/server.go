@@ -25,7 +25,6 @@ type server struct {
 	gitOpsPollIntervalHistogram prometheus.Histogram
 	getObjectsBackoff           retry.BackoffManagerFactory
 	pollPeriod                  time.Duration
-	maxPollDuration             time.Duration
 	maxManifestFileSize         int64
 	maxTotalManifestFileSize    int64
 	maxNumberOfPaths            uint32
@@ -59,7 +58,7 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 		maxTotalManifestFileSize:    s.maxTotalManifestFileSize,
 		maxNumberOfFiles:            s.maxNumberOfFiles,
 	}
-	return s.api.PollWithBackoff(ctx, backoff, true, s.maxPollDuration, s.pollPeriod, p.Attempt)
+	return s.api.PollWithBackoff(server, backoff, true, s.pollPeriod, p.Attempt)
 }
 
 func (s *server) validateGetObjectsToSynchronizeRequest(req *rpc.ObjectsToSynchronizeRequest) error {

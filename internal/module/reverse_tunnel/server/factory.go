@@ -4,7 +4,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/reverse_tunnel/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 )
 
 type Factory struct {
@@ -13,9 +12,8 @@ type Factory struct {
 
 func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 	rpc.RegisterReverseTunnelServer(config.AgentServer, &server{
-		api:             config.Api,
-		maxPollDuration: grpctool.MaxConnectionAge2MaxPollDuration(config.Config.Agent.Listen.MaxConnectionAge.AsDuration()),
-		tunnelHandler:   f.TunnelHandler,
+		api:           config.Api,
+		tunnelHandler: f.TunnelHandler,
 	})
 	return &module{}, nil
 }

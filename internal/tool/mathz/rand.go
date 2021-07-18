@@ -23,10 +23,10 @@ func Int63() int64 {
 	return r.Int63()
 }
 
-// DurationWithJitter returns d with an added jitter between +/- jitterPercent% of the value.
-func DurationWithJitter(d time.Duration, jitterPercent int64) time.Duration {
+// DurationWithPositiveJitter returns d with an added jitter in the range [0,jitterPercent% of the value) i.e. it's additive.
+func DurationWithPositiveJitter(d time.Duration, jitterPercent int64) time.Duration {
 	r := (int64(d) * jitterPercent) / 100
-	jitter := Int63n(2*r) - r
+	jitter := Int63n(r)
 	return d + time.Duration(jitter)
 }
 

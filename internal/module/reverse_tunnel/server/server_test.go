@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -28,11 +27,13 @@ func TestConnectAllowsValidToken(t *testing.T) {
 	agentInfo := testhelpers.AgentInfoObj()
 	ctx := api.InjectAgentMD(context.Background(), &api.AgentMD{Token: testhelpers.AgentkToken})
 	ctx = grpctool.InjectLogger(ctx, zaptest.NewLogger(t))
+	ctx = grpctool.AddMaxConnectionAgeContext(ctx, context.Background())
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer.EXPECT().
+		Context().
+		Return(ctx).
+		MinTimes(1)
 	gomock.InOrder(
-		connectServer.EXPECT().
-			Context().
-			Return(ctx),
 		mockApi.EXPECT().
 			GetAgentInfo(gomock.Any(), gomock.Any(), testhelpers.AgentkToken).
 			Return(agentInfo, nil),
@@ -47,11 +48,13 @@ func TestConnectRejectsInvalidToken(t *testing.T) {
 	ctrl, mockApi, _, s := setupServer(t)
 	ctx := api.InjectAgentMD(context.Background(), &api.AgentMD{Token: "invalid"})
 	ctx = grpctool.InjectLogger(ctx, zaptest.NewLogger(t))
+	ctx = grpctool.AddMaxConnectionAgeContext(ctx, context.Background())
 	connectServer := mock_reverse_tunnel_rpc.NewMockReverseTunnel_ConnectServer(ctrl)
+	connectServer.EXPECT().
+		Context().
+		Return(ctx).
+		MinTimes(1)
 	gomock.InOrder(
-		connectServer.EXPECT().
-			Context().
-			Return(ctx),
 		mockApi.EXPECT().
 			GetAgentInfo(gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(nil, errors.New("expected err")),
@@ -65,9 +68,8 @@ func setupServer(t *testing.T) (*gomock.Controller, *mock_modserver.MockAPI, *mo
 	h := mock_reverse_tunnel.NewMockTunnelHandler(ctrl)
 	mockApi := mock_modserver.NewMockAPI(ctrl)
 	s := &server{
-		api:             mockApi,
-		maxPollDuration: time.Minute,
-		tunnelHandler:   h,
+		api:           mockApi,
+		tunnelHandler: h,
 	}
 	return ctrl, mockApi, h, s
 }

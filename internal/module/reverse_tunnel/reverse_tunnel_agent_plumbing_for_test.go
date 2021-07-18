@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/ash2k/stager"
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
@@ -18,10 +19,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-func agentConstructComponents(t *testing.T, kasConn grpc.ClientConnInterface, agentApi *mock_modagent.MockAPI) (func(context.Context) error, *grpc.Server) {
+func agentConstructComponents(ctx context.Context, t *testing.T, kasConn grpc.ClientConnInterface, agentApi *mock_modagent.MockAPI) (func(context.Context) error, *grpc.Server) {
 	log := zaptest.NewLogger(t)
 	internalListener := grpctool.NewDialListener()
-	internalServer := agentConstructInternalServer(log)
+	internalServer := agentConstructInternalServer(ctx, log)
 	internalServerConn, err := agentConstructInternalServerConn(internalListener.DialContext)
 	require.NoError(t, err)
 
@@ -53,8 +54,10 @@ func agentConstructComponents(t *testing.T, kasConn grpc.ClientConnInterface, ag
 	}, internalServer
 }
 
-func agentConstructInternalServer(log *zap.Logger) *grpc.Server {
+func agentConstructInternalServer(ctx context.Context, log *zap.Logger) *grpc.Server {
+	_, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, time.Minute)
 	return grpc.NewServer(
+		grpc.StatsHandler(sh),
 		grpc.ChainStreamInterceptor(
 			grpctool.StreamServerLoggerInterceptor(log),
 			grpc_validator.StreamServerInterceptor(),
@@ -67,12 +70,12 @@ func agentConstructInternalServer(log *zap.Logger) *grpc.Server {
 }
 
 func agentStartInternalServer(stage stager.Stage, internalServer *grpc.Server, internalListener net.Listener) {
-	grpctool.StartServer(stage, internalServer, func() {}, func() (net.Listener, error) {
+	grpctool.StartServer(stage, internalServer, func() (net.Listener, error) {
 		return internalListener, nil
 	})
 }
 
-func agentConstructInternalServerConn(dialContext func(ctx context.Context, addr string) (net.Conn, error)) (grpc.ClientConnInterface, error) {
+func agentConstructInternalServerConn(dialContext func(ctx context.Context, addr string) (net.Conn, error)) (*grpc.ClientConn, error) {
 	return grpc.DialContext(context.Background(), "pipe",
 		grpc.WithContextDialer(dialContext),
 		grpc.WithInsecure(),

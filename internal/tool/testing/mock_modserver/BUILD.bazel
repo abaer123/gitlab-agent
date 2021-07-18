@@ -18,6 +18,7 @@ go_library(
         "@com_github_stretchr_testify//require",
         "@com_gitlab_gitlab_org_labkit//errortracking",
         "@io_k8s_apimachinery//pkg/util/wait",
+        "@org_golang_google_grpc//:grpc",
         "@org_golang_google_grpc//metadata",
         "@org_uber_go_zap//:zap",
         "@org_uber_go_zap//zaptest",
