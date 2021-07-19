@@ -212,6 +212,26 @@ There are two authorization steps, performed in the following order:
 1. Fine-grained authorization: performed by the in-cluster access control mechanisms, configured by the Platform
    Engineer. Information, described in the [Impersonation](#impersonation) section above, can be used to define what is allowed.
 
+### Default configuration
+
+Be default, the agent should work without an agent configuration file as well. The following configuration should be the default
+
+```yaml
+# .gitlab/agents/my-agent/config.yaml
+ci_access:
+  # This agent is accessible from CI jobs in these projects
+  projects:
+    - id: <self>
+      default_namespace: <namespace where the agent is installed>
+      access_as:
+        agent: {}
+  groups:
+    - id: <group of the agent>
+      default_namespace: <namespace where the agent is installed>
+      access_as:
+        agent: {}
+```
+
 ### Notifying GitLab of agent's configuration
 
 According to the [proposal](#proposal), user maintains the list of groups and/or projects
@@ -227,6 +247,8 @@ project/group to access. It is needed to:
 https://gitlab.com/gitlab-org/gitlab/-/issues/323708 tracks the plumbing work to make it possible to build such an index.
 Once it is implemented, we need to add new indexes to perform `ci project id` -> `agent id` and
 `group id` -> `agent id` lookups.
+
+We might add another level of authorization from the group side, if requested by users. This is tracked by https://gitlab.com/gitlab-org/gitlab/-/issues/330591 and is initially out of scope for the CI tunnel.
 
 ### `/api/v4/job/allowed_agents` API
 
