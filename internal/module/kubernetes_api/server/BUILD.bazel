@@ -13,6 +13,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/gitlab",
+        "//internal/gitlab/api",
         "//internal/module/kubernetes_api",
         "//internal/module/kubernetes_api/rpc",
         "//internal/module/modserver",
@@ -39,6 +40,7 @@ go_custom_test(
     ],
     embed = [":server"],
     deps = [
+        "//internal/gitlab/api",
         "//internal/module/kubernetes_api/rpc",
         "//internal/module/modserver",
         "//internal/tool/grpctool",

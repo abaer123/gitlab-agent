@@ -5,6 +5,7 @@ go_library(
     name = "api",
     srcs = [
         "get_agent_info.go",
+        "get_allowed_agents.go",
         "get_project_info.go",
         "module_request.go",
     ],

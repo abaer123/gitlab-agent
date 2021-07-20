@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab"
+	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics"
@@ -37,7 +38,6 @@ const (
 	authorizationHeader             = "Authorization"
 	hostHeader                      = "Host"
 	authorizationHeaderBearerPrefix = "Bearer " // must end with a space
-	jobInfoApiPath                  = "/api/v4/job/allowed_agents"
 	tokenSeparator                  = ":"
 	tokenTypeCi                     = "ci"
 
@@ -62,40 +62,6 @@ var (
 		"Upgrade",
 	}
 )
-
-type allowedAgent struct {
-	Id            int64         `json:"id"`
-	ConfigProject configProject `json:"config_project"`
-}
-
-type configProject struct {
-	Id int64 `json:"id"`
-}
-
-type pipeline struct {
-	Id int64 `json:"id"`
-}
-
-type project struct {
-	Id int64 `json:"id"`
-}
-
-type job struct {
-	Id int64 `json:"id"`
-}
-
-type user struct {
-	Id       int64  `json:"id"`
-	Username string `json:"username"`
-}
-
-type jobInfo struct {
-	AllowedAgents []allowedAgent `json:"allowed_agents"`
-	Job           job            `json:"job"`
-	Pipeline      pipeline       `json:"pipeline"`
-	Project       project        `json:"project"`
-	User          user           `json:"user"`
-}
 
 type kubernetesApiProxy struct {
 	log                 *zap.Logger
@@ -137,7 +103,7 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 	}
 	log = log.With(logz.AgentId(agentId))
 
-	jInfo, err := p.getJobInfo(ctx, jobToken)
+	jInfo, err := gapi.GetAllowedAgentsForJob(ctx, p.gitLabClient, jobToken)
 	if err != nil {
 		switch {
 		case gitlab.IsUnauthorized(err):
@@ -310,21 +276,8 @@ func (p *kubernetesApiProxy) pipeClientToRemote(ctx context.Context, log *zap.Lo
 	return nil
 }
 
-func (p *kubernetesApiProxy) getJobInfo(ctx context.Context, jobToken string) (*jobInfo, error) {
-	ji := &jobInfo{}
-	err := p.gitLabClient.Do(ctx,
-		gitlab.WithPath(jobInfoApiPath),
-		gitlab.WithJobToken(jobToken),
-		gitlab.WithResponseHandler(gitlab.JsonResponseHandler(ji)),
-	)
-	if err != nil {
-		return nil, err
-	}
-	return ji, nil
-}
-
-func findAllowedAgent(agentId int64, jInfo *jobInfo) *allowedAgent {
-	for _, aa := range jInfo.AllowedAgents {
+func findAllowedAgent(agentId int64, agentsForJob *gapi.AllowedAgentsForJob) *gapi.AllowedAgent {
+	for _, aa := range agentsForJob.AllowedAgents {
 		if aa.Id == agentId {
 			return &aa
 		}
