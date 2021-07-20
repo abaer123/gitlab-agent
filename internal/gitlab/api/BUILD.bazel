@@ -8,6 +8,7 @@ go_library(
         "get_allowed_agents.go",
         "get_project_info.go",
         "module_request.go",
+        "send_usage_ping.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api",
     visibility = ["//:__subpackages__"],

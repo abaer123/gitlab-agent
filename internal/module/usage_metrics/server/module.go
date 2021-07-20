@@ -2,18 +2,14 @@ package server
 
 import (
 	"context"
-	"net/http"
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab"
+	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"go.uber.org/zap"
-)
-
-const (
-	usagePingApiPath = "/api/v4/internal/kubernetes/usage_metrics"
 )
 
 type module struct {
@@ -50,13 +46,7 @@ func (m *module) sendUsageInternal(ctx context.Context) error {
 		// No new counts
 		return nil
 	}
-	err := m.gitLabClient.Do(ctx,
-		gitlab.WithMethod(http.MethodPost),
-		gitlab.WithPath(usagePingApiPath),
-		gitlab.WithJsonRequestBody(usageData.Counters),
-		gitlab.WithResponseHandler(gitlab.NoContentResponseHandler()),
-		gitlab.WithJWT(true),
-	)
+	err := gapi.SendUsagePing(ctx, m.gitLabClient, usageData.Counters)
 	if err != nil {
 		return err // don't wrap
 	}
