@@ -11,6 +11,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/matcher"
@@ -145,7 +146,7 @@ func setupModule(t *testing.T, handler func(http.ResponseWriter, *http.Request))
 		Log:          zaptest.NewLogger(t),
 		Api:          mockApi,
 		Config:       config,
-		GitLabClient: mock_gitlab.SetupClient(t, usagePingApiPath, handler),
+		GitLabClient: mock_gitlab.SetupClient(t, gapi.UsagePingApiPath, handler),
 		UsageTracker: tracker,
 	})
 	require.NoError(t, err)
