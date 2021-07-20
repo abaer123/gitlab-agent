@@ -5,6 +5,7 @@ go_library(
     name = "api",
     srcs = [
         "get_agent_info.go",
+        "get_project_info.go",
         "module_request.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api",
@@ -17,7 +18,10 @@ go_library(
 
 go_custom_test(
     name = "api_test",
-    srcs = ["get_agent_info_test.go"],
+    srcs = [
+        "get_agent_info_test.go",
+        "get_project_info_test.go",
+    ],
     embed = [":api"],
     deps = [
         "//internal/gitlab",
