@@ -3,7 +3,10 @@ load("//build:build.bzl", "go_custom_test")
 
 go_library(
     name = "api",
-    srcs = ["get_agent_info.go"],
+    srcs = [
+        "get_agent_info.go",
+        "module_request.go",
+    ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api",
     visibility = ["//:__subpackages__"],
     deps = [

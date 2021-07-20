@@ -4,17 +4,12 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"net/url"
 
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab"
+	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitlab_access/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
-)
-
-const (
-	urlPathForModules = "/api/v4/internal/kubernetes/modules/"
 )
 
 type server struct {
@@ -32,18 +27,16 @@ func newServer(serverApi modserver.API, gitLabClient gitlab.ClientInterface) *se
 				if err != nil {
 					return nil, err
 				}
-				var resp *http.Response
-				err = gitLabClient.Do(ctx,
-					gitlab.WithMethod(header.Request.Method),
-					gitlab.WithPath(urlPathForModules+url.PathEscape(extra.ModuleName)+header.Request.UrlPath),
-					gitlab.WithQuery(header.Request.UrlQuery()),
-					gitlab.WithHeader(header.Request.HttpHeader()),
-					gitlab.WithAgentToken(api.AgentTokenFromContext(ctx)),
-					gitlab.WithJWT(true),
-					gitlab.WithRequestBody(body, ""),
-					gitlab.WithResponseHandler(gitlab.NakedResponseHandler(&resp)),
+				return gapi.MakeModuleRequest(
+					ctx,
+					gitLabClient,
+					extra.ModuleName,
+					header.Request.Method,
+					header.Request.UrlPath,
+					header.Request.UrlQuery(),
+					header.Request.HttpHeader(),
+					body,
 				)
-				return resp, err
 			},
 		),
 	}
