@@ -12,6 +12,7 @@ go_library(
     visibility = ["//:__subpackages__"],
     deps = [
         "//internal/gitlab",
+        "//internal/gitlab/api",
         "//internal/module/modserver",
         "//internal/module/usage_metrics",
         "//internal/tool/errz",
@@ -26,6 +27,7 @@ go_custom_test(
     srcs = ["module_test.go"],
     embed = [":server"],
     deps = [
+        "//internal/gitlab/api",
         "//internal/module/modserver",
         "//internal/module/usage_metrics",
         "//internal/tool/testing/matcher",

@@ -17,6 +17,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
@@ -379,16 +380,16 @@ func defaultGitLabHandler(t *testing.T) func(w http.ResponseWriter, r *http.Requ
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		testhelpers.RespondWithJSON(t, w, &jobInfo{
-			AllowedAgents: []allowedAgent{
+		testhelpers.RespondWithJSON(t, w, &gapi.AllowedAgentsForJob{
+			AllowedAgents: []gapi.AllowedAgent{
 				{
 					Id: testhelpers.AgentId,
 				},
 			},
-			Job:      job{},
-			Pipeline: pipeline{},
-			Project:  project{},
-			User:     user{},
+			Job:      gapi.Job{},
+			Pipeline: gapi.Pipeline{},
+			Project:  gapi.Project{},
+			User:     gapi.User{},
 		})
 	}
 }
@@ -405,7 +406,7 @@ func setupProxyWithHandler(t *testing.T, urlPathPrefix string, handler func(http
 		log:                 zaptest.NewLogger(t),
 		api:                 mockApi,
 		kubernetesApiClient: k8sClient,
-		gitLabClient:        mock_gitlab.SetupClient(t, jobInfoApiPath, handler),
+		gitLabClient:        mock_gitlab.SetupClient(t, gapi.AllowedAgentsApiPath, handler),
 		streamVisitor:       sv,
 		requestCount:        requestCount,
 		serverName:          "sv1",

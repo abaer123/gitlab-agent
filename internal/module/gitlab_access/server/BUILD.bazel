@@ -11,8 +11,8 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitlab_access/server",
     visibility = ["//:__subpackages__"],
     deps = [
-        "//internal/api",
         "//internal/gitlab",
+        "//internal/gitlab/api",
         "//internal/module/gitlab_access",
         "//internal/module/gitlab_access/rpc",
         "//internal/module/modserver",
