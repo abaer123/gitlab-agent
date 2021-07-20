@@ -14,6 +14,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab"
+	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/kube_testing"
@@ -384,8 +385,8 @@ func TestGetObjectsToSynchronize_UserErrors(t *testing.T) {
 	}
 }
 
-func projectInfoRest() *projectInfoResponse {
-	return &projectInfoResponse{
+func projectInfoRest() *gapi.ProjectInfoResponse {
+	return &gapi.ProjectInfoResponse{
 		ProjectId: 234,
 		GitalyInfo: gitlab.GitalyInfo{
 			Address: "127.0.0.1:321321",
@@ -418,7 +419,7 @@ func setupServer(t *testing.T) (context.Context, context.CancelFunc, *server, *g
 	t.Cleanup(cancel)
 	s, ctrl, mockApi, gitalyPool := setupServerBare(t, func(w http.ResponseWriter, r *http.Request) {
 		testhelpers.AssertGetJsonRequestIsCorrect(t, r, correlationId)
-		assert.Equal(t, projectId, r.URL.Query().Get(projectIdQueryParam))
+		assert.Equal(t, projectId, r.URL.Query().Get(gapi.ProjectIdQueryParam))
 		testhelpers.RespondWithJSON(t, w, projectInfoRest())
 	})
 
@@ -446,7 +447,7 @@ func setupServerBare(t *testing.T, handler func(http.ResponseWriter, *http.Reque
 		Log:          zaptest.NewLogger(t),
 		Api:          mockApi,
 		Config:       config,
-		GitLabClient: mock_gitlab.SetupClient(t, projectInfoApiPath, handler),
+		GitLabClient: mock_gitlab.SetupClient(t, gapi.ProjectInfoApiPath, handler),
 		Registerer:   prometheus.NewPedanticRegistry(),
 		UsageTracker: usageTracker,
 		Gitaly:       gitalyPool,
