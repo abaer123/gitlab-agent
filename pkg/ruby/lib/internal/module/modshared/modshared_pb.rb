@@ -6,10 +6,10 @@ require 'google/protobuf'
 Google::Protobuf::DescriptorPool.generated_pool.build do
   add_file("internal/module/modshared/modshared.proto", :syntax => :proto3) do
     add_message "gitlab.agent.modshared.AgentMeta" do
-      optional :version, :string, 1
-      optional :commit_id, :string, 2
-      optional :pod_namespace, :string, 3
-      optional :pod_name, :string, 4
+      optional :version, :string, 1, json_name: "version"
+      optional :commit_id, :string, 2, json_name: "commitId"
+      optional :pod_namespace, :string, 3, json_name: "podNamespace"
+      optional :pod_name, :string, 4, json_name: "podName"
     end
   end
 end

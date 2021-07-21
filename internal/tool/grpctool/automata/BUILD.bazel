@@ -15,8 +15,8 @@ go_library(
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool/automata",
     visibility = ["//:__subpackages__"],
     deps = [
-        "@com_github_golang_protobuf//protoc-gen-go/descriptor",
         "@org_golang_google_protobuf//reflect/protoreflect",
         "@org_golang_google_protobuf//runtime/protoimpl",
+        "@org_golang_google_protobuf//types/descriptorpb",
     ],
 )
