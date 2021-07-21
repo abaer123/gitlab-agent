@@ -12,8 +12,10 @@ func main() {
 
 func rootCommand() *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:   "cli",
-		Short: "GitLab Kubernetes Agent CLI",
+		Use:           "cli",
+		Short:         "GitLab Kubernetes Agent CLI",
+		SilenceErrors: true,
+		SilenceUsage:  true,
 	}
 	rootCmd.AddCommand(generate.NewCommand())
 	return rootCmd
