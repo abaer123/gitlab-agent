@@ -51,10 +51,12 @@ func newServerFromConfig(config *modserver.Config) (*server, error) {
 		api:        config.Api,
 		gitalyPool: config.Gitaly,
 		projectInfoClient: &projectInfoClient{
-			GitLabClient:             config.GitLabClient,
-			ProjectInfoCacheTtl:      projectInfoCacheTtl,
-			ProjectInfoCacheErrorTtl: projectInfoCacheErrorTtl,
-			ProjectInfoCache:         cache.New(minDuration(projectInfoCacheTtl, projectInfoCacheErrorTtl)),
+			GitLabClient: config.GitLabClient,
+			ProjectInfoCache: cache.NewWithError(
+				minDuration(projectInfoCacheTtl, projectInfoCacheErrorTtl),
+				projectInfoCacheTtl,
+				projectInfoCacheErrorTtl,
+			),
 		},
 		syncCount:                   config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
 		gitOpsPollIntervalHistogram: gitOpsPollIntervalHistogram,
