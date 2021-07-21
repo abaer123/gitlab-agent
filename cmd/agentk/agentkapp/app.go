@@ -83,15 +83,11 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 	}
 	defer errz.SafeClose(kasConn, &retErr)
 
-	// Interceptors
-	interceptorsCtx, interceptorsCancel := context.WithCancel(context.Background())
-	defer interceptorsCancel()
-
 	// Internal gRPC client->listener pipe
 	internalListener := grpctool.NewDialListener()
 
 	// Construct internal gRPC server
-	internalServer := a.constructInternalServer(interceptorsCtx)
+	internalServer := a.constructInternalServer()
 
 	// Construct connection to internal gRPC server
 	internalServerConn, err := a.constructInternalServerConn(ctx, internalListener.DialContext)
@@ -115,7 +111,7 @@ func (a *App) Run(ctx context.Context) (retErr error) {
 		},
 		func(stage stager.Stage) {
 			// Start internal gRPC server.
-			a.startInternalServer(stage, internalServer, internalListener, interceptorsCancel)
+			a.startInternalServer(stage, internalServer, internalListener)
 			// Start configuration refresh.
 			stage.Go(runner.RunConfigurationRefresh)
 		},
@@ -269,27 +265,25 @@ func (a *App) constructKasConnection(ctx context.Context) (*grpc.ClientConn, err
 	return conn, nil
 }
 
-func (a *App) constructInternalServer(interceptorsCtx context.Context) *grpc.Server {
+func (a *App) constructInternalServer() *grpc.Server {
 	return grpc.NewServer(
 		grpc.ChainStreamInterceptor(
 			grpc_prometheus.StreamServerInterceptor,              // 1. measure all invocations
 			grpccorrelation.StreamServerCorrelationInterceptor(), // 2. add correlation id
 			grpctool.StreamServerLoggerInterceptor(a.Log),        // 3. inject logger with correlation id
 			grpc_validator.StreamServerInterceptor(),
-			grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
 		),
 		grpc.ChainUnaryInterceptor(
 			grpc_prometheus.UnaryServerInterceptor,              // 1. measure all invocations
 			grpccorrelation.UnaryServerCorrelationInterceptor(), // 2. add correlation id
 			grpctool.UnaryServerLoggerInterceptor(a.Log),        // 3. inject logger with correlation id
 			grpc_validator.UnaryServerInterceptor(),
-			grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
 		),
 	)
 }
 
-func (a *App) startInternalServer(stage stager.Stage, internalServer *grpc.Server, internalListener net.Listener, interceptorsCancel context.CancelFunc) {
-	grpctool.StartServer(stage, internalServer, interceptorsCancel, func() (net.Listener, error) {
+func (a *App) startInternalServer(stage stager.Stage, internalServer *grpc.Server, internalListener net.Listener) {
+	grpctool.StartServer(stage, internalServer, func() (net.Listener, error) {
 		return internalListener, nil
 	})
 }

@@ -74,13 +74,14 @@ type API interface {
 	// PollWithBackoff runs f every duration given by BackoffManager.
 	//
 	// PollWithBackoff should be used by the top-level polling, so that it can be gracefully interrupted
-	// by the server when necessary.
+	// by the server when necessary. E.g. when stream is nearing it's max connection age or program needs to
+	// be shut down.
 	// If sliding is true, the period is computed after f runs. If it is false then
 	// period includes the runtime for f.
 	// It returns when:
-	// - context signals done. nil is returned in this case.
+	// - stream's context is cancelled or max connection age has been reached. nil is returned in this case.
 	// - f returns Done. error from f is returned in this case.
-	PollWithBackoff(ctx context.Context, backoff retry.BackoffManager, sliding bool, maxPollDuration, interval time.Duration, f retry.PollWithBackoffFunc) error
+	PollWithBackoff(stream grpc.ServerStream, backoff retry.BackoffManager, sliding bool, interval time.Duration, f retry.PollWithBackoffFunc) error
 }
 
 type Factory interface {

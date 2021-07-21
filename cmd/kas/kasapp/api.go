@@ -13,16 +13,12 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/mathz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	"gitlab.com/gitlab-org/labkit/errortracking"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-)
-
-const (
-	maxConnectionAgeJitterPercent = 5
 )
 
 type apiConfig struct {
@@ -68,11 +64,10 @@ func (a *serverAPI) GetAgentInfo(ctx context.Context, log *zap.Logger, agentToke
 	return nil, err
 }
 
-func (a *serverAPI) PollWithBackoff(ctx context.Context, backoff retry.BackoffManager, sliding bool, maxPollDuration, interval time.Duration, f retry.PollWithBackoffFunc) error {
+func (a *serverAPI) PollWithBackoff(stream grpc.ServerStream, backoff retry.BackoffManager, sliding bool, interval time.Duration, f retry.PollWithBackoffFunc) error {
 	// this context must only be used here, not inside of f() - connection should be closed only when idle.
-	pollCtx, cancel := context.WithTimeout(ctx, mathz.DurationWithJitter(maxPollDuration, maxConnectionAgeJitterPercent))
-	defer cancel()
-	err := retry.PollWithBackoff(pollCtx, backoff, sliding, interval, f)
+	ageCtx := grpctool.MaxConnectionAgeContextFromStream(stream)
+	err := retry.PollWithBackoff(ageCtx, backoff, sliding, interval, f)
 	if errors.Is(err, retry.ErrWaitTimeout) {
 		return nil // all good, ctx is done
 	}

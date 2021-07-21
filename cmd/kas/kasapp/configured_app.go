@@ -124,24 +124,20 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		return err
 	}
 
-	// Interceptors
-	interceptorsCtx, interceptorsCancel := context.WithCancel(context.Background())
-	defer interceptorsCancel()
-
 	// Server for handling agentk requests
-	agentServer, err := a.constructAgentServer(interceptorsCtx, tracer, redisClient, ssh)
+	agentServer, err := a.constructAgentServer(ctx, tracer, redisClient, ssh)
 	if err != nil {
 		return fmt.Errorf("agent server: %w", err)
 	}
 
 	// Server for handling external requests e.g. from GitLab
-	apiServer, err := a.constructApiServer(interceptorsCtx, tracer, ssh)
+	apiServer, err := a.constructApiServer(ctx, tracer, ssh)
 	if err != nil {
 		return fmt.Errorf("API server: %w", err)
 	}
 
 	// Server for handling API requests from other kas instances
-	privateApiServer, err := a.constructPrivateApiServer(interceptorsCtx, tracer, ssh)
+	privateApiServer, err := a.constructPrivateApiServer(ctx, tracer, ssh)
 	if err != nil {
 		return fmt.Errorf("private API server: %w", err)
 	}
@@ -166,7 +162,7 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 	}
 
 	// Construct internal gRPC server
-	internalServer := a.constructInternalServer(interceptorsCtx, tracer)
+	internalServer := a.constructInternalServer(ctx, tracer)
 
 	// Kas to agentk router
 	kasToAgentRouter, err := a.constructKasToAgentRouter(tracer, tunnelTracker, tunnelRegistry, internalServer, privateApiServer)
@@ -272,10 +268,10 @@ func (a *ConfiguredApp) Run(ctx context.Context) (retErr error) {
 		},
 		// Start gRPC servers.
 		func(stage stager.Stage) {
-			a.startAgentServer(stage, agentServer, interceptorsCancel)
-			a.startApiServer(stage, apiServer, interceptorsCancel)
-			a.startPrivateApiServer(stage, privateApiServer, interceptorsCancel)
-			a.startInternalServer(stage, internalServer, internalListener, interceptorsCancel)
+			a.startAgentServer(stage, agentServer)
+			a.startApiServer(stage, apiServer)
+			a.startPrivateApiServer(stage, privateApiServer)
+			a.startInternalServer(stage, internalServer, internalListener)
 		},
 	)
 }
@@ -335,8 +331,8 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, tun
 	}, nil
 }
 
-func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.Server, interceptorsCancel context.CancelFunc) {
-	grpctool.StartServer(stage, agentServer, interceptorsCancel, func() (net.Listener, error) {
+func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.Server) {
+	grpctool.StartServer(stage, agentServer, func() (net.Listener, error) {
 		listenCfg := a.Configuration.Agent.Listen
 		lis, err := net.Listen(listenCfg.Network.String(), listenCfg.Address)
 		if err != nil {
@@ -360,12 +356,12 @@ func (a *ConfiguredApp) startAgentServer(stage stager.Stage, agentServer *grpc.S
 	})
 }
 
-func (a *ConfiguredApp) startApiServer(stage stager.Stage, apiServer *grpc.Server, interceptorsCancel context.CancelFunc) {
+func (a *ConfiguredApp) startApiServer(stage stager.Stage, apiServer *grpc.Server) {
 	// TODO this should become required
 	if a.Configuration.Api == nil {
 		return
 	}
-	grpctool.StartServer(stage, apiServer, interceptorsCancel, func() (net.Listener, error) {
+	grpctool.StartServer(stage, apiServer, func() (net.Listener, error) {
 		listenCfg := a.Configuration.Api.Listen
 		lis, err := net.Listen(listenCfg.Network.String(), listenCfg.Address)
 		if err != nil {
@@ -379,12 +375,12 @@ func (a *ConfiguredApp) startApiServer(stage stager.Stage, apiServer *grpc.Serve
 	})
 }
 
-func (a *ConfiguredApp) startPrivateApiServer(stage stager.Stage, apiServer *grpc.Server, interceptorsCancel context.CancelFunc) {
+func (a *ConfiguredApp) startPrivateApiServer(stage stager.Stage, apiServer *grpc.Server) {
 	// TODO this should become required
 	if a.Configuration.PrivateApi == nil {
 		return
 	}
-	grpctool.StartServer(stage, apiServer, interceptorsCancel, func() (net.Listener, error) {
+	grpctool.StartServer(stage, apiServer, func() (net.Listener, error) {
 		listenCfg := a.Configuration.PrivateApi.Listen
 		lis, err := net.Listen(listenCfg.Network.String(), listenCfg.Address)
 		if err != nil {
@@ -398,13 +394,13 @@ func (a *ConfiguredApp) startPrivateApiServer(stage stager.Stage, apiServer *grp
 	})
 }
 
-func (a *ConfiguredApp) startInternalServer(stage stager.Stage, internalServer *grpc.Server, internalListener net.Listener, interceptorsCancel context.CancelFunc) {
-	grpctool.StartServer(stage, internalServer, interceptorsCancel, func() (net.Listener, error) {
+func (a *ConfiguredApp) startInternalServer(stage stager.Stage, internalServer *grpc.Server, internalListener net.Listener) {
+	grpctool.StartServer(stage, internalServer, func() (net.Listener, error) {
 		return internalListener, nil
 	})
 }
 
-func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tracer opentracing.Tracer, redisClient redis.UniversalClient, ssh stats.Handler) (*grpc.Server, error) {
+func (a *ConfiguredApp) constructAgentServer(ctx context.Context, tracer opentracing.Tracer, redisClient redis.UniversalClient, ssh stats.Handler) (*grpc.Server, error) {
 	listenCfg := a.Configuration.Agent.Listen
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	grpcStreamServerInterceptors := []grpc.StreamServerInterceptor{
@@ -416,7 +412,6 @@ func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tr
 		grpctool.StreamServerLoggerInterceptor(a.Log), // 4. inject logger with correlation id
 		grpc_validator.StreamServerInterceptor(),
 		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
-		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
 	}
 	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
 		grpc_prometheus.UnaryServerInterceptor,   // 1. measure all invocations
@@ -427,7 +422,6 @@ func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tr
 		grpctool.UnaryServerLoggerInterceptor(a.Log), // 4. inject logger with correlation id
 		grpc_validator.UnaryServerInterceptor(),
 		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
-		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
 	}
 
 	if redisClient != nil {
@@ -441,16 +435,16 @@ func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tr
 		grpcStreamServerInterceptors = append(grpcStreamServerInterceptors, grpctool.StreamServerLimitingInterceptor(agentConnectionLimiter))
 		grpcUnaryServerInterceptors = append(grpcUnaryServerInterceptors, grpctool.UnaryServerLimitingInterceptor(agentConnectionLimiter))
 	}
-
+	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, listenCfg.MaxConnectionAge.AsDuration())
 	serverOpts := []grpc.ServerOption{
-		grpc.StatsHandler(ssh),
+		grpc.StatsHandler(grpctool.NewJoinStatHandlers(ssh, sh)),
 		grpc.ChainStreamInterceptor(grpcStreamServerInterceptors...),
 		grpc.ChainUnaryInterceptor(grpcUnaryServerInterceptors...),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime:             20 * time.Second,
 			PermitWithoutStream: true,
 		}),
-		grpctool.MaxConnectionAge2GrpcKeepalive(listenCfg.MaxConnectionAge.AsDuration()),
+		keepaliveOpt,
 	}
 
 	credsOpt, err := maybeTlsCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
@@ -462,7 +456,7 @@ func (a *ConfiguredApp) constructAgentServer(interceptorsCtx context.Context, tr
 	return grpc.NewServer(serverOpts...), nil
 }
 
-func (a *ConfiguredApp) constructApiServer(interceptorsCtx context.Context, tracer opentracing.Tracer, ssh stats.Handler) (*grpc.Server, error) {
+func (a *ConfiguredApp) constructApiServer(ctx context.Context, tracer opentracing.Tracer, ssh stats.Handler) (*grpc.Server, error) {
 	// TODO this should become required
 	if a.Configuration.Api == nil {
 		return grpc.NewServer(), nil
@@ -483,7 +477,6 @@ func (a *ConfiguredApp) constructApiServer(interceptorsCtx context.Context, trac
 		jwtAuther.StreamServerInterceptor,                    // 4. auth and maybe log
 		grpc_validator.StreamServerInterceptor(),
 		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
-		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
 	}
 	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
 		grpc_prometheus.UnaryServerInterceptor,              // 1. measure all invocations
@@ -492,17 +485,17 @@ func (a *ConfiguredApp) constructApiServer(interceptorsCtx context.Context, trac
 		jwtAuther.UnaryServerInterceptor,                    // 4. auth and maybe log
 		grpc_validator.UnaryServerInterceptor(),
 		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
-		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
 	}
+	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, listenCfg.MaxConnectionAge.AsDuration())
 	serverOpts := []grpc.ServerOption{
-		grpc.StatsHandler(ssh),
+		grpc.StatsHandler(grpctool.NewJoinStatHandlers(ssh, sh)),
 		grpc.ChainStreamInterceptor(grpcStreamServerInterceptors...),
 		grpc.ChainUnaryInterceptor(grpcUnaryServerInterceptors...),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime:             20 * time.Second,
 			PermitWithoutStream: true,
 		}),
-		nonPollingKeepaliveParams(listenCfg.MaxConnectionAge.AsDuration()),
+		keepaliveOpt,
 	}
 
 	credsOpt, err := maybeTlsCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
@@ -514,7 +507,7 @@ func (a *ConfiguredApp) constructApiServer(interceptorsCtx context.Context, trac
 	return grpc.NewServer(serverOpts...), nil
 }
 
-func (a *ConfiguredApp) constructPrivateApiServer(interceptorsCtx context.Context, tracer opentracing.Tracer, ssh stats.Handler) (*grpc.Server, error) {
+func (a *ConfiguredApp) constructPrivateApiServer(ctx context.Context, tracer opentracing.Tracer, ssh stats.Handler) (*grpc.Server, error) {
 	// TODO this should become required
 	if a.Configuration.PrivateApi == nil {
 		return grpc.NewServer(), nil
@@ -535,7 +528,6 @@ func (a *ConfiguredApp) constructPrivateApiServer(interceptorsCtx context.Contex
 		jwtAuther.StreamServerInterceptor,                    // 4. auth and maybe log
 		grpc_validator.StreamServerInterceptor(),
 		grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
-		grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
 	}
 	grpcUnaryServerInterceptors := []grpc.UnaryServerInterceptor{
 		grpc_prometheus.UnaryServerInterceptor,              // 1. measure all invocations
@@ -544,17 +536,17 @@ func (a *ConfiguredApp) constructPrivateApiServer(interceptorsCtx context.Contex
 		jwtAuther.UnaryServerInterceptor,                    // 4. auth and maybe log
 		grpc_validator.UnaryServerInterceptor(),
 		grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
-		grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
 	}
+	keepaliveOpt, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, listenCfg.MaxConnectionAge.AsDuration())
 	serverOpts := []grpc.ServerOption{
-		grpc.StatsHandler(ssh),
+		grpc.StatsHandler(grpctool.NewJoinStatHandlers(ssh, sh)),
 		grpc.ChainStreamInterceptor(grpcStreamServerInterceptors...),
 		grpc.ChainUnaryInterceptor(grpcUnaryServerInterceptors...),
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime:             20 * time.Second,
 			PermitWithoutStream: true,
 		}),
-		nonPollingKeepaliveParams(listenCfg.MaxConnectionAge.AsDuration()),
+		keepaliveOpt,
 		grpc.ForceServerCodec(grpctool.RawCodecWithProtoFallback{}),
 	}
 	credsOpt, err := maybeTlsCreds(listenCfg.CertificateFile, listenCfg.KeyFile)
@@ -566,20 +558,19 @@ func (a *ConfiguredApp) constructPrivateApiServer(interceptorsCtx context.Contex
 	return grpc.NewServer(serverOpts...), nil
 }
 
-func (a *ConfiguredApp) constructInternalServer(interceptorsCtx context.Context, tracer opentracing.Tracer) *grpc.Server {
+func (a *ConfiguredApp) constructInternalServer(ctx context.Context, tracer opentracing.Tracer) *grpc.Server {
 	// TODO construct independent metrics interceptors with https://gitlab.com/gitlab-org/cluster-integration/gitlab-agent/-/issues/32
 	return grpc.NewServer(
+		grpc.StatsHandler(grpctool.NewMaxConnAgeStatsHandler(ctx, 0)),
 		grpc.ChainStreamInterceptor(
 			grpccorrelation.StreamServerCorrelationInterceptor(), // 1. add correlation id
 			grpctool.StreamServerLoggerInterceptor(a.Log),        // 2. inject logger with correlation id
 			grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
-			grpctool.StreamServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
 		),
 		grpc.ChainUnaryInterceptor(
 			grpccorrelation.UnaryServerCorrelationInterceptor(), // 1. add correlation id
 			grpctool.UnaryServerLoggerInterceptor(a.Log),        // 2. inject logger with correlation id
 			grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
-			grpctool.UnaryServerCtxAugmentingInterceptor(grpctool.JoinContexts(interceptorsCtx)), // Last because it starts an extra goroutine
 		),
 		grpc.ForceServerCodec(grpctool.RawCodec{}),
 	)
@@ -827,15 +818,6 @@ func gitlabBuildInfoGauge() prometheus.Gauge {
 	})
 	buildInfoGauge.Set(1)
 	return buildInfoGauge
-}
-
-func nonPollingKeepaliveParams(maxConnectionAge time.Duration) grpc.ServerOption {
-	return grpc.KeepaliveParams(keepalive.ServerParameters{
-		MaxConnectionAge:      maxConnectionAge * 4 / 5, // 80%
-		MaxConnectionAgeGrace: maxConnectionAge / 5,     // 20%
-		// Trying to stay below 60 seconds (typical load-balancer timeout)
-		Time: 50 * time.Second,
-	})
 }
 
 func maybeTlsCreds(certFile, keyFile string) ([]grpc.ServerOption, error) {

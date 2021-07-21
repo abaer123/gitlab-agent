@@ -262,14 +262,18 @@ func TestUnaryError(t *testing.T) {
 func runTest(t *testing.T, ats test.TestingServer, f func(context.Context, *testing.T, test.TestingClient)) {
 	// Start/stop
 	g, ctx := errgroup.WithContext(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
+
+	// Construct server and agent components
+	runServer, kasConn, serverInternalServerConn, serverApi, tunnelRegisterer := serverConstructComponents(ctx, t)
+	defer func() {
+		assert.NoError(t, kasConn.Close())
+		assert.NoError(t, serverInternalServerConn.Close())
+	}()
 	defer func() {
 		assert.NoError(t, g.Wait())
 	}()
-	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-
-	// Construct server and agent components
-	runServer, kasConn, serverInternalServerConn, serverApi, tunnelRegisterer := serverConstructComponents(t)
 
 	agentApi := mock_modagent.NewMockAPI(gomock.NewController(t))
 	var featureCb modagent.SubscribeCb
@@ -279,7 +283,7 @@ func runTest(t *testing.T, ats test.TestingServer, f func(context.Context, *test
 			featureCb = cb
 		})
 
-	runAgent, agentInternalServer := agentConstructComponents(t, kasConn, agentApi)
+	runAgent, agentInternalServer := agentConstructComponents(ctx, t, kasConn, agentApi)
 	agentInfo := testhelpers.AgentInfoObj()
 
 	serverApi.EXPECT().

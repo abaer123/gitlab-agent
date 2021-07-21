@@ -14,6 +14,7 @@ import (
 	retry "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
 	errortracking "gitlab.com/gitlab-org/labkit/errortracking"
 	zap "go.uber.org/zap"
+	grpc "google.golang.org/grpc"
 	wait "k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -99,15 +100,15 @@ func (mr *MockAPIMockRecorder) HandleSendError(arg0, arg1, arg2 interface{}) *go
 }
 
 // PollWithBackoff mocks base method.
-func (m *MockAPI) PollWithBackoff(arg0 context.Context, arg1 wait.BackoffManager, arg2 bool, arg3, arg4 time.Duration, arg5 retry.PollWithBackoffFunc) error {
+func (m *MockAPI) PollWithBackoff(arg0 grpc.ServerStream, arg1 wait.BackoffManager, arg2 bool, arg3 time.Duration, arg4 retry.PollWithBackoffFunc) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PollWithBackoff", arg0, arg1, arg2, arg3, arg4, arg5)
+	ret := m.ctrl.Call(m, "PollWithBackoff", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // PollWithBackoff indicates an expected call of PollWithBackoff.
-func (mr *MockAPIMockRecorder) PollWithBackoff(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) PollWithBackoff(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PollWithBackoff", reflect.TypeOf((*MockAPI)(nil).PollWithBackoff), arg0, arg1, arg2, arg3, arg4, arg5)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PollWithBackoff", reflect.TypeOf((*MockAPI)(nil).PollWithBackoff), arg0, arg1, arg2, arg3, arg4)
 }

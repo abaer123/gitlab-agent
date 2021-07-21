@@ -26,19 +26,19 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
-func serverConstructComponents(t *testing.T) (func(context.Context) error, grpc.ClientConnInterface, grpc.ClientConnInterface, *mock_modserver.MockAPI, *mock_reverse_tunnel_tracker.MockRegisterer) {
+func serverConstructComponents(ctx context.Context, t *testing.T) (func(context.Context) error, *grpc.ClientConn, *grpc.ClientConn, *mock_modserver.MockAPI, *mock_reverse_tunnel_tracker.MockRegisterer) {
 	log := zaptest.NewLogger(t)
 	ctrl := gomock.NewController(t)
 	serverApi := mock_modserver.NewMockAPI(ctrl)
 	tunnelRegisterer := mock_reverse_tunnel_tracker.NewMockRegisterer(ctrl)
-	agentServer := serverConstructAgentServer(log)
+	agentServer := serverConstructAgentServer(ctx, log)
 	agentServerListener := grpctool.NewDialListener()
 
 	internalListener := grpctool.NewDialListener()
 	tunnelRegistry, err := reverse_tunnel.NewTunnelRegistry(log, tunnelRegisterer, "grpc://127.0.0.1:123")
 	require.NoError(t, err)
 
-	internalServer := serverConstructInternalServer(log)
+	internalServer := serverConstructInternalServer(ctx, log)
 	internalServerConn, err := serverConstructInternalServerConn(internalListener.DialContext)
 	require.NoError(t, err)
 
@@ -87,8 +87,10 @@ func serverConstructComponents(t *testing.T) (func(context.Context) error, grpc.
 	}, kasConn, internalServerConn, serverApi, tunnelRegisterer
 }
 
-func serverConstructInternalServer(log *zap.Logger) *grpc.Server {
+func serverConstructInternalServer(ctx context.Context, log *zap.Logger) *grpc.Server {
+	_, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, time.Minute)
 	return grpc.NewServer(
+		grpc.StatsHandler(sh),
 		grpc.ChainStreamInterceptor(
 			grpctool.StreamServerLoggerInterceptor(log),
 		),
@@ -99,7 +101,7 @@ func serverConstructInternalServer(log *zap.Logger) *grpc.Server {
 	)
 }
 
-func serverConstructInternalServerConn(dialContext func(ctx context.Context, addr string) (net.Conn, error)) (grpc.ClientConnInterface, error) {
+func serverConstructInternalServerConn(dialContext func(ctx context.Context, addr string) (net.Conn, error)) (*grpc.ClientConn, error) {
 	return grpc.DialContext(context.Background(), "pipe",
 		grpc.WithContextDialer(dialContext),
 		grpc.WithInsecure(),
@@ -127,13 +129,16 @@ func serverConstructKasConnection(agentToken api.AgentToken, dialContext func(ct
 }
 
 func serverStartInternalServer(stage stager.Stage, internalServer *grpc.Server, internalListener net.Listener) {
-	grpctool.StartServer(stage, internalServer, func() {}, func() (net.Listener, error) {
+	grpctool.StartServer(stage, internalServer, func() (net.Listener, error) {
 		return internalListener, nil
 	})
 }
 
-func serverConstructAgentServer(log *zap.Logger) *grpc.Server {
+func serverConstructAgentServer(ctx context.Context, log *zap.Logger) *grpc.Server {
+	kp, sh := grpctool.MaxConnectionAge2GrpcKeepalive(ctx, time.Minute)
 	return grpc.NewServer(
+		grpc.StatsHandler(sh),
+		kp,
 		grpc.ChainStreamInterceptor(
 			grpctool.StreamServerAgentMDInterceptor(),
 			grpctool.StreamServerLoggerInterceptor(log),
@@ -148,7 +153,7 @@ func serverConstructAgentServer(log *zap.Logger) *grpc.Server {
 }
 
 func serverStartAgentServer(stage stager.Stage, agentServer *grpc.Server, agentServerListener net.Listener) {
-	grpctool.StartServer(stage, agentServer, func() {}, func() (net.Listener, error) {
+	grpctool.StartServer(stage, agentServer, func() (net.Listener, error) {
 		return agentServerListener, nil
 	})
 }

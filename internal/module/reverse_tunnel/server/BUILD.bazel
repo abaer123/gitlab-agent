@@ -16,7 +16,6 @@ go_library(
         "//internal/module/reverse_tunnel",
         "//internal/module/reverse_tunnel/rpc",
         "//internal/tool/grpctool",
-        "//internal/tool/mathz",
     ],
 )
 

@@ -22,7 +22,6 @@ type server struct {
 	maxConfigurationFileSize   int64
 	getConfigurationBackoff    retry.BackoffManagerFactory
 	getConfigurationPollPeriod time.Duration
-	maxPollDuration            time.Duration
 }
 
 func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.AgentConfiguration_GetConfigurationServer) error {
@@ -44,5 +43,5 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 		},
 	}
 	defer p.Cleanup()
-	return s.api.PollWithBackoff(ctx, s.getConfigurationBackoff(), true, s.maxPollDuration, s.getConfigurationPollPeriod, p.Attempt)
+	return s.api.PollWithBackoff(server, s.getConfigurationBackoff(), true, s.getConfigurationPollPeriod, p.Attempt)
 }
