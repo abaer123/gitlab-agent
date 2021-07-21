@@ -74,6 +74,8 @@ func NewCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return a.Run(cmd.Context())
 		},
+		SilenceErrors: true,
+		SilenceUsage:  true,
 	}
 	c.Flags().StringVar(&a.ConfigurationFile, "configuration-file", "", "Configuration file to use (YAML)")
 	cobra.CheckErr(c.MarkFlagRequired("configuration-file"))

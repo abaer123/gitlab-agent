@@ -319,6 +319,8 @@ func NewCommand() *cobra.Command {
 			}
 			return a.Run(cmd.Context())
 		},
+		SilenceErrors: true,
+		SilenceUsage:  true,
 	}
 	f := c.Flags()
 	f.StringVar(&a.KasAddress, "kas-address", "", "GitLab Kubernetes Agent Server address")
