@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab"
@@ -11,49 +10,22 @@ import (
 )
 
 type projectInfoClient struct {
-	GitLabClient             gitlab.ClientInterface
-	ProjectInfoCacheTtl      time.Duration
-	ProjectInfoCacheErrorTtl time.Duration
-	ProjectInfoCache         *cache.Cache
+	GitLabClient     gitlab.ClientInterface
+	ProjectInfoCache *cache.CacheWithErr
 }
 
 func (c *projectInfoClient) GetProjectInfo(ctx context.Context, agentToken api.AgentToken, projectId string) (*api.ProjectInfo, error) {
-	if c.ProjectInfoCacheTtl == 0 {
+	key := projectInfoCacheKey{agentToken: agentToken, projectId: projectId}
+	projectInfo, err := c.ProjectInfoCache.GetItem(ctx, key, func() (interface{}, error) {
 		return gapi.GetProjectInfo(ctx, c.GitLabClient, agentToken, projectId)
-	}
-	c.ProjectInfoCache.EvictExpiredEntries()
-	entry := c.ProjectInfoCache.GetOrCreateCacheEntry(projectInfoCacheKey{
-		agentToken: agentToken,
-		projectId:  projectId,
 	})
-	if !entry.Lock(ctx) { // a concurrent caller may be refreshing the entry. Block until exclusive access is available.
-		return nil, ctx.Err()
+	if err != nil {
+		return nil, err
 	}
-	defer entry.Unlock()
-	var item projectInfoCacheItem
-	if entry.IsNeedRefreshLocked() {
-		item.projectInfo, item.err = gapi.GetProjectInfo(ctx, c.GitLabClient, agentToken, projectId)
-		var ttl time.Duration
-		if item.err == nil {
-			ttl = c.ProjectInfoCacheTtl
-		} else {
-			ttl = c.ProjectInfoCacheErrorTtl
-		}
-		entry.Item = item
-		entry.Expires = time.Now().Add(ttl)
-	} else {
-		item = entry.Item.(projectInfoCacheItem)
-	}
-	return item.projectInfo, item.err
+	return projectInfo.(*api.ProjectInfo), nil
 }
 
 type projectInfoCacheKey struct {
 	agentToken api.AgentToken
 	projectId  string
-}
-
-// projectInfoCacheItem holds cached information about a project.
-type projectInfoCacheItem struct {
-	projectInfo *api.ProjectInfo
-	err         error
 }
