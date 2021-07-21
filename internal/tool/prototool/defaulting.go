@@ -4,7 +4,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/duration"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
@@ -19,7 +18,7 @@ func NotNil(field interface{}) {
 	vValue.Set(reflect.New(vValue.Type().Elem()))
 }
 
-func Duration(d **duration.Duration, defaultValue time.Duration) {
+func Duration(d **durationpb.Duration, defaultValue time.Duration) {
 	if *d == nil {
 		*d = durationpb.New(defaultValue)
 	}

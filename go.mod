@@ -13,7 +13,6 @@ require (
 	github.com/go-redis/redis/v8 v8.11.0
 	github.com/go-redis/redismock/v8 v8.0.6
 	github.com/golang/mock v1.6.0
-	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.6
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.1-0.20200507082539-9abf3eb82b4a
