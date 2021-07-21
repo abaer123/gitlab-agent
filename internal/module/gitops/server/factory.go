@@ -40,24 +40,18 @@ func (f *Factory) Name() string {
 }
 
 func newServerFromConfig(config *modserver.Config) (*server, error) {
-	gitops := config.Config.Agent.Gitops
-	projectInfoCacheTtl := gitops.ProjectInfoCacheTtl.AsDuration()
-	projectInfoCacheErrorTtl := gitops.ProjectInfoCacheErrorTtl.AsDuration()
 	gitOpsPollIntervalHistogram := constructGitOpsPollIntervalHistogram()
 	_, err := metric.Register(config.Registerer, gitOpsPollIntervalHistogram)
 	if err != nil {
 		return nil, err
 	}
+	gitops := config.Config.Agent.Gitops
 	return &server{
 		api:        config.Api,
 		gitalyPool: config.Gitaly,
 		projectInfoClient: &projectInfoClient{
-			GitLabClient: config.GitLabClient,
-			ProjectInfoCache: cache.NewWithError(
-				minDuration(projectInfoCacheTtl, projectInfoCacheErrorTtl),
-				projectInfoCacheTtl,
-				projectInfoCacheErrorTtl,
-			),
+			GitLabClient:     config.GitLabClient,
+			ProjectInfoCache: cache.NewWithError(gitops.ProjectInfoCacheTtl.AsDuration(), gitops.ProjectInfoCacheErrorTtl.AsDuration()),
 		},
 		syncCount:                   config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
 		gitOpsPollIntervalHistogram: gitOpsPollIntervalHistogram,
@@ -83,12 +77,4 @@ func constructGitOpsPollIntervalHistogram() prometheus.Histogram {
 		Help:    "The time between kas calls to Gitaly to look for GitOps updates",
 		Buckets: prometheus.LinearBuckets(20, 20, 5), // 5 buckets (20, 40, 60, 80, 100)
 	})
-}
-
-func minDuration(a, b time.Duration) time.Duration {
-	if a < b {
-		return a
-	}
-
-	return b
 }

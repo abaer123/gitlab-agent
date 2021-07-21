@@ -16,6 +16,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
@@ -69,6 +70,7 @@ type kubernetesApiProxy struct {
 	kubernetesApiClient rpc.KubernetesApiClient
 	gitLabClient        gitlab.ClientInterface
 	streamVisitor       *grpctool.StreamVisitor
+	cache               *cache.CacheWithErr
 	requestCount        usage_metrics.Counter
 	serverName          string
 	// urlPathPrefix is guaranteed to end with / by defaulting.
@@ -103,7 +105,7 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 	}
 	log = log.With(logz.AgentId(agentId))
 
-	jInfo, err := gapi.GetAllowedAgentsForJob(ctx, p.gitLabClient, jobToken)
+	allowedForJob, err := p.getAllowedAgentsForJob(ctx, jobToken)
 	if err != nil {
 		switch {
 		case gitlab.IsUnauthorized(err):
@@ -119,7 +121,7 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	aa := findAllowedAgent(agentId, jInfo)
+	aa := findAllowedAgent(agentId, allowedForJob)
 	if aa == nil {
 		w.WriteHeader(http.StatusForbidden)
 		log.Debug("Forbidden: agentId is not allowed")
@@ -150,6 +152,16 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 			errF(w)
 		}
 	}
+}
+
+func (p *kubernetesApiProxy) getAllowedAgentsForJob(ctx context.Context, jobToken string) (*gapi.AllowedAgentsForJob, error) {
+	allowedForJob, err := p.cache.GetItem(ctx, jobToken, func() (interface{}, error) {
+		return gapi.GetAllowedAgentsForJob(ctx, p.gitLabClient, jobToken)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return allowedForJob.(*gapi.AllowedAgentsForJob), nil
 }
 
 func (p *kubernetesApiProxy) pipeStreams(ctx context.Context, log *zap.Logger, w http.ResponseWriter, r *http.Request, agentId int64) (bool /* headerWritten */, errFunc) {

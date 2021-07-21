@@ -2,13 +2,16 @@ package server
 
 import (
 	"strings"
+	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/prototool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/pkg/kascfg"
 )
 
 const (
-	defaultKubernetesApiListenAddress = "0.0.0.0:8154"
+	defaultKubernetesApiListenAddress    = "0.0.0.0:8154"
+	defaultAllowedAgentInfoCacheTTL      = 1 * time.Minute
+	defaultAllowedAgentInfoCacheErrorTTL = 10 * time.Second
 )
 
 func ApplyDefaults(config *kascfg.ConfigurationFile) {
@@ -23,4 +26,6 @@ func ApplyDefaults(config *kascfg.ConfigurationFile) {
 	if !strings.HasSuffix(o.UrlPathPrefix, "/") {
 		o.UrlPathPrefix = o.UrlPathPrefix + "/"
 	}
+	prototool.Duration(&o.AllowedAgentCacheTtl, defaultAllowedAgentInfoCacheTTL)
+	prototool.Duration(&o.AllowedAgentCacheErrorTtl, defaultAllowedAgentInfoCacheErrorTTL)
 }

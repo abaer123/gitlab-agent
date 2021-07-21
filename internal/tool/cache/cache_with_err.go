@@ -19,9 +19,9 @@ type CacheWithErr struct {
 	errTtl time.Duration
 }
 
-func NewWithError(expirationCheckPeriod, ttl, errTtl time.Duration) *CacheWithErr {
+func NewWithError(ttl, errTtl time.Duration) *CacheWithErr {
 	return &CacheWithErr{
-		cache:  New(expirationCheckPeriod),
+		cache:  New(minDuration(ttl, errTtl)),
 		ttl:    ttl,
 		errTtl: errTtl,
 	}
@@ -52,4 +52,12 @@ func (c *CacheWithErr) GetItem(ctx context.Context, key interface{}, f GetItemDi
 		entryWithErr = entry.Item.(EntryWithErr)
 	}
 	return entryWithErr.Item, entryWithErr.Err
+}
+
+func minDuration(a, b time.Duration) time.Duration {
+	if a < b {
+		return a
+	}
+
+	return b
 }
