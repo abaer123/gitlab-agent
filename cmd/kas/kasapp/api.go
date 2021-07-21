@@ -35,12 +35,8 @@ type serverAPI struct {
 
 func newAPI(config apiConfig) *serverAPI {
 	return &serverAPI{
-		cfg: config,
-		agentInfoCache: cache.NewWithError(
-			minDuration(config.AgentInfoCacheTtl, config.AgentInfoCacheErrorTtl),
-			config.AgentInfoCacheTtl,
-			config.AgentInfoCacheErrorTtl,
-		),
+		cfg:            config,
+		agentInfoCache: cache.NewWithError(config.AgentInfoCacheTtl, config.AgentInfoCacheErrorTtl),
 	}
 }
 
@@ -117,12 +113,4 @@ func (a *serverAPI) getAgentInfoCached(ctx context.Context, agentToken api.Agent
 		return nil, err
 	}
 	return agentInfo.(*api.AgentInfo), nil
-}
-
-func minDuration(a, b time.Duration) time.Duration {
-	if a < b {
-		return a
-	}
-
-	return b
 }

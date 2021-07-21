@@ -8,6 +8,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/tlstool"
 )
@@ -57,6 +58,7 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 			kubernetesApiClient: rpc.NewKubernetesApiClient(config.AgentConn),
 			gitLabClient:        config.GitLabClient,
 			streamVisitor:       sv,
+			cache:               cache.NewWithError(k8sApi.AllowedAgentCacheTtl.AsDuration(), k8sApi.AllowedAgentCacheErrorTtl.AsDuration()),
 			requestCount:        config.UsageTracker.RegisterCounter(k8sApiRequestCountKnownMetric),
 			serverName:          fmt.Sprintf("%s/%s/%s", config.KasName, config.Version, config.CommitId),
 			urlPathPrefix:       k8sApi.UrlPathPrefix,

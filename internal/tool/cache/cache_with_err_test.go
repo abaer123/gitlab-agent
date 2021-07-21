@@ -11,7 +11,7 @@ import (
 )
 
 func TestGetItem_HappyPath(t *testing.T) {
-	c := NewWithError(time.Minute, time.Minute, time.Minute)
+	c := NewWithError(time.Minute, time.Minute)
 	item, err := c.GetItem(context.Background(), key, func() (interface{}, error) {
 		return itemVal, nil
 	})
@@ -27,7 +27,7 @@ func TestGetItem_HappyPath(t *testing.T) {
 }
 
 func TestGetItem_Error(t *testing.T) {
-	c := NewWithError(time.Minute, time.Minute, time.Minute)
+	c := NewWithError(time.Minute, time.Minute)
 	_, err := c.GetItem(context.Background(), key, func() (interface{}, error) {
 		return nil, errors.New("boom")
 	})
@@ -41,7 +41,7 @@ func TestGetItem_Error(t *testing.T) {
 }
 
 func TestGetItem_Context(t *testing.T) {
-	c := NewWithError(time.Minute, time.Minute, time.Minute)
+	c := NewWithError(time.Minute, time.Minute)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	start := make(chan struct{})

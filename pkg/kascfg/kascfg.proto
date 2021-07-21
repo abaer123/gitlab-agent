@@ -135,6 +135,13 @@ message KubernetesApiCF {
   // URL path prefix to remove from the incoming request URL.
   // Should be `/` if no prefix trimming is needed.
   string url_path_prefix = 2 [json_name = "url_path_prefix"];
+  // TTL for successful allowed agent lookups.
+  // /api/v4/job/allowed_agents
+  // Set to zero to disable.
+  google.protobuf.Duration allowed_agent_cache_ttl = 3 [json_name = "allowed_agent_cache_ttl", (validate.rules).duration = {gte: {}}];
+  // TTL for failed allowed agent lookups.
+  // /api/v4/job/allowed_agents
+  google.protobuf.Duration allowed_agent_cache_error_ttl = 4 [json_name = "allowed_agent_cache_error_ttl", (validate.rules).duration = {gt: {}}];
 }
 
 message AgentCF {
