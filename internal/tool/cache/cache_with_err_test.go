@@ -45,7 +45,9 @@ func TestGetItem_Context(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	start := make(chan struct{})
+	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		<-start
 		_, err := c.GetItem(ctx, key, func() (interface{}, error) {
 			return "Stalemate. No-oh, too late, too late", nil
@@ -55,6 +57,7 @@ func TestGetItem_Context(t *testing.T) {
 	item, err := c.GetItem(context.Background(), key, func() (interface{}, error) {
 		close(start)
 		cancel()
+		<-done
 		return itemVal, nil
 	})
 	require.NoError(t, err)
