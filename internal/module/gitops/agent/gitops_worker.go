@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/ash2k/stager"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
@@ -12,6 +11,7 @@ import (
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubectl/pkg/cmd/util"
 	"sigs.k8s.io/cli-utils/pkg/apply"
 	"sigs.k8s.io/cli-utils/pkg/apply/event"
@@ -71,30 +71,24 @@ type defaultGitopsWorker struct {
 }
 
 func (w *defaultGitopsWorker) Run(ctx context.Context) {
+	var wg wait.Group
+	defer wg.Wait()
 	desiredState := make(chan rpc.ObjectsToSynchronizeData)
-	st := stager.New()
-	stage := st.NextStage()
-	stage.Go(func(ctx context.Context) error {
+	defer close(desiredState)
+	wg.Start(func() {
 		s := newSynchronizer(w.synchronizerConfig)
 		s.run(desiredState)
-		return nil
 	})
-	stage = st.NextStage()
-	stage.Go(func(ctx context.Context) error {
-		defer close(desiredState)
-		req := &rpc.ObjectsToSynchronizeRequest{
-			ProjectId: w.project.Id,
-			Paths:     w.project.Paths,
+	req := &rpc.ObjectsToSynchronizeRequest{
+		ProjectId: w.project.Id,
+		Paths:     w.project.Paths,
+	}
+	w.objWatcher.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
+		select {
+		case <-ctx.Done():
+		case desiredState <- data:
 		}
-		w.objWatcher.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
-			select {
-			case <-ctx.Done():
-			case desiredState <- data:
-			}
-		})
-		return nil
 	})
-	_ = st.Run(ctx) // no errors possible
 }
 
 type defaultGitopsWorkerFactory struct {
