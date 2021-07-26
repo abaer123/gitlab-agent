@@ -25,6 +25,7 @@ type synchronizerConfig struct {
 	log             *zap.Logger
 	agentId         int64
 	project         *agentcfg.ManifestProjectCF
+	applier         Applier
 	k8sUtilFactory  util.Factory
 	reapplyInterval time.Duration
 	applierBackoff  retry.BackoffManager
@@ -33,13 +34,11 @@ type synchronizerConfig struct {
 
 type synchronizer struct {
 	synchronizerConfig
-	applier Applier
 }
 
-func newSynchronizer(config synchronizerConfig, applier Applier) *synchronizer {
+func newSynchronizer(config synchronizerConfig) *synchronizer {
 	return &synchronizer{
 		synchronizerConfig: config,
-		applier:            applier,
 	}
 }
 

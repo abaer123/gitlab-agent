@@ -1027,8 +1027,8 @@ def go_repositories():
         name = "com_github_go_errors_errors",
         build_file_proto_mode = "disable_global",
         importpath = "github.com/go-errors/errors",
-        sum = "h1:2OA7MFw38+e9na72T1xgkomPb6GzZzzxvJ5U630FoRM=",
-        version = "v1.4.0",
+        sum = "h1:LUHzmkK3GUKUrL/1gfBUxAHzcev3apQlezX/+O7ma6w=",
+        version = "v1.0.1",
     )
     go_repository(
         name = "com_github_go_gl_glfw",
@@ -3771,8 +3771,8 @@ def go_repositories():
         name = "io_k8s_sigs_cli_utils",
         build_file_proto_mode = "disable_global",
         importpath = "sigs.k8s.io/cli-utils",
-        sum = "h1:6rrLR8fwW5+n+KaZ5X2MjDUHvBx+iHLWsp28yOf3uEw=",
-        version = "v0.25.1-0.20210630230537-da80fcc751ec",
+        sum = "h1:CS/Ki42rotZfRaE8N4iLK/DYTqNlJNWw2qPZa0rIo9w=",
+        version = "v0.25.1-0.20210715012247-8ccd6e63e141",
     )
     go_repository(
         name = "io_k8s_sigs_controller_runtime",
@@ -4144,13 +4144,6 @@ def go_repositories():
         importpath = "go.uber.org/zap",
         sum = "h1:CSUJ2mjFszzEWt4CdKISEuChVIXGBn3lAPwkRGyVrc4=",
         version = "v1.18.1",
-    )
-    go_repository(
-        name = "tools_gotest",
-        build_file_proto_mode = "disable_global",
-        importpath = "gotest.tools",
-        sum = "h1:VsBPFP1AI068pPrMxtb/S8Zkgf9xEmTLJjfM+P5UIEo=",
-        version = "v2.2.0+incompatible",
     )
     go_repository(
         name = "tools_gotest_v3",

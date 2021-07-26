@@ -7,6 +7,8 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modagent"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/retry"
+	"sigs.k8s.io/cli-utils/pkg/apply"
+	"sigs.k8s.io/cli-utils/pkg/inventory"
 	"sigs.k8s.io/cli-utils/pkg/util/factory"
 )
 
@@ -32,14 +34,19 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 	if err != nil {
 		return nil, err
 	}
+	invClient, err := inventory.ClusterInventoryClientFactory{}.NewInventoryClient(config.K8sUtilFactory)
+	if err != nil {
+		return nil, err
+	}
+	applier, err := apply.NewApplier(config.K8sUtilFactory, invClient, statusPoller)
+	if err != nil {
+		return nil, err
+	}
 	return &module{
 		log: config.Log,
 		workerFactory: &defaultGitopsWorkerFactory{
-			log: config.Log,
-			applierFactory: &defaultApplierFactory{
-				factory:      config.K8sUtilFactory,
-				statusPoller: statusPoller,
-			},
+			log:            config.Log,
+			applier:        applier,
 			k8sUtilFactory: config.K8sUtilFactory,
 			gitopsClient:   rpc.NewGitopsClient(config.KasConn),
 			watchBackoffFactory: retry.NewExponentialBackoffFactory(

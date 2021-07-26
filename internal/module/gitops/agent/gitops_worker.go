@@ -15,7 +15,6 @@ import (
 	"k8s.io/kubectl/pkg/cmd/util"
 	"sigs.k8s.io/cli-utils/pkg/apply"
 	"sigs.k8s.io/cli-utils/pkg/apply/event"
-	"sigs.k8s.io/cli-utils/pkg/apply/poller"
 	"sigs.k8s.io/cli-utils/pkg/common"
 	"sigs.k8s.io/cli-utils/pkg/inventory"
 )
@@ -58,10 +57,6 @@ type Applier interface {
 	Run(ctx context.Context, invInfo inventory.InventoryInfo, objects []*unstructured.Unstructured, options apply.Options) <-chan event.Event
 }
 
-type ApplierFactory interface {
-	New() (Applier, error)
-}
-
 type GitopsWorkerFactory interface {
 	New(int64, *agentcfg.ManifestProjectCF) GitopsWorker
 }
@@ -71,31 +66,16 @@ type GitopsWorker interface {
 }
 
 type defaultGitopsWorker struct {
-	objWatcher     rpc.ObjectsToSynchronizeWatcherInterface
-	applierFactory ApplierFactory
+	objWatcher rpc.ObjectsToSynchronizeWatcherInterface
 	synchronizerConfig
 }
 
 func (w *defaultGitopsWorker) Run(ctx context.Context) {
-	var applier Applier
-	err := retry.PollWithBackoff(ctx, w.applierBackoff, true, 0, func() (error, retry.AttemptResult) {
-		var err error
-		applier, err = w.applierFactory.New()
-		if err != nil {
-			w.log.Error("Error constructing Applier", logz.Error(err))
-			return nil, retry.Backoff
-		}
-		return nil, retry.Done
-	})
-	if err != nil {
-		// context is done
-		return
-	}
 	desiredState := make(chan rpc.ObjectsToSynchronizeData)
 	st := stager.New()
 	stage := st.NextStage()
 	stage.Go(func(ctx context.Context) error {
-		s := newSynchronizer(w.synchronizerConfig, applier)
+		s := newSynchronizer(w.synchronizerConfig)
 		s.run(desiredState)
 		return nil
 	})
@@ -117,23 +97,9 @@ func (w *defaultGitopsWorker) Run(ctx context.Context) {
 	_ = st.Run(ctx) // no errors possible
 }
 
-type defaultApplierFactory struct {
-	factory      util.Factory
-	statusPoller poller.Poller
-}
-
-func (f *defaultApplierFactory) New() (Applier, error) {
-	// We have to instantiate a new inventory client each time because it's mutable i.e. not thread safe.
-	invClient, err := inventory.ClusterInventoryClientFactory{}.NewInventoryClient(f.factory)
-	if err != nil {
-		return nil, err
-	}
-	return apply.NewApplier(f.factory, invClient, f.statusPoller)
-}
-
 type defaultGitopsWorkerFactory struct {
 	log                   *zap.Logger
-	applierFactory        ApplierFactory
+	applier               Applier
 	k8sUtilFactory        util.Factory
 	gitopsClient          rpc.GitopsClient
 	watchBackoffFactory   retry.BackoffManagerFactory
@@ -148,11 +114,11 @@ func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.Manife
 			GitopsClient: f.gitopsClient,
 			Backoff:      f.watchBackoffFactory,
 		},
-		applierFactory: f.applierFactory,
 		synchronizerConfig: synchronizerConfig{
 			log:             l,
 			agentId:         agentId,
 			project:         project,
+			applier:         f.applier,
 			k8sUtilFactory:  f.k8sUtilFactory,
 			reapplyInterval: defaultReapplyInterval,
 			applierBackoff:  f.applierBackoffFactory(),

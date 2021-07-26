@@ -33,7 +33,6 @@ const (
 )
 
 var (
-	_ ApplierFactory      = &defaultApplierFactory{}
 	_ GitopsWorker        = &defaultGitopsWorker{}
 	_ GitopsWorkerFactory = &defaultGitopsWorkerFactory{}
 )
@@ -294,16 +293,9 @@ func TestRun_PeriodicApply(t *testing.T) {
 func setupWorker(t *testing.T) (*defaultGitopsWorker, *MockApplier, *mock_rpc.MockObjectsToSynchronizeWatcherInterface) {
 	ctrl := gomock.NewController(t)
 	applier := NewMockApplier(ctrl)
-	applierFactory := NewMockApplierFactory(ctrl)
 	watcher := mock_rpc.NewMockObjectsToSynchronizeWatcherInterface(ctrl)
-	gomock.InOrder(
-		applierFactory.EXPECT().
-			New().
-			Return(applier, nil),
-	)
 	w := &defaultGitopsWorker{
-		objWatcher:     watcher,
-		applierFactory: applierFactory,
+		objWatcher: watcher,
 		synchronizerConfig: synchronizerConfig{
 			log: zaptest.NewLogger(t),
 			project: &agentcfg.ManifestProjectCF{
@@ -315,6 +307,7 @@ func setupWorker(t *testing.T) (*defaultGitopsWorker, *MockApplier, *mock_rpc.Mo
 					},
 				},
 			},
+			applier:         applier,
 			k8sUtilFactory:  cmdtesting.NewTestFactory(),
 			reapplyInterval: time.Minute,
 			applierBackoff:  testhelpers.NewBackoff()(),
