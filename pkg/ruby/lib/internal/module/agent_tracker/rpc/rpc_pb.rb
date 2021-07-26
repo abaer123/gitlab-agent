@@ -8,12 +8,12 @@ Google::Protobuf::DescriptorPool.generated_pool.build do
   add_file("internal/module/agent_tracker/rpc/rpc.proto", :syntax => :proto3) do
     add_message "gitlab.agent.agent_tracker.rpc.GetConnectedAgentsRequest" do
       oneof :request do
-        optional :project_id, :int64, 1
-        optional :agent_id, :int64, 2
+        optional :project_id, :int64, 1, json_name: "projectId"
+        optional :agent_id, :int64, 2, json_name: "agentId"
       end
     end
     add_message "gitlab.agent.agent_tracker.rpc.GetConnectedAgentsResponse" do
-      repeated :agents, :message, 1, "gitlab.agent.agent_tracker.ConnectedAgentInfo"
+      repeated :agents, :message, 1, "gitlab.agent.agent_tracker.ConnectedAgentInfo", json_name: "agents"
     end
   end
 end

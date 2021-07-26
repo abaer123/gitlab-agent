@@ -12,9 +12,11 @@ import (
 	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab"
+	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/kubernetes_api/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/usage_metrics"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/cache"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/grpctool"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/httpz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
@@ -37,7 +39,6 @@ const (
 	authorizationHeader             = "Authorization"
 	hostHeader                      = "Host"
 	authorizationHeaderBearerPrefix = "Bearer " // must end with a space
-	jobInfoApiPath                  = "/api/v4/job/allowed_agents"
 	tokenSeparator                  = ":"
 	tokenTypeCi                     = "ci"
 
@@ -63,46 +64,13 @@ var (
 	}
 )
 
-type allowedAgent struct {
-	Id            int64         `json:"id"`
-	ConfigProject configProject `json:"config_project"`
-}
-
-type configProject struct {
-	Id int64 `json:"id"`
-}
-
-type pipeline struct {
-	Id int64 `json:"id"`
-}
-
-type project struct {
-	Id int64 `json:"id"`
-}
-
-type job struct {
-	Id int64 `json:"id"`
-}
-
-type user struct {
-	Id       int64  `json:"id"`
-	Username string `json:"username"`
-}
-
-type jobInfo struct {
-	AllowedAgents []allowedAgent `json:"allowed_agents"`
-	Job           job            `json:"job"`
-	Pipeline      pipeline       `json:"pipeline"`
-	Project       project        `json:"project"`
-	User          user           `json:"user"`
-}
-
 type kubernetesApiProxy struct {
 	log                 *zap.Logger
 	api                 modserver.API
 	kubernetesApiClient rpc.KubernetesApiClient
 	gitLabClient        gitlab.ClientInterface
 	streamVisitor       *grpctool.StreamVisitor
+	cache               *cache.CacheWithErr
 	requestCount        usage_metrics.Counter
 	serverName          string
 	// urlPathPrefix is guaranteed to end with / by defaulting.
@@ -137,7 +105,7 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 	}
 	log = log.With(logz.AgentId(agentId))
 
-	jInfo, err := p.getJobInfo(ctx, jobToken)
+	allowedForJob, err := p.getAllowedAgentsForJob(ctx, jobToken)
 	if err != nil {
 		switch {
 		case gitlab.IsUnauthorized(err):
@@ -153,7 +121,7 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	aa := findAllowedAgent(agentId, jInfo)
+	aa := findAllowedAgent(agentId, allowedForJob)
 	if aa == nil {
 		w.WriteHeader(http.StatusForbidden)
 		log.Debug("Forbidden: agentId is not allowed")
@@ -184,6 +152,16 @@ func (p *kubernetesApiProxy) proxy(w http.ResponseWriter, r *http.Request) {
 			errF(w)
 		}
 	}
+}
+
+func (p *kubernetesApiProxy) getAllowedAgentsForJob(ctx context.Context, jobToken string) (*gapi.AllowedAgentsForJob, error) {
+	allowedForJob, err := p.cache.GetItem(ctx, jobToken, func() (interface{}, error) {
+		return gapi.GetAllowedAgentsForJob(ctx, p.gitLabClient, jobToken)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return allowedForJob.(*gapi.AllowedAgentsForJob), nil
 }
 
 func (p *kubernetesApiProxy) pipeStreams(ctx context.Context, log *zap.Logger, w http.ResponseWriter, r *http.Request, agentId int64) (bool /* headerWritten */, errFunc) {
@@ -310,21 +288,8 @@ func (p *kubernetesApiProxy) pipeClientToRemote(ctx context.Context, log *zap.Lo
 	return nil
 }
 
-func (p *kubernetesApiProxy) getJobInfo(ctx context.Context, jobToken string) (*jobInfo, error) {
-	ji := &jobInfo{}
-	err := p.gitLabClient.Do(ctx,
-		gitlab.WithPath(jobInfoApiPath),
-		gitlab.WithJobToken(jobToken),
-		gitlab.WithResponseHandler(gitlab.JsonResponseHandler(ji)),
-	)
-	if err != nil {
-		return nil, err
-	}
-	return ji, nil
-}
-
-func findAllowedAgent(agentId int64, jInfo *jobInfo) *allowedAgent {
-	for _, aa := range jInfo.AllowedAgents {
+func findAllowedAgent(agentId int64, agentsForJob *gapi.AllowedAgentsForJob) *gapi.AllowedAgent {
+	for _, aa := range agentsForJob.AllowedAgents {
 		if aa.Id == agentId {
 			return &aa
 		}

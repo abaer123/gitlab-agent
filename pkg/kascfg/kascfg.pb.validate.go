@@ -802,6 +802,48 @@ func (m *KubernetesApiCF) Validate() error {
 
 	// no validation rules for UrlPathPrefix
 
+	if d := m.GetAllowedAgentCacheTtl(); d != nil {
+		dur, err := d.AsDuration(), d.CheckValid()
+		if err != nil {
+			return KubernetesApiCFValidationError{
+				field:  "AllowedAgentCacheTtl",
+				reason: "value is not a valid duration",
+				cause:  err,
+			}
+		}
+
+		gte := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+		if dur < gte {
+			return KubernetesApiCFValidationError{
+				field:  "AllowedAgentCacheTtl",
+				reason: "value must be greater than or equal to 0s",
+			}
+		}
+
+	}
+
+	if d := m.GetAllowedAgentCacheErrorTtl(); d != nil {
+		dur, err := d.AsDuration(), d.CheckValid()
+		if err != nil {
+			return KubernetesApiCFValidationError{
+				field:  "AllowedAgentCacheErrorTtl",
+				reason: "value is not a valid duration",
+				cause:  err,
+			}
+		}
+
+		gt := time.Duration(0*time.Second + 0*time.Nanosecond)
+
+		if dur <= gt {
+			return KubernetesApiCFValidationError{
+				field:  "AllowedAgentCacheErrorTtl",
+				reason: "value must be greater than 0s",
+			}
+		}
+
+	}
+
 	return nil
 }
 

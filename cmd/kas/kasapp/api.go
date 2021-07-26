@@ -34,13 +34,13 @@ type apiConfig struct {
 
 type serverAPI struct {
 	cfg            apiConfig
-	agentInfoCache *cache.Cache
+	agentInfoCache *cache.CacheWithErr
 }
 
 func newAPI(config apiConfig) *serverAPI {
 	return &serverAPI{
 		cfg:            config,
-		agentInfoCache: cache.New(minDuration(config.AgentInfoCacheTtl, config.AgentInfoCacheErrorTtl)),
+		agentInfoCache: cache.NewWithError(config.AgentInfoCacheTtl, config.AgentInfoCacheErrorTtl),
 	}
 }
 
@@ -111,42 +111,11 @@ func (a *serverAPI) logAndCapture(ctx context.Context, log *zap.Logger, msg stri
 }
 
 func (a *serverAPI) getAgentInfoCached(ctx context.Context, agentToken api.AgentToken) (*api.AgentInfo, error) {
-	if a.cfg.AgentInfoCacheTtl == 0 {
+	agentInfo, err := a.agentInfoCache.GetItem(ctx, agentToken, func() (interface{}, error) {
 		return gapi.GetAgentInfo(ctx, a.cfg.GitLabClient, agentToken)
+	})
+	if err != nil {
+		return nil, err
 	}
-	a.agentInfoCache.EvictExpiredEntries()
-	entry := a.agentInfoCache.GetOrCreateCacheEntry(agentToken)
-	if !entry.Lock(ctx) { // a concurrent caller may be refreshing the entry. Block until exclusive access is available.
-		return nil, ctx.Err()
-	}
-	defer entry.Unlock()
-	var item agentInfoCacheItem
-	if entry.IsNeedRefreshLocked() {
-		item.agentInfo, item.err = gapi.GetAgentInfo(ctx, a.cfg.GitLabClient, agentToken)
-		var ttl time.Duration
-		if item.err == nil {
-			ttl = a.cfg.AgentInfoCacheTtl
-		} else {
-			ttl = a.cfg.AgentInfoCacheErrorTtl
-		}
-		entry.Item = item
-		entry.Expires = time.Now().Add(ttl)
-	} else {
-		item = entry.Item.(agentInfoCacheItem)
-	}
-	return item.agentInfo, item.err
-}
-
-// agentInfoCacheItem holds cached information about an agent.
-type agentInfoCacheItem struct {
-	agentInfo *api.AgentInfo
-	err       error
-}
-
-func minDuration(a, b time.Duration) time.Duration {
-	if a < b {
-		return a
-	}
-
-	return b
+	return agentInfo.(*api.AgentInfo), nil
 }

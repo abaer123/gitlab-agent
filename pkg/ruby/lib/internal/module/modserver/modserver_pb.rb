@@ -6,16 +6,16 @@ require 'google/protobuf'
 Google::Protobuf::DescriptorPool.generated_pool.build do
   add_file("internal/module/modserver/modserver.proto", :syntax => :proto3) do
     add_message "gitlab.agent.modserver.Repository" do
-      optional :storage_name, :string, 2
-      optional :relative_path, :string, 3
-      optional :git_object_directory, :string, 4
-      repeated :git_alternate_object_directories, :string, 5
-      optional :gl_repository, :string, 6
-      optional :gl_project_path, :string, 8
+      optional :storage_name, :string, 2, json_name: "storageName"
+      optional :relative_path, :string, 3, json_name: "relativePath"
+      optional :git_object_directory, :string, 4, json_name: "gitObjectDirectory"
+      repeated :git_alternate_object_directories, :string, 5, json_name: "gitAlternateObjectDirectories"
+      optional :gl_repository, :string, 6, json_name: "glRepository"
+      optional :gl_project_path, :string, 8, json_name: "glProjectPath"
     end
     add_message "gitlab.agent.modserver.GitalyAddress" do
-      optional :address, :string, 1
-      optional :token, :string, 2
+      optional :address, :string, 1, json_name: "address"
+      optional :token, :string, 2, json_name: "token"
     end
   end
 end
