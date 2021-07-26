@@ -62,5 +62,5 @@ func (s *syncWorker) synchronize(job syncJob) error {
 		Out:    os.Stderr,
 		ErrOut: os.Stderr,
 	})
-	return printer.Print(events, common.DryRunNone)
+	return printer.Print(events, common.DryRunNone, true)
 }
