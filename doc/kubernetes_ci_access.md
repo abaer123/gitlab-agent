@@ -30,7 +30,6 @@ ci_access:
   # This agent is accessible from CI jobs in these projects
   projects:
     - id: group1/group1-1/project1
-      default_namespace: namespace-to-use-as-default
       access_as:
         agent: {}
         impersonate:
@@ -45,7 +44,6 @@ ci_access:
   # This agent is accessible from CI jobs in projects in these groups
   groups:
     - id: group2/group2-1
-      default_namespace: ...
       access_as: ...
 ```
 
@@ -81,9 +79,6 @@ After a context is selected, `kubectl` (or any other compatible program) can be 
   element in the config that all contexts refer to. It's
   [`Name`](https://github.com/kubernetes/client-go/blob/v0.20.4/tools/clientcmd/api/v1/types.go#L157) should be set to
   `gitlab`.
-
-- [`Namespace`](https://github.com/kubernetes/client-go/blob/v0.20.4/tools/clientcmd/api/v1/types.go#L148) is set to
-  the value of `projects[].default_namespace`.
 
 - [`Token`](https://github.com/kubernetes/client-go/blob/v0.20.4/tools/clientcmd/api/v1/types.go#L110) is set to the
   value of `<token type>:<agent id>:<CI_JOB_TOKEN>`, where:
@@ -280,7 +275,6 @@ Content-Type: application/json
         "id": 3
       },
       "configuration": { // contains section of the agent's config file as is, with 'id' removed
-        "default_namespace": "namespace-to-use-as-default",
         "access_as": {
           "agent: {}
         }
@@ -292,7 +286,6 @@ Content-Type: application/json
         "id": 3 // same as above
       },
       "configuration": {
-        // "default_namespace": "", // not set
         "access_as": {
           "ci_job: {}
         }
