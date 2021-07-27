@@ -10,8 +10,6 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration/rpc"
-	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
@@ -24,35 +22,18 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+type newConfigCb func(log *zap.Logger, configuration *agentcfg.AgentConfiguration, commitId string) (error, retry.AttemptResult)
+
 type pollJob struct {
 	ctx                      context.Context
-	log                      *zap.Logger
 	api                      modserver.API
 	gitaly                   gitaly.PoolInterface
-	agentRegisterer          agent_tracker.Registerer
-	server                   rpc.AgentConfiguration_GetConfigurationServer
-	agentToken               api.AgentToken
+	newConfigCb              newConfigCb
 	maxConfigurationFileSize int64
 	lastProcessedCommitId    string
-	connectedAgentInfo       *agent_tracker.ConnectedAgentInfo
-	connectionRegistered     bool
 }
 
-func (j *pollJob) Attempt() (error, retry.AttemptResult) {
-	// This call is made on each poll because:
-	// - it checks that the agent's token is still valid
-	// - repository location in Gitaly might have changed
-	agentInfo, err := j.api.GetAgentInfo(j.ctx, j.log, j.agentToken)
-	if err != nil {
-		return err, retry.Done
-	}
-	if !j.connectionRegistered { // only register once
-		j.connectedAgentInfo.AgentId = agentInfo.Id
-		j.connectedAgentInfo.ProjectId = agentInfo.ProjectId
-		j.agentRegisterer.RegisterConnection(j.ctx, j.connectedAgentInfo)
-		j.connectionRegistered = true
-	}
-	log := j.log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(agentInfo.Repository.GlProjectPath))
+func (j *pollJob) Attempt(log *zap.Logger, agentInfo *api.AgentInfo) (error, retry.AttemptResult) {
 	p, err := j.gitaly.Poller(j.ctx, &agentInfo.GitalyInfo)
 	if err != nil {
 		j.api.HandleProcessingError(j.ctx, log, "Config: Poller", err)
@@ -78,22 +59,11 @@ func (j *pollJob) Attempt() (error, retry.AttemptResult) {
 		}
 		return nil, retry.Backoff
 	}
-	err = j.server.Send(&rpc.ConfigurationResponse{
-		Configuration: config,
-		CommitId:      info.CommitId,
-	})
-	if err != nil {
-		return j.api.HandleSendError(log, "Config: failed to send config", err), retry.Done
+	err, res := j.newConfigCb(log, config, info.CommitId)
+	if res == retry.Continue || res == retry.ContinueImmediately {
+		j.lastProcessedCommitId = info.CommitId
 	}
-	j.lastProcessedCommitId = info.CommitId
-	return nil, retry.Continue
-}
-
-func (j *pollJob) Cleanup() {
-	if !j.connectionRegistered {
-		return
-	}
-	j.agentRegisterer.UnregisterConnection(context.Background(), j.connectedAgentInfo)
+	return err, res
 }
 
 // fetchConfiguration fetches agent's configuration from a corresponding repository.
