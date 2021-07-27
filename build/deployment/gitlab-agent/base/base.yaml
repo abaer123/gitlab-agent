@@ -26,10 +26,6 @@ spec:
         prometheus.io/path: "/metrics"
         prometheus.io/port: "8080"
     spec:
-      securityContext:
-        runAsUser: 65532
-        runAsGroup: 65532
-        fsGroup: 65532
       serviceAccountName: gitlab-agent
       containers:
       - name: agent
