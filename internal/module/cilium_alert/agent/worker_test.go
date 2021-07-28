@@ -28,6 +28,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var (
+	_ json.Marshaler   = (*flowAlias)(nil)
+	_ json.Unmarshaler = (*flowAlias)(nil)
+)
+
 func TestSuccessfulMapping(t *testing.T) {
 	for caseNum, matchingData := range matchingData() {
 		t.Run(fmt.Sprintf("case %d", caseNum), func(t *testing.T) {
@@ -84,7 +89,7 @@ func TestNoMatch(t *testing.T) {
 }
 
 func TestJSON(t *testing.T) {
-	p1 := payload{
+	expected := payload{
 		Alert: alert{
 			Flow: (*flowAlias)(&flow.Flow{
 				DropReasonDesc: flow.DropReason_POLICY_DENIED,
@@ -97,15 +102,18 @@ func TestJSON(t *testing.T) {
 			},
 		},
 	}
-	data, err := json.Marshal(p1)
+	data, err := json.Marshal(expected)
 	require.NoError(t, err)
 
-	p2 := payload{}
-	err = json.Unmarshal(data, &p2)
+	actual := payload{}
+	err = json.Unmarshal(data, &actual)
 	require.NoError(t, err)
 
-	assert.Empty(t, cmp.Diff(p1.Alert.CiliumNetworkPolicy, p2.Alert.CiliumNetworkPolicy))
-	assert.Empty(t, cmp.Diff((*flow.Flow)(p1.Alert.Flow), (*flow.Flow)(p2.Alert.Flow), protocmp.Transform()))
+	assert.Empty(t, cmp.Diff(expected, actual, cmp.Transformer("flow", flowAlias2Flow), protocmp.Transform()))
+}
+
+func flowAlias2Flow(val *flowAlias) *flow.Flow {
+	return (*flow.Flow)(val)
 }
 
 func setupTest(t *testing.T, cv2 versioned.Interface) (*worker, *MockObserverClient, *MockObserver_GetFlowsClient, *mock_modagent.MockAPI) {
@@ -143,24 +151,26 @@ func matchingData() []*flwCnpListPair {
 				},
 			}}},
 			CnpList: &v2.CiliumNetworkPolicyList{
-				Items: []v2.CiliumNetworkPolicy{v2.CiliumNetworkPolicy{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        "Test",
-						Annotations: map[string]string{alertAnnotationKey: "true"},
-						Namespace:   "ThisNamespace",
-						Labels:      map[string]string{gitLabProjectLabel: "21"},
-					},
-					Spec: &api.Rule{
-						EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
-						Ingress: []api.IngressRule{
-							{
-								IngressCommonRule: api.IngressCommonRule{
-									FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+				Items: []v2.CiliumNetworkPolicy{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:        "Test",
+							Annotations: map[string]string{alertAnnotationKey: "true"},
+							Namespace:   "ThisNamespace",
+							Labels:      map[string]string{gitLabProjectLabel: "21"},
+						},
+						Spec: &api.Rule{
+							EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
+							Ingress: []api.IngressRule{
+								{
+									IngressCommonRule: api.IngressCommonRule{
+										FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+									},
 								},
 							},
 						},
 					},
-				}},
+				},
 			},
 		},
 		{
@@ -175,24 +185,26 @@ func matchingData() []*flwCnpListPair {
 				},
 			}}},
 			CnpList: &v2.CiliumNetworkPolicyList{
-				Items: []v2.CiliumNetworkPolicy{v2.CiliumNetworkPolicy{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        "Test",
-						Annotations: map[string]string{alertAnnotationKey: "true"},
-						Namespace:   "ThisNamespace",
-						Labels:      map[string]string{gitLabProjectLabel: "21"},
-					},
-					Spec: &api.Rule{
-						EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
-						Egress: []api.EgressRule{
-							{
-								EgressCommonRule: api.EgressCommonRule{
-									ToEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+				Items: []v2.CiliumNetworkPolicy{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:        "Test",
+							Annotations: map[string]string{alertAnnotationKey: "true"},
+							Namespace:   "ThisNamespace",
+							Labels:      map[string]string{gitLabProjectLabel: "21"},
+						},
+						Spec: &api.Rule{
+							EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
+							Egress: []api.EgressRule{
+								{
+									EgressCommonRule: api.EgressCommonRule{
+										ToEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+									},
 								},
 							},
 						},
 					},
-				}},
+				},
 			},
 		},
 	}
@@ -212,24 +224,26 @@ func unmatchingData() []*flwCnpListPair {
 				},
 			}}},
 			CnpList: &v2.CiliumNetworkPolicyList{
-				Items: []v2.CiliumNetworkPolicy{v2.CiliumNetworkPolicy{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        "Test",
-						Annotations: map[string]string{alertAnnotationKey: "true"},
-						Namespace:   "ThisNamespace",
-						Labels:      map[string]string{gitLabProjectLabel: "21"},
-					},
-					Spec: &api.Rule{
-						EndpointSelector: api.NewESFromLabels(labels.NewLabel("notthiskey", "", "any")),
-						Ingress: []api.IngressRule{
-							{
-								IngressCommonRule: api.IngressCommonRule{
-									FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+				Items: []v2.CiliumNetworkPolicy{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:        "Test",
+							Annotations: map[string]string{alertAnnotationKey: "true"},
+							Namespace:   "ThisNamespace",
+							Labels:      map[string]string{gitLabProjectLabel: "21"},
+						},
+						Spec: &api.Rule{
+							EndpointSelector: api.NewESFromLabels(labels.NewLabel("notthiskey", "", "any")),
+							Ingress: []api.IngressRule{
+								{
+									IngressCommonRule: api.IngressCommonRule{
+										FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+									},
 								},
 							},
 						},
 					},
-				}},
+				},
 			},
 		},
 		{
@@ -244,24 +258,26 @@ func unmatchingData() []*flwCnpListPair {
 				},
 			}}},
 			CnpList: &v2.CiliumNetworkPolicyList{
-				Items: []v2.CiliumNetworkPolicy{v2.CiliumNetworkPolicy{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        "Test",
-						Annotations: map[string]string{"app.gitlab.com/different": "true"},
-						Namespace:   "ThisNamespace",
-						Labels:      map[string]string{gitLabProjectLabel: "21"},
-					},
-					Spec: &api.Rule{
-						EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
-						Ingress: []api.IngressRule{
-							{
-								IngressCommonRule: api.IngressCommonRule{
-									FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+				Items: []v2.CiliumNetworkPolicy{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:        "Test",
+							Annotations: map[string]string{"app.gitlab.com/different": "true"},
+							Namespace:   "ThisNamespace",
+							Labels:      map[string]string{gitLabProjectLabel: "21"},
+						},
+						Spec: &api.Rule{
+							EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
+							Ingress: []api.IngressRule{
+								{
+									IngressCommonRule: api.IngressCommonRule{
+										FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+									},
 								},
 							},
 						},
 					},
-				}},
+				},
 			},
 		},
 		{
@@ -276,24 +292,26 @@ func unmatchingData() []*flwCnpListPair {
 				},
 			}}},
 			CnpList: &v2.CiliumNetworkPolicyList{
-				Items: []v2.CiliumNetworkPolicy{v2.CiliumNetworkPolicy{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        "Test",
-						Annotations: map[string]string{alertAnnotationKey: "true"},
-						Namespace:   "ThisNamespace",
-						Labels:      map[string]string{gitLabProjectLabel: "invalid"},
-					},
-					Spec: &api.Rule{
-						EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
-						Ingress: []api.IngressRule{
-							{
-								IngressCommonRule: api.IngressCommonRule{
-									FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+				Items: []v2.CiliumNetworkPolicy{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:        "Test",
+							Annotations: map[string]string{alertAnnotationKey: "true"},
+							Namespace:   "ThisNamespace",
+							Labels:      map[string]string{gitLabProjectLabel: "invalid"},
+						},
+						Spec: &api.Rule{
+							EndpointSelector: api.NewESFromLabels(labels.NewLabel("thiskey", "", "any")),
+							Ingress: []api.IngressRule{
+								{
+									IngressCommonRule: api.IngressCommonRule{
+										FromEndpoints: []api.EndpointSelector{api.NewESFromLabels(labels.NewLabel("nootherkey", "", "any"))},
+									},
 								},
 							},
 						},
 					},
-				}},
+				},
 			},
 		},
 	}
