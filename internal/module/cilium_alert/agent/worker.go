@@ -183,11 +183,8 @@ func (w *worker) sendAlert(ctx context.Context, fl *flow.Flow, cnp *v2.CiliumNet
 	return nil
 }
 
-var (
-	_ json.Marshaler   = &flowAlias{}
-	_ json.Unmarshaler = &flowAlias{}
-)
-
+// flowAlias ensures the protojson package is used for to/from JSON marshaling.
+// See https://pkg.go.dev/google.golang.org/protobuf/encoding/protojson.
 type flowAlias flow.Flow
 
 func (f *flowAlias) MarshalJSON() ([]byte, error) {
