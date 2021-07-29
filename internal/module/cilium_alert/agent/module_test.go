@@ -72,7 +72,7 @@ func setupModule(t *testing.T, errorEntryCount *int32) *module {
 		log:          log,
 		api:          mock_modagent.NewMockAPI(gomock.NewController(t)),
 		ciliumClient: cilium_fake.NewSimpleClientset(),
-		backoff:      testhelpers.NewBackoff(),
+		pollConfig:   testhelpers.NewPollConfig(getFlowsPollInterval),
 	}
 	return m
 }

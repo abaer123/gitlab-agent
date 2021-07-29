@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/gitops/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
@@ -22,14 +21,13 @@ import (
 
 // synchronizerConfig holds configuration for a synchronizer.
 type synchronizerConfig struct {
-	log             *zap.Logger
-	agentId         int64
-	project         *agentcfg.ManifestProjectCF
-	applier         Applier
-	k8sUtilFactory  util.Factory
-	reapplyInterval time.Duration
-	applierBackoff  retry.BackoffManager
-	applyOptions    apply.Options
+	log               *zap.Logger
+	agentId           int64
+	project           *agentcfg.ManifestProjectCF
+	applier           Applier
+	k8sUtilFactory    util.Factory
+	applierPollConfig retry.PollConfig
+	applyOptions      apply.Options
 }
 
 type synchronizer struct {
@@ -45,11 +43,10 @@ func newSynchronizer(config synchronizerConfig) *synchronizer {
 func (s *synchronizer) run(desiredState <-chan rpc.ObjectsToSynchronizeData) {
 	jobs := make(chan syncJob)
 	sw := syncWorker{
-		log:             s.log,
-		reapplyInterval: s.reapplyInterval,
-		applier:         s.applier,
-		applierBackoff:  s.applierBackoff,
-		applyOptions:    s.applyOptions,
+		log:               s.log,
+		applier:           s.applier,
+		applierPollConfig: s.applierPollConfig,
+		applyOptions:      s.applyOptions,
 	}
 	var wg wait.Group
 	defer wg.Wait()   // Wait for sw to exit

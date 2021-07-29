@@ -92,12 +92,12 @@ func (w *defaultGitopsWorker) Run(ctx context.Context) {
 }
 
 type defaultGitopsWorkerFactory struct {
-	log                   *zap.Logger
-	applier               Applier
-	k8sUtilFactory        util.Factory
-	gitopsClient          rpc.GitopsClient
-	watchBackoffFactory   retry.BackoffManagerFactory
-	applierBackoffFactory retry.BackoffManagerFactory
+	log               *zap.Logger
+	applier           Applier
+	k8sUtilFactory    util.Factory
+	gitopsClient      rpc.GitopsClient
+	watchPollConfig   retry.PollConfigFactory
+	applierPollConfig retry.PollConfigFactory
 }
 
 func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.ManifestProjectCF) GitopsWorker {
@@ -106,16 +106,15 @@ func (f *defaultGitopsWorkerFactory) New(agentId int64, project *agentcfg.Manife
 		objWatcher: &rpc.ObjectsToSynchronizeWatcher{
 			Log:          l,
 			GitopsClient: f.gitopsClient,
-			Backoff:      f.watchBackoffFactory,
+			PollConfig:   f.watchPollConfig,
 		},
 		synchronizerConfig: synchronizerConfig{
-			log:             l,
-			agentId:         agentId,
-			project:         project,
-			applier:         f.applier,
-			k8sUtilFactory:  f.k8sUtilFactory,
-			reapplyInterval: defaultReapplyInterval,
-			applierBackoff:  f.applierBackoffFactory(),
+			log:               l,
+			agentId:           agentId,
+			project:           project,
+			applier:           f.applier,
+			k8sUtilFactory:    f.k8sUtilFactory,
+			applierPollConfig: f.applierPollConfig(),
 			applyOptions: apply.Options{
 				ServerSideOptions: common.ServerSideOptions{
 					// It's supported since Kubernetes 1.16, so there should be no reason not to use it.

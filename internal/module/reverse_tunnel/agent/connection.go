@@ -42,11 +42,11 @@ type connection struct {
 	client             rpc.ReverseTunnelClient
 	internalServerConn grpc.ClientConnInterface
 	streamVisitor      *grpctool.StreamVisitor
-	backoff            retry.BackoffManagerFactory
+	pollConfig         retry.PollConfigFactory
 }
 
 func (c *connection) Run(ctx context.Context) {
-	_ = retry.PollWithBackoff(ctx, c.backoff(), true, 0 /* unused */, func() (error, retry.AttemptResult) {
+	_ = retry.PollWithBackoff(ctx, c.pollConfig(), func() (error, retry.AttemptResult) {
 		err := c.attempt(ctx)
 		if err != nil {
 			if !grpctool.RequestCanceled(err) {

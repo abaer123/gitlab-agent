@@ -47,16 +47,15 @@ type router struct {
 	kasPool       KasPool
 	tunnelQuerier tracker.Querier
 	tunnelFinder  reverse_tunnel.TunnelFinder
-	backoff       retry.BackoffManagerFactory
+	pollConfig    retry.PollConfigFactory
 	// internalServer is the internal gRPC server for use inside of kas.
 	// Request handlers can obtain the per-request logger using grpctool.LoggerFromContext(requestContext).
 	internalServer grpc.ServiceRegistrar
 	// privateApiServer is the gRPC server that other kas instances can talk to.
 	// Request handlers can obtain the per-request logger using grpctool.LoggerFromContext(requestContext).
-	privateApiServer          grpc.ServiceRegistrar
-	gatewayKasVisitor         *grpctool.StreamVisitor
-	routeAttemptInterval      time.Duration
-	getTunnelsAttemptInterval time.Duration
+	privateApiServer     grpc.ServiceRegistrar
+	gatewayKasVisitor    *grpctool.StreamVisitor
+	routeAttemptInterval time.Duration
 }
 
 func (r *router) RegisterAgentApi(desc *grpc.ServiceDesc) {

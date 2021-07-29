@@ -148,6 +148,6 @@ func SetValue(target, value interface{}) {
 	reflect.ValueOf(target).Elem().Set(reflect.ValueOf(value).Elem())
 }
 
-func NewBackoff() retry.BackoffManagerFactory {
-	return retry.NewExponentialBackoffFactory(time.Minute, time.Minute, time.Minute, 2, 1)
+func NewPollConfig(interval time.Duration) retry.PollConfigFactory {
+	return retry.NewPollConfigFactory(interval, retry.NewExponentialBackoffFactory(time.Minute, time.Minute, time.Minute, 2, 1))
 }

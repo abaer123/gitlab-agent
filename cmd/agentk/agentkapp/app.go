@@ -123,13 +123,13 @@ func (a *App) newModuleRunner(modules []modagent.Module, kasConn *grpc.ClientCon
 		Log:       a.Log,
 		AgentMeta: a.AgentMeta,
 		Client:    rpc.NewAgentConfigurationClient(kasConn),
-		Backoff: retry.NewExponentialBackoffFactory(
+		PollConfig: retry.NewPollConfigFactory(0, retry.NewExponentialBackoffFactory(
 			getConfigurationInitBackoff,
 			getConfigurationMaxBackoff,
 			getConfigurationResetDuration,
 			getConfigurationBackoffFactor,
 			getConfigurationJitter,
-		),
+		)),
 	})
 }
 

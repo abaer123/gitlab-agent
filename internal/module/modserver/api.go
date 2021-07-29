@@ -3,7 +3,6 @@ package modserver
 import (
 	"context"
 	"strconv"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
@@ -81,7 +80,7 @@ type API interface {
 	// It returns when:
 	// - stream's context is cancelled or max connection age has been reached. nil is returned in this case.
 	// - f returns Done. error from f is returned in this case.
-	PollWithBackoff(stream grpc.ServerStream, backoff retry.BackoffManager, sliding bool, interval time.Duration, f retry.PollWithBackoffFunc) error
+	PollWithBackoff(stream grpc.ServerStream, cfg retry.PollConfig, f retry.PollWithBackoffFunc) error
 }
 
 type Factory interface {

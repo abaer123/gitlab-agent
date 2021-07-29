@@ -316,18 +316,17 @@ func (a *ConfiguredApp) constructKasToAgentRouter(tracer opentracing.Tracer, tun
 		},
 		tunnelQuerier: tunnelQuerier,
 		tunnelFinder:  tunnelFinder,
-		backoff: retry.NewExponentialBackoffFactory(
+		pollConfig: retry.NewPollConfigFactory(getTunnelsAttemptInterval, retry.NewExponentialBackoffFactory(
 			routingInitBackoff,
 			routingMaxBackoff,
 			routingResetDuration,
 			routingBackoffFactor,
 			routingJitter,
-		),
-		internalServer:            internalServer,
-		privateApiServer:          privateApiServer,
-		gatewayKasVisitor:         gatewayKasVisitor,
-		routeAttemptInterval:      routeAttemptInterval,
-		getTunnelsAttemptInterval: getTunnelsAttemptInterval,
+		)),
+		internalServer:       internalServer,
+		privateApiServer:     privateApiServer,
+		gatewayKasVisitor:    gatewayKasVisitor,
+		routeAttemptInterval: routeAttemptInterval,
 	}, nil
 }
 

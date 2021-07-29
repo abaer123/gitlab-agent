@@ -40,8 +40,7 @@ type worker struct {
 	api                  modagent.API
 	ciliumClient         versioned.Interface
 	observerClient       observer.ObserverClient
-	backoff              retry.BackoffManagerFactory
-	getFlowsPollInterval time.Duration
+	pollConfig           retry.PollConfigFactory
 	informerResyncPeriod time.Duration
 	projectId            int64
 }
@@ -88,7 +87,7 @@ func (w *worker) Run(ctx context.Context) {
 	}
 
 	since := timestamppb.Now()
-	_ = retry.PollWithBackoff(ctx, w.backoff(), true, w.getFlowsPollInterval, func() (error, retry.AttemptResult) {
+	_ = retry.PollWithBackoff(ctx, w.pollConfig(), func() (error, retry.AttemptResult) {
 		ctx, cancel := context.WithCancel(ctx) // nolint:govet
 		defer cancel()
 		flc, err := w.observerClient.GetFlows(ctx, &observer.GetFlowsRequest{

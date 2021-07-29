@@ -212,7 +212,11 @@ func TestRun_SyncCancellation(t *testing.T) {
 
 func TestRun_ApplyIsRetriedOnError(t *testing.T) {
 	w, applier, watcher := setupWorker(t)
-	w.applierBackoff = retry.NewExponentialBackoffFactory(time.Millisecond, time.Minute, time.Minute, 2, 1)()
+	w.applierPollConfig = retry.PollConfig{
+		Backoff:  retry.NewExponentialBackoffFactory(time.Millisecond, time.Minute, time.Minute, 2, 1)(),
+		Interval: w.applierPollConfig.Interval,
+		Sliding:  w.applierPollConfig.Sliding,
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	req := &rpc.ObjectsToSynchronizeRequest{
@@ -255,7 +259,7 @@ func TestRun_ApplyIsRetriedOnError(t *testing.T) {
 
 func TestRun_PeriodicApply(t *testing.T) {
 	w, applier, watcher := setupWorker(t)
-	w.reapplyInterval = time.Millisecond
+	w.applierPollConfig.Interval = time.Millisecond
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	req := &rpc.ObjectsToSynchronizeRequest{
@@ -307,10 +311,9 @@ func setupWorker(t *testing.T) (*defaultGitopsWorker, *MockApplier, *mock_rpc.Mo
 					},
 				},
 			},
-			applier:         applier,
-			k8sUtilFactory:  cmdtesting.NewTestFactory(),
-			reapplyInterval: time.Minute,
-			applierBackoff:  testhelpers.NewBackoff()(),
+			applier:           applier,
+			k8sUtilFactory:    cmdtesting.NewTestFactory(),
+			applierPollConfig: testhelpers.NewPollConfig(time.Minute)(),
 		},
 	}
 	return w, applier, watcher

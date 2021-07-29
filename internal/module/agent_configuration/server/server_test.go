@@ -257,8 +257,7 @@ func setupServer(t *testing.T) (*server, *api.AgentInfo, *gomock.Controller, *mo
 		api:                        mockApi,
 		agentRegisterer:            agentTracker,
 		gitaly:                     gitalyPool,
-		getConfigurationBackoff:    testhelpers.NewBackoff(),
-		getConfigurationPollPeriod: 10 * time.Minute,
+		getConfigurationPollConfig: testhelpers.NewPollConfig(10 * time.Minute),
 		maxConfigurationFileSize:   maxConfigurationFileSize,
 	}
 	agentInfo := testhelpers.AgentInfoObj()

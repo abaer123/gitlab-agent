@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitaly"
@@ -33,8 +32,7 @@ type server struct {
 	gitaly                     gitaly.PoolInterface
 	agentRegisterer            agent_tracker.Registerer
 	maxConfigurationFileSize   int64
-	getConfigurationBackoff    retry.BackoffManagerFactory
-	getConfigurationPollPeriod time.Duration
+	getConfigurationPollConfig retry.PollConfigFactory
 }
 
 func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.AgentConfiguration_GetConfigurationServer) error {
@@ -48,7 +46,7 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 	log := grpctool.LoggerFromContext(ctx)
 	agentToken := api.AgentTokenFromContext(ctx)
 	lastProcessedCommitId := req.CommitId
-	return s.api.PollWithBackoff(server, s.getConfigurationBackoff(), true, s.getConfigurationPollPeriod, func() (error, retry.AttemptResult) {
+	return s.api.PollWithBackoff(server, s.getConfigurationPollConfig(), func() (error, retry.AttemptResult) {
 		// This call is made on each poll because:
 		// - it checks that the agent's token is still valid
 		// - repository location in Gitaly might have changed

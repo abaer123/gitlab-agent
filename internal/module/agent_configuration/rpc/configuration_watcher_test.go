@@ -66,9 +66,9 @@ func TestConfigurationWatcher(t *testing.T) {
 			}),
 	)
 	w := rpc.ConfigurationWatcher{
-		Log:     zaptest.NewLogger(t),
-		Client:  client,
-		Backoff: testhelpers.NewBackoff(),
+		Log:        zaptest.NewLogger(t),
+		Client:     client,
+		PollConfig: testhelpers.NewPollConfig(0),
 	}
 	iter := 0
 	w.Watch(ctx, func(ctx context.Context, config rpc.ConfigurationData) {
@@ -118,9 +118,9 @@ func TestConfigurationWatcher_ResumeConnection(t *testing.T) {
 			}),
 	)
 	w := rpc.ConfigurationWatcher{
-		Log:     zaptest.NewLogger(t),
-		Client:  client,
-		Backoff: testhelpers.NewBackoff(),
+		Log:        zaptest.NewLogger(t),
+		Client:     client,
+		PollConfig: testhelpers.NewPollConfig(0),
 	}
 	w.Watch(ctx, func(ctx context.Context, config rpc.ConfigurationData) {
 		// Don't care
@@ -169,9 +169,9 @@ func TestConfigurationWatcher_ImmediateReconnectOnEOF(t *testing.T) {
 			}),
 	)
 	w := rpc.ConfigurationWatcher{
-		Log:     zaptest.NewLogger(t),
-		Client:  client,
-		Backoff: testhelpers.NewBackoff(),
+		Log:        zaptest.NewLogger(t),
+		Client:     client,
+		PollConfig: testhelpers.NewPollConfig(0),
 	}
 	w.Watch(ctx, func(ctx context.Context, config rpc.ConfigurationData) {
 		// Don't care

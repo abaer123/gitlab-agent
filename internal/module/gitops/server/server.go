@@ -40,8 +40,7 @@ type server struct {
 	projectInfoClient           *projectInfoClient
 	syncCount                   usage_metrics.Counter
 	gitOpsPollIntervalHistogram prometheus.Histogram
-	getObjectsBackoff           retry.BackoffManagerFactory
-	pollPeriod                  time.Duration
+	getObjectsPollConfig        retry.PollConfigFactory
 	maxManifestFileSize         int64
 	maxTotalManifestFileSize    int64
 	maxNumberOfPaths            uint32
@@ -61,9 +60,8 @@ func (s *server) GetObjectsToSynchronize(req *rpc.ObjectsToSynchronizeRequest, s
 		return err // no wrap
 	}
 	var lastPoll time.Time
-	backoff := s.getObjectsBackoff()
 	log = log.With(logz.AgentId(agentInfo.Id), logz.ProjectId(req.ProjectId))
-	return s.api.PollWithBackoff(server, backoff, true, s.pollPeriod, func() (error, retry.AttemptResult) {
+	return s.api.PollWithBackoff(server, s.getObjectsPollConfig(), func() (error, retry.AttemptResult) {
 		// This call is made on each poll because:
 		// - it checks that the agent's token is still valid
 		// - repository location in Gitaly might have changed
