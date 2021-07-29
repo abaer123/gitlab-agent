@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strconv"
 	"testing"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitaly"
+	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker"
@@ -20,6 +22,7 @@ import (
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/modshared"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/matcher"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_agent_tracker"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_gitlab"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_internalgitaly"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_modserver"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/testing/mock_rpc"
@@ -253,10 +256,14 @@ func setupServer(t *testing.T) (*server, *api.AgentInfo, *gomock.Controller, *mo
 	mockApi := mock_modserver.NewMockAPIWithMockPoller(ctrl, 1)
 	gitalyPool := mock_internalgitaly.NewMockPoolInterface(ctrl)
 	agentTracker := mock_agent_tracker.NewMockTracker(ctrl)
+	gitLabClient := mock_gitlab.SetupClient(t, gapi.AgentConfigurationApiPath, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
 	s := &server{
 		api:                        mockApi,
 		agentRegisterer:            agentTracker,
 		gitaly:                     gitalyPool,
+		gitLabClient:               gitLabClient,
 		getConfigurationPollConfig: testhelpers.NewPollConfig(10 * time.Minute),
 		maxConfigurationFileSize:   maxConfigurationFileSize,
 	}

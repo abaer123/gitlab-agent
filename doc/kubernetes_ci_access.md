@@ -225,8 +225,9 @@ project/group to access. It is needed to:
 - To be able to construct the `kubectl` configuration file.
 
 https://gitlab.com/gitlab-org/gitlab/-/issues/323708 tracks the plumbing work to make it possible to build such an index.
-Once it is implemented, we need to add new indexes to perform `ci project id` -> `agent id` and
-`group id` -> `agent id` lookups.
+Once it is implemented, we need to add new indexes to be able to perform:
+- `ci project id` -> `agent id` lookups: https://gitlab.com/gitlab-org/gitlab/-/issues/327411
+- `group id` -> `agent id` lookups: https://gitlab.com/gitlab-org/gitlab/-/issues/327851
 
 ### `/api/v4/job/allowed_agents` API
 
@@ -339,6 +340,49 @@ Content-Type: application/json
   }
 }
 ```
+
+### `/api/v4/internal/kubernetes/agent_configuration` API
+
+`/api/v4/internal/kubernetes/agent_configuration` is a new endpoint that accepts configuration for an agent and
+updates necessary records in DB. It is invoked by `kas` each time it fetches an updated agent configuration.
+
+If there is an error invoking the endpoint, `kas` still proceeds with returning the configuration to the agent to avoid
+impacting the user if there is an internal communication issue.
+
+`kas` might send the same configuration more than once because it sends it on each new commit, even if there are no
+changes. This is consistent with `kas` sending configuration and GitOps manifests on each commit.
+We may optimize all three later or handle this on the Rails side to avoid doing duplicate work and
+causing unnecessary DB load. One option is to cache `agent id` -> `configuration hash` in Redis and
+compare the new/cached hashes before making any queries to the DB. This is not in scope of this document.
+
+Sending "duplicate" configuration has certain benefits:
+
+- Simpler to implement.
+- If for any reason DB is not in sync (e.g. network errors), it will be updated eventually (on next commit).
+
+Request:
+
+```text
+POST /api/v4/internal/kubernetes/agent_configuration
+Content-Type: application/json
+Gitlab-Kas-Api-Request: JWT token
+
+{
+  "agent_id": 5,
+  "agent_config": {} // ConfigurationFile in pkg/agentcfg/agentcfg.proto
+}
+```
+
+Response on success:
+
+```text
+HTTP/1.1 204 No content
+```
+
+Errors:
+
+- If JWT token is invalid or missing, a corresponding HTTP status code is returned (401/403).
+- If agent id does not exist, HTTP status code 400 is returned.
 
 ### Request proxying flow
 

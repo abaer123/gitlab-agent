@@ -14,6 +14,8 @@ go_library(
     deps = [
         "//internal/api",
         "//internal/gitaly",
+        "//internal/gitlab",
+        "//internal/gitlab/api",
         "//internal/module/agent_configuration",
         "//internal/module/agent_configuration/rpc",
         "//internal/module/agent_tracker",
@@ -26,6 +28,7 @@ go_library(
         "//internal/tool/retry",
         "//pkg/agentcfg",
         "//pkg/kascfg",
+        "@io_k8s_apimachinery//pkg/util/wait",
         "@io_k8s_sigs_yaml//:yaml",
         "@org_golang_google_grpc//codes",
         "@org_golang_google_grpc//status",
@@ -41,6 +44,7 @@ go_custom_test(
     deps = [
         "//internal/api",
         "//internal/gitaly",
+        "//internal/gitlab/api",
         "//internal/module/agent_configuration",
         "//internal/module/agent_configuration/rpc",
         "//internal/module/agent_tracker",
@@ -48,6 +52,7 @@ go_custom_test(
         "//internal/module/modshared",
         "//internal/tool/testing/matcher",
         "//internal/tool/testing/mock_agent_tracker",
+        "//internal/tool/testing/mock_gitlab",
         "//internal/tool/testing/mock_internalgitaly",
         "//internal/tool/testing/mock_modserver",
         "//internal/tool/testing/mock_rpc",

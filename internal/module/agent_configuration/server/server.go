@@ -9,6 +9,8 @@ import (
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitaly"
+	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab"
+	gapi "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/gitlab/api"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration/rpc"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_tracker"
@@ -23,6 +25,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/yaml"
 )
 
@@ -30,6 +33,7 @@ type server struct {
 	rpc.UnimplementedAgentConfigurationServer
 	api                        modserver.API
 	gitaly                     gitaly.PoolInterface
+	gitLabClient               gitlab.ClientInterface
 	agentRegisterer            agent_tracker.Registerer
 	maxConfigurationFileSize   int64
 	getConfigurationPollConfig retry.PollConfigFactory
@@ -67,7 +71,7 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 			return nil, retry.Continue
 		}
 		log.Info("Config: new commit", logz.CommitId(info.CommitId))
-		config, err := s.fetchConfiguration(ctx, agentInfo, info.CommitId)
+		configFile, err := s.fetchConfiguration(ctx, agentInfo, info.CommitId)
 		if err != nil {
 			s.api.HandleProcessingError(ctx, log, "Config: failed to fetch", err)
 			var ue errz.UserError
@@ -77,7 +81,15 @@ func (s *server) GetConfiguration(req *rpc.ConfigurationRequest, server rpc.Agen
 			}
 			return nil, retry.Backoff
 		}
-		err = s.sendConfigResponse(server, agentInfo, config, info.CommitId)
+		var wg wait.Group
+		defer wg.Wait()
+		wg.Start(func() {
+			err := gapi.PostAgentConfiguration(ctx, s.gitLabClient, agentInfo.Id, configFile) // nolint:govet
+			if err != nil {
+				s.api.HandleProcessingError(ctx, log, "Failed to notify GitLab of new agent configuration", err)
+			}
+		})
+		err = s.sendConfigResponse(server, agentInfo, configFile, info.CommitId)
 		if err != nil {
 			return s.api.HandleSendError(log, "Config: failed to send config", err), retry.Done
 		}
