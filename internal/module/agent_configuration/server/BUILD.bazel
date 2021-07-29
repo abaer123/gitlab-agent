@@ -7,7 +7,6 @@ go_library(
         "defaulting.go",
         "factory.go",
         "module.go",
-        "poll_job.go",
         "server.go",
     ],
     importpath = "gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/module/agent_configuration/server",
@@ -32,16 +31,12 @@ go_library(
         "@org_golang_google_grpc//status",
         "@org_golang_google_protobuf//encoding/protojson",
         "@org_golang_google_protobuf//types/known/timestamppb",
-        "@org_uber_go_zap//:zap",
     ],
 )
 
 go_custom_test(
     name = "server_test",
-    srcs = [
-        "poll_job_test.go",
-        "server_test.go",
-    ],
+    srcs = ["server_test.go"],
     embed = [":server"],
     deps = [
         "//internal/api",
