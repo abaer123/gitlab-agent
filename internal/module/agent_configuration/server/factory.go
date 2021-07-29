@@ -29,14 +29,13 @@ func (f *Factory) New(config *modserver.Config) (modserver.Module, error) {
 		gitaly:                   config.Gitaly,
 		agentRegisterer:          f.AgentRegisterer,
 		maxConfigurationFileSize: int64(agent.Configuration.MaxConfigurationFileSize),
-		getConfigurationBackoff: retry.NewExponentialBackoffFactory(
+		getConfigurationPollConfig: retry.NewPollConfigFactory(agent.Configuration.PollPeriod.AsDuration(), retry.NewExponentialBackoffFactory(
 			getConfigurationInitBackoff,
 			getConfigurationMaxBackoff,
 			getConfigurationResetDuration,
 			getConfigurationBackoffFactor,
 			getConfigurationJitter,
-		),
-		getConfigurationPollPeriod: agent.Configuration.PollPeriod.AsDuration(),
+		)),
 	})
 	return &module{}, nil
 }

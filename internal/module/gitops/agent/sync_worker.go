@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"os"
-	"time"
 
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/errz"
 	"gitlab.com/gitlab-org/cluster-integration/gitlab-agent/v14/internal/tool/logz"
@@ -26,17 +25,16 @@ type syncJob struct {
 }
 
 type syncWorker struct {
-	log             *zap.Logger
-	reapplyInterval time.Duration
-	applier         Applier
-	applierBackoff  retry.BackoffManager
-	applyOptions    apply.Options
+	log               *zap.Logger
+	applier           Applier
+	applierPollConfig retry.PollConfig
+	applyOptions      apply.Options
 }
 
 func (s *syncWorker) Run(jobs <-chan syncJob) {
 	for job := range jobs {
 		l := s.log.With(logz.CommitId(job.commitId))
-		_ = retry.PollWithBackoff(job.ctx, s.applierBackoff, true, s.reapplyInterval, func() (error, retry.AttemptResult) {
+		_ = retry.PollWithBackoff(job.ctx, s.applierPollConfig, func() (error, retry.AttemptResult) {
 			l.Info("Synchronizing objects")
 			err := s.synchronize(job)
 			if err != nil {

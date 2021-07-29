@@ -37,14 +37,13 @@ func (f *Factory) New(cfg *modagent.Config) (modagent.Module, error) {
 		log:          cfg.Log,
 		api:          cfg.Api,
 		ciliumClient: ciliumClient,
-		backoff: retry.NewExponentialBackoffFactory(
+		pollConfig: retry.NewPollConfigFactory(getFlowsPollInterval, retry.NewExponentialBackoffFactory(
 			pollingInitBackoff,
 			pollingMaxBackoff,
 			pollingResetDuration,
 			pollingBackoffFactor,
 			pollingJitter,
-		),
-		getFlowsPollInterval: getFlowsPollInterval,
+		)),
 		informerResyncPeriod: informerResyncPeriod,
 	}, nil
 }

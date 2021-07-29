@@ -21,8 +21,7 @@ type module struct {
 	log                  *zap.Logger
 	api                  modagent.API
 	ciliumClient         versioned.Interface
-	backoff              retry.BackoffManagerFactory
-	getFlowsPollInterval time.Duration
+	pollConfig           retry.PollConfigFactory
 	informerResyncPeriod time.Duration
 }
 
@@ -77,8 +76,7 @@ func (m *module) applyNewConfiguration(ctx context.Context, holder *workerHolder
 		api:                  m.api,
 		ciliumClient:         m.ciliumClient,
 		observerClient:       observer.NewObserverClient(clientConn),
-		backoff:              m.backoff,
-		getFlowsPollInterval: m.getFlowsPollInterval,
+		pollConfig:           m.pollConfig,
 		informerResyncPeriod: m.informerResyncPeriod,
 		projectId:            config.ProjectId,
 	}

@@ -64,7 +64,7 @@ func (r *router) attemptToRoute(log *zap.Logger, agentId int64, stream grpc.Serv
 	ctx := stream.Context()
 	return func() (bool /* done */, error) {
 		var tunnels []*tracker.TunnelInfo
-		err := retry.PollWithBackoff(ctx, r.backoff(), true, r.getTunnelsAttemptInterval, r.attemptToGetTunnels(ctx, log, agentId, &tunnels))
+		err := retry.PollWithBackoff(ctx, r.pollConfig(), r.attemptToGetTunnels(ctx, log, agentId, &tunnels))
 		if err != nil {
 			return false, err
 		}

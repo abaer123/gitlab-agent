@@ -34,6 +34,14 @@ type BackoffManagerFactory func() BackoffManager
 // Signature is unusual because AttemptResult must be checked, not the error.
 type PollWithBackoffFunc func() (error, AttemptResult)
 
+type PollConfig struct {
+	Backoff  BackoffManager
+	Interval time.Duration
+	Sliding  bool
+}
+
+type PollConfigFactory func() PollConfig
+
 // PollImmediateUntil is a wrapper to make the function more convenient to use.
 // - ctx is used instead of a channel.
 // - ctx is the first argument to follow the convention.
@@ -49,7 +57,7 @@ func PollImmediateUntil(ctx context.Context, interval time.Duration, f Condition
 // It returns when:
 // - context signals done. ErrWaitTimeout is returned in this case.
 // - f returns Done
-func PollWithBackoff(ctx context.Context, backoff BackoffManager, sliding bool, interval time.Duration, f PollWithBackoffFunc) error {
+func PollWithBackoff(ctx context.Context, cfg PollConfig, f PollWithBackoffFunc) error {
 	var t clock.Timer
 	defer func() {
 		if t != nil && !t.Stop() {
@@ -58,8 +66,8 @@ func PollWithBackoff(ctx context.Context, backoff BackoffManager, sliding bool, 
 	}()
 	doneCh := ctx.Done()
 	for {
-		if !sliding {
-			t = backoff.Backoff()
+		if !cfg.Sliding {
+			t = cfg.Backoff.Backoff()
 		}
 
 	attempt:
@@ -72,7 +80,7 @@ func PollWithBackoff(ctx context.Context, backoff BackoffManager, sliding bool, 
 			err, result := f()
 			switch result {
 			case Continue: // sleep and continue
-				timer := time.NewTimer(interval)
+				timer := time.NewTimer(cfg.Interval)
 				select {
 				case <-doneCh:
 					timer.Stop()
@@ -90,8 +98,8 @@ func PollWithBackoff(ctx context.Context, backoff BackoffManager, sliding bool, 
 			}
 		}
 
-		if sliding {
-			t = backoff.Backoff()
+		if cfg.Sliding {
+			t = cfg.Backoff.Backoff()
 		}
 
 		// NOTE: b/c there is no priority selection in golang
@@ -111,5 +119,15 @@ func PollWithBackoff(ctx context.Context, backoff BackoffManager, sliding bool, 
 func NewExponentialBackoffFactory(initBackoff, maxBackoff, resetDuration time.Duration, backoffFactor, jitter float64) BackoffManagerFactory {
 	return func() BackoffManager {
 		return wait.NewExponentialBackoffManager(initBackoff, maxBackoff, resetDuration, backoffFactor, jitter, clock.RealClock{})
+	}
+}
+
+func NewPollConfigFactory(interval time.Duration, backoff BackoffManagerFactory) PollConfigFactory {
+	return func() PollConfig {
+		return PollConfig{
+			Backoff:  backoff(),
+			Interval: interval,
+			Sliding:  true,
+		}
 	}
 }

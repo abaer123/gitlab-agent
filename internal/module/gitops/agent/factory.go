@@ -49,20 +49,20 @@ func (f *Factory) New(config *modagent.Config) (modagent.Module, error) {
 			applier:        applier,
 			k8sUtilFactory: config.K8sUtilFactory,
 			gitopsClient:   rpc.NewGitopsClient(config.KasConn),
-			watchBackoffFactory: retry.NewExponentialBackoffFactory(
+			watchPollConfig: retry.NewPollConfigFactory(0, retry.NewExponentialBackoffFactory(
 				getObjectsToSynchronizeInitBackoff,
 				getObjectsToSynchronizeMaxBackoff,
 				getObjectsToSynchronizeResetDuration,
 				getObjectsToSynchronizeBackoffFactor,
 				getObjectsToSynchronizeJitter,
-			),
-			applierBackoffFactory: retry.NewExponentialBackoffFactory(
+			)),
+			applierPollConfig: retry.NewPollConfigFactory(defaultReapplyInterval, retry.NewExponentialBackoffFactory(
 				applierInitBackoff,
 				applierMaxBackoff,
 				applierResetDuration,
 				applierBackoffFactor,
 				applierJitter,
-			),
+			)),
 		},
 	}, nil
 }

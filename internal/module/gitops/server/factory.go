@@ -54,14 +54,13 @@ func newServerFromConfig(config *modserver.Config) (*server, error) {
 		},
 		syncCount:                   config.UsageTracker.RegisterCounter(gitopsSyncCountKnownMetric),
 		gitOpsPollIntervalHistogram: gitOpsPollIntervalHistogram,
-		getObjectsBackoff: retry.NewExponentialBackoffFactory(
+		getObjectsPollConfig: retry.NewPollConfigFactory(gitops.PollPeriod.AsDuration(), retry.NewExponentialBackoffFactory(
 			getObjectsToSynchronizeInitBackoff,
 			getObjectsToSynchronizeMaxBackoff,
 			getObjectsToSynchronizeResetDuration,
 			getObjectsToSynchronizeBackoffFactor,
 			getObjectsToSynchronizeJitter,
-		),
-		pollPeriod:               gitops.PollPeriod.AsDuration(),
+		)),
 		maxManifestFileSize:      int64(gitops.MaxManifestFileSize),
 		maxTotalManifestFileSize: int64(gitops.MaxTotalManifestFileSize),
 		maxNumberOfPaths:         gitops.MaxNumberOfPaths,

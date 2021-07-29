@@ -26,15 +26,15 @@ type ConfigurationWatcherInterface interface {
 }
 
 type ConfigurationWatcher struct {
-	Log       *zap.Logger
-	AgentMeta *modshared.AgentMeta
-	Client    AgentConfigurationClient
-	Backoff   retry.BackoffManagerFactory
+	Log        *zap.Logger
+	AgentMeta  *modshared.AgentMeta
+	Client     AgentConfigurationClient
+	PollConfig retry.PollConfigFactory
 }
 
 func (w *ConfigurationWatcher) Watch(ctx context.Context, callback ConfigurationCallback) {
 	var lastProcessedCommitId string
-	_ = retry.PollWithBackoff(ctx, w.Backoff(), true, 0 /* doesn't matter */, func() (error, retry.AttemptResult) {
+	_ = retry.PollWithBackoff(ctx, w.PollConfig(), func() (error, retry.AttemptResult) {
 		ctx, cancel := context.WithCancel(ctx) // nolint:govet
 		defer cancel()                         // ensure streaming call is canceled
 		res, err := w.Client.GetConfiguration(ctx, &ConfigurationRequest{

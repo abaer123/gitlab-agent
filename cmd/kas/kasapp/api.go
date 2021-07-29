@@ -64,10 +64,10 @@ func (a *serverAPI) GetAgentInfo(ctx context.Context, log *zap.Logger, agentToke
 	return nil, err
 }
 
-func (a *serverAPI) PollWithBackoff(stream grpc.ServerStream, backoff retry.BackoffManager, sliding bool, interval time.Duration, f retry.PollWithBackoffFunc) error {
+func (a *serverAPI) PollWithBackoff(stream grpc.ServerStream, cfg retry.PollConfig, f retry.PollWithBackoffFunc) error {
 	// this context must only be used here, not inside of f() - connection should be closed only when idle.
 	ageCtx := grpctool.MaxConnectionAgeContextFromStream(stream)
-	err := retry.PollWithBackoff(ageCtx, backoff, sliding, interval, f)
+	err := retry.PollWithBackoff(ageCtx, cfg, f)
 	if errors.Is(err, retry.ErrWaitTimeout) {
 		return nil // all good, ctx is done
 	}

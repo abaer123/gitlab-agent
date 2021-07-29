@@ -81,7 +81,7 @@ func TestObjectsToSynchronizeWatcherResumeConnection(t *testing.T) {
 	w := rpc.ObjectsToSynchronizeWatcher{
 		Log:          zaptest.NewLogger(t),
 		GitopsClient: client,
-		Backoff:      retry.NewExponentialBackoffFactory(10*time.Millisecond, time.Minute, time.Minute, 2, 1),
+		PollConfig:   retry.NewPollConfigFactory(0, retry.NewExponentialBackoffFactory(10*time.Millisecond, time.Minute, time.Minute, 2, 1)),
 	}
 	w.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
 		// Don't care
@@ -202,7 +202,7 @@ func TestObjectsToSynchronizeWatcherInvalidStream(t *testing.T) {
 			w := rpc.ObjectsToSynchronizeWatcher{
 				Log:          zaptest.NewLogger(t),
 				GitopsClient: client,
-				Backoff:      retry.NewExponentialBackoffFactory(10*time.Millisecond, time.Minute, time.Minute, 2, 1),
+				PollConfig:   retry.NewPollConfigFactory(0, retry.NewExponentialBackoffFactory(10*time.Millisecond, time.Minute, time.Minute, 2, 1)),
 			}
 			w.Watch(ctx, req, func(ctx context.Context, data rpc.ObjectsToSynchronizeData) {
 				// Must not be called

@@ -317,13 +317,12 @@ func TestRouter_ErrorFromRecvOnSendEof(t *testing.T) {
 	gatewayKasVisitor, err := grpctool.NewStreamVisitor(&GatewayKasResponse{})
 	require.NoError(t, err)
 	r := &router{
-		kasPool:                   pool,
-		tunnelQuerier:             querier,
-		tunnelFinder:              finder,
-		backoff:                   testhelpers.NewBackoff(),
-		gatewayKasVisitor:         gatewayKasVisitor,
-		routeAttemptInterval:      time.Minute,
-		getTunnelsAttemptInterval: time.Minute,
+		kasPool:              pool,
+		tunnelQuerier:        querier,
+		tunnelFinder:         finder,
+		pollConfig:           testhelpers.NewPollConfig(time.Minute),
+		gatewayKasVisitor:    gatewayKasVisitor,
+		routeAttemptInterval: time.Minute,
 	}
 	err = r.RouteToCorrectKasHandler(nil, stream)
 	require.EqualError(t, err, "rpc error: code = InvalidArgument desc = expected error from RecvMsg")
@@ -450,14 +449,13 @@ func runRouterTest(t *testing.T, tunnel *mock_reverse_tunnel.MockTunnel, tunnelF
 				grpc.WithContextDialer(privateApiServerListener.DialContext),
 			},
 		},
-		tunnelQuerier:             querier,
-		tunnelFinder:              finder,
-		backoff:                   testhelpers.NewBackoff(),
-		internalServer:            internalServer,
-		privateApiServer:          privateApiServer,
-		gatewayKasVisitor:         gatewayKasVisitor,
-		routeAttemptInterval:      time.Minute,
-		getTunnelsAttemptInterval: time.Minute,
+		tunnelQuerier:        querier,
+		tunnelFinder:         finder,
+		pollConfig:           testhelpers.NewPollConfig(time.Minute),
+		internalServer:       internalServer,
+		privateApiServer:     privateApiServer,
+		gatewayKasVisitor:    gatewayKasVisitor,
+		routeAttemptInterval: time.Minute,
 	}
 	r.RegisterAgentApi(&test.Testing_ServiceDesc)
 	var wg wait.Group

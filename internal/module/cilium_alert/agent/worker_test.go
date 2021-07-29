@@ -126,7 +126,7 @@ func setupTest(t *testing.T, cv2 versioned.Interface) (*worker, *MockObserverCli
 		api:            mAPI,
 		ciliumClient:   cv2,
 		observerClient: obsClient,
-		backoff:        testhelpers.NewBackoff(),
+		pollConfig:     testhelpers.NewPollConfig(getFlowsPollInterval),
 		projectId:      21,
 	}
 	return worker, obsClient, flwClient, mAPI
