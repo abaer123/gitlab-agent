@@ -5,7 +5,6 @@ include:
   - template: Security/Dependency-Scanning.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml
   - template: Security/License-Scanning.gitlab-ci.yml
-  - template: Security/Container-Scanning.gitlab-ci.yml
 
 default:
   tags:
@@ -168,6 +167,15 @@ code_navigation:
       when: never
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH &&
         $GITLAB_FEATURES =~ /\bcontainer_scanning\b/
+#enable container scanning with https://gitlab.com/gitlab-com/gl-security/appsec/container-scanners
+  script: | 
+    curl -fS --request POST --form token="${PIPELINE_TRIGGER_TOKEN}" \
+       --form ref=master \
+       --form "variables[IMAGES]=$CI_REGISTRY_IMAGE/kas:latest" \
+       https://gitlab.com/api/v4/projects/16505542/trigger/pipeline
+  rules:
+     - if: ($CI_COMMIT_BRANCH == "master")
+
 
 container_scanning_kas:
   extends: .container_scanning
