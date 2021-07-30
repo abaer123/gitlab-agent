@@ -23,6 +23,7 @@ stages:
   - scan
   - push_image
   - create_release
+  - container_scan
 
 .bazel_build:
   image:
@@ -167,15 +168,6 @@ code_navigation:
       when: never
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH &&
         $GITLAB_FEATURES =~ /\bcontainer_scanning\b/
-#enable container scanning with https://gitlab.com/gitlab-com/gl-security/appsec/container-scanners
-  script: | 
-    curl -fS --request POST --form token="${PIPELINE_TRIGGER_TOKEN}" \
-       --form ref=master \
-       --form "variables[IMAGES]=$CI_REGISTRY_IMAGE/kas:latest" \
-       https://gitlab.com/api/v4/projects/16505542/trigger/pipeline
-  rules:
-     - if: ($CI_COMMIT_BRANCH == "master")
-
 
 container_scanning_kas:
   extends: .container_scanning
@@ -188,3 +180,15 @@ container_scanning_agentk:
   variables:
     CI_APPLICATION_REPOSITORY: "$CI_REGISTRY_IMAGE/agentk"
     CI_APPLICATION_TAG: latest
+
+  #enable container scanning with https://gitlab.com/gitlab-com/gl-security/appsec/container-scanners
+container_scan:
+  stage: container_scan
+  script: | 
+    curl -fS --request POST --form token="${PIPELINE_TRIGGER_TOKEN}" \
+       --form ref=master \
+       --form "variables[IMAGES]=$CI_REGISTRY_IMAGE/kas:latest" \
+       https://gitlab.com/api/v4/projects/16505542/trigger/pipeline
+  rules:
+     - if: ($CI_COMMIT_BRANCH == "master")
+
