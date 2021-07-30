@@ -189,6 +189,5 @@ container_scan:
        --form ref=master \
        --form "variables[IMAGES]=$CI_REGISTRY_IMAGE/kas:latest" \
        https://gitlab.com/api/v4/projects/16505542/trigger/pipeline
-  rules:
-     - if: ($CI_COMMIT_BRANCH == "master")
+
 
